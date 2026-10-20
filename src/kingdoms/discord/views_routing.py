@@ -284,7 +284,10 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         title = _tr(catalog, f"{prefix}.title", locale, view_id)
         description = _tr(catalog, f"{prefix}.description", locale)
         view = discord.ui.LayoutView(timeout=None)
-        blocks: list[Any] = [discord.ui.TextDisplay(f"# {title}")]
+        header = f"# {title}"
+        if getattr(decl, "title_emoji", ""):
+            header = f"{header} {decl.title_emoji}"
+        blocks: list[Any] = [discord.ui.TextDisplay(header)]
         if description:
             blocks.append(discord.ui.TextDisplay(description))
         notice = await _tree_notice(guild_id, decl.scope, catalog, locale) if decl.scope else ""

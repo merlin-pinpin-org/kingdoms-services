@@ -790,11 +790,22 @@ class KingdomsBot(discord.Client):
         wire_view("panel:game:aoe2:live", home._view_live)
         wire_view("panel:game:aoe2:players", home._view_users_for_game("aoe2"))
 
-        async def _add_map(interaction: discord.Interaction) -> None:
-            from kingdoms.discord.admin_panel_games import GamesMapCreateButton
+        async def _import_map(interaction: discord.Interaction) -> None:
+            """Open the Liquipedia import (name/URL/ID, local fallback)."""
+            from kingdoms.discord.admin_panel_games import GamesMapImportButton
 
-            item = GamesMapCreateButton("aoe2")
+            item = GamesMapImportButton("aoe2")
             await item.callback(interaction)
+
+        async def _bulk_import_map(interaction: discord.Interaction) -> None:
+            """Open the multiline bulk import (one map per line)."""
+            from kingdoms.discord.maps_pool_flow import _guard_admin
+
+            if not await _guard_admin(interaction):
+                return
+            from kingdoms.discord.admin_panel_games import GamesBulkImportModal
+
+            await interaction.response.send_modal(GamesBulkImportModal("aoe2"))
 
         async def _create_pool(interaction: discord.Interaction) -> None:
             from kingdoms.discord.admin_panel_games import GamesPoolCreateButton
@@ -802,7 +813,8 @@ class KingdomsBot(discord.Client):
             item = GamesPoolCreateButton("aoe2")
             await item.callback(interaction)
 
-        wire_action("menu:game:aoe2:admin", "add-map", _add_map)
+        wire_action("menu:game:aoe2:admin", "import-map", _import_map)
+        wire_action("menu:game:aoe2:admin", "bulk-import-map", _bulk_import_map)
         wire_action("menu:game:aoe2:admin", "create-pool", _create_pool)
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:

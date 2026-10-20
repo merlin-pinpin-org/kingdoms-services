@@ -116,9 +116,12 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="ViewDecl">class <strong>ViewDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ViewDecl">ViewDecl</a>(id:&nbsp;'str',&nbsp;kind:&nbsp;'str',&nbsp;scope:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;buttons:&nbsp;'tuple[<a href="#ButtonDecl">ButtonDecl</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ViewDecl">ViewDecl</a>(id:&nbsp;'str',&nbsp;kind:&nbsp;'str',&nbsp;scope:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;title_emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;buttons:&nbsp;'tuple[<a href="#ButtonDecl">ButtonDecl</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
-One&nbsp;declared&nbsp;view:&nbsp;its&nbsp;id,&nbsp;kind,&nbsp;scope&nbsp;and&nbsp;buttons.<br>&nbsp;</span></td></tr>
+One&nbsp;declared&nbsp;view:&nbsp;its&nbsp;id,&nbsp;kind,&nbsp;scope&nbsp;and&nbsp;buttons.<br>
+&nbsp;<br>
+``title_emoji``&nbsp;rides&nbsp;the&nbsp;menu&nbsp;header&nbsp;(an&nbsp;open&nbsp;padlock&nbsp;marks&nbsp;the<br>
+admin&nbsp;surfaces&nbsp;—&nbsp;the&nbsp;buttons&nbsp;stay&nbsp;clean,&nbsp;one&nbsp;padlock&nbsp;per&nbsp;view).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="ViewDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
@@ -132,7 +135,7 @@ One&nbsp;declared&nbsp;view:&nbsp;its&nbsp;id,&nbsp;kind,&nbsp;scope&nbsp;and&nb
 
 <dl><dt><a name="ViewDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="ViewDecl-__init__"><strong>__init__</strong></a>(self, id: 'str', kind: 'str', scope: 'str' = '', buttons: 'tuple[ButtonDecl, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ViewDecl-__init__"><strong>__init__</strong></a>(self, id: 'str', kind: 'str', scope: 'str' = '', title_emoji: 'str' = '', buttons: 'tuple[ButtonDecl, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="ViewDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -150,15 +153,17 @@ Data descriptors defined here:<br>
 </dl>
 <dl><dt><strong>scope</strong></dt>
 </dl>
+<dl><dt><strong>title_emoji</strong></dt>
+</dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'buttons': 'tuple[ButtonDecl, ...]', 'id': 'str', 'kind': 'str', 'scope': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'buttons': 'tuple[ButtonDecl, ...]', 'id': 'str', 'kind': 'str', 'scope': 'str', 'title_emoji': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'buttons': Field(name='buttons',type='tuple[ButtonDecl, ......appingproxy({}),kw_only=False,_field_type=_FIELD), 'id': Field(name='id',type='str',default=&lt;dataclasses....appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'scope': Field(name='scope',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'buttons': Field(name='buttons',type='tuple[ButtonDecl, ......appingproxy({}),kw_only=False,_field_type=_FIELD), 'id': Field(name='id',type='str',default=&lt;dataclasses....appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'scope': Field(name='scope',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'title_emoji': Field(name='title_emoji',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('id', 'kind', 'scope', 'buttons')</dl>
+<dl><dt><strong>__match_args__</strong> = ('id', 'kind', 'scope', 'title_emoji', 'buttons')</dl>
 
 </td></tr></table></td></tr></table><p>
 <table class="section">

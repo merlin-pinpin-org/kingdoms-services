@@ -40,6 +40,19 @@ def render_button(label: str, flags: list[str]) -> str:
 def render_scopes(scopes: dict) -> list[str]:
     """Render the channel-tree scopes section (the provisioned tree)."""
     lines: list[str] = []
+    lines.append("## The universal home rule")
+    lines.append("")
+    lines.append("Every menu pinned in a scope's `general` MUST (the registry rejects the drift):")
+    lines.append("")
+    lines.append("- **explain its scope** — the channel notice renders from the declared")
+    lines.append("  tree automatically (one line per channel: its link and access band);")
+    lines.append("- **navigate** — buttons to the scope's views, at least the admin surface;")
+    lines.append("- **reach admin** — one admin button (the header carries the open padlock")
+    lines.append("  on the admin surfaces, the buttons carry their own emojis).")
+    lines.append("")
+    lines.append("The rule holds for every game and every mod to come: their `general` menus")
+    lines.append("follow the same contract, their scopes declared in the same YAML.")
+    lines.append("")
     lines.append("## The channel tree (the provisioned scopes)")
     lines.append("")
     lines.append("The scopes the platform provisions — the channels and categories the")

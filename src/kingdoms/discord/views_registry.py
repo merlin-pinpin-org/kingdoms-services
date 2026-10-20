@@ -60,11 +60,16 @@ class ButtonDecl:
 
 @dataclass(frozen=True, slots=True)
 class ViewDecl:
-    """One declared view: its id, kind, scope and buttons."""
+    """One declared view: its id, kind, scope and buttons.
+
+    ``title_emoji`` rides the menu header (an open padlock marks the
+    admin surfaces — the buttons stay clean, one padlock per view).
+    """
 
     id: str
     kind: str
     scope: str = ""
+    title_emoji: str = ""
     buttons: tuple[ButtonDecl, ...] = field(default_factory=tuple)
 
 
@@ -96,6 +101,17 @@ def validate_registry() -> list[str]:
     """Return the registry's drifts (unknown targets), empty when clean."""
     drifts: list[str] = []
     for decl in _REGISTRY.values():
+        # The universal home rule (developer-mandated): every menu
+        # pinned in a scope's ``general`` explains its scope (the
+        # channel notice renders from the declared tree), navigates,
+        # and reaches the admin surface. The registry rejects a home
+        # menu without an admin button.
+        if decl.kind == KIND_MENU and decl.scope.endswith("/general"):
+            has_admin = any(b.admin for b in decl.buttons)
+            if not has_admin:
+                drifts.append(
+                    f"{decl.id}: a home menu carries navigation and its admin surface"
+                )
         for target in declared_targets(decl):
             if target not in _REGISTRY:
                 drifts.append(f"{decl.id} opens undeclared view {target}")

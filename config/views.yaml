@@ -1,266 +1,217 @@
-# The platform's views — the single source of truth.
-#
-# This YAML declares every menu and panel (docs/DEVELOPMENT/VIEWS.md in
-# the kingdoms repo renders it for humans). The runtime consumes it:
-# the menu builder, the pin registrations and the button router all
-# render from this file — a new menu is a few YAML lines, zero code.
-#
-# Vocabulary:
-#   kind      menu | panel     — a menu only navigates (buttons open
-#                               other views); a panel informs or acts
-#                               (its content comes from the wired
-#                               Python handler).
-#   scope     the channel-tree scope the view pins into (menus only);
-#                               e.g. "games/aoe2/general".
-#   buttons   list of:
-#     target  the view id the button opens (menus) — must exist in
-#             this file; rendered as `view:open:<target>`.
-#     emoji   the button's emoji (a Discord-valid emoji; the padlock
-#             rides admin buttons, the gear rides sync buttons).
-#     label   the i18n key of the button's label.
-#     admin   true -> the padlock emoji 🔒, the most discreet style.
-#     sync    true -> the channels & roles ensure button (⚙️) — never
-#             with a target.
-#     disabled true -> rendered disabled (the mod placeholders).
-#     action  a menu-level action id (e.g. add-map) — rendered disabled
-#             unless the code wires a handler for it.
-#
-# YAML anchors (&name) and aliases (*name) keep the repetition out:
-# &admin-sync is the standard admin sync button, *game-btn the
-# per-game admin opener. Anchors are a YAML feature — they resolve at
-# load time and never reach the runtime.
-
 views:
-
   menu:home:
     kind: menu
     scope: root/general
-    buttons: &home-buttons
-      - target: panel:profile
-        label: ui.homes.btn_profile
-        emoji: "\U0001F464"
-      - target: menu:games:home
-        label: ui.homes.btn_games
-        emoji: "\U0001F3AE"
-      - target: menu:mods:home
-        label: ui.homes.btn_mods
-        emoji: "\U0001F9E9"
-      - target: menu:admin
-        label: ui.homes.btn_admin
-        admin: true
-
+    buttons:
+    - target: panel:profile
+      label: ui.homes.btn_profile
+      emoji: 👤
+    - target: menu:games:home
+      label: ui.homes.btn_games
+      emoji: 🎮
+    - target: menu:mods:home
+      label: ui.homes.btn_mods
+      emoji: 🧩
+    - target: menu:admin
+      label: ui.homes.btn_admin
+      admin: true
   panel:profile:
     kind: panel
-
   menu:admin:
     kind: menu
     scope: bot/admin
     buttons:
-      - target: panel:status
-        label: ui.homes.btn_status
-      - target: menu:games:admin
-        label: ui.homes.btn_games
-        admin: true
-      - target: menu:mods:admin
-        label: ui.homes.btn_mods
-        admin: true
-      - label: ui.homes.btn_sync
-        sync: true
-
+    - target: panel:status
+      label: ui.homes.btn_status
+      emoji: 📊
+    - target: menu:games:admin
+      label: ui.homes.btn_games
+      admin: true
+      emoji: 🎮
+    - target: menu:mods:admin
+      label: ui.homes.btn_mods
+      admin: true
+      emoji: 🧩
+    - label: ui.homes.btn_sync
+      sync: true
+    title_emoji: 🔓
   panel:status:
     kind: panel
-
   menu:games:home:
     kind: menu
     scope: games/general
     buttons:
-      - target: menu:games:aoe2
-        label: ui.games.homes.aoe2
-      - target: menu:games:admin
-        label: ui.homes.btn_games
-        admin: true
-
+    - target: menu:games:aoe2
+      label: ui.games.homes.aoe2
+      emoji: ⚔️
+    - target: menu:games:admin
+      label: ui.homes.btn_games
+      admin: true
   menu:games:admin:
     kind: menu
     scope: games/admin
     buttons:
-      - target: menu:game:aoe2:admin
-        label: ui.games.homes.aoe2
-        admin: true
-      - label: ui.homes.btn_sync
-        sync: true
-
+    - target: menu:game:aoe2:admin
+      label: ui.games.homes.aoe2
+      admin: true
+    - label: ui.homes.btn_sync
+      sync: true
+    title_emoji: 🔓
   menu:games:aoe2:
     kind: menu
     scope: games/aoe2/general
-    buttons: &game-buttons
-      - target: panel:game:aoe2:live
-        label: ui.homes.btn_live
-      - target: panel:game:aoe2:players
-        label: ui.homes.btn_users
-      - target: menu:game:aoe2:admin
-        label: ui.homes.btn_admin
-        admin: true
-
+    buttons:
+    - target: panel:game:aoe2:live
+      label: ui.homes.btn_live
+      emoji: 📡
+    - target: panel:game:aoe2:players
+      label: ui.homes.btn_users
+      emoji: 👥
+    - target: menu:game:aoe2:admin
+      label: ui.homes.btn_admin
+      admin: true
   menu:game:aoe2:admin:
     kind: menu
     scope: games/aoe2/admin
     buttons:
-      - label: ui.homes.btn_add_map
-        action: add-map
-      - label: ui.homes.btn_create_pool
-        action: create-pool
-      - label: ui.homes.btn_sync
-        sync: true
-
+    - label: ui.homes.btn_add_map
+      action: import-map
+      emoji: 🌟
+    - label: ui.games.bulk_import_map
+      action: bulk-import-map
+      emoji: 📚
+    - label: ui.homes.btn_create_pool
+      action: create-pool
+      emoji: 🧱
+    - label: ui.homes.btn_sync
+      sync: true
+    title_emoji: 🔓
   panel:game:aoe2:live:
     kind: panel
-
   panel:game:aoe2:players:
     kind: panel
-
   menu:mods:home:
     kind: menu
     scope: mods/general
     buttons:
-      - target: menu:mod:ladder
-        label: ui.mods.homes.ladder
-        disabled: true
-      - target: menu:mod:tournament
-        label: ui.mods.homes.tournament
-        disabled: true
-      - target: menu:mod:kingdom
-        label: ui.mods.homes.kingdom
-        disabled: true
-      - target: menu:mods:admin
-        label: ui.homes.btn_mods
-        admin: true
-
+    - target: menu:mod:ladder
+      label: ui.mods.homes.ladder
+      disabled: true
+      emoji: 🏆
+    - target: menu:mod:tournament
+      label: ui.mods.homes.tournament
+      disabled: true
+      emoji: 🎯
+    - target: menu:mod:kingdom
+      label: ui.mods.homes.kingdom
+      disabled: true
+      emoji: 👑
+    - target: menu:mods:admin
+      label: ui.homes.btn_mods
+      admin: true
   menu:mods:admin:
     kind: menu
     scope: mods/admin
     buttons:
-      - target: menu:mod:ladder:admin
-        label: ui.mods.homes.ladder
-        disabled: true
-        admin: true
-      - target: menu:mod:tournament:admin
-        label: ui.mods.homes.tournament
-        disabled: true
-        admin: true
-      - target: menu:mod:kingdom:admin
-        label: ui.mods.homes.kingdom
-        disabled: true
-        admin: true
-      - label: ui.homes.btn_sync
-        sync: true
-
-  # The mod placeholders — targets declared so the buttons exist and
-  # validate; disabled until the mods ship.
-
+    - target: menu:mod:ladder:admin
+      label: ui.mods.homes.ladder
+      disabled: true
+      admin: true
+    - target: menu:mod:tournament:admin
+      label: ui.mods.homes.tournament
+      disabled: true
+      admin: true
+    - target: menu:mod:kingdom:admin
+      label: ui.mods.homes.kingdom
+      disabled: true
+      admin: true
+    - label: ui.homes.btn_sync
+      sync: true
+    title_emoji: 🔓
   menu:mod:ladder:
     kind: menu
-
   menu:mod:tournament:
     kind: menu
-
   menu:mod:kingdom:
     kind: menu
-
   menu:mod:ladder:admin:
     kind: menu
-
   menu:mod:tournament:admin:
     kind: menu
-
   menu:mod:kingdom:admin:
     kind: menu
-
-# The channel tree — the scopes the platform provisions, declared here
-# (the single source of truth; panels_scopes mirrors it at boot until
-# the loader fully replaces it, then this section generates the
-# channels and categories, and the sync button recreates them).
-#
-# channel fields: key (stable resolution id), label (i18n key), kind
-# (text|forum), access (public|readonly|admin).
-
 scopes:
-
   root:
     channels:
-      - key: general
-        label: ui.panels.channels.general
-        kind: text
-        access: readonly
-      - key: discussions
-        label: ui.panels.channels.discussions
-        kind: text
-        access: public
-
+    - key: general
+      label: ui.panels.channels.general
+      kind: text
+      access: readonly
+    - key: discussions
+      label: ui.panels.channels.discussions
+      kind: text
+      access: public
   bot:
     category: ui.panels.categories.bot
     channels:
-      - key: logs
-        label: ui.panels.channels.logs
-        kind: text
-        access: admin
-      - key: admin
-        label: ui.panels.channels.admin
-        kind: text
-        access: admin
-      - key: decisions
-        label: ui.panels.channels.decisions
-        kind: text
-        access: admin
-
+    - key: logs
+      label: ui.panels.channels.logs
+      kind: text
+      access: admin
+    - key: admin
+      label: ui.panels.channels.admin
+      kind: text
+      access: admin
+    - key: decisions
+      label: ui.panels.channels.decisions
+      kind: text
+      access: admin
   games:
     category: ui.panels.categories.games
     channels:
-      - key: general
-        label: ui.panels.channels.general
-        kind: text
-        access: readonly
-      - key: admin
-        label: ui.panels.channels.admin
-        kind: text
-        access: admin
-
+    - key: general
+      label: ui.panels.channels.general
+      kind: text
+      access: readonly
+    - key: admin
+      label: ui.panels.channels.admin
+      kind: text
+      access: admin
   games/aoe2:
     category: ui.panels.categories.games_aoe2
     channels:
-      - key: general
-        label: ui.panels.channels.general
-        kind: text
-        access: readonly
-      - key: live
-        label: ui.panels.channels.live
-        kind: text
-        access: readonly
-      - key: civs
-        label: ui.panels.channels.civs
-        kind: forum
-        access: readonly
-      - key: maps
-        label: ui.panels.channels.maps
-        kind: forum
-        access: readonly
-      - key: map-pools
-        label: ui.panels.channels.map_pools
-        kind: forum
-        access: readonly
-      - key: admin
-        label: ui.panels.channels.admin
-        kind: text
-        access: admin
-
+    - key: general
+      label: ui.panels.channels.general
+      kind: text
+      access: readonly
+    - key: live
+      label: ui.panels.channels.live
+      kind: text
+      access: readonly
+    - key: civs
+      label: ui.panels.channels.civs
+      kind: forum
+      access: readonly
+    - key: maps
+      label: ui.panels.channels.maps
+      kind: forum
+      access: readonly
+    - key: map-pools
+      label: ui.panels.channels.map_pools
+      kind: forum
+      access: readonly
+    - key: admin
+      label: ui.panels.channels.admin
+      kind: text
+      access: admin
   mods:
     category: ui.panels.categories.mods
     channels:
-      - key: general
-        label: ui.panels.channels.general
-        kind: text
-        access: readonly
-      - key: admin
-        label: ui.panels.channels.admin
-        kind: text
-        access: admin
+    - key: general
+      label: ui.panels.channels.general
+      kind: text
+      access: readonly
+    - key: admin
+      label: ui.panels.channels.admin
+      kind: text
+      access: admin

@@ -79,7 +79,7 @@ def test_the_game_admin_menu_declares_its_actions() -> None:
     admin_menu = get_view("menu:game:aoe2:admin")
     assert admin_menu is not None
     actions = {b.action for b in admin_menu.buttons if b.action}
-    assert actions == {"add-map", "create-pool"}
+    assert actions == {"import-map", "bulk-import-map", "create-pool"}
     for button in admin_menu.buttons:
         if button.action:
             assert not button.target, "an action button never navigates"

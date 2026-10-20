@@ -344,7 +344,11 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-action_is_wired"><strong>action_is_wired</strong></a>(view_id: 'str', action_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;declared&nbsp;action&nbsp;has&nbsp;a&nbsp;handler.</span></dd></dl>
- <dl><dt>async <a name="-open_declared_view"><strong>open_declared_view</strong></a>(interaction: 'discord.Interaction', view_id: 'str') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;a&nbsp;declared&nbsp;view&nbsp;by&nbsp;id&nbsp;(ephemeral),&nbsp;unknown&nbsp;ids&nbsp;answered.</span></dd></dl>
+ <dl><dt>async <a name="-open_declared_view"><strong>open_declared_view</strong></a>(interaction: 'discord.Interaction', view_id: 'str') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;a&nbsp;declared&nbsp;view&nbsp;by&nbsp;id&nbsp;(ephemeral),&nbsp;unknown&nbsp;ids&nbsp;answered.<br>
+&nbsp;<br>
+A&nbsp;wired&nbsp;panel&nbsp;runs&nbsp;its&nbsp;handler;&nbsp;a&nbsp;menu&nbsp;(no&nbsp;handler&nbsp;—&nbsp;menus&nbsp;only<br>
+navigate)&nbsp;builds&nbsp;from&nbsp;the&nbsp;registry&nbsp;and&nbsp;answers&nbsp;directly.&nbsp;Only<br>
+an&nbsp;id&nbsp;that&nbsp;is&nbsp;neither&nbsp;wired&nbsp;nor&nbsp;declared&nbsp;answers&nbsp;"unknown&nbsp;view".</span></dd></dl>
  <dl><dt><a name="-register_view_router"><strong>register_view_router</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;router's&nbsp;DynamicItems&nbsp;(every&nbsp;startup).</span></dd></dl>
  <dl><dt>async <a name="-run_declared_action"><strong>run_declared_action</strong></a>(interaction: 'discord.Interaction', view_id: 'str', action_id: 'str') -&gt; 'None'</dt><dd><span class="code">Run&nbsp;a&nbsp;declared&nbsp;action's&nbsp;handler;&nbsp;unwired&nbsp;actions&nbsp;answered.</span></dd></dl>
  <dl><dt><a name="-wire_action"><strong>wire_action</strong></a>(view_id: 'str', action_id: 'str', handler: 'Handler') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;one&nbsp;declared&nbsp;action's&nbsp;handler&nbsp;(idempotent,&nbsp;last&nbsp;wins).</span></dd></dl>

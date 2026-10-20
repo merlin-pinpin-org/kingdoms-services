@@ -755,7 +755,12 @@ async def _view_live(interaction: discord.Interaction) -> None:
         [str(p.get("profile_id", "")) for p in snapshot.get("players", [])]
     )
     body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
-    await interaction.followup.send(body, ephemeral=True)
+    from kingdoms.discord.live import _dashboard_embeds
+
+    embeds = _dashboard_embeds(snapshot, body, None, locale=str(interaction.locale or "en"))
+    for embed in embeds:
+        embed.set_footer(text="panel:game:aoe2:live")
+    await interaction.followup.send(embed=embeds[0], ephemeral=True)
 
 
 async def _view_game_for_guild(interaction: discord.Interaction, game_key: str) -> None:
@@ -1019,9 +1024,10 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
 def _view_users_for_game(game_key: str) -> Any:
     """Build the players panel opener for one game (generic, per game).
 
-    The panel lists the registered players of that game — name and
-    linked account, one line each, capped at Discord's budget — with
-    the view id footer ``panel:game:<key>:players``.
+    One line per registered member: their bold display name, then
+    every profile of that game as an aoe2insights link. The header
+    carries the game's long label (never the game key), the footer
+    the view id.
     """
 
     async def _open(interaction: discord.Interaction) -> None:
@@ -1036,21 +1042,40 @@ def _view_users_for_game(game_key: str) -> Any:
         except Exception:
             logger.warning("PLAYERS PANEL roster read failed (%s)", game_key, exc_info=True)
             bindings = []
-        lines_list: list[str] = []
-        for binding in bindings[:25]:
-            profile = binding.get("profile") or {}
-            name = str(profile.get("display_name") or profile.get("name") or "") or "?"
-            pid = str(binding.get("profile_id", "?"))
-            url = _game_account_url(game_key, pid)
-            account = f"[{name}]({url})" if url else name
-            lines_list.append(f"\u2022 {account} (`{pid}`)")
-        body = "\n".join(lines_list) if lines_list else await reply(interaction, "profile.no_members_bound")
+
+        # group by Discord user: one line per member, all their profiles
+        from collections import defaultdict
+
+        by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for binding in bindings:
+            user_id = str(binding.get("user_id", "") or "")
+            if user_id:
+                by_user[user_id].append(binding)
+
+        lines: list[str] = []
+        guild = bot.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
+        for user_id, user_bindings in list(by_user.items())[:25]:
+            member = guild.get_member(int(user_id)) if guild is not None else None
+            pseudo = getattr(member, "display_name", None) or f"<@{user_id}>"
+            profiles: list[str] = []
+            for binding in user_bindings:
+                profile = binding.get("profile") or {}
+                name = (
+                    str(profile.get("display_name") or profile.get("name") or "")
+                    or str(binding.get("profile_id", "?"))
+                )
+                pid = str(binding.get("profile_id", "?"))
+                url = _game_account_url(game_key, pid)
+                profiles.append(f"[{name}]({url})" if url else name)
+            lines.append(f"\u2022 **{pseudo}**: {', '.join(profiles)}")
+
+        body = "\n".join(lines) if lines else await reply(interaction, "profile.no_members_bound")
         from kingdoms.core.ids import footer
 
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(
             discord.ui.Container(
-                discord.ui.TextDisplay(f"# \U0001f465 {game_key}\n\n{body}"),
+                discord.ui.TextDisplay(f"# \U0001F465 {_game_label(game_key)}\n\n{body}"),
                 accent_colour=discord.Colour(0x5865F2),
             )
         )
