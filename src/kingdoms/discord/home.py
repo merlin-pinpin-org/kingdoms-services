@@ -800,6 +800,7 @@ def _async_layout(home: HomeService) -> Any:
     """Return the awaited-layout builder expected by PinnedMenuService."""
 
     async def build(guild_id: str) -> discord.ui.LayoutView:
+        """Build the pinned home menu (guild-independent)."""
         del guild_id
         return build_home_menu(home)
 
