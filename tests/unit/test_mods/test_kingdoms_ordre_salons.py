@@ -22,6 +22,7 @@ from kingdoms.mods.kingdoms.kingdom_setup import (
     _apply_charte_topics,
     _apply_structure_charte,
     _enforce_category_order,
+    _enforce_player_category_gating,
     _ensure_charte_dividers,
     _hide_conscription_from_players,
     _slug,
@@ -260,3 +261,51 @@ async def test_orphan_sweep_keeps_legacy_named_gaia() -> None:
 
     assert deleted == 0
     assert gaia.id in {c.id for c in guild.categories}
+
+
+# ------------------------------------------------- player category gating
+
+
+async def test_player_category_headers_hidden_from_everyone() -> None:
+    """permissions-serveur-v1 (20/10): a newcomer sees only Beta and
+    Conscription — the four player category HEADERS are denied to
+    @everyone and unlocked through the player roles."""
+    guild = MockGuild()
+    categories = [
+        await guild.create_category(name)
+        for name in ("👤 ᴘʀᴏꜰɪʟs", "🏰 ᴋɪɴɢᴅᴏᴍs", "🏰 ɢᴀɪᴀ", "⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ")
+    ]
+    lord = await guild.create_role(name="Kingdoms Lord")
+    admin = await guild.create_role(name="Kingdoms Admin")
+
+    await _enforce_player_category_gating(guild)
+
+    for category in categories:
+        everyone = guild.default_role
+        deny = category.permission_overwrite_for(everyone)
+        assert deny is not None and deny.view_channel is False, category.name
+        allow = category.permission_overwrite_for(lord)
+        assert allow is not None and allow.view_channel is True, category.name
+        admin_allow = category.permission_overwrite_for(admin)
+        assert admin_allow is not None and admin_allow.view_channel is True
+        bot_allow = category.permission_overwrite_for(guild.me)
+        assert bot_allow is not None and bot_allow.view_channel is True
+
+
+async def test_player_category_gating_is_idempotent_and_adopts_plain_names() -> None:
+    """The gating re-runs cleanly and catches a category renamed back to
+    its plain form (decoration-blind slug, Check 87 bug class)."""
+    guild = MockGuild()
+    plain = await guild.create_category("Kingdoms")
+
+    await _enforce_player_category_gating(guild)
+    await _enforce_player_category_gating(guild)  # idempotent
+
+    deny = plain.permission_overwrite_for(guild.default_role)
+    assert deny is not None and deny.view_channel is False
+
+
+async def test_player_category_gating_skips_absent_categories() -> None:
+    """A guild missing the categories (e.g. mid-provision) is a no-op."""
+    guild = MockGuild()
+    await _enforce_player_category_gating(guild)  # must not raise
