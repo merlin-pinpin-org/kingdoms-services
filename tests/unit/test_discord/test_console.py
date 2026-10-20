@@ -16,12 +16,12 @@ from kingdoms.core.services.mod_definition import (
     RoleDef,
 )
 from kingdoms.core.services.mod_registry import ModRegistry
-from kingdoms.discord.dev_console import (
-    DEV_CONSOLE_ENV_VAR,
+from kingdoms.discord.console import (
+    CONSOLE_ENV_VAR,
     _propagate,
-    dev_console_enabled,
+    console_enabled,
 )
-from kingdoms.discord.dev_guilds import (
+from kingdoms.discord.console_guilds import (
     TEST_GUILD_IDS_ENV_VAR,
     is_test_guild,
     parse_test_guild_ids,
@@ -63,16 +63,16 @@ def _registry() -> ModRegistry:
     )
 
 
-def test_dev_console_opt_in_gate() -> None:
-    assert dev_console_enabled({DEV_CONSOLE_ENV_VAR: "1"}) is True
-    assert dev_console_enabled({DEV_CONSOLE_ENV_VAR: "true"}) is True
-    assert dev_console_enabled({}) is False
-    assert dev_console_enabled({DEV_CONSOLE_ENV_VAR: "0"}) is False
-    assert dev_console_enabled({DEV_CONSOLE_ENV_VAR: ""}) is False
+def test_console_opt_in_gate() -> None:
+    assert console_enabled({CONSOLE_ENV_VAR: "1"}) is True
+    assert console_enabled({CONSOLE_ENV_VAR: "true"}) is True
+    assert console_enabled({}) is False
+    assert console_enabled({CONSOLE_ENV_VAR: "0"}) is False
+    assert console_enabled({CONSOLE_ENV_VAR: ""}) is False
 
 
 def test_prod_env_is_recognized() -> None:
-    from kingdoms.discord.dev_console import PROD_ENV_NAMES
+    from kingdoms.discord.console import PROD_ENV_NAMES
 
     assert "prod" in PROD_ENV_NAMES
     assert "production" in PROD_ENV_NAMES
@@ -85,10 +85,10 @@ def test_test_guild_allowlist_parses_and_validates(monkeypatch: Any) -> None:
     assert ids == frozenset({"123456789", "987654321", "42"})
     import importlib
 
-    import kingdoms.discord.dev_guilds as dev_guilds
+    import kingdoms.discord.console_guilds as console_guilds
 
     monkeypatch.setenv(TEST_GUILD_IDS_ENV_VAR, "42")
-    reloaded = importlib.reload(dev_guilds)
+    reloaded = importlib.reload(console_guilds)
     try:
         assert reloaded.is_test_guild(42)
         assert reloaded.is_test_guild("42")
@@ -96,7 +96,7 @@ def test_test_guild_allowlist_parses_and_validates(monkeypatch: Any) -> None:
         assert not reloaded.is_test_guild(None)
     finally:
         monkeypatch.delenv(TEST_GUILD_IDS_ENV_VAR, raising=False)
-        importlib.reload(dev_guilds)
+        importlib.reload(console_guilds)
 
 
 def test_test_guild_allowlist_refuses_non_numeric() -> None:
@@ -117,10 +117,36 @@ def test_empty_allowlist_disables_everywhere() -> None:
     assert not any(is_test_guild(g) for g in ("123456789", "1", "999999999999"))
 
 
+def test_console_view_buttons_disabled_outside_allowlist(monkeypatch: Any) -> None:
+    """Buttons render visible-but-disabled outside the allowlist, enabled inside."""
+    from kingdoms.discord import console as console_mod
+    from kingdoms.discord import console_guilds
+
+    def button_states(guild_id: str) -> list[bool]:
+        view = console_mod._console_view(guild_id)
+        stack = list(getattr(view, "children", []) or [])
+        states: list[bool] = []
+        while stack:
+            item = stack.pop()
+            if "Button" in type(item).__name__:
+                states.append(bool(item.item.disabled))
+            stack.extend(getattr(item, "children", []) or [])
+        return states
+
+    states = button_states("111222333")
+    assert len(states) == 4
+    assert all(states)
+
+    monkeypatch.setattr(console_guilds, "_TEST_GUILD_IDS", frozenset({"111222333"}))
+    states = button_states("111222333")
+    assert len(states) == 4
+    assert not any(states)
+
+
 async def test_reset_guild_data_queries_are_guild_scoped(monkeypatch: Any) -> None:
     """Every reset query must carry the guild scope; global collections absent."""
     import kingdoms.core.models.db as db_mod
-    import kingdoms.discord.dev_console as dev_console
+    import kingdoms.discord.console as console_mod
 
     queries: dict[str, Any] = {}
 
@@ -141,7 +167,7 @@ async def test_reset_guild_data_queries_are_guild_scoped(monkeypatch: Any) -> No
 
     monkeypatch.setattr(db_mod, "get_async_database", lambda: FakeDatabase(), raising=False)
     guild_id = "12345"
-    await dev_console._reset_guild_data(guild_id)
+    await console_mod._reset_guild_data(guild_id)
     global_collections = {
         "maps",
         "map_pools",

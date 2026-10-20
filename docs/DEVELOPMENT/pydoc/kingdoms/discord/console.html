@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Python: kingdoms.discord.dev_console</title>
+<title>Python: kingdoms.discord.console</title>
 </head><body>
 
 <table class="heading">
 <tr class="heading-text decor">
-<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.dev_console</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/dev_console.py">SOURCE_ROOT/discord/dev_console.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;dev&nbsp;console:&nbsp;a&nbsp;destructive&nbsp;ops&nbsp;surface&nbsp;for&nbsp;test&nbsp;environments&nbsp;only.<br>
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.console</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/console.py">SOURCE_ROOT/discord/console.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;ops&nbsp;console:&nbsp;a&nbsp;destructive&nbsp;surface&nbsp;for&nbsp;the&nbsp;test&nbsp;guilds&nbsp;only.<br>
 &nbsp;<br>
 Three&nbsp;layers&nbsp;of&nbsp;protection&nbsp;(developer-mandated&nbsp;—&nbsp;"que&nbsp;ça&nbsp;n'arrive<br>
 jamais&nbsp;en&nbsp;prod"):<br>
 &nbsp;<br>
-1.&nbsp;**Registration&nbsp;gate**&nbsp;—&nbsp;the&nbsp;``/dev``&nbsp;command&nbsp;is&nbsp;only&nbsp;registered&nbsp;when<br>
+1.&nbsp;**Registration&nbsp;gate**&nbsp;—&nbsp;the&nbsp;``/console``&nbsp;command&nbsp;is&nbsp;only&nbsp;registered&nbsp;when<br>
 &nbsp;&nbsp;&nbsp;the&nbsp;environment&nbsp;opts&nbsp;in&nbsp;(``KINGDOMS_DEV_CONSOLE=1``).&nbsp;CI,&nbsp;unit&nbsp;tests<br>
 &nbsp;&nbsp;&nbsp;and&nbsp;production-style&nbsp;boots&nbsp;never&nbsp;even&nbsp;see&nbsp;the&nbsp;command.<br>
 2.&nbsp;**Runtime&nbsp;gate**&nbsp;—&nbsp;every&nbsp;invocation&nbsp;re-reads&nbsp;``KINGDOMS_DEPLOY_ENV``<br>
@@ -57,8 +57,8 @@ Capabilities:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-dev_console_enabled"><strong>dev_console_enabled</strong></a>(environ: 'dict[str, str] | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;this&nbsp;boot&nbsp;must&nbsp;register&nbsp;the&nbsp;dev&nbsp;console&nbsp;(opt-in&nbsp;only).</span></dd></dl>
- <dl><dt><a name="-register_dev_console"><strong>register_dev_console</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/dev&nbsp;command&nbsp;(call&nbsp;only&nbsp;when&nbsp;<a href="#-dev_console_enabled">dev_console_enabled</a>()).<br>
+<td class="singlecolumn"><dl><dt><a name="-console_enabled"><strong>console_enabled</strong></a>(environ: 'dict[str, str] | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;this&nbsp;boot&nbsp;must&nbsp;register&nbsp;the&nbsp;dev&nbsp;console&nbsp;(opt-in&nbsp;only).</span></dd></dl>
+ <dl><dt><a name="-register_console"><strong>register_console</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/console&nbsp;command&nbsp;(call&nbsp;only&nbsp;when&nbsp;<a href="#-console_enabled">console_enabled</a>()).<br>
 &nbsp;<br>
 The&nbsp;registration&nbsp;itself&nbsp;is&nbsp;the&nbsp;first&nbsp;prod&nbsp;barrier:&nbsp;CI,&nbsp;unit&nbsp;tests<br>
 and&nbsp;production&nbsp;boots&nbsp;never&nbsp;register&nbsp;the&nbsp;command,&nbsp;so&nbsp;it&nbsp;cannot&nbsp;be<br>
@@ -71,6 +71,6 @@ allowlist&nbsp;→&nbsp;fail&nbsp;closed,&nbsp;no&nbsp;console&nbsp;anywhere).</
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DEV_CONSOLE_ENV_VAR</strong> = 'KINGDOMS_DEV_CONSOLE'<br>
-<strong>__all__</strong> = ['DEV_CONSOLE_ENV_VAR', 'dev_console_enabled', 'register_dev_console']</td></tr></table>
+<td class="singlecolumn"><strong>CONSOLE_ENV_VAR</strong> = 'KINGDOMS_DEV_CONSOLE'<br>
+<strong>__all__</strong> = ['CONSOLE_ENV_VAR', 'console_enabled', 'register_console']</td></tr></table>
 </body></html>

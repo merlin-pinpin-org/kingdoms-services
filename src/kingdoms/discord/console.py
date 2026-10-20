@@ -1,9 +1,9 @@
-"""The dev console: a destructive ops surface for test environments only.
+"""The ops console: a destructive surface for the test guilds only.
 
 Three layers of protection (developer-mandated \u2014 "que \u00e7a n'arrive
 jamais en prod"):
 
-1. **Registration gate** \u2014 the ``/dev`` command is only registered when
+1. **Registration gate** \u2014 the ``/console`` command is only registered when
    the environment opts in (``KINGDOMS_DEV_CONSOLE=1``). CI, unit tests
    and production-style boots never even see the command.
 2. **Runtime gate** \u2014 every invocation re-reads ``KINGDOMS_DEPLOY_ENV``
@@ -41,29 +41,29 @@ from typing import Any
 import discord
 from discord import app_commands
 
-from kingdoms.discord.dev_guilds import allowed_test_guild_ids, is_test_guild
+from kingdoms.discord.console_guilds import allowed_test_guild_ids, is_test_guild
 from kingdoms.discord.guards import require_admin
 
-logger = logging.getLogger("kingdoms.discord.dev_console")
+logger = logging.getLogger("kingdoms.discord.console")
 
 __all__ = [
-    "DEV_CONSOLE_ENV_VAR",
-    "dev_console_enabled",
-    "register_dev_console",
+    "CONSOLE_ENV_VAR",
+    "console_enabled",
+    "register_console",
 ]
 
-DEV_CONSOLE_ENV_VAR = "KINGDOMS_DEV_CONSOLE"
+CONSOLE_ENV_VAR = "KINGDOMS_DEV_CONSOLE"
 DEPLOY_ENV_VAR = "KINGDOMS_DEPLOY_ENV"
 
 PROD_ENV_NAMES = ("prod", "production")
 
-_NS = "dev:console"
+_NS = "console"
 
 
-def dev_console_enabled(environ: dict[str, str] | None = None) -> bool:
+def console_enabled(environ: dict[str, str] | None = None) -> bool:
     """Whether this boot must register the dev console (opt-in only)."""
     env = os.environ if environ is None else environ
-    return env.get(DEV_CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes")
+    return env.get(CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes")
 
 
 def _deploy_env(environ: dict[str, str] | None = None) -> str:
@@ -73,14 +73,14 @@ def _deploy_env(environ: dict[str, str] | None = None) -> str:
 
 def _prod_refusal() -> str:
     return (
-        "The dev console is disabled: this bot runs on a production environment "
+        "The console is disabled: this bot runs on a production environment "
         f"({DEPLOY_ENV_VAR}). It is available on test environments only."
     )
 
 
 def _guild_refusal() -> str:
     return (
-        "The dev console is disabled on this guild: only the guild ids declared "
+        "This guild is not on the console allowlist: only the guild ids declared "
         "in the environment (KINGDOMS_TEST_GUILD_IDS) may use it."
     )
 
@@ -114,7 +114,7 @@ async def _delete_managed(interaction: discord.Interaction) -> tuple[int, int]:
                 await channel.delete(reason="kingdoms dev console: managed clean")
                 channels_deleted += 1
             except Exception:
-                logger.warning("DEV CONSOLE channel delete failed (%s)", doc.get("name"), exc_info=True)
+                logger.warning("CONSOLE channel delete failed (%s)", doc.get("name"), exc_info=True)
         await database[CHANNELS_COLLECTION].delete_one({"_id": doc["_id"]})
     async for mapping in database[ROLE_MAPPINGS_COLLECTION].find({"guild_id": guild_id}):
         role = guild.get_role(int(str(mapping["role_id"])))
@@ -123,7 +123,7 @@ async def _delete_managed(interaction: discord.Interaction) -> tuple[int, int]:
                 await role.delete(reason="kingdoms dev console: managed clean")
                 roles_deleted += 1
             except Exception:
-                logger.warning("DEV CONSOLE role delete failed (%s)", mapping.get("role_key"), exc_info=True)
+                logger.warning("CONSOLE role delete failed (%s)", mapping.get("role_key"), exc_info=True)
         await database[ROLE_MAPPINGS_COLLECTION].delete_one({"_id": mapping["_id"]})
     bot_admins = discord.utils.get(guild.roles, name="bot-admins")
     if bot_admins is not None:
@@ -131,7 +131,7 @@ async def _delete_managed(interaction: discord.Interaction) -> tuple[int, int]:
             await bot_admins.delete(reason="kingdoms dev console: managed clean")
             roles_deleted += 1
         except Exception:
-            logger.warning("DEV CONSOLE bot-admins role delete failed", exc_info=True)
+            logger.warning("CONSOLE bot-admins role delete failed", exc_info=True)
     return channels_deleted, roles_deleted
 
 
@@ -146,7 +146,7 @@ async def _nuke_everything(interaction: discord.Interaction) -> tuple[int, int]:
             await channel.delete(reason="kingdoms dev console: nuke")
             channels_deleted += 1
         except Exception:
-            logger.warning("DEV CONSOLE nuke channel failed", exc_info=True)
+            logger.warning("CONSOLE nuke channel failed", exc_info=True)
     for role in list(getattr(guild, "roles", ()) or ()):
         if role.is_default() or role.managed:
             continue
@@ -154,7 +154,7 @@ async def _nuke_everything(interaction: discord.Interaction) -> tuple[int, int]:
             await role.delete(reason="kingdoms dev console: nuke")
             roles_deleted += 1
         except Exception:
-            logger.warning("DEV CONSOLE nuke role failed", exc_info=True)
+            logger.warning("CONSOLE nuke role failed", exc_info=True)
     from kingdoms.core.models.db import get_async_database
     from kingdoms.core.services.channel import CHANNELS_COLLECTION
     from kingdoms.core.services.roles import ROLE_MAPPINGS_COLLECTION
@@ -223,7 +223,7 @@ async def _reset_guild_data(guild_id: str) -> dict[str, int]:
             result = await database[collection].delete_many(query)
             deleted[collection] = int(result.deleted_count)
         except Exception:
-            logger.warning("DEV CONSOLE reset failed (%s)", collection, exc_info=True)
+            logger.warning("CONSOLE reset failed (%s)", collection, exc_info=True)
             deleted[collection] = -1
     return deleted
 
@@ -248,7 +248,7 @@ async def _uninstall_mod(interaction: discord.Interaction, mod_name: str) -> Non
                 try:
                     await channel.delete(reason=f"kingdoms dev console: uninstall {mod_name}")
                 except Exception:
-                    logger.warning("DEV CONSOLE uninstall channel failed (%s)", category, exc_info=True)
+                    logger.warning("CONSOLE uninstall channel failed (%s)", category, exc_info=True)
         await channel_service._db.delete_channel(guild_id, category)
         await channel_service._cache.delete_state("channels", f"{guild_id}:{category}")
     if mod_roles_service is None:
@@ -259,7 +259,7 @@ async def _uninstall_mod(interaction: discord.Interaction, mod_name: str) -> Non
             try:
                 await role.delete(reason=f"kingdoms dev console: uninstall {mod_name}")
             except Exception:
-                logger.warning("DEV CONSOLE uninstall role failed (%s)", mapping.role_key, exc_info=True)
+                logger.warning("CONSOLE uninstall role failed (%s)", mapping.role_key, exc_info=True)
         await mod_roles_service._db.delete_role_mapping(guild_id, mod_name, mapping.role_key)
         await mod_roles_service._cache.delete_state("roles:mod", f"{guild_id}:{mod_name}:{mapping.role_key}")
 
@@ -291,7 +291,7 @@ async def _apply_selection(interaction: discord.Interaction, mods: list[str], ga
                 await mod_roles_service.setup_mod_roles(guild_id, mod_name)
                 provisioned += 1
             except Exception:
-                logger.warning("DEV CONSOLE provisioning failed (%s)", mod_name, exc_info=True)
+                logger.warning("CONSOLE provisioning failed (%s)", mod_name, exc_info=True)
     lines.append(f"{provisioned} mod(s) provisioned.")
     return "\n".join(lines)
 
@@ -302,41 +302,53 @@ async def _guard(interaction: discord.Interaction) -> bool:
         try:
             await interaction.response.send_message(_prod_refusal(), ephemeral=True)
         except Exception:
-            logger.warning("DEV CONSOLE prod refusal answer failed", exc_info=True)
+            logger.warning("CONSOLE prod refusal answer failed", exc_info=True)
         return False
     if not is_test_guild(interaction.guild_id):
         try:
             await interaction.response.send_message(_guild_refusal(), ephemeral=True)
         except Exception:
-            logger.warning("DEV CONSOLE guild refusal answer failed", exc_info=True)
+            logger.warning("CONSOLE guild refusal answer failed", exc_info=True)
         return False
     bot = interaction.client
     admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
     roles = getattr(bot, "roles_service", None)
     return await require_admin(
-        interaction, admins, roles, denied_message="The dev console is reserved for bot admins."
+        interaction, admins, roles, denied_message="The console is reserved for bot admins."
     )
 
 
-def _console_view() -> discord.ui.LayoutView:
-    """Build the console home: the two clean buttons and the install button."""
+def _console_view(guild_id: str | int | None) -> discord.ui.LayoutView:
+    """Build the console home with its action buttons.
+
+    The buttons are always rendered (visible), but disabled unless the
+    invoking guild is on the env-defined allowlist: an operator sees the
+    console exists, yet cannot act on a guild outside the test scope.
+    """
+    allowed = is_test_guild(guild_id)
     view = discord.ui.LayoutView(timeout=None)
+    note = (
+        "This guild is on the test allowlist \u2014 actions below apply to "
+        "**this guild only**."
+        if allowed
+        else "This guild is **not** on the test allowlist \u2014 the actions "
+        "are disabled (KINGDOMS_TEST_GUILD_IDS decides, env-defined)."
+    )
     container: discord.ui.Container[discord.ui.LayoutView] = discord.ui.Container(
-        discord.ui.TextDisplay("# \u2699 Dev console"),
+        discord.ui.TextDisplay("# \u2699 Console"),
         discord.ui.TextDisplay(
-            "Test-guild-only ops (env allowlist). **Clean managed** removes only "
-            "what the bot created; **Nuke** removes everything (triple "
-            "confirmation); **Reset data** wipes this guild's persisted data "
-            "(isolated \u2014 nothing outside this guild is touched). "
-            "**Install** opens the mods/games selection."
+            f"{note}\n**Clean managed** removes only what the bot created; "
+            "**Nuke** removes everything (triple confirmation); **Reset data** "
+            "wipes this guild's persisted data (isolated \u2014 nothing outside "
+            "this guild is touched); **Install** opens the mods/games selection."
         ),
         accent_colour=discord.Colour(0xED4245),
     )
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(DevCleanManagedButton())
-    row.add_item(DevNukeButton())
-    row.add_item(DevResetDataButton())
-    row.add_item(DevInstallButton())
+    row.add_item(DevCleanManagedButton(disabled=not allowed))
+    row.add_item(DevNukeButton(disabled=not allowed))
+    row.add_item(DevResetDataButton(disabled=not allowed))
+    row.add_item(DevInstallButton(disabled=not allowed))
     container.add_item(row)
     view.add_item(container)
     return view
@@ -348,10 +360,11 @@ class DevCleanManagedButton(
 ):
     """Clean only what the bot created (managed clean)."""
 
-    def __init__(self) -> None:
+    def __init__(self, disabled: bool = False) -> None:
         super().__init__(
             discord.ui.Button(
                 label="\U0001f9f9 Clean managed",
+                disabled=disabled,
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:clean:managed",
             )
@@ -374,7 +387,7 @@ class DevCleanManagedButton(
         await interaction.response.defer(ephemeral=True)
         channels, roles = await _delete_managed(interaction)
         logger.info(
-            "DEV CONSOLE managed clean (guild %s): %d channels, %d roles",
+            "CONSOLE managed clean (guild %s): %d channels, %d roles",
             interaction.guild_id,
             channels,
             roles,
@@ -399,14 +412,14 @@ class DevNukeButton(
         ("\U0001f6a8 EXECUTE NUKE (3/3)", "last chance \u2014 the guild will be emptied"),
     )
 
-    def __init__(self, step: int = 0) -> None:
+    def __init__(self, step: int = 0, disabled: bool = False) -> None:
         self.step = step
         label, _ = self.STEPS[min(step, 3)]
-        style = discord.ButtonStyle.danger
         super().__init__(
             discord.ui.Button(
                 label=label,
-                style=style,
+                disabled=disabled,
+                style=discord.ButtonStyle.danger,
                 custom_id=f"{_NS}:clean:nuke:{step}"[:100],
             )
         )
@@ -442,7 +455,7 @@ class DevNukeButton(
         await interaction.response.defer(ephemeral=True)
         channels, roles = await _nuke_everything(interaction)
         logger.warning(
-            "DEV CONSOLE NUKE executed (guild %s): %d channels, %d roles",
+            "CONSOLE NUKE executed (guild %s): %d channels, %d roles",
             interaction.guild_id,
             channels,
             roles,
@@ -460,10 +473,11 @@ class DevResetDataButton(
 ):
     """Wipe this guild's persisted data \u2014 isolated to the test guild."""
 
-    def __init__(self) -> None:
+    def __init__(self, disabled: bool = False) -> None:
         super().__init__(
             discord.ui.Button(
                 label="\U0001f5d1 Reset data",
+                disabled=disabled,
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:reset:data",
             )
@@ -486,7 +500,7 @@ class DevResetDataButton(
         await interaction.response.defer(ephemeral=True)
         guild_id = str(interaction.guild_id)
         deleted = await _reset_guild_data(guild_id)
-        logger.warning("DEV CONSOLE data reset executed (guild %s): %s", guild_id, deleted)
+        logger.warning("CONSOLE data reset executed (guild %s): %s", guild_id, deleted)
         summary = "\n".join(f"- `{name}`: {count}" for name, count in sorted(deleted.items()))
         await interaction.followup.send(
             f"Guild data reset done (isolated to guild `{guild_id}`):\n{summary}\n"
@@ -501,10 +515,11 @@ class DevInstallButton(
 ):
     """Open the mods/games install modal."""
 
-    def __init__(self) -> None:
+    def __init__(self, disabled: bool = False) -> None:
         super().__init__(
             discord.ui.Button(
                 label="\U0001f4e5 Install mods / games",
+                disabled=disabled,
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:install",
             )
@@ -571,15 +586,15 @@ class DevInstallModal(discord.ui.Modal):
         games, mods = _propagate(registry, self.all_games, self.all_mods, mods, games)
         await interaction.response.defer(ephemeral=True)
         summary = await _apply_selection(interaction, mods, games)
-        logger.info("DEV CONSOLE install applied (guild %s): mods=%s games=%s", interaction.guild_id, mods, games)
+        logger.info("CONSOLE install applied (guild %s): mods=%s games=%s", interaction.guild_id, mods, games)
         await interaction.followup.send(f"Install applied.\n{summary}", ephemeral=True)
 
 
-def register_dev_console(
+def register_console(
     tree: app_commands.CommandTree[discord.Client],
     bot_admins: tuple[str, ...] = (),
 ) -> None:
-    """Register the /dev command (call only when dev_console_enabled()).
+    """Register the /console command (call only when console_enabled()).
 
     The registration itself is the first prod barrier: CI, unit tests
     and production boots never register the command, so it cannot be
@@ -589,33 +604,26 @@ def register_dev_console(
     """
     if not allowed_test_guild_ids():
         logger.warning(
-            "DEV CONSOLE disabled: %s is empty \u2014 no test guild declared, refusing to register /dev",
-            "KINGDOMS_TEST_GUILD_IDS",
+            "CONSOLE allowlist empty (KINGDOMS_TEST_GUILD_IDS): the action "
+            "buttons will render disabled everywhere"
         )
-        return
     admins = bot_admins
 
     @tree.command(
-        name="dev",
-        description="Dev console (bot admins, test environments only)",
+        name="console",
+        description="Ops console (bot admins only)",
     )
     @app_commands.default_permissions(administrator=True)
-    async def dev_command(interaction: discord.Interaction) -> None:
+    async def console_command(interaction: discord.Interaction) -> None:
         if interaction.guild_id is None:
-            await interaction.response.send_message("The dev console runs in a guild only.", ephemeral=True)
+            await interaction.response.send_message("The console runs in a guild only.", ephemeral=True)
             return
         if _deploy_env() in PROD_ENV_NAMES:
             await interaction.response.send_message(_prod_refusal(), ephemeral=True)
             return
-        if not is_test_guild(interaction.guild_id):
-            await interaction.response.send_message(_guild_refusal(), ephemeral=True)
-            return
-        user_id = getattr(interaction.user, "id", None)
-        if str(user_id) not in admins and not getattr(
-            getattr(interaction.user, "guild_permissions", None), "administrator", False
+        roles = getattr(interaction.client, "roles_service", None)
+        if not await require_admin(
+            interaction, admins, roles, denied_message="The console is reserved for bot admins."
         ):
-            await interaction.response.send_message(
-                "The dev console is reserved for bot admins.", ephemeral=True
-            )
             return
-        await interaction.response.send_message(view=_console_view(), ephemeral=True)
+        await interaction.response.send_message(view=_console_view(interaction.guild_id), ephemeral=True)

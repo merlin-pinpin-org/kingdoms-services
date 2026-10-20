@@ -1546,13 +1546,12 @@ The&nbsp;status&nbsp;being&nbsp;used&nbsp;upon&nbsp;logging&nbsp;on&nbsp;to&nbsp
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-create_bot"><strong>create_bot</strong></a>(config: 'BotConfig | None' = None) -&gt; 'KingdomsBot'</dt><dd><span class="code">Build&nbsp;the&nbsp;Kingdoms&nbsp;bot:&nbsp;client,&nbsp;tree,&nbsp;core&nbsp;services&nbsp;and&nbsp;commands.</span></dd></dl>
- <dl><dt><a name="-dev_console_enabled"><strong>dev_console_enabled</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;this&nbsp;boot&nbsp;opts&nbsp;into&nbsp;the&nbsp;dev&nbsp;console&nbsp;(test&nbsp;environments&nbsp;only).<br>
+<td class="singlecolumn"><dl><dt><a name="-console_enabled"><strong>console_enabled</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;this&nbsp;boot&nbsp;opts&nbsp;into&nbsp;the&nbsp;/console&nbsp;command&nbsp;(test&nbsp;envs&nbsp;only).<br>
 &nbsp;<br>
-First&nbsp;prod&nbsp;barrier:&nbsp;without&nbsp;the&nbsp;explicit&nbsp;opt-in&nbsp;the&nbsp;/dev&nbsp;command&nbsp;is<br>
-never&nbsp;registered,&nbsp;so&nbsp;it&nbsp;cannot&nbsp;be&nbsp;invoked&nbsp;at&nbsp;all.&nbsp;The&nbsp;second&nbsp;is&nbsp;the<br>
-env-defined&nbsp;test-guild&nbsp;allowlist&nbsp;(KINGDOMS_TEST_GUILD_IDS):&nbsp;empty<br>
-allowlist&nbsp;→&nbsp;fail&nbsp;closed,&nbsp;no&nbsp;console&nbsp;anywhere.</span></dd></dl>
+The&nbsp;opt-in&nbsp;registers&nbsp;the&nbsp;command&nbsp;(its&nbsp;action&nbsp;buttons&nbsp;stay&nbsp;disabled<br>
+outside&nbsp;the&nbsp;allowlist);&nbsp;without&nbsp;it&nbsp;the&nbsp;command&nbsp;is&nbsp;never&nbsp;registered,<br>
+so&nbsp;it&nbsp;cannot&nbsp;be&nbsp;invoked&nbsp;at&nbsp;all.</span></dd></dl>
+ <dl><dt><a name="-create_bot"><strong>create_bot</strong></a>(config: 'BotConfig | None' = None) -&gt; 'KingdomsBot'</dt><dd><span class="code">Build&nbsp;the&nbsp;Kingdoms&nbsp;bot:&nbsp;client,&nbsp;tree,&nbsp;core&nbsp;services&nbsp;and&nbsp;commands.</span></dd></dl>
  <dl><dt><a name="-run_bot"><strong>run_bot</strong></a>(config: 'BotConfig | None' = None) -&gt; 'None'</dt><dd><span class="code">Build&nbsp;the&nbsp;bot&nbsp;and&nbsp;block&nbsp;until&nbsp;the&nbsp;gateway&nbsp;connection&nbsp;ends.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

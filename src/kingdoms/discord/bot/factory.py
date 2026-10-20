@@ -541,22 +541,17 @@ class KingdomsBot(discord.Client):
         await super().close()
 
 
-def dev_console_enabled() -> bool:
-    """Whether this boot opts into the dev console (test environments only).
+def console_enabled() -> bool:
+    """Whether this boot opts into the /console command (test envs only).
 
-    First prod barrier: without the explicit opt-in the /dev command is
-    never registered, so it cannot be invoked at all. The second is the
-    env-defined test-guild allowlist (KINGDOMS_TEST_GUILD_IDS): empty
-    allowlist \u2192 fail closed, no console anywhere.
+    The opt-in registers the command (its action buttons stay disabled
+    outside the allowlist); without it the command is never registered,
+    so it cannot be invoked at all.
     """
-    from kingdoms.discord.dev_guilds import allowed_test_guild_ids
+    from kingdoms.discord.console import CONSOLE_ENV_VAR
+    from kingdoms.discord.console import console_enabled as _enabled
 
-    if not allowed_test_guild_ids():
-        return False
-    from kingdoms.discord.dev_console import DEV_CONSOLE_ENV_VAR
-    from kingdoms.discord.dev_console import dev_console_enabled as _enabled
-
-    return os.environ.get(DEV_CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes") or _enabled()
+    return os.environ.get(CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes") or _enabled()
 
 
 def create_bot(config: BotConfig | None = None) -> KingdomsBot:
@@ -670,10 +665,10 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     set_guild_access_platform(games, tuple(registry.enabled()))
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
-    if dev_console_enabled():
-        from kingdoms.discord.dev_console import register_dev_console
+    if console_enabled():
+        from kingdoms.discord.console import register_console
 
-        register_dev_console(bot.tree, bot_admins=status.bot_admins)
+        register_console(bot.tree, bot_admins=status.bot_admins)
     return bot
 
 

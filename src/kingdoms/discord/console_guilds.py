@@ -1,4 +1,4 @@
-"""Test-guild allowlist: the dev console's scope, defined by env only.
+"""Test-guild allowlist: the console's scope, defined by env only.
 
 Developer-mandated rule (the dev console session): the dev console's
 commands (clean, nuke, reset db, install) are executable **only on the
@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import os
 
-logger = logging.getLogger("kingdoms.discord.dev_guilds")
+logger = logging.getLogger("kingdoms.discord.console_guilds")
 
 __all__ = [
     "TEST_GUILD_IDS_ENV_VAR",
