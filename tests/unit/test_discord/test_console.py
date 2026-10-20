@@ -258,3 +258,69 @@ def test_console_ops_cli_all_targets_are_allowlisted(monkeypatch: Any) -> None:
     monkeypatch.setattr(console_guilds, "_TEST_GUILD_IDS", frozenset({"111", "222"}))
     assert console_ops._resolve_targets("all") == ["111", "222"]
     assert console_ops._resolve_targets("111") == ["111"]
+
+
+async def test_nuke_quiesces_guild_during_deletion(monkeypatch: Any) -> None:
+    """The nuke silences self-healing while it deletes, then releases the guild."""
+    import kingdoms.discord.console as console_mod
+
+    markers: list[str] = []
+
+    class FakeState:
+        async def set_state(self, scope: str, key: str, value: Any, ttl: int | None = None) -> bool:
+            markers.append(f"set:{scope}:{key}")
+            return True
+
+        async def delete_state(self, scope: str, key: str) -> bool:
+            markers.append(f"del:{scope}:{key}")
+            return True
+
+        async def get_state(self, scope: str, key: str) -> dict[str, Any] | None:
+            return None
+
+    class FakeGuild:
+        id = 4242
+        channels: list[Any] = []
+        roles: list[Any] = []
+
+    class FakeClient:
+        state_service = FakeState()
+
+    monkeypatch.setattr(console_mod, "_client_of", lambda guild: FakeClient())
+
+    async def _inner(guild: Any) -> tuple[int, int]:
+        # while the deletion runs, the marker must be set
+        assert markers == ["set:console:quiesce:4242"], markers
+        return 0, 0
+
+    monkeypatch.setattr(console_mod, "_nuke_everything_for_guild_inner", _inner)
+
+    channels, roles = await console_mod._nuke_everything_for_guild(FakeGuild())  # type: ignore[arg-type]
+    assert (channels, roles) == (0, 0)
+    assert markers == ["set:console:quiesce:4242", "del:console:quiesce:4242"]
+
+
+async def test_quiesce_surfaces_skip_quiesced_guild() -> None:
+    """A quiesced guild is skipped by the self-healing surfaces."""
+    from kingdoms.discord import console_quiesce
+
+    class FakeState:
+        def __init__(self, quiesced: bool) -> None:
+            self.quiesced = quiesced
+
+        async def get_state(self, scope: str, key: str) -> dict[str, Any] | None:
+            return {"quiesced": True} if self.quiesced else None
+
+        async def set_state(self, *args: Any, **kwargs: Any) -> bool:
+            return True
+
+        async def delete_state(self, *args: Any, **kwargs: Any) -> bool:
+            return True
+
+    class FakeBot:
+        def __init__(self, state: Any) -> None:
+            self.state_service = state
+
+    assert await console_quiesce.guild_quiesced(FakeBot(FakeState(True)), "123") is True
+    assert await console_quiesce.guild_quiesced(FakeBot(FakeState(False)), "123") is False
+    assert await console_quiesce.guild_quiesced(FakeBot(None), "123") is False
