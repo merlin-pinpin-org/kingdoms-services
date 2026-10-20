@@ -290,7 +290,10 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         blocks: list[Any] = [discord.ui.TextDisplay(header)]
         if description:
             blocks.append(discord.ui.TextDisplay(description))
-        notice = await _tree_notice(guild_id, decl.scope, catalog, locale) if decl.scope else ""
+        # the pin scope is the channel ("games/general"); the tree scope is
+        # the folder ("games") — the notice resolves the declared tree scope
+        tree_scope = decl.scope.split("/general")[0] if decl.scope else ""
+        notice = await _tree_notice(guild_id, tree_scope, catalog, locale) if tree_scope else ""
         if notice:
             blocks.append(discord.ui.TextDisplay(notice))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))

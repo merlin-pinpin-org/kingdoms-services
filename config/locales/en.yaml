@@ -386,7 +386,7 @@ en:
       map_disabled: Map disabled (archived) - reactivable
       pool_deleted: Pool deleted
       homes:
-        aoe2: ⚔️ Age of Empires II
+        aoe2: Age of Empires II
     panels:
       channels:
         general: 🗺️ general
@@ -473,6 +473,6 @@ en:
         description: Manage the server's mods.
     mods:
       homes:
-        ladder: 🏆 Ladder
-        tournament: 🎯 Tournament
-        kingdom: 👑 Kingdom
+        ladder: Ladder
+        tournament: Tournament
+        kingdom: Kingdom

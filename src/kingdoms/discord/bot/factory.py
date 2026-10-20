@@ -979,6 +979,11 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
     bot.state_service = shared_state
     bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
+    # the freshly built service carries the native-locale resolver: the
+    # constructor's wiring died with the placeholder service (the 2026-10-20
+    # English-autopin bug — the resolver must bind the real service).
+    if bot.logs_service is not None:
+        bot.logs_service.set_locale_resolver(bot._native_guild_locale)
     roles_service = _build_roles_service(resolved, bot, state=shared_state)
     bot.roles_service = roles_service
     bot.role_grants_service = _build_role_grants_service(resolved)

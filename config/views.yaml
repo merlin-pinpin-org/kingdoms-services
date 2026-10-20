@@ -26,11 +26,9 @@ views:
       emoji: 📊
     - target: menu:games:admin
       label: ui.homes.btn_games
-      admin: true
       emoji: 🎮
     - target: menu:mods:admin
       label: ui.homes.btn_mods
-      admin: true
       emoji: 🧩
     - label: ui.homes.btn_sync
       sync: true
@@ -45,7 +43,7 @@ views:
       label: ui.games.homes.aoe2
       emoji: ⚔️
     - target: menu:games:admin
-      label: ui.homes.btn_games
+      label: ui.homes.btn_admin
       admin: true
   menu:games:admin:
     kind: menu
@@ -53,7 +51,7 @@ views:
     buttons:
     - target: menu:game:aoe2:admin
       label: ui.games.homes.aoe2
-      admin: true
+      emoji: ⚔️
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
@@ -107,7 +105,7 @@ views:
       disabled: true
       emoji: 👑
     - target: menu:mods:admin
-      label: ui.homes.btn_mods
+      label: ui.homes.btn_admin
       admin: true
   menu:mods:admin:
     kind: menu
@@ -116,15 +114,12 @@ views:
     - target: menu:mod:ladder:admin
       label: ui.mods.homes.ladder
       disabled: true
-      admin: true
     - target: menu:mod:tournament:admin
       label: ui.mods.homes.tournament
       disabled: true
-      admin: true
     - target: menu:mod:kingdom:admin
       label: ui.mods.homes.kingdom
       disabled: true
-      admin: true
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
