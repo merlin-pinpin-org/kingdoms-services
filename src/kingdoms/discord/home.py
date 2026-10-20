@@ -270,7 +270,7 @@ class ProfileAddAccountButton(
     def __init__(self, label: str = "Ajouter un compte") -> None:
         super().__init__(
             discord.ui.Button(
-                label=label, style=discord.ButtonStyle.success, custom_id="home:profile:add"
+                label=label, emoji="\U0001F4DD", style=discord.ButtonStyle.success, custom_id="home:profile:add"
             )
         )
 
@@ -396,7 +396,7 @@ class ProfileRenameButton(
     def __init__(self, label: str = "Changer de pseudo") -> None:
         super().__init__(
             discord.ui.Button(
-                label=label, style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
+                label=label, emoji="\u270f", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
             )
         )
 
@@ -499,7 +499,7 @@ class ProfileRemoveAccountButton(
     def __init__(self, label: str = "Retirer un compte") -> None:
         super().__init__(
             discord.ui.Button(
-                label=label, style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+                label=label, emoji="\U00002796", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
             )
         )
 

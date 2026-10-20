@@ -78,22 +78,41 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
     spec = next((sp for sp in registered_scopes() if sp.scope == scope), None)
     if spec is None:
         return ""
-    lines: list[str] = ["\U0001f4cb **Salons de ce périmètre** (générés par le bot) :"]
+    lines: list[str] = ["**Salons** (g\u00e9n\u00e9r\u00e9s par le bot) :"]
     raw_channels = _declared_channel_meta(scope)
     for decl in spec.channels:
         meta = raw_channels.get(decl.key, {})
         label = _tr(catalog, decl.label_key, locale, decl.label_key.rsplit(".", 1)[-1])
         description = str(meta.get("description", ""))
-        icon = "\U0001F9F5" if getattr(decl, "kind", "text") == "forum" else ""
         lock = _LOCK if decl.access == "admin" else ""
         try:
             channel_id = await stored_channel_id(guild_id, scope, decl.key)
         except Exception:
             channel_id = None
-        where = f"<#{channel_id}>" if channel_id else f"**{label}** (à créer)"
-        shown = f"{icon}{lock}{where} — {description}" if description else f"{icon}{lock}{where}"
-        lines.append(f"• {shown}")
+        if channel_id:
+            where = f"<#{channel_id}>{lock} \u2014 {description}" if description else f"<#{channel_id}>{lock}"
+        else:
+            base = f"**{label}**{lock} (\u00e0 cr\u00e9er)"
+            where = f"{base} \u2014 {description}" if description else base
+        lines.append(f"\u2022 {where}")
+    role_lines = _scope_role_lines(guild_id, scope)
+    if role_lines:
+        lines.append("")
+        lines.append("**R\u00f4les** (g\u00e9n\u00e9r\u00e9s par le bot) :")
+        lines.extend(role_lines)
     return "\n".join(lines)
+
+
+def _scope_role_lines(guild_id: str, scope: str) -> list[str]:
+    """Return the scope's roles: one bullet each, its use.
+
+    The platform declares the bot-admins role per guild; a mod's roles
+    ride its own declaration and join the same notice.
+    """
+    roles_platform = [
+        ("bot-admins", "les op\u00e9rateurs du bot : administrent la plateforme"),
+    ]
+    return [f"\u2022 **{key}** \u2014 {desc}" for key, desc in roles_platform]
 
 
 def _declared_channel_meta(scope: str) -> dict[str, dict[str, Any]]:

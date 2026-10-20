@@ -529,7 +529,9 @@ def _dashboard_embed(
         description=description,
         colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
     )
-    embed.set_footer(text=f"`panel:game:{GAME_KEY}:live`")
+    from kingdoms.discord.ui.view_footer import embed_footer
+
+    embed_footer(embed, f"panel:game:{GAME_KEY}:live")
     if icon_url:
         embed.set_thumbnail(url=icon_url)
     return embed

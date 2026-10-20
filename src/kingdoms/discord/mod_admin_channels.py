@@ -37,6 +37,7 @@ from typing import Any, cast
 import discord
 
 from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
+from kingdoms.discord.ui.view_footer import add_view_footer
 
 logger = logging.getLogger("kingdoms.mod_admin_channels")
 
@@ -87,15 +88,6 @@ class ModAdminChannelSpec:
             return self.root_category
         return f"mod_{self.mod}_guild_category"
 
-
-def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
-    """Append the view id footer (the users' feedback anchor)."""
-    from kingdoms.core.ids import footer
-
-    line = footer(view_id)
-    if line:
-        view.add_item(discord.ui.TextDisplay(line))
-    return view
 
 
 def spec_registry(bot: discord.Client) -> dict[str, ModAdminChannelSpec]:
@@ -348,7 +340,7 @@ async def _build_root_layout(bot: discord.Client, spec: ModAdminChannelSpec, gui
     """Build the pinned root layout through the mod's registered builder."""
     if spec.build_root_layout is None:
         view: discord.ui.LayoutView = discord.ui.LayoutView(timeout=None)
-        return _view_footer(view, "view:mod:admin")
+        return add_view_footer(view, "view:mod:admin")
     return await spec.build_root_layout(bot, guild_id)
 
 

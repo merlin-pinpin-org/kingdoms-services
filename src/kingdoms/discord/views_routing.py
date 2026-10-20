@@ -205,18 +205,20 @@ class LanguageModal(discord.ui.Modal):
     setting at all), the pins refresh in the chosen language.
     """
 
-    def __init__(self, title: str, guild_scoped: bool) -> None:
+    def __init__(self, title: str, guild_scoped: bool, current: str = "") -> None:
         super().__init__(title=title[:45], timeout=None)
         self.guild_scoped = guild_scoped
+        options = [
+            discord.SelectOption(label=label, value=code, default=code == current)
+            for code, label in LOCALE_LABELS.items()
+        ]
+        placeholder = LOCALE_LABELS.get(current) or next(iter(LOCALE_LABELS.values()))
         self._select: discord.ui.Select[Any] = discord.ui.Select(
             custom_id=f"{ACT_NAMESPACE}:language-select",
-            options=[
-                discord.SelectOption(label=label, value=code)
-                for code, label in LOCALE_LABELS.items()
-            ],
-            placeholder=next(iter(LOCALE_LABELS.values())),
+            options=options,
+            placeholder=placeholder,
         )
-        self.add_item(discord.ui.Label(text=title[:45], component=self._select))
+        self.add_item(discord.ui.Label(text=placeholder, component=self._select))
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Persist the choice, refresh, confirm."""

@@ -15,19 +15,12 @@ from typing import Any
 
 import discord
 
+from kingdoms.discord.ui.view_footer import add_view_footer
+
 logger = logging.getLogger("kingdoms.guild_context")
 
 _PICK_NS = "guild:context:pick"
 
-
-def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
-    """Append the view id footer (the users' feedback anchor)."""
-    from kingdoms.core.ids import footer
-
-    line = footer(view_id)
-    if line:
-        view.add_item(discord.ui.TextDisplay(line))
-    return view
 
 
 def _guild_options(client: discord.Client) -> list[discord.SelectOption]:
@@ -84,7 +77,7 @@ def _picker_view(view_key: str, options: list[discord.SelectOption]) -> discord.
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(GuildContextPicker(view_key, options))
     view.add_item(row)
-    return _view_footer(view, "view:guild:picker")
+    return add_view_footer(view, "view:guild:picker")
 
 
 async def require_guild_context(

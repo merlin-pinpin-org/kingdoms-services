@@ -814,8 +814,14 @@ class KingdomsBot(discord.Client):
             """Open the guild language picker (the stored choice wins)."""
             from kingdoms.discord.views_routing import LanguageModal
 
+            current = ""
+            if interaction.guild_id is not None and self.logs_service is not None:
+                try:
+                    current = await self.logs_service.get_locale(str(interaction.guild_id))
+                except Exception:
+                    current = ""
             await interaction.response.send_modal(
-                LanguageModal("Langue / Language", guild_scoped=True)
+                LanguageModal("Langue / Language", guild_scoped=True, current=current)
             )
 
         wire_action("menu:admin", "set-language", _set_language)

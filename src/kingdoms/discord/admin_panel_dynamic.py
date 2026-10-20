@@ -60,15 +60,6 @@ PIN_BACK_BUTTON_ID = "admin:pin:button:back"
 PIN_READ_ONLY_SELECT_ID = "admin:pin:select:read-only"
 
 
-def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
-    """Append the view id footer (the users' feedback anchor)."""
-    from kingdoms.core.ids import footer
-
-    line = footer(view_id)
-    if line:
-        view.add_item(discord.ui.TextDisplay(line))
-    return view
-
 
 def pin_route_id(category: str) -> str:
     """Return the routing select id of one managed-channel category."""
