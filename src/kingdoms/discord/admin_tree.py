@@ -177,7 +177,7 @@ class TreeEnsureButton(
 ):
     """Re-provision one scope's channels (and mod/game roles), on demand."""
 
-    def __init__(self, scope: str, label: str = "Sync now", emoji: str = "\u27f3") -> None:
+    def __init__(self, scope: str, label: str = "Sync now", emoji: str = "\U0001F527") -> None:
         self.scope = scope
         super().__init__(
             discord.ui.Button(

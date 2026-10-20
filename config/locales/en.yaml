@@ -144,6 +144,7 @@ en:
       section_game: Games
   admin_replies:
     panel_unavailable: Admin panel unavailable.
+    language_changed: Language updated.
   commands:
     status_name: status
     staff_nominate_name: Appoint staff
@@ -287,7 +288,7 @@ en:
     bot_admin_only: Bot admins only.
     access_nothing_to_add: Nothing to grant — everything is already active.
     access_nothing_to_remove: Nothing to revoke — no active game/mod.
-    menu_status: ⏳ {requests} pending request(s) · 🌐 {servers} active server(s)
+    menu_status: 🌍 {servers} server(s)
     menu_btn_requests: Requests
     menu_btn_servers: Servers
     menu_btn_sync: Sync AoE2

@@ -96,7 +96,7 @@ async def build_admin_dm_panel(
     """Render the bot-admin DM menu: frozen, five openers (the home/admin charte).
 
     The menu never re-renders on navigation — every button opens an
-    ephemeral sub-view. It carries one status line (pending requests,
+    ephemeral sub-view. It carries one status line (the server count),
     servers) so the data reads at a glance, and the callers
     that mutate the data re-render it in place (same message id).
     """
@@ -111,7 +111,7 @@ async def build_admin_dm_panel(
             servers = list((await service.list_all()) or [])[:20]
         except Exception:
             logger.warning("DM PANEL: servers read failed", exc_info=True)
-        status_parts.append(_dm_tr(interaction, dm_locale, "menu_status", requests=0, servers=len(servers)))
+        status_parts.append(_dm_tr(interaction, dm_locale, "menu_status", servers=len(servers)))
     else:
         status_parts.append(_dm_tr(interaction, dm_locale, "wiring_unavailable"))
 
