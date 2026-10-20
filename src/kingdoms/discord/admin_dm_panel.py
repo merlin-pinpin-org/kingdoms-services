@@ -159,6 +159,36 @@ class AccessApproveButton(
         await interaction.followup.send(
             f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True
         )
+        await _provision_approved_guild(interaction.client, self.guild_id)
+
+
+async def _provision_approved_guild(client: Any, guild_id: str) -> None:
+    """Provision the guild's newly granted mods right after the approval.
+
+    The provisioning otherwise only runs at boot; without this pass the
+    granted channels/roles would wait for the next restart — the admin
+    approved, nothing happened (merlin, 2026-10-20). Best-effort: a
+    failure logs and leaves the boot-time reconciliation to converge.
+    """
+    bot = client
+    channel_service = getattr(bot, "channel_service", None)
+    mod_roles_service = getattr(bot, "mod_roles_service", None)
+    registry = getattr(bot, "registry", None)
+    if channel_service is None or mod_roles_service is None or registry is None:
+        return
+    try:
+        await bot._provision_mods(
+            guild_id,
+            channel_service=channel_service,
+            mod_roles_service=mod_roles_service,
+            registry=registry,
+        )
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "POST-APPROVAL provisioning failed (guild %s) — boot reconciliation will retry",
+            guild_id,
+            exc_info=True,
+        )
 
 
 class AccessDenyButton(

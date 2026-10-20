@@ -35,11 +35,31 @@ def register(bot: Any, config: Any) -> None:
         name="clan",
         description="The clans dashboard — every clan, its members, join",
     )
-    @discord.app_commands.describe()
+    @discord.app_commands.guild_only()
     async def clan_command(interaction: discord.Interaction) -> None:
-        """Answer /clan with the clans dashboard (ephemeral)."""
-        service = _clan_service(bot)
+        """Answer /clan with the clans dashboard (ephemeral).
+
+        Seeing the command never implies being allowed to use it
+        (AGENTS.md, runtime permission mandate): the click validates
+        the guild's granted access at click time and denies ephemerally.
+        """
+        from kingdoms.discord.wiring import build_guild_access_service
+
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        access = build_guild_access_service()
+        if access is not None and guild_id:
+            try:
+                granted = await access.enabled_mods(guild_id)
+            except Exception:
+                granted = ()
+            if "clans" not in granted:
+                await interaction.response.send_message(
+                    "Ce mod n'est pas actif sur ce serveur — un admin peut le demander "
+                    "depuis le panneau d'administration.",
+                    ephemeral=True,
+                )
+                return
+        service = _clan_service(bot)
         rows = await service.dashboard(guild_id) if service and guild_id else []
         lines = [f"# \U0001f3d8 Clans ({len(rows)})"]
         for row in rows[:20]:
