@@ -35,14 +35,25 @@ Handler = Callable[[discord.Interaction], Awaitable[None]]
 
 
 async def open_declared_view(interaction: discord.Interaction, view_id: str) -> None:
-    """Open a declared view by id (ephemeral), unknown ids answered."""
-    handler = _HANDLERS.get(view_id)
-    if handler is None:
-        from kingdoms.discord.commands_i18n import reply
+    """Open a declared view by id (ephemeral), unknown ids answered.
 
-        await interaction.response.send_message(await reply(interaction, "unknown_view"), ephemeral=True)
+    A wired panel runs its handler; a menu (no handler — menus only
+    navigate) builds from the registry and answers directly. Only
+    an id that is neither wired nor declared answers "unknown view".
+    """
+    handler = _HANDLERS.get(view_id)
+    if handler is not None:
+        await handler(interaction)
         return
-    await handler(interaction)
+    if get_view(view_id) is not None:
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        builder = build_declared_menu(interaction.client, view_id)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.followup.send(view=await builder(guild_id), ephemeral=True)
+        return
+    from kingdoms.discord.commands_i18n import reply
+
+    await interaction.response.send_message(await reply(interaction, "unknown_view"), ephemeral=True)
 
 
 def wire_view(view_id: str, handler: Handler) -> None:

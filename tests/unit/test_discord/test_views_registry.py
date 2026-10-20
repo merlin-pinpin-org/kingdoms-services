@@ -141,3 +141,48 @@ async def test_the_menu_builder_honors_the_pin_builder_contract() -> None:
     layout = await builder("42")
     customs = [c.custom_id for c in layout.walk_children() if getattr(c, "custom_id", None)]
     assert any(c == "view:open:panel:profile" for c in customs), "the navigation buttons render"
+
+
+@pytest.mark.asyncio
+async def test_open_declared_view_answers_an_unwired_menu() -> None:
+    """A declared menu opens without a handler (the router builds it).
+
+    The 2026-10-20 live bug: every menu button answered "unknown view"
+    because only the panels were wired. Menus navigate — the router
+    builds them from the registry; only an undeclared id answers
+    unknown_view.
+    """
+
+    class _Response:
+        def __init__(self) -> None:
+            self.sent_message = False
+            self.deferred = False
+
+        async def defer(self, ephemeral: bool = False, thinking: bool = False) -> None:
+            self.deferred = True
+
+        async def send_message(self, *args: object, **kwargs: object) -> None:
+            self.sent_message = True
+
+    class _Followup:
+        def __init__(self) -> None:
+            self.sent: list[object] = []
+
+        async def send(self, view: object = None, ephemeral: bool = False, **kwargs: object) -> None:
+            self.sent.append(view)
+
+    class _Inter:
+        guild_id = 42
+        client = None
+        response = _Response()
+        followup = _Followup()
+
+    from kingdoms.discord.views_routing import open_declared_view
+
+    inter = _Inter()
+    await open_declared_view(inter, "menu:games:home")  # type: ignore[arg-type]
+    assert inter.followup.sent, "the menu answered with its layout"
+
+    unknown = _Inter()
+    await open_declared_view(unknown, "menu:not:declared")  # type: ignore[arg-type]
+    assert unknown.response.sent_message, "an undeclared id answers unknown_view"
