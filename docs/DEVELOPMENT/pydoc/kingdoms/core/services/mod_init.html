@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.mod_init</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.mod_init</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/mod_init.py">SOURCE_ROOT/core/services/mod_init.py</a></td></tr></table>
+    <p><span class="code">Mod&nbsp;scaffold&nbsp;generator&nbsp;(kingdoms#178,&nbsp;kingdoms-services#211).<br>
+&nbsp;<br>
+``kingdoms&nbsp;mod&nbsp;init&nbsp;&lt;name&gt;``&nbsp;generates&nbsp;the&nbsp;full&nbsp;self-contained&nbsp;mod<br>
+directory&nbsp;(declaration,&nbsp;package&nbsp;with&nbsp;lifecycle&nbsp;hooks,&nbsp;locale&nbsp;catalogs,<br>
+test,&nbsp;README)&nbsp;plus&nbsp;the&nbsp;kingdoms-repo&nbsp;docs&nbsp;pointer&nbsp;set&nbsp;—&nbsp;everything&nbsp;a<br>
+designer&nbsp;or&nbsp;agent&nbsp;session&nbsp;needs&nbsp;so&nbsp;a&nbsp;new&nbsp;mod&nbsp;starts&nbsp;structured,&nbsp;not<br>
+improvised&nbsp;(docs/GUIDES/mod-init.md&nbsp;in&nbsp;the&nbsp;kingdoms&nbsp;repo).</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.mod_init.html#ModInitResult">ModInitResult</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModInitResult">class <strong>ModInitResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModInitResult">ModInitResult</a>(mod_dir:&nbsp;'Path',&nbsp;declaration:&nbsp;'Path',&nbsp;package:&nbsp;'Path',&nbsp;locales:&nbsp;'tuple[Path,&nbsp;...]',&nbsp;test:&nbsp;'Path',&nbsp;readme:&nbsp;'Path')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+What&nbsp;`kingdoms&nbsp;mod&nbsp;init`&nbsp;generated.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModInitResult-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__init__"><strong>__init__</strong></a>(self, mod_dir: 'Path', declaration: 'Path', package: 'Path', locales: 'tuple[Path, ...]', test: 'Path', readme: 'Path') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ModInitResult-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>declaration</strong></dt>
+</dl>
+<dl><dt><strong>locales</strong></dt>
+</dl>
+<dl><dt><strong>mod_dir</strong></dt>
+</dl>
+<dl><dt><strong>package</strong></dt>
+</dl>
+<dl><dt><strong>readme</strong></dt>
+</dl>
+<dl><dt><strong>test</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'declaration': 'Path', 'locales': 'tuple[Path, ...]', 'mod_dir': 'Path', 'package': 'Path', 'readme': 'Path', 'test': 'Path'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'declaration': Field(name='declaration',type='Path',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'locales': Field(name='locales',type='tuple[Path, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mod_dir': Field(name='mod_dir',type='Path',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'package': Field(name='package',type='Path',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'readme': Field(name='readme',type='Path',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'test': Field(name='test',type='Path',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('mod_dir', 'declaration', 'package', 'locales', 'test', 'readme')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-init_mod"><strong>init_mod</strong></a>(repo_root: 'Path', name: 'str', *, seasonal: 'bool', display_name: 'str | None' = None, member_role: 'str | None' = None, private: 'bool' = False, owner_ids: 'tuple[str, ...]' = ()) -&gt; 'ModInitResult'</dt><dd><span class="code">Generate&nbsp;the&nbsp;self-contained&nbsp;mod&nbsp;directory&nbsp;under&nbsp;modules/mods/.<br>
+&nbsp;<br>
+Raises&nbsp;FileExistsError&nbsp;as&nbsp;soon&nbsp;as&nbsp;any&nbsp;target&nbsp;file&nbsp;exists&nbsp;(the&nbsp;caller<br>
+decides&nbsp;whether&nbsp;to&nbsp;abort);&nbsp;nothing&nbsp;is&nbsp;silently&nbsp;overwritten.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DECLARATION_TEMPLATE</strong> = '# {name} mod declaration (kingdoms mod init).<span class="repr">\n</span># ...ole}<span class="repr">\n</span>workflows: []<span class="repr">\n</span>commands: []<span class="repr">\n</span>dependencies: []<span class="repr">\n</span>'<br>
+<strong>ENTRYPOINT_TEMPLATE</strong> = '"""{name} mod — entrypoint.<span class="repr">\n\n</span>Lifecycle hooks (al...top the mod<span class="repr">\'</span>s background tasks (best-effort)."""<span class="repr">\n</span>'<br>
+<strong>LOCALE_TEMPLATE</strong> = '{locale}:<span class="repr">\n</span>  {name}:<span class="repr">\n</span>    title: "{display_name}"<span class="repr">\n</span>...{name} mod — scaffolded by `kingdoms mod init`."<span class="repr">\n</span>'<br>
+<strong>MODULAR_ROOT</strong> = 'modules/mods'<br>
+<strong>README_TEMPLATE</strong> = '# {name} (mod)<span class="repr">\n\n</span>Scaffolded by `kingdoms mod init...me}/` (README, RULES, ENVIRONMENT) — never here.<span class="repr">\n</span>'<br>
+<strong>SPRINT_DOC_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/GUIDES/mod-init.md'<br>
+<strong>TEST_TEMPLATE</strong> = '"""{name} mod — scaffold acceptance test (MockDi...  from kingdoms.mods import {name}  # noqa: F401<span class="repr">\n</span>'</td></tr></table>
+</body></html>

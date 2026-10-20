@@ -1,0 +1,43 @@
+# clans mod declaration — reference example generated via the mod-intake
+# skill (kingdoms-services#267). Permanent mod: clan management with
+# mutual-agreement admissions.
+#
+# Rules (shaped with the game designer, 2026-10-20):
+# - anyone can create a clan (name + description) and becomes its leader
+# - admission is MUTUAL: a player asks (the clan's admins get the request
+#   and approve) or a clan admin invites (the player accepts) — both
+#   sides must agree in every case
+# - declared criteria: aoe2 RM 1v1 elo > 1000 (degrades to manual review
+#   while no core ELO seam exists — by design, never a silent accept)
+# - a player belongs to at most ONE clan at a time
+# - roles: leader / officer (the clan admins) / member
+# - surfaces: one forum per clan (member list, join button) + the
+#   clans dashboard (list with member counts, drill into a clan)
+id: clans
+enabled: true
+seasonal: false
+private: true
+owner_discord_ids:
+  - "867534391436378123"
+settings:
+  enrollment:
+    min_elo: 1000
+    manual: true
+channels:
+  - key: dashboard
+    display_name: Clans
+    description: The clans dashboard — every clan with its member count
+roles:
+  - key: leader
+    display_name: Chef de clan
+    description: The clan's founder — full management
+  - key: officer
+    display_name: Officier de clan
+    description: The clan's admins — approve admissions
+  - key: member
+    display_name: Membre de clan
+    description: A clan member
+workflows: []
+commands:
+  - clan
+dependencies: []

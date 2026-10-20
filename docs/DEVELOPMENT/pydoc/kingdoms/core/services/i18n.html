@@ -50,12 +50,17 @@ fallbacks.&nbsp;The&nbsp;catalog&nbsp;never&nbsp;raises&nbsp;—&nbsp;a&nbsp;mes
 <td class="section-title" colspan=3>&nbsp;<br><a name="MessageCatalog">class <strong>MessageCatalog</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MessageCatalog">MessageCatalog</a>(config_dir:&nbsp;'Path&nbsp;|&nbsp;str'&nbsp;=&nbsp;'config')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MessageCatalog">MessageCatalog</a>(config_dir:&nbsp;'Path&nbsp;|&nbsp;str'&nbsp;=&nbsp;'config',&nbsp;repo_root:&nbsp;'Path&nbsp;|&nbsp;str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Locale-aware&nbsp;message&nbsp;rendering&nbsp;over&nbsp;the&nbsp;yaml&nbsp;catalogs.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="MessageCatalog-__init__"><strong>__init__</strong></a>(self, config_dir: 'Path | str' = 'config') -&gt; 'None'</dt><dd><span class="code">Load&nbsp;every&nbsp;``locales/*.yaml``&nbsp;under&nbsp;the&nbsp;config&nbsp;directory.</span></dd></dl>
+<dl><dt><a name="MessageCatalog-__init__"><strong>__init__</strong></a>(self, config_dir: 'Path | str' = 'config', repo_root: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Load&nbsp;every&nbsp;``locales/*.yaml``&nbsp;catalog.<br>
+&nbsp;<br>
+The&nbsp;config&nbsp;directory&nbsp;first,&nbsp;then&nbsp;the&nbsp;per-mod&nbsp;catalogs&nbsp;of&nbsp;the<br>
+modular&nbsp;layout&nbsp;(kingdoms#178):&nbsp;a&nbsp;modular&nbsp;mod&nbsp;keeps&nbsp;its&nbsp;locale<br>
+entries&nbsp;in&nbsp;``modules/mods/&lt;mod&gt;/locales/``&nbsp;and&nbsp;they&nbsp;merge&nbsp;after<br>
+the&nbsp;shared&nbsp;ones&nbsp;(same&nbsp;keys&nbsp;win&nbsp;per&nbsp;mod).</span></dd></dl>
 
 <dl><dt><a name="MessageCatalog-render"><strong>render</strong></a>(self, key: 'str', locale: 'str' = 'en', **kwargs: 'Any') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;dotted&nbsp;key&nbsp;for&nbsp;a&nbsp;locale;&nbsp;English&nbsp;fallback,&nbsp;never&nbsp;raises.</span></dd></dl>
 

@@ -16,7 +16,7 @@ dev-logs:
 
 # Tests & Quality
 test:
-	@uv run pytest
+	@uv run pytest tests/ modules/
 
 # battery: the standalone behavioral journey suite (kingdoms-services#106).
 # One command from a clean checkout at any commit, in-memory and
@@ -28,10 +28,10 @@ battery:
 	@uv run pytest tests/integration
 
 lint:
-	@uv run ruff check src/ tests/
+	@uv run ruff check src/ tests/ modules/
 
 format:
-	@uv run ruff format src/ tests/
+	@uv run ruff format src/ tests/ modules/
 
 typecheck:
 	@uv run mypy src/

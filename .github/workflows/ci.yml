@@ -34,7 +34,7 @@ jobs:
       - name: Run ruff
         run: |
           uv sync
-          uv run ruff check src/ tests/
+          uv run ruff check src/ tests/ modules/
 
   typecheck:
     name: Typecheck (mypy strict)
@@ -60,7 +60,7 @@ jobs:
       - name: Run pytest
         run: |
           uv sync
-          uv run pytest
+          uv run pytest tests/ modules/
 
   cli-doctor:
     # kingdoms-services#188: the `kingdoms` CLI is the front door for
