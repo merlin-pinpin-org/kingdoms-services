@@ -73,8 +73,16 @@ def load_mod_package(name: str, repo_root: Path | None = None) -> LoadedMod:
     """
     if repo_root is not None:
         modular_src = Path(repo_root) / MODULAR_ROOT / name / "src"
-        if modular_src.is_dir() and str(modular_src) not in sys.path:
-            sys.path.insert(0, str(modular_src))
+        if modular_src.is_dir():
+            if str(modular_src) not in sys.path:
+                sys.path.insert(0, str(modular_src))
+            # The mod's package lands on sys.path as its bare name (e.g.
+            # ``clans``); alias it into the kingdoms.mods namespace — the
+            # same one-object rule as the test conftest (duplicate module
+            # objects would mean duplicate exception classes).
+            importlib.import_module("kingdoms.mods")
+            if f"kingdoms.mods.{name}" not in sys.modules:
+                sys.modules[f"kingdoms.mods.{name}"] = importlib.import_module(name)
     package = importlib.import_module(f"kingdoms.mods.{name}")
     return LoadedMod(
         name=name,
