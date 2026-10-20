@@ -87,6 +87,16 @@ class ModDefinition:
     workflows: tuple[str, ...] = field(default_factory=tuple)
     commands: tuple[str, ...] = field(default_factory=tuple)
     dependencies: tuple[str, ...] = field(default_factory=tuple)
+    private: bool = False
+    owner_ids: tuple[str, ...] = field(default_factory=tuple)
+
+    def is_private(self) -> bool:
+        """Whether the mod is reserved (bot admins + declared owners)."""
+        return self.private
+
+    def owned_by(self, user_id: str) -> bool:
+        """Whether one Discord user id is a declared owner of this mod."""
+        return str(user_id) in self.owner_ids
 
     def require_seasonal(self) -> bool:
         """Return the declared mod type; fail loudly when undeclared.

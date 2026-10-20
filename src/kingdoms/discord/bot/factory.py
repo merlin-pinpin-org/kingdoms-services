@@ -423,6 +423,13 @@ class KingdomsBot(discord.Client):
         for mod_name, definition in registry.enabled().items():
             if access is not None and mod_name not in granted:
                 continue
+            if definition.is_private() and not await self._mod_privacy_satisfied(definition, guild_id):
+                logger.info(
+                    "MOD %s SKIPPED (guild %s) — private mod, no owner or bot-admin in the guild",
+                    mod_name,
+                    guild_id,
+                )
+                continue
             try:
                 await channel_service.setup_mod_channels(guild_id, mod_name)
                 await mod_roles_service.setup_mod_roles(guild_id, mod_name)
@@ -435,6 +442,19 @@ class KingdomsBot(discord.Client):
                 )
             except Exception:
                 logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
+
+    async def _mod_privacy_satisfied(self, definition: Any, guild_id: str) -> bool:
+        """Place a private mod only where an owner or a bot admin is a member."""
+        guild = self.get_guild(int(guild_id)) if guild_id.isdigit() else None
+        if guild is None:
+            return False
+        bot_admins = set(getattr(self.status_service, "bot_admins", ()) or ())
+        allowed = bot_admins | set(definition.owner_ids)
+        try:
+            members = await guild.chunk() if not guild.chunked else guild.members
+        except Exception:
+            members = guild.members
+        return any(str(m.id) in allowed for m in members)
 
     async def on_tree_error(
         self,

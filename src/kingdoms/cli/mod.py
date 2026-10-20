@@ -33,13 +33,21 @@ def cmd_list(repo_root: str) -> int:
     return 0
 
 
-def cmd_init(repo_root: str, name: str, seasonal: bool | None) -> int:
+def cmd_init(
+    repo_root: str,
+    name: str,
+    seasonal: bool | None,
+    private: bool,
+    owners: list[str],
+) -> int:
     """Generate a new self-contained mod directory."""
     if seasonal is None:
         answer = input("Seasonal mod? (y=seasonal, n=permanent): ").strip().lower()
         seasonal = answer.startswith("y")
     try:
-        result = init_mod(Path(repo_root), name, seasonal=seasonal)
+        result = init_mod(
+            Path(repo_root), name, seasonal=seasonal, private=private, owner_ids=tuple(owners)
+        )
     except (ValueError, FileExistsError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -74,12 +82,24 @@ def main(argv: list[str]) -> int:
     init_group = init_parser.add_mutually_exclusive_group()
     init_group.add_argument("--seasonal", action="store_true", help="seasonal mod (lifecycle panel + season salons)")
     init_group.add_argument("--permanent", action="store_true", help="permanent mod (guild-level config panel)")
+    init_parser.add_argument(
+        "--private",
+        action="store_true",
+        help="private mod: provisioned and visible only to its owners and the bot admins",
+    )
+    init_parser.add_argument(
+        "--owner",
+        action="append",
+        default=[],
+        metavar="DISCORD_ID",
+        help="owner Discord user id (repeatable; mandatory with --private)",
+    )
     list_parser = sub.add_parser("list", help="list declared mods and their layout")
     list_parser.add_argument("--repo-root", default=None)
     args = parser.parse_args(argv)
     if args.action == "init":
         seasonal = True if args.seasonal else (False if args.permanent else None)
-        return cmd_init(str(Path.cwd()), args.name, seasonal)
+        return cmd_init(str(Path.cwd()), args.name, seasonal, args.private, args.owner)
     if args.action == "list":
         repo_root = args.repo_root or str(Path.cwd())
         return cmd_list(repo_root)

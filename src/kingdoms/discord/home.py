@@ -89,11 +89,38 @@ class HomeButton(discord.ui.DynamicItem[discord.ui.Button[Any]], template=r"home
         await open_home_view(interaction, self.view_key)
 
 
-def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
-    """Build the home menu layout: one button per home view."""
+def _mod_visible_to(bot: Any, mod: str, user_id: str | None) -> bool:
+    """Whether a mod is visible to one user.
+
+    Public mods always are; private mods only to their owners and the
+    bot admins (click-time guards apply on top for actions).
+    """
+    registry = getattr(bot, "registry", None)
+    definition = registry.enabled().get(mod) if registry is not None else None
+    if definition is None or not definition.is_private():
+        return True
+    if not user_id:
+        return False
+    admins = set(getattr(getattr(bot, "status_service", None), "bot_admins", ()) or ())
+    return str(user_id) in admins or definition.owned_by(str(user_id))
+
+
+def _visible_mod_buttons(bot: Any, home: HomeService, user_id: str | None) -> list[Any]:
+    """Home buttons minus the private mods hidden from this viewer."""
+    return [
+        button
+        for button in home.buttons()
+        if button.view == "status"
+        or not (mod := str(button.view)[4:] if str(button.view).startswith("mod:") else "")
+        or _mod_visible_to(bot, mod, user_id)
+    ]
+
+
+def _menu_from_buttons(buttons: list[Any]) -> discord.ui.LayoutView:
+    """Build the home menu layout from the given home buttons."""
     rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    for i, button in enumerate(home.buttons()):
+    for i, button in enumerate(buttons):
         if i and i % 5 == 0:
             rows.append(row)
             row = discord.ui.ActionRow()
@@ -116,13 +143,19 @@ def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
     return view
 
 
+def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
+    """Build the home menu layout: one button per home view."""
+    return _menu_from_buttons(home.buttons())
+
+
 async def open_home_menu(interaction: discord.Interaction) -> None:
     """Answer with the home menu itself (the back target of mod views)."""
     home = getattr(interaction.client, "home_service", None)
     if home is None:
         await interaction.response.send_message(await reply(interaction, "menu_unavailable"), ephemeral=True)
         return
-    await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
+    buttons = _visible_mod_buttons(interaction.client, home, str(getattr(interaction.user, "id", "") or ""))
+    await interaction.response.send_message(view=_menu_from_buttons(buttons), ephemeral=True)
 
 
 async def open_home_view(interaction: discord.Interaction, view_key: str) -> None:
@@ -140,7 +173,11 @@ async def open_home_view(interaction: discord.Interaction, view_key: str) -> Non
     elif view_key == "admin":
         await _view_admin(interaction)
     elif view_key.startswith("mod:"):
-        await _view_mod(interaction, view_key[4:])
+        mod = view_key[4:]
+        if not _mod_visible_to(interaction.client, mod, str(getattr(interaction.user, "id", "") or "")):
+            await interaction.response.send_message(await reply(interaction, "unknown_view"), ephemeral=True)
+            return
+        await _view_mod(interaction, mod)
     else:
         await interaction.response.send_message(await reply(interaction, "unknown_view"), ephemeral=True)
 
@@ -755,7 +792,8 @@ def register_home_command(
     )
     async def home_command(interaction: discord.Interaction) -> None:
         """Answer /home with the home menu (ephemeral)."""
-        await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
+        buttons = _visible_mod_buttons(interaction.client, home, str(getattr(interaction.user, "id", "") or ""))
+        await interaction.response.send_message(view=_menu_from_buttons(buttons), ephemeral=True)
 
 
 def _async_layout(home: HomeService) -> Any:

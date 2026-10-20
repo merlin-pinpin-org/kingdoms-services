@@ -32,11 +32,14 @@ DECLARATION_TEMPLATE = """\
 #   workflows     list of workflow names implemented by the mod
 #   commands      list of command names implemented by the mod
 #   dependencies  list of mod ids this mod depends on
+#   private       bool (default false); a private mod is provisioned and
+#                 visible only to its owners and the bot admins
+#   owner_discord_ids  list of Discord user ids (mandatory when private)
 # Channels are addressed at runtime as "mod:key" (e.g. "{name}:announce").
 id: {name}
 enabled: true
 seasonal: {seasonal}
-settings: {{}}
+{privacy_block}settings: {{}}
 channels:
   - key: announce
     display_name: {display_name}
@@ -144,6 +147,14 @@ class ModInitResult:
     readme: Path
 
 
+def _privacy_block(private: bool, owner_ids: tuple[str, ...]) -> str:
+    """Render the private/owner declaration lines for the template."""
+    if not private:
+        return ""
+    owners = "".join(f'  - "{oid}"\n' for oid in owner_ids)
+    return "private: true\nowner_discord_ids:\n" + owners
+
+
 def _write(path: Path, content: str) -> None:
     if path.exists():
         raise FileExistsError(f"refusing to overwrite existing file: {path}")
@@ -158,6 +169,8 @@ def init_mod(
     seasonal: bool,
     display_name: str | None = None,
     member_role: str | None = None,
+    private: bool = False,
+    owner_ids: tuple[str, ...] = (),
 ) -> ModInitResult:
     """Generate the self-contained mod directory under modules/mods/.
 
@@ -166,6 +179,11 @@ def init_mod(
     """
     if not name.replace("_", "").replace("-", "").isalnum() or ":" in name or not name:
         raise ValueError(f"invalid mod id '{name}': must be a simple slug (no ':')")
+    if private and not owner_ids:
+        raise ValueError("a private mod needs --owner <discord-id> (at least one owner)")
+    for owner in owner_ids:
+        if not owner.isdigit():
+            raise ValueError(f"invalid owner id '{owner}': expected a Discord user id (digits only)")
     mod_dir = Path(repo_root) / MODULAR_ROOT / name
     if mod_dir.exists():
         raise FileExistsError(f"mod directory already exists: {mod_dir}")
@@ -177,6 +195,7 @@ def init_mod(
         "display_name": display,
         "member_role": role,
         "command": name.replace("_", "-")[:32],
+        "privacy_block": _privacy_block(private, owner_ids),
         "SPRINT_DOC_URL": SPRINT_DOC_URL,
     }
     result = ModInitResult(

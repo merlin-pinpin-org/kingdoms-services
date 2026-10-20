@@ -59,3 +59,22 @@ def test_init_refuses_existing_mod(tmp_path: Path) -> None:
 def test_init_refuses_invalid_slug(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="slug"):
         init_mod(tmp_path, "not:a:slug", seasonal=True)
+
+
+def test_init_private_mod_requires_owners(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="owner"):
+        init_mod(tmp_path, "demo", seasonal=True, private=True)
+
+
+def test_init_private_mod_generates_owner_declaration(tmp_path: Path) -> None:
+    result = init_mod(
+        tmp_path,
+        "demo",
+        seasonal=True,
+        private=True,
+        owner_ids=("111222333444555666",),
+    )
+    definition = _load_declaration(result.declaration)
+    assert definition.is_private()
+    assert definition.owned_by("111222333444555666")
+    assert not definition.owned_by("000000000000000000")
