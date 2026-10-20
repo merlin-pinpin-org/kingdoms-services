@@ -6,6 +6,11 @@ mods, YAML configs.
 
 ## Read first
 
+**A mod's files never scatter** (kingdoms#179): its declaration,
+views (`config/mods/<mod>.views.yaml`), code and locales live
+together — never the platform's shared config/locales, never the
+platform's views.yaml. The same holds for a game's files.
+
 **Everything on the repositories is in English** — docs, comments,
 docstrings, commit messages, PR titles and descriptions (the
 conventions' *Working language* rule). The only French allowed is

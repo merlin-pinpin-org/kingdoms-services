@@ -95,3 +95,31 @@ def test_a_button_is_exactly_one_driver() -> None:
 def test_emojis() -> None:
     assert ADMIN_EMOJI == "\U0001f512"
     assert SYNC_EMOJI == "\u2699\ufe0f"
+
+
+@pytest.mark.asyncio
+async def test_a_mod_declares_its_own_views(tmp_path) -> None:
+    """A mod's views.yaml merges into the registry (kingdoms#179)."""
+    import yaml
+
+    (tmp_path / "views.yaml").write_text(
+        yaml.safe_dump(
+            {"views": {"menu:home": {"kind": "menu", "buttons": [{"target": "menu:mymod:home", "label": "x"}]}}}
+        ),
+        encoding="utf-8",
+    )
+    mods = tmp_path / "mods"
+    mods.mkdir()
+    (mods / "mymod.yaml").write_text(
+        yaml.safe_dump({"id": "mymod", "enabled": True, "seasonal": False}), encoding="utf-8"
+    )
+    (mods / "mymod.views.yaml").write_text(
+        yaml.safe_dump({"views": {"menu:mymod:home": {"kind": "menu", "buttons": []}}}), encoding="utf-8"
+    )
+
+    clear_registry()
+    from kingdoms.discord.views_declared import declare_views_from_config
+
+    declare_views_from_config(tmp_path)
+    assert get_view("menu:mymod:home") is not None, "the mod's view merged into the registry"
+    assert not validate_registry(), "the cross-references validate both ways"

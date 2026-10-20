@@ -21,8 +21,14 @@ import yaml
 
 
 def anchor(view_id: str) -> str:
-    """The GitHub anchor of a view's heading (lowercase, dashes)."""
-    return view_id.replace(":", "-").replace("/", "-").lower()
+    """The GitHub anchor of a view's heading.
+
+    GitHub slugs a heading by lowercasing it and dropping the
+    punctuation (backticks, colons, slashes) — ``menu:mod:ladder``
+    renders as ``#menumodladder``. Spaces would become dashes; a
+    view id carries none.
+    """
+    return "".join(c for c in view_id.lower() if c.isalnum())
 
 
 def render_button(label: str, flags: list[str]) -> str:
@@ -95,7 +101,11 @@ def render(raw_views: dict) -> str:
 
     lines.append("## Adding or moving a view")
     lines.append("")
-    lines.append("1. **Declare** it in `config/views.yaml` (kingdoms-services):")
+    lines.append("Platform views live in `config/views.yaml`; a mod's own views live in")
+    lines.append("its own `config/mods/<mod>.views.yaml` (a mod's files never scatter —")
+    lines.append("kingdoms#179) and merge into the same registry.")
+    lines.append("")
+    lines.append("1. **Declare** the view in the right YAML:")
     lines.append("   id, kind, pin scope, buttons (target/label/admin/sync/action);")
     lines.append("2. **Regenerate** this doc (`scripts/generate_views_doc.py`);")
     lines.append('3. **Wire** the handler — `wire_view("<id>", handler)` for a panel,')

@@ -142,6 +142,8 @@ def load_mod_definitions(config_dir: Path) -> ModDefs:
         return definitions
     max_mods = 20
     for path in sorted(mods_dir.glob("*.yaml")):
+        if path.name.endswith(".views.yaml"):
+            continue  # a mod's views declaration, not a mod declaration
         if len(definitions) >= max_mods:
             raise ValueError(
                 f"the platform carries at most {max_mods} mods ({mods_dir}); "

@@ -36,7 +36,12 @@ disabled,&nbsp;never&nbsp;dead.</span></p>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-declare_platform_views"><strong>declare_platform_views</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;every&nbsp;platform&nbsp;view&nbsp;(compatibility&nbsp;name,&nbsp;boot-time).</span></dd></dl>
- <dl><dt><a name="-declare_views_from_config"><strong>declare_views_from_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Load&nbsp;every&nbsp;declared&nbsp;view&nbsp;from&nbsp;the&nbsp;YAML&nbsp;into&nbsp;the&nbsp;registry.</span></dd></dl>
+ <dl><dt><a name="-declare_views_from_config"><strong>declare_views_from_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Load&nbsp;every&nbsp;declared&nbsp;view&nbsp;into&nbsp;the&nbsp;registry.<br>
+&nbsp;<br>
+The&nbsp;platform's&nbsp;``views.yaml``&nbsp;first,&nbsp;then&nbsp;every&nbsp;enabled&nbsp;mod's&nbsp;own<br>
+``config/mods/&lt;mod&gt;/views.yaml``&nbsp;—&nbsp;a&nbsp;mod's&nbsp;navigation&nbsp;lives&nbsp;with<br>
+the&nbsp;mod&nbsp;(kingdoms#179:&nbsp;a&nbsp;mod's&nbsp;files&nbsp;never&nbsp;scatter),&nbsp;and&nbsp;the<br>
+merged&nbsp;registry&nbsp;validates&nbsp;cross-references&nbsp;both&nbsp;ways.</span></dd></dl>
  <dl><dt><a name="-load_views_config"><strong>load_views_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;and&nbsp;parse&nbsp;the&nbsp;views&nbsp;YAML&nbsp;(anchors&nbsp;and&nbsp;aliases&nbsp;resolve&nbsp;here).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
