@@ -224,3 +224,32 @@ async def test_set_grants_replaces_wholesale() -> None:
     assert doc["games"] == []
     assert doc["mods"] == ["register"]
     assert await service.enabled_mods("123") == ("register",)
+
+
+def test_console_ops_cli_gates(monkeypatch: Any) -> None:
+    """The headless CLI enforces the same gates as the Discord surface."""
+    from kingdoms.cli import console_ops
+
+    # prod refused whatever the allowlist says
+    monkeypatch.setenv("KINGDOMS_DEPLOY_ENV", "prod")
+    monkeypatch.setenv("KINGDOMS_TEST_GUILD_IDS", "123")
+    assert console_ops.main(["clean-managed", "--guild", "123"]) == 1
+
+    # empty allowlist: refused everywhere (fail closed)
+    monkeypatch.setenv("KINGDOMS_DEPLOY_ENV", "test")
+    monkeypatch.setenv("KINGDOMS_TEST_GUILD_IDS", "")
+    assert console_ops.main(["reset-data", "--guild", "123"]) == 1
+
+    # a guild outside the allowlist: refused
+    monkeypatch.setenv("KINGDOMS_TEST_GUILD_IDS", "123")
+    assert console_ops.main(["nuke", "--guild", "999"]) == 1
+
+
+def test_console_ops_cli_all_targets_are_allowlisted(monkeypatch: Any) -> None:
+    """--guild all resolves to the env allowlist only, never a default."""
+    from kingdoms.cli import console_ops
+    from kingdoms.discord import console_guilds
+
+    monkeypatch.setattr(console_guilds, "_TEST_GUILD_IDS", frozenset({"111", "222"}))
+    assert console_ops._resolve_targets("all") == ["111", "222"]
+    assert console_ops._resolve_targets("111") == ["111"]

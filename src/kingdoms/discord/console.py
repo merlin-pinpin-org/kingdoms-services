@@ -95,15 +95,17 @@ def _wire(bot: discord.Client) -> dict[str, Any]:
     }
 
 
-async def _delete_managed(interaction: discord.Interaction) -> tuple[int, int]:
-    """Delete the bot-created channels and roles; return (channels, roles)."""
+async def _delete_managed_for_guild(guild: discord.Guild) -> tuple[int, int]:
+    """Delete the bot-created channels and roles; return (channels, roles).
+
+    Guild-based seam: the Discord callbacks and the headless CLI
+    (kingdoms.cli.console_ops) share this one implementation.
+    """
     from kingdoms.core.models.db import get_async_database
     from kingdoms.core.services.channel import CHANNELS_COLLECTION
     from kingdoms.core.services.roles import ROLE_MAPPINGS_COLLECTION
 
-    guild_id = str(interaction.guild_id)
-    guild = interaction.guild
-    assert guild is not None  # noqa: S101 - guarded by the command check
+    guild_id = str(guild.id)
     database = get_async_database()
     channels_deleted = 0
     roles_deleted = 0
@@ -128,17 +130,26 @@ async def _delete_managed(interaction: discord.Interaction) -> tuple[int, int]:
     bot_admins = discord.utils.get(guild.roles, name="bot-admins")
     if bot_admins is not None:
         try:
-            await bot_admins.delete(reason="kingdoms dev console: managed clean")
+            await bot_admins.delete(reason="kingdoms console: managed clean")
             roles_deleted += 1
         except Exception:
             logger.warning("CONSOLE bot-admins role delete failed", exc_info=True)
     return channels_deleted, roles_deleted
 
 
-async def _nuke_everything(interaction: discord.Interaction) -> tuple[int, int]:
-    """Delete every channel and role of the guild; return (channels, roles)."""
+async def _delete_managed(interaction: discord.Interaction) -> tuple[int, int]:
+    """Delete the bot-created channels and roles of the invoking guild."""
     guild = interaction.guild
     assert guild is not None  # noqa: S101 - guarded by the command check
+    return await _delete_managed_for_guild(guild)
+
+
+async def _nuke_everything_for_guild(guild: discord.Guild) -> tuple[int, int]:
+    """Delete every channel and role of the guild; return (channels, roles).
+
+    Guild-based seam: the Discord callbacks and the headless CLI
+    (kingdoms.cli.console_ops) share this one implementation.
+    """
     channels_deleted = 0
     roles_deleted = 0
     for channel in list(getattr(guild, "channels", ()) or ()):
@@ -159,11 +170,18 @@ async def _nuke_everything(interaction: discord.Interaction) -> tuple[int, int]:
     from kingdoms.core.services.channel import CHANNELS_COLLECTION
     from kingdoms.core.services.roles import ROLE_MAPPINGS_COLLECTION
 
-    guild_id = str(interaction.guild_id)
+    guild_id = str(guild.id)
     database = get_async_database()
     await database[CHANNELS_COLLECTION].delete_many({"guild_id": guild_id})
     await database[ROLE_MAPPINGS_COLLECTION].delete_many({"guild_id": guild_id})
     return channels_deleted, roles_deleted
+
+
+async def _nuke_everything(interaction: discord.Interaction) -> tuple[int, int]:
+    """Delete every channel and role of the invoking guild."""
+    guild = interaction.guild
+    assert guild is not None  # noqa: S101 - guarded by the command check
+    return await _nuke_everything_for_guild(guild)
 
 
 def _mod_games(registry: Any, mod_name: str) -> tuple[str, ...]:

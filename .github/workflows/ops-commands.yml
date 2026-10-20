@@ -46,7 +46,8 @@ jobs:
       startsWith(github.event.comment.body, '/rollback') ||
       startsWith(github.event.comment.body, '/dump-db') ||
       startsWith(github.event.comment.body, '/reset-env') ||
-      startsWith(github.event.comment.body, '/seed')
+      startsWith(github.event.comment.body, '/seed') ||
+      startsWith(github.event.comment.body, '/console')
     runs-on: ubuntu-latest
     outputs:
       command: ${{ steps.parse.outputs.command }}
@@ -63,7 +64,7 @@ jobs:
           body="$COMMENT_BODY"
           command="$(echo "$body" | awk '{print $1}')"
           case "$command" in
-            /logs|/restart|/start|/stop|/status|/rollback|/dump-db|/reset-env|/seed) ;;
+            /logs|/restart|/start|/stop|/status|/rollback|/dump-db|/reset-env|/seed|/console) ;;
             *) echo "::error::unsupported command: $command"; exit 1 ;;
           esac
           env_name="$(echo "$body" | awk '{print $2}')"
@@ -87,6 +88,7 @@ jobs:
             dump-db)  capability=db-dump ;;
             reset-env) capability=env-reset ;;
             seed)      capability=env-control ;;
+            console)   capability=console-ops ;;
           esac
           {
             echo "command=${command#/}"
@@ -111,6 +113,7 @@ jobs:
               "dump-db": `**/${cmd} intercepted** — dumping the ${env} databases (mongodump + Redis snapshot), archived on the VPS and uploaded as a private artifact. Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`db-dump\`) — verdict right away.`,
               "reset-env": `**/${cmd} intercepted** — wiping the ${env} data volumes and reseeding from the workflow datasets (destructive: the env's data is lost). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-reset\`: self env only, ops anywhere) — verdict right away.`,
               "seed": `**/${cmd} intercepted** — seeding the ${env} data from the requested source file (idempotent: re-running is safe). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
+              "console": `**/${cmd} intercepted** — running the console action on the ${env} test guilds (same actions and gates as the Discord /console; destructive actions apply only to the allowlisted guilds). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`console-ops\`: own env at vibe+, shared envs at dev+, ops anywhere; never prod) — verdict right away.`,
             }[cmd];
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -244,6 +247,31 @@ jobs:
                 --repo merlin-pinpin-org/kingdoms-infra \
                 -f environment="$ENVIRONMENT"
               ;;
+            console)
+              # /console <env> <action> <guild|all> [mods] [games] [--confirm NUKE]
+              # Same actions and gates as the Discord /console, headless:
+              # env-console.yml runs kingdoms.cli.console_ops in the env's
+              # kingdoms-core container. nuke requires the explicit --confirm
+              # NUKE token (the Actions-side triple-click).
+              CONSOLE_ACTION="$(echo "$COMMENT_BODY" | awk '{print $3}')"
+              CONSOLE_GUILD="$(echo "$COMMENT_BODY" | awk '{print $4}')"
+              [[ -n "$CONSOLE_ACTION" && -n "$CONSOLE_GUILD" ]] \
+                || { echo "::error::usage: /console <env> <clean-managed|nuke|reset-data|install> <guild_id|all> [mods] [games] [--confirm NUKE]" >&2; exit 1; }
+              ARGS=(--repo merlin-pinpin-org/kingdoms-infra --ref "deploy/$ENVIRONMENT" -f environment="$ENVIRONMENT" -f action="$CONSOLE_ACTION" -f guild="$CONSOLE_GUILD")
+              if [[ "$CONSOLE_ACTION" == "install" ]]; then
+                CONSOLE_MODS="$(echo "$COMMENT_BODY" | awk '{print $5}')"
+                CONSOLE_GAMES="$(echo "$COMMENT_BODY" | awk '{print $6}')"
+                ARGS+=(-f mods="$CONSOLE_MODS" -f games="$CONSOLE_GAMES")
+              fi
+              if echo "$COMMENT_BODY" | grep -q -- '--confirm NUKE'; then
+                ARGS+=(-f confirm=NUKE)
+              fi
+              if [[ "$ENVIRONMENT" == "prod" ]]; then
+                echo "::error::/console is never allowed on prod — refusing before any dispatch" >&2
+                exit 1
+              fi
+              gh workflow run env-console.yml "${ARGS[@]}"
+              ;;
           esac
       - name: Record the dispatched workflow for the reporter
         id: route
@@ -255,6 +283,7 @@ jobs:
             logs)          WF="env-logs.yml" ;;
             restart|start|stop|status) WF="env-control.yml" ;;
             dump-db)       WF="db-daily-dump.yml" ;;
+            console)       WF="env-console.yml" ;;
             *)             WF="" ;;
           esac
           echo "workflow=${WF}" >> "$GITHUB_OUTPUT"
