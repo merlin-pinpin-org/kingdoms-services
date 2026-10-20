@@ -217,6 +217,14 @@ or&nbsp;already-granted&nbsp;keys&nbsp;are&nbsp;refused&nbsp;loudly.</span></dd>
 
 <dl><dt>async <a name="GuildAccessService-revoke"><strong>revoke</strong></a>(self, guild_id: 'str', key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;one&nbsp;granted&nbsp;game&nbsp;or&nbsp;mod&nbsp;from&nbsp;a&nbsp;guild.</span></dd></dl>
 
+<dl><dt>async <a name="GuildAccessService-set_grants"><strong>set_grants</strong></a>(self, guild_id: 'str', games: 'list[str]', mods: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Replace&nbsp;one&nbsp;guild's&nbsp;grants&nbsp;wholesale&nbsp;(dev&nbsp;console&nbsp;only).<br>
+&nbsp;<br>
+Unlike&nbsp;approve/revoke&nbsp;(incremental,&nbsp;audit-driven),&nbsp;this&nbsp;is&nbsp;the<br>
+declarative&nbsp;seam&nbsp;the&nbsp;dev&nbsp;console&nbsp;uses&nbsp;after&nbsp;a&nbsp;modal&nbsp;submit:&nbsp;the<br>
+selection&nbsp;is&nbsp;the&nbsp;whole&nbsp;truth.&nbsp;Every&nbsp;key&nbsp;is&nbsp;validated&nbsp;against&nbsp;the<br>
+platform's&nbsp;known&nbsp;games/mods;&nbsp;unknown&nbsp;keys&nbsp;fail&nbsp;loudly&nbsp;and&nbsp;the<br>
+document&nbsp;is&nbsp;untouched.</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>

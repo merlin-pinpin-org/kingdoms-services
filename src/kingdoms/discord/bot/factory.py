@@ -541,6 +541,18 @@ class KingdomsBot(discord.Client):
         await super().close()
 
 
+def dev_console_enabled() -> bool:
+    """Whether this boot opts into the dev console (test environments only).
+
+    First prod barrier: without the explicit opt-in the /dev command is
+    never registered, so it cannot be invoked at all.
+    """
+    from kingdoms.discord.dev_console import DEV_CONSOLE_ENV_VAR
+    from kingdoms.discord.dev_console import dev_console_enabled as _enabled
+
+    return os.environ.get(DEV_CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes") or _enabled()
+
+
 def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     """Build the Kingdoms bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
@@ -652,6 +664,10 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     set_guild_access_platform(games, tuple(registry.enabled()))
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
+    if dev_console_enabled():
+        from kingdoms.discord.dev_console import register_dev_console
+
+        register_dev_console(bot.tree, bot_admins=status.bot_admins)
     return bot
 
 

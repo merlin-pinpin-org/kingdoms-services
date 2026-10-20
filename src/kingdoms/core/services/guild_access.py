@@ -138,6 +138,24 @@ class GuildAccessService:
         await self._db.upsert_guild_access(self._to_mongo(doc))
         return doc
 
+    async def set_grants(self, guild_id: str, games: list[str], mods: list[str]) -> dict[str, Any]:
+        """Replace one guild's grants wholesale (dev console only).
+
+        Unlike approve/revoke (incremental, audit-driven), this is the
+        declarative seam the dev console uses after a modal submit: the
+        selection is the whole truth. Every key is validated against the
+        platform's known games/mods; unknown keys fail loudly and the
+        document is untouched.
+        """
+        self._validate_keys([f"game:{g}" for g in games] + [f"mod:{m}" for m in mods])
+        doc = await self.get(guild_id)
+        doc["games"] = sorted(set(games))
+        doc["mods"] = sorted(set(mods))
+        doc["pending"] = {}
+        doc["updated_at"] = int(time.time())
+        await self._db.upsert_guild_access(self._to_mongo(doc))
+        return doc
+
     async def revoke(self, guild_id: str, key: str) -> dict[str, Any]:
         """Revoke one granted game or mod from a guild."""
         self._validate_keys([key])

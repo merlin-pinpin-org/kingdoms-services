@@ -103,6 +103,7 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     workflows = _parse_str_list(data.get("workflows", []), "workflows", source)
     commands = _parse_str_list(data.get("commands", []), "commands", source)
     dependencies = _parse_str_list(data.get("dependencies", []), "dependencies", source)
+    games = _parse_str_list(data.get("games", []), "games", source)
     seasonal = data.get("seasonal")
     if not isinstance(seasonal, bool):
         raise ValueError(f"{source}: 'seasonal: true|false' is mandatory (mod type: seasonal or permanent)")
@@ -116,6 +117,7 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
         workflows=tuple(workflows),
         commands=tuple(commands),
         dependencies=tuple(dependencies),
+        games=tuple(games),
     )
 
 

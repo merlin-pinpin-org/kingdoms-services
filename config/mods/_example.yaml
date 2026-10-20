@@ -11,6 +11,9 @@
 #   workflows     list of workflow names implemented by the mod
 #   commands      list of command names implemented by the mod
 #   dependencies  list of mod ids this mod depends on
+#   games         list of game keys the mod requires (installing the mod
+#                 installs its games; uninstalling a game uninstalls
+#                 every mod that requires it — dev console rule)
 # Channels are addressed at runtime as "mod:key" (e.g. "example:announce").
 id: example
 enabled: false
@@ -26,3 +29,4 @@ roles:
 workflows: []
 commands: []
 dependencies: []
+games: []

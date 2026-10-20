@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.dev_console</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.dev_console</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/dev_console.py">SOURCE_ROOT/discord/dev_console.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;dev&nbsp;console:&nbsp;a&nbsp;destructive&nbsp;ops&nbsp;surface&nbsp;for&nbsp;test&nbsp;environments&nbsp;only.<br>
+&nbsp;<br>
+Three&nbsp;layers&nbsp;of&nbsp;protection&nbsp;(developer-mandated&nbsp;—&nbsp;"que&nbsp;ça&nbsp;n'arrive<br>
+jamais&nbsp;en&nbsp;prod"):<br>
+&nbsp;<br>
+1.&nbsp;**Registration&nbsp;gate**&nbsp;—&nbsp;the&nbsp;``/dev``&nbsp;command&nbsp;is&nbsp;only&nbsp;registered&nbsp;when<br>
+&nbsp;&nbsp;&nbsp;the&nbsp;environment&nbsp;opts&nbsp;in&nbsp;(``KINGDOMS_DEV_CONSOLE=1``).&nbsp;CI,&nbsp;unit&nbsp;tests<br>
+&nbsp;&nbsp;&nbsp;and&nbsp;production-style&nbsp;boots&nbsp;never&nbsp;even&nbsp;see&nbsp;the&nbsp;command.<br>
+2.&nbsp;**Runtime&nbsp;gate**&nbsp;—&nbsp;every&nbsp;invocation&nbsp;re-reads&nbsp;``KINGDOMS_DEPLOY_ENV``<br>
+&nbsp;&nbsp;&nbsp;and&nbsp;refuses&nbsp;on&nbsp;``prod``&nbsp;(whatever&nbsp;the&nbsp;opt-in&nbsp;flag&nbsp;says),&nbsp;and&nbsp;every<br>
+&nbsp;&nbsp;&nbsp;callback&nbsp;re-checks&nbsp;the&nbsp;guard&nbsp;at&nbsp;click&nbsp;time&nbsp;(the&nbsp;mandate:&nbsp;seeing&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;button&nbsp;never&nbsp;implies&nbsp;being&nbsp;allowed&nbsp;to&nbsp;click&nbsp;it).<br>
+3.&nbsp;**Permission&nbsp;gate**&nbsp;—&nbsp;bot&nbsp;admins&nbsp;only&nbsp;(``require_admin``).<br>
+&nbsp;<br>
+Capabilities:<br>
+&nbsp;<br>
+-&nbsp;**clean&nbsp;managed**&nbsp;—&nbsp;delete&nbsp;only&nbsp;what&nbsp;the&nbsp;bot&nbsp;created:&nbsp;the&nbsp;persisted<br>
+&nbsp;&nbsp;channels&nbsp;(the&nbsp;``channels``&nbsp;collection),&nbsp;the&nbsp;declared&nbsp;mod&nbsp;roles<br>
+&nbsp;&nbsp;(``role_mappings``)&nbsp;and&nbsp;the&nbsp;``bot-admins``&nbsp;role.&nbsp;Roles&nbsp;are&nbsp;deleted<br>
+&nbsp;&nbsp;but&nbsp;``bot-admins``&nbsp;privileges&nbsp;never&nbsp;depended&nbsp;on&nbsp;it&nbsp;(guards&nbsp;read<br>
+&nbsp;&nbsp;BOT_ADMINS&nbsp;first),&nbsp;so&nbsp;a&nbsp;re-run&nbsp;of&nbsp;/admin&nbsp;re-provisions&nbsp;everything.<br>
+-&nbsp;**clean&nbsp;nuke**&nbsp;—&nbsp;delete&nbsp;EVERY&nbsp;channel,&nbsp;category&nbsp;and&nbsp;role&nbsp;of&nbsp;the&nbsp;guild<br>
+&nbsp;&nbsp;(except&nbsp;the&nbsp;@everyone&nbsp;role,&nbsp;undeletable).&nbsp;Behind&nbsp;a&nbsp;triple<br>
+&nbsp;&nbsp;confirmation:&nbsp;three&nbsp;consecutive&nbsp;clicks,&nbsp;each&nbsp;one&nbsp;restating&nbsp;the<br>
+&nbsp;&nbsp;destruction,&nbsp;the&nbsp;third&nbsp;requiring&nbsp;a&nbsp;fresh&nbsp;deliberate&nbsp;click.<br>
+-&nbsp;**install&nbsp;modal**&nbsp;—&nbsp;a&nbsp;multi-select&nbsp;of&nbsp;mods&nbsp;and&nbsp;a&nbsp;multi-select&nbsp;of<br>
+&nbsp;&nbsp;games;&nbsp;selecting&nbsp;a&nbsp;mod&nbsp;auto-installs&nbsp;its&nbsp;declared&nbsp;games&nbsp;(the&nbsp;YAML<br>
+&nbsp;&nbsp;``games:``&nbsp;list),&nbsp;uninstalling&nbsp;a&nbsp;game&nbsp;uninstalls&nbsp;every&nbsp;mod&nbsp;that<br>
+&nbsp;&nbsp;needs&nbsp;it.&nbsp;On&nbsp;submit:&nbsp;grants&nbsp;are&nbsp;replaced,&nbsp;channels/roles&nbsp;of<br>
+&nbsp;&nbsp;uninstalled&nbsp;mods/games&nbsp;are&nbsp;deleted,&nbsp;then&nbsp;the&nbsp;newly&nbsp;granted&nbsp;mods&nbsp;are<br>
+&nbsp;&nbsp;provisioned&nbsp;(the&nbsp;same&nbsp;seam&nbsp;as&nbsp;startup).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+<a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-dev_console_enabled"><strong>dev_console_enabled</strong></a>(environ: 'dict[str, str] | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;this&nbsp;boot&nbsp;must&nbsp;register&nbsp;the&nbsp;dev&nbsp;console&nbsp;(opt-in&nbsp;only).</span></dd></dl>
+ <dl><dt><a name="-register_dev_console"><strong>register_dev_console</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/dev&nbsp;command&nbsp;(call&nbsp;only&nbsp;when&nbsp;<a href="#-dev_console_enabled">dev_console_enabled</a>()).<br>
+&nbsp;<br>
+The&nbsp;registration&nbsp;itself&nbsp;is&nbsp;the&nbsp;first&nbsp;prod&nbsp;barrier:&nbsp;CI,&nbsp;unit&nbsp;tests<br>
+and&nbsp;production&nbsp;boots&nbsp;never&nbsp;register&nbsp;the&nbsp;command,&nbsp;so&nbsp;it&nbsp;cannot&nbsp;be<br>
+invoked&nbsp;at&nbsp;all.&nbsp;The&nbsp;runtime&nbsp;gate&nbsp;(deploy&nbsp;env)&nbsp;is&nbsp;the&nbsp;second.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEV_CONSOLE_ENV_VAR</strong> = 'KINGDOMS_DEV_CONSOLE'<br>
+<strong>__all__</strong> = ['DEV_CONSOLE_ENV_VAR', 'dev_console_enabled', 'register_dev_console']</td></tr></table>
+</body></html>
