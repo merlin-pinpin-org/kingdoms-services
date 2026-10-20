@@ -73,6 +73,8 @@ def _strings(locale: str) -> dict[str, str]:
             "parish": "Paroisse",
             "parish_placeholder": "⛪ Chapelle (palier 1/3) — paliers D64 à venir",
             "ledger_button": "🏛️ Chambre des comptes",
+            "settings_button": "⚙️ Paramètres utilisateur",
+            "settings_footer": "-# ⚙️ Réglages hors-jeu — ceci ne fait pas partie du jeu.",
             "yes": "oui",
             "no": "non",
             "none_f": "aucune",
@@ -198,6 +200,8 @@ def _strings(locale: str) -> dict[str, str]:
         "parish": "Parish",
         "parish_placeholder": "⛪ Chapel (tier 1/3) — D64 tiers coming soon",
         "ledger_button": "🏛️ Chambre des comptes",
+        "settings_button": "⚙️ User settings",
+        "settings_footer": "-# ⚙️ Out-of-game settings — this is not part of the game.",
         "yes": "yes",
         "no": "no",
         "none_f": "none",
@@ -644,13 +648,28 @@ def _build_overview(
 
     buttons.append(KingdomRempartsOpenButton(strings["remparts_open_button"]))
     buttons.append(KingdomSeigneurieOpenButton(strings["seigneurie_open_button"]))
-    return _panel_view_with_buttons(
+    view = _panel_view_with_buttons(
         strings["overview_title"].format(getattr(kingdom, "name", "")),
         body,
         f"{VIEW_MARKER_PREFIX}:le-royaume",
         discord.Colour.gold(),
         buttons,
     )
+    # immersion-v1 (Drasah 20/10): the user-settings button lives in its
+    # OWN footer container, visually detached from the game buttons —
+    # the player must read it as out-of-game, not as a game action.
+    from kingdoms.mods.kingdoms.kingdom_immersion import KingdomUserSettingsButton
+
+    # (buttons ride a list[Any] like the game row — the DynamicItem's
+    # Button[Any] typevar is not LayoutView-typed, mypy-wise)
+    footer_buttons: list[Any] = [KingdomUserSettingsButton(strings["settings_button"])]
+    footer: discord.ui.Container[discord.ui.LayoutView] = discord.ui.Container(
+        discord.ui.Separator(),
+        discord.ui.TextDisplay(strings["settings_footer"]),
+        discord.ui.ActionRow(*footer_buttons),
+    )
+    view.add_item(footer)
+    return view
 
 
 def _build_roster(

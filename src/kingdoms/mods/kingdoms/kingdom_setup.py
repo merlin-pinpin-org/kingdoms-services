@@ -432,6 +432,12 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     # dividers, the micro-lore topics and the category order apply on
     # every provisioning pass (idempotent, best effort).
     await _hide_conscription_from_players(guild)
+    # immersion-v1 (Drasah 20/10): the out-of-game categories (Beta,
+    # Conscription) hide from every in-game role — the immersion is the
+    # default; the member opts back in from his realm's user settings.
+    from kingdoms.mods.kingdoms.kingdom_immersion import apply_immersion_gating
+
+    await apply_immersion_gating(guild)
     await _ensure_charte_dividers(guild)
     await _apply_charte_topics(guild)
     await _enforce_category_order(guild)
