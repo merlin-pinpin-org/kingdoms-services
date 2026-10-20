@@ -804,6 +804,26 @@ class KingdomsBot(discord.Client):
         """
         return
 
+    async def on_interaction(self, interaction: discord.Interaction) -> None:
+        """Observe the clicker's Discord client language (best-effort).
+
+        Discord exposes a user's language only inside interactions;
+        the interaction-free DMs (boot status, crash reports) render
+        in the language the user was last seen using.
+        """
+        if self.logs_service is None:
+            return
+        from kingdoms.discord.locales import normalize
+
+        locale = normalize(getattr(interaction, "locale", None))
+        user_id = str(getattr(getattr(interaction, "user", None), "id", "") or "")
+        if user_id:
+            except_logger = logger.debug
+            try:
+                await self.logs_service.observe_user_locale(user_id, locale)
+            except Exception:
+                except_logger("user locale observation failed (user %s)", user_id, exc_info=True)
+
     async def on_tree_error(
         self,
         interaction: discord.Interaction,
@@ -963,9 +983,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
-    register_status_command(
-        bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
-    )
+    register_status_command(bot.tree, status, sync_target=sync_target, catalog=bot.messages)
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine

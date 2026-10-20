@@ -33,6 +33,7 @@ class FakeLogsDatabase:
         self.channels: dict[str, ChannelModel] = {}
         self.policies: dict[str, dict[str, Any]] = {}
         self.settings: dict[str, dict[str, Any]] = {}
+        self.users: dict[str, dict[str, Any]] = {}
         self.created_order: list[str] = []
 
     async def find_channel(self, guild_id: str, category: str) -> ChannelModel | None:
@@ -50,6 +51,12 @@ class FakeLogsDatabase:
 
     async def set_policy(self, guild_id: str, category: str, policy: dict[str, Any]) -> None:
         self.policies[f"{guild_id}:{category}"] = dict(policy)
+
+    async def get_user_settings(self, user_id: str) -> dict[str, Any] | None:
+        return self.users.get(user_id)
+
+    async def set_user_settings(self, user_id: str, settings: dict[str, Any]) -> None:
+        self.users[user_id] = dict(settings)
 
     async def get_guild_settings(self, guild_id: str) -> dict[str, Any] | None:
         return self.settings.get(guild_id)
@@ -396,3 +403,16 @@ async def test_list_text_channels_serves_the_picker(service: LogService, platfor
     assert "5555" in ids
     entry = next(c for c in channels if c["id"] == "5555")
     assert entry["name"] == "general"
+
+
+@pytest.mark.asyncio
+async def test_user_locale_observation(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """Interaction-free DMs render in the language the user was last seen using."""
+    assert await service.get_user_locale("777") == "en", "never seen: English"
+    await service.observe_user_locale("777", "fr")
+    assert await service.get_user_locale("777") == "fr"
+    assert database.users["777"]["locale"] == "fr"
+    await service.observe_user_locale("777", "de")
+    assert await service.get_user_locale("777") == "fr", "unsupported locales never overwrite"

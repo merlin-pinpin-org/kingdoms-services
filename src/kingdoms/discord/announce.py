@@ -446,15 +446,18 @@ async def announce_startup(
     if logs_service is None:
         logger.info("STARTUP ANNOUNCEMENT SKIPPED: no LogService wired (local run?)")
         return
-    del logs_service, locale_resolver
+    del locale_resolver
     latency_ms = _gateway_latency(bot)
-    await _announce_boot_to_admins(bot, status, config, deploy_env, latency_ms, commands or (), sync_scope)
+    await _announce_boot_to_admins(
+        bot, status, config, logs_service, deploy_env, latency_ms, commands or (), sync_scope
+    )
 
 
 async def _announce_boot_to_admins(
     bot: discord.Client,
     status: StatusService,
     config: AnnounceConfig,
+    logs_service: LogService,
     deploy_env: str,
     latency_ms: int | None,
     commands: Iterable[object],
@@ -479,7 +482,24 @@ async def _announce_boot_to_admins(
     for admin_id in status.bot_admins:
         try:
             user = await bot.fetch_user(int(admin_id))
-            await user.send(view=layout)
+            try:
+                observed = await logs_service.get_user_locale(str(admin_id))
+            except Exception:
+                observed = "en"
+            per_admin_config = AnnounceConfig(locale=observed) if observed != config.locale else config
+            per_admin_layout = (
+                layout
+                if observed == config.locale
+                else build_announcement_layout(
+                    status,
+                    per_admin_config,
+                    env=deploy_env,
+                    latency_ms=latency_ms,
+                    commands=commands_block,
+                    command_ids=command_items,
+                )
+            )
+            await user.send(view=per_admin_layout)
             logger.info("STARTUP ANNOUNCEMENT DM sent to bot-admin %s", admin_id)
             await _send_boot_admin_dm(bot, user)
         except Exception:

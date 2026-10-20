@@ -144,6 +144,8 @@ the&nbsp;log&nbsp;trail&nbsp;stays&nbsp;readable.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;native&nbsp;Discord&nbsp;locale&nbsp;through&nbsp;the&nbsp;resolver.</span></dd></dl>
 
+<dl><dt>async <a name="LogService-get_user_locale"><strong>get_user_locale</strong></a>(self, user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;language&nbsp;the&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using&nbsp;(en&nbsp;fallback).</span></dd></dl>
+
 <dl><dt>async <a name="LogService-grant_role_view_access"><strong>grant_role_view_access</strong></a>(self, guild_id: 'str', role_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name)&nbsp;for&nbsp;the&nbsp;admin&nbsp;picker.</span></dd></dl>
@@ -157,6 +159,14 @@ Policy&nbsp;and&nbsp;stop&nbsp;messages&nbsp;are&nbsp;localized&nbsp;with&nbsp;t
 ``pin``&nbsp;marks&nbsp;the&nbsp;message&nbsp;as&nbsp;a&nbsp;permanent&nbsp;reference&nbsp;(the&nbsp;boot<br>
 status):&nbsp;the&nbsp;platform&nbsp;pins&nbsp;it&nbsp;and&nbsp;unpins&nbsp;the&nbsp;previous&nbsp;one&nbsp;—<br>
 only&nbsp;the&nbsp;most&nbsp;recent&nbsp;boot&nbsp;status&nbsp;stays&nbsp;pinned.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-observe_user_locale"><strong>observe_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;Discord&nbsp;client&nbsp;language&nbsp;a&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using.<br>
+&nbsp;<br>
+Observation,&nbsp;never&nbsp;a&nbsp;setting&nbsp;the&nbsp;user&nbsp;manages:&nbsp;Discord&nbsp;exposes<br>
+a&nbsp;user's&nbsp;language&nbsp;only&nbsp;inside&nbsp;interactions,&nbsp;so&nbsp;every&nbsp;interaction<br>
+refreshes&nbsp;it&nbsp;here&nbsp;(best-effort)&nbsp;and&nbsp;the&nbsp;interaction-free&nbsp;DMs<br>
+(boot&nbsp;status,&nbsp;crash&nbsp;reports)&nbsp;render&nbsp;in&nbsp;the&nbsp;language&nbsp;the&nbsp;user<br>
+was&nbsp;last&nbsp;seen&nbsp;speaking.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 

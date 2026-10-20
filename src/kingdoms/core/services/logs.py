@@ -425,6 +425,36 @@ class LogService:
         """List the guild's text channels (id, name) for the admin picker."""
         return await self._platform.list_text_channels(guild_id)
 
+    async def observe_user_locale(self, user_id: str, locale: str) -> None:
+        """Record the Discord client language a user was last seen using.
+
+        Observation, never a setting the user manages: Discord exposes
+        a user's language only inside interactions, so every interaction
+        refreshes it here (best-effort) and the interaction-free DMs
+        (boot status, crash reports) render in the language the user
+        was last seen speaking.
+        """
+        if locale not in SUPPORTED_LOCALES:
+            return
+        try:
+            settings = await self._safe(self._db.get_user_settings(user_id)) or {}
+            if str(settings.get("locale", "")) == locale:
+                return
+            settings["locale"] = locale
+            settings["updated_at"] = int(time.time())
+            await self._db.set_user_settings(user_id, settings)
+        except Exception:
+            logger.debug("user locale observation failed (user %s)", user_id, exc_info=True)
+
+    async def get_user_locale(self, user_id: str) -> str:
+        """Return the language the user was last seen using (en fallback)."""
+        try:
+            settings = await self._safe(self._db.get_user_settings(user_id))
+        except Exception:
+            return "en"
+        locale = str((settings or {}).get("locale", ""))
+        return locale if locale in SUPPORTED_LOCALES else "en"
+
     def set_locale_resolver(self, resolver: Any) -> None:
         """Inject the native-locale resolver (guild id -> en/fr).
 

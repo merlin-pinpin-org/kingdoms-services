@@ -198,6 +198,12 @@ sweep.&nbsp;The&nbsp;pinned&nbsp;menus&nbsp;follow:&nbsp;their&nbsp;next&nbsp;en
 fresh&nbsp;channel.&nbsp;Only&nbsp;the&nbsp;bot's&nbsp;own&nbsp;channels&nbsp;react;&nbsp;anything<br>
 else&nbsp;is&nbsp;ignored.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsBot-on_interaction"><strong>on_interaction</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Observe&nbsp;the&nbsp;clicker's&nbsp;Discord&nbsp;client&nbsp;language&nbsp;(best-effort).<br>
+&nbsp;<br>
+Discord&nbsp;exposes&nbsp;a&nbsp;user's&nbsp;language&nbsp;only&nbsp;inside&nbsp;interactions;<br>
+the&nbsp;interaction-free&nbsp;DMs&nbsp;(boot&nbsp;status,&nbsp;crash&nbsp;reports)&nbsp;render<br>
+in&nbsp;the&nbsp;language&nbsp;the&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-on_thread_delete"><strong>on_thread_delete</strong></a>(self, thread: 'discord.Thread') -&gt; 'None'</dt><dd><span class="code">Let&nbsp;the&nbsp;entity-forum&nbsp;syncs&nbsp;heal&nbsp;a&nbsp;deleted&nbsp;post&nbsp;(no-op&nbsp;here).<br>
