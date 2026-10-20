@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 import discord
 
+from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
 from kingdoms.mods.kingdoms.game_clock import game_now
 
 logger = logging.getLogger(__name__)
@@ -2208,14 +2209,20 @@ def _sabotage_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui
     return view
 
 
-async def _edit_dm_message_safe(bot: Any, ref: Any, content: str, view: discord.ui.View | None) -> bool:
+async def _edit_dm_message_safe(
+    bot: Any,
+    ref: Any,
+    content: str,
+    view: discord.ui.View | None,
+    files: list[discord.File] | None = None,
+) -> bool:
     """Edit a stored DM message (channel_id + message_id) — best effort."""
     try:
         channel = getattr(bot, "get_channel", lambda _id: None)(int(ref["channel_id"]))
         if channel is None:
             channel = await bot.fetch_channel(int(ref["channel_id"]))
         message = channel.get_partial_message(int(ref["message_id"]))
-        await message.edit(content=content, view=view)
+        await message.edit(content=content, view=view, files=files)
         return True
     except Exception:
         logger.warning("KINGDOM ATTACK: DM edit failed — falling back to a new DM", exc_info=True)
@@ -2241,15 +2248,20 @@ async def _edit_pickban_dms_reveal(
         if not player_id or (side == "defender" and attack.ai_defender):
             continue
         enemy = "defender" if side == "attacker" else "attacker"
-        civs = ", ".join(_shuffled_civs(pickban.get(f"{enemy}_picks"))) or "—"
+        shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
+        civs = ", ".join(shuffled) or "—"
         content = strings["pickban_reveal_dm"].format(map=attack.map_key, civs=civs)
         view = _sabotage_dm_view(str(attack.id), player_id, "fr")
+        # civ-crests-v1 (Drasah 20/10): the revealed civs wear their
+        # blasons — the crest PNGs attach under the text, in the SAME
+        # shuffled order as the names (the raw pick order stays hidden).
+        files = await civ_crest_files(shuffled)
         ref = pickban.get(f"{side}_dm") or {}
         edited = False
         if ref.get("channel_id") and ref.get("message_id"):
-            edited = await _edit_dm_message_safe(bot, ref, content, view)
+            edited = await _edit_dm_message_safe(bot, ref, content, view, files)
         if not edited:
-            await _dm_user_safe(bot, player_id, content, view)
+            await _dm_user_safe(bot, player_id, content, view, files)
 
 
 async def _edit_pickban_dms_phase_done(bot: Any, attack: Any, strings: dict[str, str]) -> None:
@@ -2522,7 +2534,11 @@ async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:
 
 
 async def _dm_user_safe(
-    bot: Any, user_id: str, content: str, view: discord.ui.View | None = None
+    bot: Any,
+    user_id: str,
+    content: str,
+    view: discord.ui.View | None = None,
+    files: list[discord.File] | None = None,
 ) -> Any:
     """Best-effort DM to one player — returns the message (or None)."""
     try:
@@ -2530,6 +2546,10 @@ async def _dm_user_safe(
         if user is None:
             user = await bot.fetch_user(int(user_id))
         if user is not None:
+            # ``files`` only rides along when present: a caller-less
+            # signature (tests, DM bridges) must keep working.
+            if files:
+                return await user.send(content, view=view, files=files)
             return await user.send(content, view=view)
     except Exception:
         # The message stays generic on purpose: _dm_user_safe carries
@@ -3048,9 +3068,20 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
             logger.warning("KINGDOM ATTACK: no attack salon for the meeting message")
         else:
             try:
+                # civ-crests-v1 (Drasah 20/10): the meeting message wears
+                # both final civs' blasons, attached under the text. The
+                # later content-only edits keep them (attachments survive
+                # a Discord edit that does not pass ``files``).
+                pickban = dict(attack.pickban or {})
                 message = await salon.send(
                     await _room_body_text(attack, kingdoms_service, strings),
                     view=_room_view(attack, strings),
+                    files=await civ_crest_files(
+                        [
+                            _final_civ(pickban, "attacker"),
+                            _final_civ(pickban, "defender"),
+                        ]
+                    ),
                 )
                 await _record_meeting_message_safe(attack, int(salon.id), int(message.id))
             except Exception:

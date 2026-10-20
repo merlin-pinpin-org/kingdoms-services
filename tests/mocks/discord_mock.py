@@ -112,7 +112,7 @@ class MockUser(discord.User):
         **kwargs: Any,
     ) -> MockMessage:
         """In-memory DM: the message lands in ``dm_messages``."""
-        message = MockMessage(content=content, embed=embed, view=view)
+        message = MockMessage(content=content, embed=embed, view=view, files=kwargs.get("files"))
         self.dm_messages.append(message)
         return message
 
@@ -351,7 +351,7 @@ class MockTextChannel(discord.TextChannel):
         view: discord.ui.View | None = None,
         **kwargs: Any,
     ) -> MockMessage:
-        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
         self.messages.append(message)
         return message
 
@@ -453,7 +453,7 @@ class MockThread(discord.Thread):
         **kwargs: Any,
     ) -> MockMessage:
         """Record the thread post in ``messages``."""
-        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
         self.messages.append(message)
         return message
 
@@ -500,7 +500,7 @@ class MockVoiceChannel(discord.VoiceChannel):
         **kwargs: Any,
     ) -> MockMessage:
         """Text-in-voice: the battle-room message lands in ``messages``."""
-        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
         self.messages.append(message)
         return message
 
@@ -645,7 +645,7 @@ class MockDMChannel(discord.DMChannel):
         view: discord.ui.View | None = None,
         **kwargs: Any,
     ) -> MockMessage:
-        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
         self.messages.append(message)
         return message
 
@@ -814,6 +814,7 @@ class MockMessage(discord.Message):
         view: discord.ui.View | None = None,
         channel: MockChannel | None = None,
         author: MockUser | MockMember | None = None,
+        files: list[Any] | None = None,
         **kwargs: Any,
     ) -> None:
         self.id = _next_id()
@@ -822,6 +823,8 @@ class MockMessage(discord.Message):
         self.author = author if author is not None else MockUser(name="TestBot", bot=True)
         self.embeds = [embed] if embed is not None else []
         self.view = view
+        self.files: list[Any] | None = files
+        self.attachments: list[Any] = list(files) if files else []
         self._edited = False
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -845,6 +848,9 @@ class MockMessage(discord.Message):
         if "view" in kwargs:
             self.view = kwargs["view"]
             self._sync_ui_surfaces(kwargs["view"])
+        if "files" in kwargs:
+            self.files = kwargs["files"]
+            self.attachments = list(kwargs["files"] or [])
         return self
 
     async def delete(self, *, delay: float | None = None) -> None:

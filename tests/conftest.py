@@ -91,3 +91,22 @@ def _reset_game_clock_offset() -> Iterator[None]:
     game_clock.set_game_offset(0)
     yield
     game_clock.set_game_offset(0)
+
+
+@pytest.fixture(autouse=True)
+def _no_crest_downloads(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Keep the civ-crest downloads OFF in every test (civ-crests-v1).
+
+    ``civ_crests._crest_bytes`` is the download seam: production talks
+    to the aoe2techtree CDN through it, tests replace it with an
+    in-memory stub so the network-free rule (#106) holds. The
+    civ_crests unit tests install their own fakes on top.
+    """
+    from kingdoms.mods.kingdoms import civ_crests
+
+    async def _fake_crest_bytes(url: str) -> bytes:
+        del url
+        return b"png"
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", _fake_crest_bytes)
+    yield
