@@ -445,7 +445,7 @@ en:
       btn_create_pool: Create a map pool
       btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.
-      btn_sync: Channels & roles
+      btn_sync: Create missing channels
     views:
       menu.home:
         title: 🏰 Kingdoms

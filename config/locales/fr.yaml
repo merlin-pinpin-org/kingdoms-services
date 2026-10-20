@@ -453,7 +453,7 @@ fr:
       btn_create_pool: Créer un map pool
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
-      btn_sync: Salons & rôles
+      btn_sync: Créer les salons manquants
     views:
       menu.home:
         title: 🏰 Kingdoms

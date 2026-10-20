@@ -230,7 +230,10 @@ def menu_buttons(decl: Any, catalog: Any, locale: str) -> list[discord.ui.Button
         elif button.sync:
             from kingdoms.discord.admin_tree import TreeEnsureButton
 
-            scope = decl.scope or "bot"
+            # the sync re-provisions the declared tree scope (the folder),
+            # never the pin channel — the pin scope ends with "/admin" or
+            # "/general", which the tree does not declare
+            scope = decl.scope.rsplit("/", 1)[0] if decl.scope and "/" in decl.scope else (decl.scope or "bot")
             item = TreeEnsureButton(
                 scope, _label(catalog, button.label_key, locale) or "Create missing channels"
             )

@@ -41,9 +41,8 @@ def _civ_post_layout(
     from kingdoms.core.ids import footer
 
     view = discord.ui.LayoutView(timeout=None)
+    name = f"{name[:1].upper()}{name[1:]}" if name else name
     header = f"## {name}\n" + (f"_{civ_type}_" if civ_type else "")
-    if source:
-        header += f"\n{source}"
     blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header), discord.ui.Separator()]
     for index, (label, items) in enumerate(sections):
         if index:
@@ -59,6 +58,9 @@ def _civ_post_layout(
         else:
             blocks.append(discord.ui.TextDisplay(body))
     blocks.append(discord.ui.Separator())
+    if source:
+        source_label = "aoe2techtree" if "aoe2techtree" in source else "source"
+        blocks.append(discord.ui.TextDisplay(f"Source : [{source_label}]({source})"))
     blocks.append(discord.ui.TextDisplay(footer(entry_id)))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     return view
