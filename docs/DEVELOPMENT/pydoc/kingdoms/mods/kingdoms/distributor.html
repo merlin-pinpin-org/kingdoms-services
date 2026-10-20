@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.distributor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.distributor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/distributor.py">SOURCE_ROOT/mods/kingdoms/distributor.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;distributor&nbsp;service&nbsp;—&nbsp;the&nbsp;admin&nbsp;test&nbsp;injector&nbsp;(D75).<br>
+&nbsp;<br>
+Drasah's&nbsp;Distributeur&nbsp;salon&nbsp;(2026-10-12):&nbsp;during&nbsp;tests&nbsp;the&nbsp;admin&nbsp;hands<br>
+elements&nbsp;to&nbsp;a&nbsp;kingdom&nbsp;by&nbsp;hand&nbsp;and&nbsp;watches&nbsp;them&nbsp;propagate&nbsp;into&nbsp;the<br>
+game's&nbsp;live&nbsp;views.&nbsp;This&nbsp;service&nbsp;owns&nbsp;the&nbsp;injection&nbsp;rules&nbsp;—&nbsp;the&nbsp;panel<br>
+(``kingdom_distributor_panel.py``)&nbsp;is&nbsp;only&nbsp;its&nbsp;Discord&nbsp;surface.<br>
+&nbsp;<br>
+Two&nbsp;design&nbsp;rules&nbsp;decided&nbsp;with&nbsp;Drasah:<br>
+1.&nbsp;**No&nbsp;costs,&nbsp;no&nbsp;limits,&nbsp;no&nbsp;locks**&nbsp;—&nbsp;the&nbsp;distributor&nbsp;injects<br>
+&nbsp;&nbsp;&nbsp;straight&nbsp;into&nbsp;the&nbsp;season&nbsp;data&nbsp;(a&nbsp;test&nbsp;wallet&nbsp;of&nbsp;50&nbsp;🔬&nbsp;never&nbsp;went<br>
+&nbsp;&nbsp;&nbsp;through&nbsp;the&nbsp;epoch&nbsp;economy).&nbsp;The&nbsp;ONLY&nbsp;business&nbsp;rules&nbsp;kept&nbsp;are&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;ones&nbsp;Drasah&nbsp;spelled&nbsp;out&nbsp;for&nbsp;the&nbsp;alliances:<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;any&nbsp;civilization&nbsp;of&nbsp;the&nbsp;catalog&nbsp;may&nbsp;be&nbsp;handed&nbsp;to&nbsp;a&nbsp;kingdom<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(player&nbsp;kingdoms&nbsp;only&nbsp;—&nbsp;Gaïa&nbsp;never&nbsp;holds&nbsp;a&nbsp;hand,&nbsp;D27);<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;refused&nbsp;when&nbsp;the&nbsp;kingdom&nbsp;already&nbsp;holds&nbsp;it&nbsp;in&nbsp;Alliances;<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;refused&nbsp;when&nbsp;an&nbsp;active&nbsp;marriage&nbsp;(any&nbsp;kingdom)&nbsp;claims&nbsp;it&nbsp;(D74)&nbsp;—<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;NON-married&nbsp;civilization&nbsp;may&nbsp;legally&nbsp;be&nbsp;shared&nbsp;by&nbsp;several<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kingdoms&nbsp;(the&nbsp;admin&nbsp;draft&nbsp;ignores&nbsp;the&nbsp;draft's&nbsp;no-duplicate&nbsp;rule<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on&nbsp;purpose);<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;removing&nbsp;a&nbsp;civilization&nbsp;secured&nbsp;by&nbsp;one&nbsp;of&nbsp;the&nbsp;kingdom's&nbsp;own<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;marriages&nbsp;is&nbsp;refused&nbsp;(the&nbsp;marriage&nbsp;survives,&nbsp;not&nbsp;the&nbsp;admin's<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hindsight).<br>
+2.&nbsp;**Everything&nbsp;is&nbsp;reversible**&nbsp;—&nbsp;every&nbsp;injection&nbsp;has&nbsp;its&nbsp;symmetric<br>
+&nbsp;&nbsp;&nbsp;removal,&nbsp;so&nbsp;a&nbsp;test&nbsp;scenario&nbsp;can&nbsp;be&nbsp;unmade&nbsp;without&nbsp;a&nbsp;snapshot.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#DistributorService">DistributorService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>(<a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#AllianceAlreadyInHandError">AllianceAlreadyInHandError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#AllianceMarriedError">AllianceMarriedError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#AllianceNotInHandError">AllianceNotInHandError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#AllianceSecuredError">AllianceSecuredError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#DistributorValueError">DistributorValueError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#GaiaAllianceError">GaiaAllianceError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.distributor.html#LordNotFoundError">LordNotFoundError</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AllianceAlreadyInHandError">class <strong>AllianceAlreadyInHandError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AllianceAlreadyInHandError">AllianceAlreadyInHandError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;kingdom&nbsp;already&nbsp;holds&nbsp;the&nbsp;civilization.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#AllianceAlreadyInHandError">AllianceAlreadyInHandError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_ALLIANCE_IN_HAND'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.alliance_in_hand'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="AllianceAlreadyInHandError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AllianceAlreadyInHandError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AllianceAlreadyInHandError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AllianceAlreadyInHandError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AllianceAlreadyInHandError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AllianceAlreadyInHandError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AllianceAlreadyInHandError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AllianceAlreadyInHandError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AllianceAlreadyInHandError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceAlreadyInHandError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AllianceAlreadyInHandError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceAlreadyInHandError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AllianceMarriedError">class <strong>AllianceMarriedError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AllianceMarriedError">AllianceMarriedError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;active&nbsp;marriage&nbsp;(any&nbsp;kingdom)&nbsp;claims&nbsp;the&nbsp;civilization.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#AllianceMarriedError">AllianceMarriedError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_ALLIANCE_MARRIED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.alliance_married'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="AllianceMarriedError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AllianceMarriedError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AllianceMarriedError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AllianceMarriedError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AllianceMarriedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AllianceMarriedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AllianceMarriedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AllianceMarriedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AllianceMarriedError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceMarriedError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AllianceMarriedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceMarriedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AllianceNotInHandError">class <strong>AllianceNotInHandError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AllianceNotInHandError">AllianceNotInHandError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;removing&nbsp;a&nbsp;civilization&nbsp;the&nbsp;kingdom&nbsp;does&nbsp;not&nbsp;hold.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#AllianceNotInHandError">AllianceNotInHandError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_ALLIANCE_NOT_IN_HAND'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.alliance_not_in_hand'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="AllianceNotInHandError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AllianceNotInHandError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AllianceNotInHandError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AllianceNotInHandError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AllianceNotInHandError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AllianceNotInHandError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AllianceNotInHandError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AllianceNotInHandError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AllianceNotInHandError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceNotInHandError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AllianceNotInHandError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceNotInHandError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AllianceSecuredError">class <strong>AllianceSecuredError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AllianceSecuredError">AllianceSecuredError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;one&nbsp;of&nbsp;the&nbsp;kingdom's&nbsp;own&nbsp;marriages&nbsp;secures&nbsp;the&nbsp;civ.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#AllianceSecuredError">AllianceSecuredError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_ALLIANCE_SECURED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.alliance_secured'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="AllianceSecuredError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AllianceSecuredError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AllianceSecuredError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AllianceSecuredError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AllianceSecuredError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AllianceSecuredError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AllianceSecuredError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AllianceSecuredError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AllianceSecuredError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceSecuredError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AllianceSecuredError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AllianceSecuredError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DistributorError">class <strong>DistributorError</strong></a>(<a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DistributorError">DistributorError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Base&nbsp;of&nbsp;the&nbsp;distributor-domain&nbsp;errors.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_DISTRIBUTOR_ERROR'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.distributor'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="DistributorError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="DistributorError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="DistributorError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="DistributorError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DistributorError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DistributorError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DistributorError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DistributorError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="DistributorError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DistributorError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="DistributorError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DistributorError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DistributorService">class <strong>DistributorService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DistributorService">DistributorService</a>(store:&nbsp;'KingdomsStore',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;kingdoms_service:&nbsp;'KingdomsService',&nbsp;territory_service:&nbsp;'TerritoryService',&nbsp;attacks_service:&nbsp;'AttackService')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;admin&nbsp;injection&nbsp;rules&nbsp;of&nbsp;the&nbsp;Distributeur&nbsp;salon&nbsp;(D75).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DistributorService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', kingdoms_service: 'KingdomsService', territory_service: 'TerritoryService', attacks_service: 'AttackService') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams:&nbsp;persistence,&nbsp;config,&nbsp;and&nbsp;the&nbsp;read&nbsp;services.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-add_alliance"><strong>add_alliance</strong></a>(self, kingdom_id: 'str', civilization: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Hand&nbsp;one&nbsp;catalog&nbsp;civilization&nbsp;to&nbsp;a&nbsp;kingdom's&nbsp;Alliances&nbsp;hand.<br>
+&nbsp;<br>
+Any&nbsp;catalog&nbsp;civilization&nbsp;is&nbsp;injectable&nbsp;(the&nbsp;acquisition<br>
+conditions&nbsp;of&nbsp;later&nbsp;slices&nbsp;do&nbsp;not&nbsp;bind&nbsp;the&nbsp;admin)&nbsp;EXCEPT&nbsp;the<br>
+two&nbsp;Drasah&nbsp;rules:&nbsp;never&nbsp;a&nbsp;duplicate&nbsp;of&nbsp;the&nbsp;kingdom's&nbsp;own&nbsp;hand,<br>
+never&nbsp;a&nbsp;civilization&nbsp;claimed&nbsp;by&nbsp;an&nbsp;active&nbsp;marriage&nbsp;(D74).&nbsp;A<br>
+civilization&nbsp;held&nbsp;by&nbsp;ANOTHER&nbsp;kingdom&nbsp;stays&nbsp;injectable&nbsp;—&nbsp;the<br>
+non-married&nbsp;hand&nbsp;may&nbsp;be&nbsp;shared&nbsp;across&nbsp;kingdoms.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-available_maps"><strong>available_maps</strong></a>(self) -&gt; 'list[tuple[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;catalog&nbsp;maps&nbsp;never&nbsp;drawn&nbsp;this&nbsp;season&nbsp;(attributable).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-civilization_options"><strong>civilization_options</strong></a>(self, kingdom_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">One&nbsp;row&nbsp;per&nbsp;catalog&nbsp;civilization:&nbsp;its&nbsp;state&nbsp;for&nbsp;THIS&nbsp;kingdom.<br>
+&nbsp;<br>
+The&nbsp;panel&nbsp;renders&nbsp;the&nbsp;whole&nbsp;catalog&nbsp;(the&nbsp;admin&nbsp;sees&nbsp;everything,<br>
+nothing&nbsp;hidden):&nbsp;``status``&nbsp;reads&nbsp;``free``&nbsp;(injectable),<br>
+``hand``&nbsp;(already&nbsp;held)&nbsp;or&nbsp;``married``&nbsp;(claimed&nbsp;by&nbsp;a&nbsp;marriage).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-give_map"><strong>give_map</strong></a>(self, kingdom_id: 'str', map_key: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Draw&nbsp;one&nbsp;specific&nbsp;catalog&nbsp;map&nbsp;as&nbsp;a&nbsp;territory&nbsp;of&nbsp;the&nbsp;kingdom.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-kingdom"><strong>kingdom</strong></a>(self, kingdom_id: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Return&nbsp;the&nbsp;fresh&nbsp;kingdom&nbsp;document&nbsp;(KingdomNotFoundError&nbsp;otherwise).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-list_kingdoms"><strong>list_kingdoms</strong></a>(self) -&gt; 'list[KingdomModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;season's&nbsp;kingdoms&nbsp;(the&nbsp;panel's&nbsp;kingdom&nbsp;pickers&nbsp;read&nbsp;this).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-lord"><strong>lord</strong></a>(self, lord_id: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Return&nbsp;the&nbsp;fresh&nbsp;lord&nbsp;document&nbsp;(<a href="#LordNotFoundError">LordNotFoundError</a>&nbsp;otherwise).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-married_civilizations"><strong>married_civilizations</strong></a>(self) -&gt; 'dict[str, str]'</dt><dd><span class="code">Map&nbsp;every&nbsp;married&nbsp;civilization&nbsp;to&nbsp;the&nbsp;lord&nbsp;that&nbsp;claims&nbsp;it&nbsp;(D74).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-overview"><strong>overview</strong></a>(self, kingdom_id: 'str') -&gt; 'dict[str, object]'</dt><dd><span class="code">Build&nbsp;the&nbsp;compact&nbsp;status&nbsp;block&nbsp;of&nbsp;the&nbsp;🧾&nbsp;Statut&nbsp;view.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-remove_alliance"><strong>remove_alliance</strong></a>(self, kingdom_id: 'str', civilization: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Remove&nbsp;one&nbsp;civilization&nbsp;from&nbsp;the&nbsp;kingdom's&nbsp;hand.<br>
+&nbsp;<br>
+Refused&nbsp;when&nbsp;the&nbsp;civilization&nbsp;is&nbsp;secured&nbsp;by&nbsp;one&nbsp;of&nbsp;the&nbsp;kingdom's<br>
+own&nbsp;marriages&nbsp;—&nbsp;the&nbsp;marriage&nbsp;survives&nbsp;the&nbsp;admin's&nbsp;hindsight.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-replace_territory"><strong>replace_territory</strong></a>(self, map_key: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Eject&nbsp;the&nbsp;drawn&nbsp;map&nbsp;—&nbsp;the&nbsp;owner&nbsp;receives&nbsp;a&nbsp;fresh&nbsp;random&nbsp;one.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-reset_budgets"><strong>reset_budgets</strong></a>(self, lord_id: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Recharge&nbsp;the&nbsp;lord's&nbsp;weekly&nbsp;attack/defense&nbsp;budgets.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-retire_territory"><strong>retire_territory</strong></a>(self, map_key: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Remove&nbsp;a&nbsp;territory&nbsp;from&nbsp;the&nbsp;board&nbsp;—&nbsp;the&nbsp;map&nbsp;goes&nbsp;back&nbsp;to&nbsp;nothing.<br>
+&nbsp;<br>
+The&nbsp;drawn&nbsp;map&nbsp;is&nbsp;marked&nbsp;``out``&nbsp;for&nbsp;the&nbsp;whole&nbsp;season&nbsp;(§8)&nbsp;and<br>
+the&nbsp;territory&nbsp;document&nbsp;is&nbsp;deleted:&nbsp;the&nbsp;admin&nbsp;un-attributes&nbsp;an<br>
+element&nbsp;without&nbsp;a&nbsp;replacement&nbsp;draw&nbsp;(the&nbsp;Distributeur's<br>
+symmetric&nbsp;removal&nbsp;of&nbsp;``give_map``).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-set_arranged_tokens"><strong>set_arranged_tokens</strong></a>(self, kingdom_id: 'str', value: 'int') -&gt; 'KingdomModel'</dt><dd><span class="code">Set&nbsp;the&nbsp;kingdom's&nbsp;arranged-marriage&nbsp;token&nbsp;stock&nbsp;(D60).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-set_marriage_lock"><strong>set_marriage_lock</strong></a>(self, lord_id: 'str', hours: 'int | None') -&gt; 'LordModel'</dt><dd><span class="code">Set&nbsp;(or&nbsp;clear,&nbsp;None/0)&nbsp;the&nbsp;lord's&nbsp;marriage&nbsp;combat&nbsp;lock.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-set_marriage_points"><strong>set_marriage_points</strong></a>(self, kingdom_id: 'str', value: 'int') -&gt; 'KingdomModel'</dt><dd><span class="code">Set&nbsp;the&nbsp;kingdom's&nbsp;marriage-point&nbsp;stock&nbsp;(D59).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-set_parish_tier"><strong>set_parish_tier</strong></a>(self, kingdom_id: 'str', tier: 'int') -&gt; 'KingdomModel'</dt><dd><span class="code">Force&nbsp;the&nbsp;Paroisse&nbsp;palier&nbsp;(1&nbsp;Chapelle&nbsp;·&nbsp;2&nbsp;Église&nbsp;·&nbsp;3&nbsp;Cathédrale).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-set_tech_points"><strong>set_tech_points</strong></a>(self, kingdom_id: 'str', value: 'int') -&gt; 'KingdomModel'</dt><dd><span class="code">Set&nbsp;the&nbsp;kingdom's&nbsp;tech-point&nbsp;treasury&nbsp;(trésor&nbsp;🔬).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-set_technology_count"><strong>set_technology_count</strong></a>(self, kingdom_id: 'str', technology: 'str', count: 'int') -&gt; 'int'</dt><dd><span class="code">Force&nbsp;a&nbsp;combat&nbsp;technology's&nbsp;purchase&nbsp;counter&nbsp;(&gt;=&nbsp;0).<br>
+&nbsp;<br>
+``count=0``&nbsp;removes&nbsp;the&nbsp;purchase&nbsp;record&nbsp;entirely.&nbsp;The&nbsp;tech<br>
+points&nbsp;are&nbsp;never&nbsp;touched&nbsp;—&nbsp;the&nbsp;distributor&nbsp;injects&nbsp;the&nbsp;EFFECT,<br>
+not&nbsp;the&nbsp;purchase.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-shield_territory"><strong>shield_territory</strong></a>(self, map_key: 'str', hours: 'int') -&gt; 'TerritoryModel'</dt><dd><span class="code">Set&nbsp;(or&nbsp;clear,&nbsp;hours&nbsp;&lt;=&nbsp;0)&nbsp;a&nbsp;territory's&nbsp;anti-attack&nbsp;shield.</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-territories_of"><strong>territories_of</strong></a>(self, kingdom_id: 'str') -&gt; 'list[TerritoryModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdom's&nbsp;territories&nbsp;(map_key&nbsp;+&nbsp;shield&nbsp;state).</span></dd></dl>
+
+<dl><dt>async <a name="DistributorService-transfer_territory"><strong>transfer_territory</strong></a>(self, territory_id: 'str', to_kingdom_id: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Transfer&nbsp;one&nbsp;territory&nbsp;to&nbsp;another&nbsp;kingdom&nbsp;(idempotent).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DistributorValueError">class <strong>DistributorValueError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DistributorValueError">DistributorValueError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;injected&nbsp;value&nbsp;is&nbsp;out&nbsp;of&nbsp;bounds.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorValueError">DistributorValueError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_DISTRIBUTOR_BAD_VALUE'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.distributor_bad_value'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="DistributorValueError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="DistributorValueError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="DistributorValueError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="DistributorValueError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DistributorValueError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DistributorValueError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DistributorValueError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DistributorValueError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="DistributorValueError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DistributorValueError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="DistributorValueError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DistributorValueError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GaiaAllianceError">class <strong>GaiaAllianceError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GaiaAllianceError">GaiaAllianceError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;handing&nbsp;a&nbsp;civilization&nbsp;to&nbsp;Gaïa&nbsp;(no&nbsp;hand,&nbsp;D27).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#GaiaAllianceError">GaiaAllianceError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_GAIA_ALLIANCE'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.gaia_alliance'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="GaiaAllianceError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="GaiaAllianceError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="GaiaAllianceError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="GaiaAllianceError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="GaiaAllianceError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="GaiaAllianceError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="GaiaAllianceError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GaiaAllianceError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="GaiaAllianceError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#GaiaAllianceError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="GaiaAllianceError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#GaiaAllianceError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LordNotFoundError">class <strong>LordNotFoundError</strong></a>(<a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LordNotFoundError">LordNotFoundError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;lord&nbsp;id&nbsp;matches&nbsp;no&nbsp;active&nbsp;lord&nbsp;of&nbsp;the&nbsp;season.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#LordNotFoundError">LordNotFoundError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.distributor.html#DistributorError">DistributorError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_DISTRIBUTOR_LORD_NOT_FOUND'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.distributor_lord_not_found'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="LordNotFoundError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="LordNotFoundError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="LordNotFoundError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="LordNotFoundError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LordNotFoundError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LordNotFoundError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LordNotFoundError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LordNotFoundError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="LordNotFoundError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LordNotFoundError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="LordNotFoundError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LordNotFoundError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>LOCK_HOURS</strong> = 6<br>
+<strong>SHIELD_HOURS</strong> = 48<br>
+<strong>TYPE_CHECKING</strong> = False<br>
+<strong>logger</strong> = &lt;Logger kingdoms.distributor (WARNING)&gt;</td></tr></table>
+</body></html>

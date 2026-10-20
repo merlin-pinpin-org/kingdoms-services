@@ -256,7 +256,10 @@ one&nbsp;was&nbsp;refreshed&nbsp;(or&nbsp;the&nbsp;step&nbsp;degraded&nbsp;quiet
 &nbsp;<br>
 A&nbsp;legacy&nbsp;``live-dashboard``&nbsp;channel&nbsp;(pre-icon)&nbsp;is&nbsp;renamed&nbsp;in&nbsp;place&nbsp;—<br>
 the&nbsp;message&nbsp;registry&nbsp;keeps&nbsp;pointing&nbsp;at&nbsp;the&nbsp;same&nbsp;channel&nbsp;id,&nbsp;so&nbsp;the<br>
-registered&nbsp;dashboard&nbsp;message&nbsp;survives&nbsp;the&nbsp;rename.</span></dd></dl>
+registered&nbsp;dashboard&nbsp;message&nbsp;survives&nbsp;the&nbsp;rename.<br>
+permissions-serveur-v1&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;channel&nbsp;is&nbsp;masked&nbsp;for<br>
+@everyone&nbsp;like&nbsp;the&nbsp;rest&nbsp;of&nbsp;the&nbsp;mod&nbsp;—&nbsp;the&nbsp;player&nbsp;roles&nbsp;carry&nbsp;the<br>
+view;&nbsp;the&nbsp;gating&nbsp;is&nbsp;re-applied&nbsp;on&nbsp;every&nbsp;resolve&nbsp;(idempotent).</span></dd></dl>
  <dl><dt><a name="-group_by_account"><strong>group_by_account</strong></a>(players: 'list[dict[str, Any]]', stats: 'dict[str, dict[str, Any]] | None' = None) -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Fold&nbsp;the&nbsp;flat&nbsp;per-profile&nbsp;list&nbsp;into&nbsp;per-Discord-account&nbsp;records.</span></dd></dl>
  <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/live,&nbsp;/game-link&nbsp;and&nbsp;/game-unlink&nbsp;commands.<br>
 &nbsp;<br>
@@ -282,7 +285,8 @@ deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd><
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DASHBOARD_MIN_EDIT_INTERVAL_S</strong> = 60<br>
+<td class="singlecolumn"><strong>DASHBOARD_FAILURE_COOLDOWN_S</strong> = 600<br>
+<strong>DASHBOARD_MIN_EDIT_INTERVAL_S</strong> = 60<br>
 <strong>DASHBOARD_REFRESH_INTERVAL_S</strong> = 15<br>
 <strong>GAME_KEY</strong> = 'aoe2'<br>
 <strong>LIVE_CHANNEL_NAME</strong> = '📡-live-dashboard'<br>
@@ -290,6 +294,6 @@ deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd><
 <strong>LIVE_MESSAGE_KEY</strong> = 'live-dashboard'<br>
 <strong>MAX_EMBED_DESCRIPTION</strong> = 4096<br>
 <strong>PLATFORM</strong> = 'discord'<br>
-<strong>__annotations__</strong> = {'_LAST_PUSH': 'dict[str, tuple[float, str]]'}<br>
+<strong>__annotations__</strong> = {'_GUILD_COOLDOWN': 'dict[str, float]', '_LAST_PUSH': 'dict[str, tuple[float, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.live (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -82,6 +82,7 @@ class MockUser(discord.User):
         self.global_name = name
         self.bot = bot
         self.system = False
+        self.dm_messages: list[MockMessage] = []
         self._avatar = None
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -101,6 +102,19 @@ class MockUser(discord.User):
     @property
     def mention(self) -> str:
         return f"<@{self.id}>"
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """In-memory DM: the message lands in ``dm_messages``."""
+        message = MockMessage(content=content, embed=embed, view=view, files=kwargs.get("files"))
+        self.dm_messages.append(message)
+        return message
 
     def __repr__(self) -> str:
         return f"<MockUser id={self.id} name={self.name!r}>"
@@ -127,6 +141,7 @@ class MockMember(discord.Member):
         self._mock_name = name
         self._mock_bot = bot
         self._roles: list[MockRole] = list(roles or [])
+        self.dm_messages: list[MockMessage] = []
         self.guild = guild or MockGuild()
         self.joined_at = None
         self.premium_since = None
@@ -135,6 +150,13 @@ class MockMember(discord.Member):
         self.timed_out_until = None
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    def __hash__(self) -> int:
+        """A member is hashable by id — overwrite dicts key on it."""
+        return hash(self._mock_id)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, MockMember) and other._mock_id == self._mock_id
 
     @property
     def id(self) -> int:
@@ -170,6 +192,24 @@ class MockMember(discord.Member):
             if role in self._roles:
                 self._roles.remove(role)  # type: ignore[arg-type]
 
+    async def edit(self, **kwargs: Any) -> None:
+        """In-memory Member.edit — only the nickname is modelled."""
+        if "nick" in kwargs:
+            self.nick = kwargs["nick"]
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """In-memory DM: the message lands in ``dm_messages``."""
+        message = MockMessage(content=content, embed=embed, view=view)
+        self.dm_messages.append(message)
+        return message
+
     def __repr__(self) -> str:
         return f"<MockMember id={self.id} name={self.name!r}>"
 
@@ -198,7 +238,9 @@ class MockRole(discord.Role):
         self.name = name
         self.hoist = hoist
         self.mentionable = mentionable
-        self._color = self._coerce_color(color)
+        self._color = self._coerce_color(
+            color if color is not None else kwargs.pop("colour", None)
+        )
         self._permissions = self._coerce_permissions(permissions)
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -240,6 +282,9 @@ class MockRole(discord.Role):
     def mention(self) -> str:
         return f"<@&{self.id}>"
 
+    async def delete(self, *, reason: str | None = None) -> None:
+        """In-memory role deletion (the battle-room cleanup)."""
+
     def __repr__(self) -> str:
         return f"<MockRole id={self.id} name={self.name!r}>"
 
@@ -264,12 +309,31 @@ class MockTextChannel(discord.TextChannel):
         self._category = category
         self._permissions: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
         self.messages: list[MockMessage] = []
+        self._threads: list[MockThread] = []
+        # restructuration-serveur-v1 b (Drasah 19/10): per-attack salons
+        # are created with an overwrites mapping (@everyone + guild.me) —
+        # the base discord.TextChannel.overwrites property is read-only,
+        # so the mock stores it explicitly.
+        self._overwrites: dict[Any, discord.PermissionOverwrite] = kwargs.pop("overwrites", {})
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @property
+    def overwrites(self) -> dict[Any, discord.PermissionOverwrite]:
+        return self._overwrites
+
+    @overwrites.setter
+    def overwrites(self, value: dict[Any, discord.PermissionOverwrite]) -> None:
+        self._overwrites = value
+
+    @property
     def type(self) -> discord.ChannelType:
         return discord.ChannelType.text
+
+    @property
+    def threads(self) -> list[MockThread]:
+        """The threads created on this channel (overridden in-memory)."""
+        return self._threads
 
     @property
     def category(self) -> MockCategoryChannel | None:
@@ -287,13 +351,38 @@ class MockTextChannel(discord.TextChannel):
         view: discord.ui.View | None = None,
         **kwargs: Any,
     ) -> MockMessage:
-        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
         self.messages.append(message)
         return message
 
     async def edit(self, **kwargs: Any) -> None:
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    def history(self, limit: int | None = 100) -> Any:
+        """In-memory message history (newest first, like Discord).
+
+        restructuration-serveur-v1 b (Drasah 19/10): the declare salon
+        sweep reads the channel history on MockTextChannel too.
+        """
+        messages = list(reversed(self.messages))
+        if limit is not None:
+            messages = messages[:limit]
+
+        async def _gen() -> Any:
+            for message in messages:
+                yield message
+
+        return _gen()
+
+    async def create_thread(
+        self, name: str, *, message: Any = None, **kwargs: Any
+    ) -> MockThread:
+        """Create a public thread anchored on ``message`` (in-memory)."""
+        thread = MockThread(name=name[:100], guild=self.guild, parent_id=self.id)
+        self._threads.append(thread)
+        self.guild._channels[thread.id] = thread  # type: ignore[index]
+        return thread
 
     async def set_permissions(
         self,
@@ -303,6 +392,8 @@ class MockTextChannel(discord.TextChannel):
         reason: str | None = None,
         **kwargs: Any,
     ) -> None:
+        if overwrite is None and kwargs:
+            overwrite = discord.PermissionOverwrite(**kwargs)
         self._permissions[(target.id, isinstance(target, discord.Role))] = overwrite
 
     def permissions_for(self, member: discord.abc.User) -> discord.Permissions:
@@ -322,8 +413,52 @@ class MockTextChannel(discord.TextChannel):
     def permission_overwrite_for(self, target: discord.Member | discord.Role) -> discord.PermissionOverwrite | None:
         return self._permissions.get((target.id, isinstance(target, discord.Role)))
 
+    async def delete(self, *, delay: float | None = None) -> None:
+        await self.guild.delete_channel(self)
+
     def __repr__(self) -> str:
         return f"<MockTextChannel id={self.id} name={self.name!r}>"
+
+
+class MockThread(discord.Thread):
+    """In-memory :class:`discord.Thread` (the conquest recap threads)."""
+
+    def __init__(
+        self,
+        id: int | None = None,
+        name: str = "thread",
+        *,
+        guild: MockGuild | None = None,
+        parent_id: int | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.id = id if id is not None else _next_id()
+        self.name = name
+        self.guild = guild or MockGuild()
+        self.parent_id = parent_id
+        self.messages: list[MockMessage] = []
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    @property
+    def type(self) -> discord.ChannelType:
+        return discord.ChannelType.public_thread
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """Record the thread post in ``messages``."""
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
+        self.messages.append(message)
+        return message
+
+    def __repr__(self) -> str:
+        return f"<MockThread id={self.id} name={self.name!r}>"
 
 
 class MockVoiceChannel(discord.VoiceChannel):
@@ -345,12 +480,29 @@ class MockVoiceChannel(discord.VoiceChannel):
         self.guild = guild or MockGuild()
         self._category = category
         self._connected_members: list[discord.Member] = []
+        self.messages: list[MockMessage] = []
+        # ``create_voice_channel(overwrites=...)``: the real property is
+        # read-only, the mock stashes the dict instead of setattr-failing.
+        self._overwrites: dict[Any, Any] = kwargs.pop("overwrites", None) or {}
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @property
     def type(self) -> discord.ChannelType:
         return discord.ChannelType.voice
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """Text-in-voice: the battle-room message lands in ``messages``."""
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
+        self.messages.append(message)
+        return message
 
     @property
     def category(self) -> MockCategoryChannel | None:
@@ -359,6 +511,11 @@ class MockVoiceChannel(discord.VoiceChannel):
     @property
     def members(self) -> list[discord.Member]:
         return list(self._connected_members)
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        # Drasah 18/10 v4: a deleted vocal leaves the guild registry —
+        # the battle-room cleanup tests read get_channel afterwards.
+        await self.guild.delete_channel(self)  # type: ignore[arg-type]
 
     def __repr__(self) -> str:
         return f"<MockVoiceChannel id={self.id} name={self.name!r}>"
@@ -381,8 +538,47 @@ class MockCategoryChannel(discord.CategoryChannel):
         self.position = position
         self.guild = guild or MockGuild()
         self._channels: list[MockChannel] = []
+        self._overwrites: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    async def set_permissions(
+        self,
+        target: discord.abc.User | discord.Role,
+        *,
+        overwrite: discord.PermissionOverwrite | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Record a permission overwrite on the category (in-memory)."""
+        is_role = isinstance(target, discord.Role)
+        if overwrite is None and kwargs:
+            overwrite = discord.PermissionOverwrite(**kwargs)
+        self._overwrites[(target.id, is_role)] = overwrite
+
+    def permission_overwrite_for(self, target: discord.abc.User | discord.Role) -> discord.PermissionOverwrite | None:
+        """The recorded overwrite for one member/role, if any."""
+        is_role = isinstance(target, discord.Role)
+        return self._overwrites.get((target.id, is_role))
+
+    async def edit(self, **kwargs: Any) -> MockCategoryChannel:
+        """Apply the edit fields the realm provisioning uses (in-memory)."""
+        if "name" in kwargs:
+            self.name = kwargs["name"]
+        # ordre-salons-v1 (Drasah 19/10): the sidebar-order pass edits
+        # the category position (beta → conscription → … → realms →
+        # admin → profils) — record it like the live API would.
+        if "position" in kwargs:
+            self.position = kwargs["position"]
+        overwrites = kwargs.get("overwrites")
+        if overwrites is not None:
+            self._overwrites = {}
+            for target, overwrite in overwrites.items():
+                is_role = isinstance(target, discord.Role)
+                self._overwrites[(target.id, is_role)] = overwrite
+        return self
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        await self.guild.delete_channel(self)  # type: ignore[arg-type]
 
     @property
     def type(self) -> discord.ChannelType:
@@ -402,6 +598,20 @@ class MockCategoryChannel(discord.CategoryChannel):
 
     def __repr__(self) -> str:
         return f"<MockCategoryChannel id={self.id} name={self.name!r}>"
+
+
+class MockPartialMessage:
+    """In-memory :class:`discord.PartialMessage` over a mock channel."""
+
+    def __init__(self, channel: MockDMChannel, message_id: int) -> None:
+        self.channel = channel
+        self.id = message_id
+
+    async def edit(self, **kwargs: Any) -> MockMessage | None:
+        for message in self.channel.messages:
+            if message.id == self.id:
+                return await message.edit(**kwargs)
+        raise RuntimeError(f"no message {self.id} in the mock channel")
 
 
 class MockDMChannel(discord.DMChannel):
@@ -435,9 +645,13 @@ class MockDMChannel(discord.DMChannel):
         view: discord.ui.View | None = None,
         **kwargs: Any,
     ) -> MockMessage:
-        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        message = MockMessage(content=content, embed=embed, view=view, channel=self, files=kwargs.get("files"))
         self.messages.append(message)
         return message
+
+    def get_partial_message(self, message_id: int) -> MockPartialMessage:
+        """Mirror :meth:`discord.DMChannel.get_partial_message` (DM edits)."""
+        return MockPartialMessage(self, message_id)
 
     def __repr__(self) -> str:
         return f"<MockDMChannel id={self.id} recipient={self.recipient.name!r}>"
@@ -499,6 +713,10 @@ class MockGuild(discord.Guild):
         return list(self._channels.values())
 
     @property
+    def categories(self) -> list[MockCategoryChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockCategoryChannel)]
+
+    @property
     def system_channel(self) -> MockTextChannel | None:
         """The guild's system channel (overridden in-memory for tests)."""
         channel = self.__dict__.get("_system_channel")
@@ -508,10 +726,23 @@ class MockGuild(discord.Guild):
     def system_channel(self, value: MockTextChannel | None) -> None:
         self.__dict__["_system_channel"] = value
 
+    @property
+    def default_role(self) -> MockRole:
+        """The @everyone role: same id as the guild, like the real API."""
+        everyone = self._roles.get(self.id)
+        if everyone is None:
+            everyone = MockRole(id=self.id, name="@everyone")
+            self._roles[self.id] = everyone
+        return everyone
+
     def get_role(self, role_id: int) -> MockRole | None:
         return self._roles.get(role_id)
 
     def get_member(self, user_id: int) -> MockMember | None:
+        return self._members.get(user_id)
+
+    async def fetch_member(self, user_id: int) -> MockMember | None:
+        """In-memory fetch: the cache is authoritative (no HTTP to miss)."""
         return self._members.get(user_id)
 
     def get_channel(self, channel_id: int) -> MockChannel | None:
@@ -544,7 +775,13 @@ class MockGuild(discord.Guild):
         return channel
 
     async def create_category(self, name: str, **kwargs: Any) -> MockCategoryChannel:
+        overwrites = kwargs.pop("overwrites", None)
         channel = MockCategoryChannel(name=name, guild=self, **kwargs)
+        if overwrites:
+            channel._overwrites = {}
+            for target, overwrite in overwrites.items():
+                is_role = isinstance(target, discord.Role)
+                channel._overwrites[(target.id, is_role)] = overwrite
         self._channels[channel.id] = channel
         return channel
 
@@ -577,6 +814,7 @@ class MockMessage(discord.Message):
         view: discord.ui.View | None = None,
         channel: MockChannel | None = None,
         author: MockUser | MockMember | None = None,
+        files: list[Any] | None = None,
         **kwargs: Any,
     ) -> None:
         self.id = _next_id()
@@ -585,6 +823,8 @@ class MockMessage(discord.Message):
         self.author = author if author is not None else MockUser(name="TestBot", bot=True)
         self.embeds = [embed] if embed is not None else []
         self.view = view
+        self.files: list[Any] | None = files
+        self.attachments: list[Any] = list(files) if files else []
         self._edited = False
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -608,10 +848,17 @@ class MockMessage(discord.Message):
         if "view" in kwargs:
             self.view = kwargs["view"]
             self._sync_ui_surfaces(kwargs["view"])
+        if "files" in kwargs:
+            self.files = kwargs["files"]
+            self.attachments = list(kwargs["files"] or [])
         return self
 
     async def delete(self, *, delay: float | None = None) -> None:
         self.deleted = True  # type: ignore[attr-defined]
+
+    async def pin(self, *, reason: str | None = None) -> None:
+        """In-memory pin (permissions-serveur-v1: the age message is pinned)."""
+        self.pinned = True  # type: ignore[attr-defined]
 
     @property
     def edited(self) -> bool:
@@ -633,6 +880,7 @@ class MockResponse:
         self.deferred = False
         self.ephemeral = False
         self.message: MockMessage | None = None
+        self.modal: discord.ui.Modal | None = None
 
     async def send_message(
         self,
@@ -661,6 +909,11 @@ class MockResponse:
             self.message = MockMessage(content=content, embed=embed, view=view)
             return self.message
         return await self.message.edit(content=content, embed=embed, view=view)
+
+    async def send_modal(self, modal: discord.ui.Modal) -> None:
+        """Record a modal response (drasah king-name flow D70)."""
+        self.sent = True
+        self.modal = modal
 
     async def defer(self, *, ephemeral: bool = False, thinking: bool = False) -> None:
         self.deferred = True
@@ -729,6 +982,10 @@ class MockFollowup:
             if message.id == message_id:
                 return await message.edit(**kwargs)
         return None
+
+    async def edit_message(self, message_id: int, **kwargs: Any) -> MockMessage | None:
+        """Alias mirroring :meth:`discord.Webhook.edit_message`."""
+        return await self.edit(message_id, **kwargs)
 
     async def delete_message(self, message_id: int) -> None:
         self.messages = [m for m in self.messages if m.id != message_id]
@@ -823,6 +1080,10 @@ class MockInteraction(discord.Interaction):
     async def edit_original_response(self, **kwargs: Any) -> MockMessage | None:
         """Mirror :meth:`discord.Interaction.edit_original_response` (post-defer)."""
         return await self._webhook.edit("@original", **kwargs)
+
+    async def original_response(self) -> MockMessage | None:
+        """Mirror :meth:`discord.Interaction.original_response` (post-send)."""
+        return self.response.message
 
     @property
     def guild(self) -> MockGuild:

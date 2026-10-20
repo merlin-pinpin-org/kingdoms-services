@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.player_access</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.player_access</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/player_access.py">SOURCE_ROOT/discord/player_access.py</a></td></tr></table>
+    <p><span class="code">Root-channel&nbsp;player&nbsp;gating&nbsp;(permissions-serveur-v1,&nbsp;Drasah&nbsp;19/10).<br>
+&nbsp;<br>
+A&nbsp;newcomer&nbsp;sees&nbsp;only&nbsp;Conscription&nbsp;and&nbsp;Beta&nbsp;—&nbsp;the&nbsp;root&nbsp;managed&nbsp;salons<br>
+(🏛-kingdoms-home,&nbsp;📡-live-dashboard)&nbsp;are&nbsp;masked&nbsp;for&nbsp;@everyone&nbsp;and<br>
+unlocked&nbsp;by&nbsp;the&nbsp;player&nbsp;roles&nbsp;(Kingdoms&nbsp;Lord&nbsp;/&nbsp;Kingdoms&nbsp;King),&nbsp;granted<br>
+at&nbsp;acceptance.&nbsp;The&nbsp;bot&nbsp;keeps&nbsp;its&nbsp;explicit&nbsp;allow&nbsp;(lesson&nbsp;Check&nbsp;75:&nbsp;it<br>
+is&nbsp;no&nbsp;admin)&nbsp;so&nbsp;its&nbsp;panels&nbsp;keep&nbsp;deploying.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-apply_player_gating"><strong>apply_player_gating</strong></a>(guild: 'discord.Guild', channel: 'Any') -&gt; 'None'</dt><dd><span class="code">Mask&nbsp;one&nbsp;root&nbsp;channel&nbsp;for&nbsp;@everyone,&nbsp;unlock&nbsp;the&nbsp;player&nbsp;roles&nbsp;(best&nbsp;effort).<br>
+&nbsp;<br>
+Idempotent:&nbsp;the&nbsp;overwrites&nbsp;are&nbsp;re-applied&nbsp;on&nbsp;every&nbsp;resolve,&nbsp;so&nbsp;an<br>
+adopted&nbsp;channel&nbsp;converges&nbsp;at&nbsp;the&nbsp;next&nbsp;startup.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PLAYER_ROLE_NAMES</strong> = ('Kingdoms Lord', 'Kingdoms King', 'Kingdoms Admin')<br>
+<strong>__annotations__</strong> = {'PLAYER_ROLE_NAMES': 'tuple[str, ...]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.player_access (WARNING)&gt;</td></tr></table>
+</body></html>

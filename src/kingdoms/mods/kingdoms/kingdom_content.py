@@ -1,0 +1,381 @@
+"""Kingdoms mod — salons-first live content (kingdoms#138, group 1).
+
+Best-effort refreshers that keep the designer's channels alive with
+the T2 service only: permissions-serveur-v1 (Drasah 19/10) the age
+lives in Géopolitique (the salon name carries the age emoji and its
+marked message is pinned) and the Géopolitique channel receives the
+enrollment announcements.
+
+Every refresher is marker-based (edit the marked message when present,
+post otherwise) and never raises: a missing channel or service simply
+skips the refresh, exactly like ``refresh_season_status``.
+
+Designer-authored content (the mod pitch) is French-only by
+decision — it is the designer's voice, not the bot UI.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timedelta
+from typing import Any, cast
+
+import discord
+
+from kingdoms.mods.kingdoms.game_clock import game_now
+from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+logger = logging.getLogger("kingdoms.kingdom_content")
+
+EPOCH_MARKER = "kingdoms:epoch:status"
+PRESENTATION_MARKER = "kingdoms:presentation"
+EPOCH_FALLBACK_CHANNEL = "🏺 Âge"
+AGE_CHANNEL = "🏺 Âge"  # permissions-serveur-v1: retired salon, legacy constant
+KINGDOMS_CATEGORY = "Kingdoms"  # legacy: the age salon no longer moves
+GEOPOLITICS_CHANNEL = "Géopolitique"  # the bare base name (the live name carries the age emoji)
+PRESENTATION_CHANNEL = "Présentation"
+REGLES_FORUM = "Règles"
+
+# permissions-serveur-v1 (Drasah 19/10): the 🏺 Âge salon is gone — the
+# Géopolitique salon's NAME carries the current age emoji (renamed at
+# every age switch) and its marked message is the pinned age message.
+# ordre-salons-v1: the base name joins the grimoire charte (🌍 instead
+# of 🗺️, lowercase) — it slugs identically so the adoption survives.
+GEOPOLITICS_BASE_NAME = "🌍 géopolitique"
+AGE_EMOJIS: dict[str, str] = {
+    "dark_age": "🌑",
+    "feudal_age": "🏰",
+    "castle_age": "⛪",
+    "imperial_age": "👑",
+}
+
+
+def _geopolitics_age_name(age_key: Any) -> str:
+    """Render the Géopolitique salon name for one age (« 🗺️ Géopolitique 🌑 »)."""
+    emoji = AGE_EMOJIS.get(str(age_key or ""))
+    return f"{GEOPOLITICS_BASE_NAME} {emoji}" if emoji else GEOPOLITICS_BASE_NAME
+
+# The designer's pitch of the mod (form corrected, content alpha —
+# kingdoms#138). Pinned in the Présentation announce channel.
+PRESENTATION_MESSAGE = """# ⚔️ Kingdoms — Saison II
+
+Kingdoms est un événement, un mod externe au jeu Age of Empires II !
+Il s'agit du premier mod externe **conquête de territoire** d'Age of Empires II !
+
+Plusieurs équipes qu'on nomme ici **Royaume** vont se confronter !
+
+L'objectif de chaque Royaume sera de remporter un maximum de maps, appelées ici **territoires** !
+Le Royaume qui possèdera le plus de territoires dans le temps imparti remportera la victoire !
+
+**Comment fonctionne l'univers de Kingdoms ?**
+
+Kingdoms se déroule sur un mois entier !
+
+Chaque Royaume est doté de 5 territoires et de 5 civilisations qu'on nommera **Alliances**.
+Il existe aussi le Royaume Gaïa, géré par une IA, possédant 8 territoires.
+Chaque semaine, chaque joueur qu'on nommera ici **Seigneur** disposera d'une attaque et d'une défense !
+
+Lorsque vous souhaitez attaquer, vous attaquez un territoire et non un seigneur !
+"En fonction du territoire attaqué, si ce territoire appartient à un autre royaume, "
+"il leur sera possible de le défendre !"
+"S'il s'agit d'un territoire Gaïa, vous devrez affronter une IA sur le territoire attaqué ! "
+"Attention, il est possible qu'un autre Seigneur se joigne à la bataille !"
+
+Ici, dans la **Saison II** de Kingdoms, il n'est possible d'attaquer que du vendredi au dimanche !
+
+"Sur la première semaine, vous débuterez à l'Âge sombre puis, chaque semaine, vous avancerez dans les âges "
+"et vous débloquerez de nouveaux bonus et de nouvelles mécaniques !"
+
+"Dans ce mod, il vous sera possible de fédérer des alliances ! De proposer des traités ! "
+"D'organiser des mariages et bien plus encore !"
+
+N'hésite pas, pour en savoir plus, à consulter les règles !
+"""
+
+REGLES_DESCRIPTION = (
+    "Les règles complètes du mod Kingdoms — Saison II. À lire avant de s'inscrire.\n"
+    "Sommaire : ⚔️ Attaque & Défense · 🕰️ Époque · 👑 Jour du Seigneur · 🧭 Exploration · "
+    "💍 Mariage · ⚙️ Technologie · 🤝 Traité · 📋 Inscription & Royaumes · "
+    "🗺️ Territoires & Cadastre · 🏆 Fin de saison · ⚖️ Fair-play & sanctions."
+)
+
+STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "epoch_title": "🕰️ Current age",
+        "age_next": "⏭️ Next age switch: Wednesday {day}/{month} at {hour}h{minute} (Paris)",
+        "age_scale": "Age scale",
+        "epoch_progress": "Season — cycle {}/{}",
+        "epoch_bonus_tech": "Tech points per cycle",
+        "epoch_bonus_marriage": "Bonus marriages",
+        "epoch_gaia_ai": "Gaïa AI level",
+        "epoch_hint": "The age switches automatically on Wednesday at midnight.",
+        "lords_king": "King",
+        "geo_founded": "🏛️ The kingdom **{}** has been founded by {} — long live the {}!",
+        "geo_joined": "⚔️ {} has joined the kingdom **{}** as a Lord.",
+        "geo_queued": "⏳ {} has entered the waiting queue.",
+    },
+    "fr": {
+        "epoch_title": "🕰️ Époque actuelle",
+        "age_next": "⏭️ Prochain passage d'âge : mercredi {day}/{month} à {hour}h{minute} (Paris)",
+        "age_scale": "Échelle des âges",
+        "epoch_progress": "Saison — cycle {}/{}",
+        "epoch_bonus_tech": "Points de tech par cycle",
+        "epoch_bonus_marriage": "Mariages bonus",
+        "epoch_gaia_ai": "Niveau d'IA Gaïa",
+        "epoch_hint": "L'époque bascule automatiquement le mercredi à minuit.",
+        "lords_king": "Roi",
+        "geo_founded": "🏛️ Le royaume **{}** a été fondé par {} — longue vie au {} !",
+        "geo_joined": "⚔️ {} a rejoint le royaume **{}** en tant que Seigneur.",
+        "geo_queued": "⏳ {} est entré dans la file d'attente.",
+    },
+}
+
+
+def _strings(locale: str) -> dict[str, str]:
+    """Resolve the catalog for one locale (French fallback, designer-authored pattern)."""
+    return STRINGS["fr"] if str(locale).lower().startswith("fr") else STRINGS["en"]
+
+
+def _find_channel(guild: discord.Guild, name: str) -> Any:
+    """Find one text channel by slug, whatever its category."""
+    wanted = _slug(name)
+    for channel in guild.text_channels:
+        if _slug(channel.name) == wanted:
+            return channel
+    return None
+
+
+async def _geopolitics_live_channel(guild: discord.Guild) -> Any:
+    """Return the Géopolitique salon (service anchor, name-tolerant fallback).
+
+    permissions-serveur-v1 (Drasah 19/10): the salon's NAME carries the
+    current age emoji (« 🗺️ Géopolitique 🌑 ») and is renamed at every
+    age switch — the stable anchor is the wired ChannelService's
+    ``kingdoms:geopolitics`` resolution; the fallback matches any text
+    channel whose slug contains « geopolitique ».
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+    from kingdoms.mods.kingdoms.kingdom_setup import MOD_NAME
+
+    wiring = _wiring()
+    if wiring.channel_service is not None:
+        try:
+            resolved_channel = await wiring.channel_service.get_channel_for_category(
+                str(guild.id), f"{MOD_NAME}:geopolitics"
+            )
+        except Exception:
+            logger.warning("KINGDOM CONTENT: geopolitics channel lookup failed", exc_info=True)
+            resolved_channel = None
+        if resolved_channel is not None and resolved_channel.id.isdigit():
+            channel = guild.get_channel(int(resolved_channel.id))
+            if channel is not None:
+                return channel
+    return next((c for c in guild.text_channels if "geopolitique" in _slug(getattr(c, "name", ""))), None)
+
+
+async def _upsert_marked(channel: Any, content: str, marker: str, *, pin: bool = False) -> bool:
+    """Edit the marked message of one channel, or post it when missing.
+
+    permissions-serveur-v1: with ``pin`` the freshly posted message is
+    pinned once (best effort) — the edit path never re-pins (the
+    message keeps its pin through the edits).
+    """
+    from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
+
+    for message in await channel_messages(channel):
+        if marker in message_text(message):
+            try:
+                await message.edit(content=content)
+            except Exception:
+                logger.warning("KINGDOM CONTENT: marked refresh failed", exc_info=True)
+            return True
+    message = await channel.send(content)
+    if pin:
+        try:
+            await message.pin()
+        except Exception:
+            logger.warning("KINGDOM CONTENT: marked message pin failed", exc_info=True)
+    return True
+
+
+async def _current_age(service: Any) -> tuple[Any, str, Any]:
+    """Read the age model, its display name and the running season."""
+    config = service.config
+    season = await service.current_season()
+    age_key = season.current_age_key if season is not None else (config.ages[0].key if config.ages else "")
+    age = next((entry for entry in config.ages if entry.key == age_key), None)
+    display = age.display_name if age is not None else (EPOCH_FALLBACK_CHANNEL if not age_key else age_key)
+    return age, display, season
+
+
+def _next_age_switch(now: datetime) -> datetime:
+    """Return the next Wednesday 00:00 (Europe/Paris) age switch."""
+    from zoneinfo import ZoneInfo
+
+    paris = ZoneInfo("Europe/Paris")
+    local = now.astimezone(paris)
+    days_ahead = (2 - local.weekday()) % 7  # Wednesday is weekday 2
+    candidate = (local + timedelta(days=days_ahead)).replace(hour=0, minute=0, second=0, microsecond=0)
+    if candidate <= local:
+        candidate += timedelta(days=7)
+    return candidate
+
+
+def _age_scale(strings: dict[str, str], ages: list[Any], current_key: str) -> str:
+    """Render the age scale (● current, ▸ the other ages)."""
+    marks = {
+        str(getattr(age, "key", "")): "●" if str(getattr(age, "key", "")) == str(current_key) else "▸"
+        for age in ages
+    }
+    order = [k for k in marks if marks[k] == "●"] + [k for k in marks if marks[k] == "▸"]
+    display = {str(getattr(age, "key", "")): str(getattr(age, "display_name", "")) for age in ages}
+    parts = [f"{marks[key]} {display.get(key, key)}" for key in order if key in marks]
+    return " ".join(parts)
+
+
+def _epoch_content(
+    strings: dict[str, str],
+    display: str,
+    age: Any,
+    cycle: int,
+    weeks: int,
+    ages: list[Any],
+    next_switch: datetime,
+) -> str:
+    """Build the pinned Géopolitique age message body (age, countdown, scale)."""
+    lines = [
+        f"# {strings['epoch_title']} : {display}",
+    ]
+    lines.append(
+        str(strings["age_next"]).format(
+            day=f"{next_switch.day:02d}",
+            month=f"{next_switch.month:02d}",
+            hour=f"{next_switch.hour:02d}",
+            minute=f"{next_switch.minute:02d}",
+        )
+    )
+    if weeks:
+        lines.append(f"**{strings['epoch_progress'].format(cycle, weeks)}**")
+    if age is not None:
+        lines.extend(
+            [
+                f"- {strings['epoch_bonus_tech']} : {age.tech_points}",
+                f"- {strings['epoch_bonus_marriage']} : {age.extra_marriages}",
+                f"- {strings['epoch_gaia_ai']} : {age.gaia_ai_level}/5",
+            ]
+        )
+    if ages:
+        current_key = str(getattr(age, "key", "")) if age is not None else ""
+        lines.append(f"**{strings['age_scale']}** : {_age_scale(strings, ages, current_key)}")
+    lines.extend([f"*{strings['epoch_hint']}*", EPOCH_MARKER])
+    return "\n".join(lines)
+
+
+async def refresh_age_pin(guild: discord.Guild, locale: str, kingdoms_service: Any) -> bool:
+    """Pin the current age in the Géopolitique salon (permissions-serveur-v1).
+
+    Drasah 19/10: the dedicated 🏺 Âge salon is GONE — the age lives in
+    Géopolitique. The salon's NAME carries the current age emoji
+    (« 🗺️ Géopolitique 🌑 », renamed at every age switch) and the
+    marked message (age, Wednesday-midnight countdown, age scale) is
+    PINNED — one message per marker, edited in place, never a pile of
+    pins. Idempotent: re-running renames nothing and edits in place.
+    """
+    if kingdoms_service is None:
+        return False
+    channel = await _geopolitics_live_channel(guild)
+    if channel is None:
+        return False
+    try:
+        age, display, season = await _current_age(kingdoms_service)
+        ages = list(getattr(kingdoms_service.config, "ages", None) or [])
+        content = _epoch_content(
+            _strings(locale),
+            display,
+            age,
+            season.current_cycle if season is not None else 0,
+            season.weeks if season is not None else 0,
+            ages,
+            _next_age_switch(game_now()),
+        )
+        wanted_name = _geopolitics_age_name(getattr(age, "key", None))
+        if str(getattr(channel, "name", "")) != wanted_name:
+            await channel.edit(name=wanted_name, reason="kingdoms: geopolitics age emoji")
+        return await _upsert_marked(channel, content, EPOCH_MARKER, pin=True)
+    except Exception:
+        logger.warning("KINGDOM CONTENT: age pin refresh skipped", exc_info=True)
+        return False
+
+
+async def _announce_geopolitics_message(
+    guild: discord.Guild, text: str, view: discord.ui.View | None = None
+) -> discord.Message | None:
+    """Send one Géopolitique announcement; return the live message.
+
+    The royal-wedding announcement (Drasah 2026-10-12) attaches ONE
+    public « En savoir plus » thread to the message — the caller
+    needs the live message back, not a mere success bool. The FFA
+    Exploration announcement (Drasah 2026-10-14) carries the
+    persistent « Aller explorer » button through ``view``. Best
+    effort: a missing channel or a refused send returns None and
+    never raises.
+    """
+    channel = await _geopolitics_live_channel(guild)
+    if channel is None:
+        return None
+    try:
+        if view is None:
+            return cast(discord.Message, await channel.send(text))
+        return cast(discord.Message, await channel.send(text, view=view))
+    except Exception:
+        logger.warning("KINGDOM CONTENT: geopolitics announcement failed", exc_info=True)
+        return None
+
+
+async def announce_geopolitics(
+    guild: discord.Guild,
+    locale: str,
+    text: str,
+    view: discord.ui.View | None = None,
+) -> bool:
+    """Send one announcement in the Géopolitique channel (best effort)."""
+    return await _announce_geopolitics_message(guild, text, view=view) is not None
+
+
+async def announce_enrollment(
+    guild: discord.Guild,
+    locale: str,
+    display_name: str,
+    kingdom_name: str | None,
+    is_king: bool,
+) -> None:
+    """Announce one validated enrollment in Géopolitique (best effort)."""
+    strings = _strings(locale)
+    if kingdom_name is None:
+        await announce_geopolitics(guild, locale, strings["geo_queued"].format(display_name))
+    elif is_king:
+        await announce_geopolitics(
+            guild, locale, strings["geo_founded"].format(kingdom_name, display_name, strings["lords_king"])
+        )
+    else:
+        await announce_geopolitics(guild, locale, strings["geo_joined"].format(display_name, kingdom_name))
+
+
+async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_service: Any) -> dict[str, str]:
+    """Refresh every group-1 channel content; return a deploy-style report.
+
+    restructuration-serveur-v1 d (Drasah 19/10): the Présentation salon
+    and the Règles forum are retired — the pitch and the guide live in
+    the Scriptorium's ephemeral 📖 Règles / 🎤 Présentation buttons
+    (100 % live at click time, nothing to refresh), so their refresh
+    passes left with the salons, and so did the designer channel
+    descriptions (restructuration-serveur-v1 e: the Taverne is gone with
+    the general group — nothing left to describe).
+    """
+    report: dict[str, str] = {}
+    try:
+        if await refresh_age_pin(guild, locale, kingdoms_service):
+            report["âge"] = "deployed"
+    except Exception:
+        logger.warning("KINGDOM CONTENT: age pin deployment failed", exc_info=True)
+    return report
