@@ -545,8 +545,14 @@ def dev_console_enabled() -> bool:
     """Whether this boot opts into the dev console (test environments only).
 
     First prod barrier: without the explicit opt-in the /dev command is
-    never registered, so it cannot be invoked at all.
+    never registered, so it cannot be invoked at all. The second is the
+    env-defined test-guild allowlist (KINGDOMS_TEST_GUILD_IDS): empty
+    allowlist \u2192 fail closed, no console anywhere.
     """
+    from kingdoms.discord.dev_guilds import allowed_test_guild_ids
+
+    if not allowed_test_guild_ids():
+        return False
     from kingdoms.discord.dev_console import DEV_CONSOLE_ENV_VAR
     from kingdoms.discord.dev_console import dev_console_enabled as _enabled
 

@@ -41,6 +41,7 @@ from typing import Any
 import discord
 from discord import app_commands
 
+from kingdoms.discord.dev_guilds import allowed_test_guild_ids, is_test_guild
 from kingdoms.discord.guards import require_admin
 
 logger = logging.getLogger("kingdoms.discord.dev_console")
@@ -74,6 +75,13 @@ def _prod_refusal() -> str:
     return (
         "The dev console is disabled: this bot runs on a production environment "
         f"({DEPLOY_ENV_VAR}). It is available on test environments only."
+    )
+
+
+def _guild_refusal() -> str:
+    return (
+        "The dev console is disabled on this guild: only the guild ids declared "
+        "in the environment (KINGDOMS_TEST_GUILD_IDS) may use it."
     )
 
 
@@ -185,6 +193,41 @@ def _propagate(
     return sorted(games), sorted(mods)
 
 
+async def _reset_guild_data(guild_id: str) -> dict[str, int]:
+    """Wipe one test guild's data from Mongo \u2014 nothing else.
+
+    Every deletion carries a guild scope: ``guild_id`` documents, ids
+    prefixed ``<guild_id>:`` or ``...:<guild_id>``. Global content
+    (maps, pools, factions, rules, identities, profile stats, user
+    settings, audits) is NEVER touched: the reset is isolated to the
+    test guild, and the queries below fail closed on scope.
+    """
+    from kingdoms.core.models.db import get_async_database
+
+    database = get_async_database()
+    deleted: dict[str, int] = {}
+    guild_scoped: dict[str, Any] = {
+        "channels": {"guild_id": guild_id},
+        "role_mappings": {"guild_id": guild_id},
+        "channel_access_policies": {"_id": {"$regex": f"^{guild_id}:"}},
+        "guild_settings": {"_id": guild_id},
+        "guild_access": {"_id": f"guild:{guild_id}"},
+        "staff": {"_id": {"$regex": f"^staff:{guild_id}:"}},
+        "registrations": {"_id": {"$regex": f"^registration:{guild_id}:"}},
+        "workflow_states": {"guild_id": guild_id},
+        "platform_messages": {"guild_id": guild_id},
+        "seasons": {"_id": {"$regex": f"^ladder:{guild_id}:[a-z0-9]+:[0-9]+$"}},
+    }
+    for collection, query in guild_scoped.items():
+        try:
+            result = await database[collection].delete_many(query)
+            deleted[collection] = int(result.deleted_count)
+        except Exception:
+            logger.warning("DEV CONSOLE reset failed (%s)", collection, exc_info=True)
+            deleted[collection] = -1
+    return deleted
+
+
 async def _uninstall_mod(interaction: discord.Interaction, mod_name: str) -> None:
     """Delete one uninstalled mod's channels and roles, then their mappings."""
     wire = _wire(interaction.client)
@@ -254,12 +297,18 @@ async def _apply_selection(interaction: discord.Interaction, mods: list[str], ga
 
 
 async def _guard(interaction: discord.Interaction) -> bool:
-    """Gate the click-time check: bot admin only, never prod."""
+    """Gate the click-time check: test guild, bot admin, never prod."""
     if _deploy_env() in PROD_ENV_NAMES:
         try:
             await interaction.response.send_message(_prod_refusal(), ephemeral=True)
         except Exception:
             logger.warning("DEV CONSOLE prod refusal answer failed", exc_info=True)
+        return False
+    if not is_test_guild(interaction.guild_id):
+        try:
+            await interaction.response.send_message(_guild_refusal(), ephemeral=True)
+        except Exception:
+            logger.warning("DEV CONSOLE guild refusal answer failed", exc_info=True)
         return False
     bot = interaction.client
     admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
@@ -275,8 +324,10 @@ def _console_view() -> discord.ui.LayoutView:
     container: discord.ui.Container[discord.ui.LayoutView] = discord.ui.Container(
         discord.ui.TextDisplay("# \u2699 Dev console"),
         discord.ui.TextDisplay(
-            "Test-environment-only ops. **Clean managed** removes only what the "
-            "bot created; **Nuke** removes everything (triple confirmation). "
+            "Test-guild-only ops (env allowlist). **Clean managed** removes only "
+            "what the bot created; **Nuke** removes everything (triple "
+            "confirmation); **Reset data** wipes this guild's persisted data "
+            "(isolated \u2014 nothing outside this guild is touched). "
             "**Install** opens the mods/games selection."
         ),
         accent_colour=discord.Colour(0xED4245),
@@ -284,6 +335,7 @@ def _console_view() -> discord.ui.LayoutView:
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(DevCleanManagedButton())
     row.add_item(DevNukeButton())
+    row.add_item(DevResetDataButton())
     row.add_item(DevInstallButton())
     container.add_item(row)
     view.add_item(container)
@@ -402,6 +454,47 @@ class DevNukeButton(
         )
 
 
+class DevResetDataButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:reset:data",
+):
+    """Wipe this guild's persisted data \u2014 isolated to the test guild."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="\U0001f5d1 Reset data",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:reset:data",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> DevResetDataButton:
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await _guard(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        guild_id = str(interaction.guild_id)
+        deleted = await _reset_guild_data(guild_id)
+        logger.warning("DEV CONSOLE data reset executed (guild %s): %s", guild_id, deleted)
+        summary = "\n".join(f"- `{name}`: {count}" for name, count in sorted(deleted.items()))
+        await interaction.followup.send(
+            f"Guild data reset done (isolated to guild `{guild_id}`):\n{summary}\n"
+            "Global content (maps, factions, identities, profile stats) was NOT touched.",
+            ephemeral=True,
+        )
+
+
 class DevInstallButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:install",
@@ -490,8 +583,16 @@ def register_dev_console(
 
     The registration itself is the first prod barrier: CI, unit tests
     and production boots never register the command, so it cannot be
-    invoked at all. The runtime gate (deploy env) is the second.
+    invoked at all. The runtime gates are the second and third: the
+    deploy env (never prod) and the test-guild allowlist (empty
+    allowlist \u2192 fail closed, no console anywhere).
     """
+    if not allowed_test_guild_ids():
+        logger.warning(
+            "DEV CONSOLE disabled: %s is empty \u2014 no test guild declared, refusing to register /dev",
+            "KINGDOMS_TEST_GUILD_IDS",
+        )
+        return
     admins = bot_admins
 
     @tree.command(
@@ -505,6 +606,9 @@ def register_dev_console(
             return
         if _deploy_env() in PROD_ENV_NAMES:
             await interaction.response.send_message(_prod_refusal(), ephemeral=True)
+            return
+        if not is_test_guild(interaction.guild_id):
+            await interaction.response.send_message(_guild_refusal(), ephemeral=True)
             return
         user_id = getattr(interaction.user, "id", None)
         if str(user_id) not in admins and not getattr(

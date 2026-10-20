@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.dev_guilds</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.dev_guilds</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/dev_guilds.py">SOURCE_ROOT/discord/dev_guilds.py</a></td></tr></table>
+    <p><span class="code">Test-guild&nbsp;allowlist:&nbsp;the&nbsp;dev&nbsp;console's&nbsp;scope,&nbsp;defined&nbsp;by&nbsp;env&nbsp;only.<br>
+&nbsp;<br>
+Developer-mandated&nbsp;rule&nbsp;(the&nbsp;dev&nbsp;console&nbsp;session):&nbsp;the&nbsp;dev&nbsp;console's<br>
+commands&nbsp;(clean,&nbsp;nuke,&nbsp;reset&nbsp;db,&nbsp;install)&nbsp;are&nbsp;executable&nbsp;**only&nbsp;on&nbsp;the<br>
+guilds&nbsp;listed&nbsp;in&nbsp;the&nbsp;``KINGDOMS_TEST_GUILD_IDS``&nbsp;environment&nbsp;variable**<br>
+—&nbsp;never&nbsp;on&nbsp;any&nbsp;other&nbsp;guild,&nbsp;whatever&nbsp;the&nbsp;flags&nbsp;and&nbsp;permissions&nbsp;say.<br>
+&nbsp;<br>
+Design&nbsp;points:<br>
+&nbsp;<br>
+-&nbsp;**Env-defined,&nbsp;runtime-immutable**&nbsp;—&nbsp;the&nbsp;variable&nbsp;is&nbsp;read&nbsp;once&nbsp;at<br>
+&nbsp;&nbsp;import&nbsp;time&nbsp;(a&nbsp;module-level&nbsp;frozenset);&nbsp;nothing&nbsp;in&nbsp;the&nbsp;Discord<br>
+&nbsp;&nbsp;surface&nbsp;can&nbsp;add,&nbsp;remove&nbsp;or&nbsp;override&nbsp;a&nbsp;test&nbsp;guild&nbsp;id.&nbsp;The&nbsp;compose<br>
+&nbsp;&nbsp;files&nbsp;(kingdoms-infra)&nbsp;set&nbsp;it&nbsp;from&nbsp;the&nbsp;GitHub&nbsp;environment&nbsp;variable<br>
+&nbsp;&nbsp;``TEST_GUILD_ID``;&nbsp;prod&nbsp;never&nbsp;sets&nbsp;it.<br>
+-&nbsp;**Fail&nbsp;closed**&nbsp;—&nbsp;an&nbsp;unset&nbsp;or&nbsp;unparsable&nbsp;variable&nbsp;yields&nbsp;an&nbsp;empty<br>
+&nbsp;&nbsp;allowlist,&nbsp;and&nbsp;an&nbsp;empty&nbsp;allowlist&nbsp;denies&nbsp;everything&nbsp;(``/dev``&nbsp;does<br>
+&nbsp;&nbsp;not&nbsp;even&nbsp;register).&nbsp;A&nbsp;test&nbsp;env&nbsp;that&nbsp;forgets&nbsp;to&nbsp;declare&nbsp;its&nbsp;guild<br>
+&nbsp;&nbsp;ids&nbsp;gets&nbsp;no&nbsp;console,&nbsp;never&nbsp;an&nbsp;unrestricted&nbsp;one.<br>
+-&nbsp;**Numeric&nbsp;discipline**&nbsp;—&nbsp;Discord&nbsp;snowflakes&nbsp;are&nbsp;numeric&nbsp;strings;<br>
+&nbsp;&nbsp;anything&nbsp;else&nbsp;is&nbsp;refused&nbsp;at&nbsp;parse&nbsp;time&nbsp;(logged&nbsp;once).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-allowed_test_guild_ids"><strong>allowed_test_guild_ids</strong></a>() -&gt; 'frozenset[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;immutable&nbsp;test-guild&nbsp;allowlist&nbsp;(env-defined).<br>
+&nbsp;<br>
+The&nbsp;value&nbsp;is&nbsp;computed&nbsp;once&nbsp;at&nbsp;import:&nbsp;no&nbsp;code&nbsp;path&nbsp;can&nbsp;change&nbsp;it&nbsp;at<br>
+runtime.&nbsp;Test&nbsp;it&nbsp;with&nbsp;``is_test_guild``;&nbsp;never&nbsp;use&nbsp;membership&nbsp;on&nbsp;a<br>
+guild&nbsp;the&nbsp;console&nbsp;did&nbsp;not&nbsp;itself&nbsp;check.</span></dd></dl>
+ <dl><dt><a name="-parse_test_guild_ids"><strong>parse_test_guild_ids</strong></a>(environ: 'dict[str, str]') -&gt; 'frozenset[str]'</dt><dd><span class="code">Parse&nbsp;the&nbsp;allowlist&nbsp;from&nbsp;an&nbsp;explicit&nbsp;environ&nbsp;(tests,&nbsp;tooling).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>TEST_GUILD_IDS_ENV_VAR</strong> = 'KINGDOMS_TEST_GUILD_IDS'<br>
+<strong>__all__</strong> = ['TEST_GUILD_IDS_ENV_VAR', 'allowed_test_guild_ids', 'parse_test_guild_ids']<br>
+<strong>__annotations__</strong> = {'_TEST_GUILD_IDS': 'frozenset[str]'}</td></tr></table>
+</body></html>

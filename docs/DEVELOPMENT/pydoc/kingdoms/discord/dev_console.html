@@ -62,7 +62,9 @@ Capabilities:<br>
 &nbsp;<br>
 The&nbsp;registration&nbsp;itself&nbsp;is&nbsp;the&nbsp;first&nbsp;prod&nbsp;barrier:&nbsp;CI,&nbsp;unit&nbsp;tests<br>
 and&nbsp;production&nbsp;boots&nbsp;never&nbsp;register&nbsp;the&nbsp;command,&nbsp;so&nbsp;it&nbsp;cannot&nbsp;be<br>
-invoked&nbsp;at&nbsp;all.&nbsp;The&nbsp;runtime&nbsp;gate&nbsp;(deploy&nbsp;env)&nbsp;is&nbsp;the&nbsp;second.</span></dd></dl>
+invoked&nbsp;at&nbsp;all.&nbsp;The&nbsp;runtime&nbsp;gates&nbsp;are&nbsp;the&nbsp;second&nbsp;and&nbsp;third:&nbsp;the<br>
+deploy&nbsp;env&nbsp;(never&nbsp;prod)&nbsp;and&nbsp;the&nbsp;test-guild&nbsp;allowlist&nbsp;(empty<br>
+allowlist&nbsp;→&nbsp;fail&nbsp;closed,&nbsp;no&nbsp;console&nbsp;anywhere).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

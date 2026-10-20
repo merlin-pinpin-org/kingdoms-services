@@ -21,6 +21,11 @@ from kingdoms.discord.dev_console import (
     _propagate,
     dev_console_enabled,
 )
+from kingdoms.discord.dev_guilds import (
+    TEST_GUILD_IDS_ENV_VAR,
+    is_test_guild,
+    parse_test_guild_ids,
+)
 
 
 class FakeGuildAccessDB:
@@ -71,6 +76,92 @@ def test_prod_env_is_recognized() -> None:
 
     assert "prod" in PROD_ENV_NAMES
     assert "production" in PROD_ENV_NAMES
+
+
+def test_test_guild_allowlist_parses_and_validates(monkeypatch: Any) -> None:
+    ids = parse_test_guild_ids(
+        {TEST_GUILD_IDS_ENV_VAR: "123456789, 987654321;42"}
+    )
+    assert ids == frozenset({"123456789", "987654321", "42"})
+    import importlib
+
+    import kingdoms.discord.dev_guilds as dev_guilds
+
+    monkeypatch.setenv(TEST_GUILD_IDS_ENV_VAR, "42")
+    reloaded = importlib.reload(dev_guilds)
+    try:
+        assert reloaded.is_test_guild(42)
+        assert reloaded.is_test_guild("42")
+        assert not reloaded.is_test_guild("111")
+        assert not reloaded.is_test_guild(None)
+    finally:
+        monkeypatch.delenv(TEST_GUILD_IDS_ENV_VAR, raising=False)
+        importlib.reload(dev_guilds)
+
+
+def test_test_guild_allowlist_refuses_non_numeric() -> None:
+    ids = parse_test_guild_ids(
+        {TEST_GUILD_IDS_ENV_VAR: "123, not-a-guild, 456"}
+    )
+    assert ids == frozenset({"123", "456"})
+
+
+def test_test_guild_allowlist_fails_closed() -> None:
+    assert parse_test_guild_ids({}) == frozenset()
+    assert parse_test_guild_ids({TEST_GUILD_IDS_ENV_VAR: ""}) == frozenset()
+    assert parse_test_guild_ids({TEST_GUILD_IDS_ENV_VAR: "nope"}) == frozenset()
+
+
+def test_empty_allowlist_disables_everywhere() -> None:
+    """An empty allowlist denies every guild \u2014 fail closed."""
+    assert not any(is_test_guild(g) for g in ("123456789", "1", "999999999999"))
+
+
+async def test_reset_guild_data_queries_are_guild_scoped(monkeypatch: Any) -> None:
+    """Every reset query must carry the guild scope; global collections absent."""
+    import kingdoms.core.models.db as db_mod
+    import kingdoms.discord.dev_console as dev_console
+
+    queries: dict[str, Any] = {}
+
+    class FakeResult:
+        deleted_count = 0
+
+    class FakeCollection:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def delete_many(self, query: dict[str, Any]) -> FakeResult:
+            queries[self.name] = query
+            return FakeResult()
+
+    class FakeDatabase:
+        def __getitem__(self, name: str) -> FakeCollection:
+            return FakeCollection(name)
+
+    monkeypatch.setattr(db_mod, "get_async_database", lambda: FakeDatabase(), raising=False)
+    guild_id = "12345"
+    await dev_console._reset_guild_data(guild_id)
+    global_collections = {
+        "maps",
+        "map_pools",
+        "map_packs",
+        "map_pool_history",
+        "factions",
+        "rules",
+        "users",
+        "platform_identities",
+        "profile_stats",
+        "profile_bindings",
+        "faction_content",
+        "admin_audit",
+        "provider_mappings",
+        "user_settings",
+    }
+    assert not global_collections & set(queries)
+    assert queries
+    for name, query in queries.items():
+        assert guild_id in str(query), f"{name} query is not guild-scoped: {query}"
 
 
 def test_propagate_mod_installs_its_games() -> None:
