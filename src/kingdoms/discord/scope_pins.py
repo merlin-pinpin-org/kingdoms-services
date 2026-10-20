@@ -368,7 +368,7 @@ def _declared_menu_builder(bot: Any, view_id: str) -> Any:
     """Build a declared menu's pin builder (registry-driven layout)."""
     from kingdoms.discord.views_routing import build_declared_menu
 
-    inner = build_declared_menu(bot, "", view_id)
+    inner = build_declared_menu(bot, view_id)
 
     async def _resolve_and_build(guild_id: str) -> Any:
         return await inner(guild_id)

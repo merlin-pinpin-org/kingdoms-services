@@ -249,7 +249,7 @@ def _label(catalog: Any, key: str, locale: str, fallback: str = "?") -> str:
     return rendered if rendered != key else fallback
 
 
-def build_declared_menu(bot: Any, guild_id: str, view_id: str) -> Any:
+def build_declared_menu(bot: Any, view_id: str) -> Any:
     """Build a declared menu's layout: title, description, buttons, footer.
 
     The single menu builder: every declared menu renders through it,
@@ -263,7 +263,7 @@ def build_declared_menu(bot: Any, guild_id: str, view_id: str) -> Any:
     if decl is None:
         raise KeyError(f"undeclared view {view_id!r} — declare it in views_declared")
 
-    async def _build() -> discord.ui.LayoutView:
+    async def _build(guild_id: str) -> discord.ui.LayoutView:
 
         from kingdoms.discord.scope_pins import _catalog, _locale_of, _tr, _tree_notice
 

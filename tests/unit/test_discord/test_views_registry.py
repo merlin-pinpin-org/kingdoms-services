@@ -123,3 +123,21 @@ async def test_a_mod_declares_its_own_views(tmp_path) -> None:
     declare_views_from_config(tmp_path)
     assert get_view("menu:mymod:home") is not None, "the mod's view merged into the registry"
     assert not validate_registry(), "the cross-references validate both ways"
+
+
+@pytest.mark.asyncio
+async def test_the_menu_builder_honors_the_pin_builder_contract() -> None:
+    """The declared menu builder takes the guild_id at build time.
+
+    The static-pin machinery calls ``build_layout(guild_id)`` — a
+    builder closing over the wrong arity broke every pinned menu on
+    the test env (2026-10-20): this test pins the contract.
+    """
+    from unittest.mock import MagicMock
+
+    from kingdoms.discord.views_routing import build_declared_menu
+
+    builder = build_declared_menu(MagicMock(), "menu:home")
+    layout = await builder("42")
+    customs = [c.custom_id for c in layout.walk_children() if getattr(c, "custom_id", None)]
+    assert any(c == "view:open:panel:profile" for c in customs), "the navigation buttons render"
