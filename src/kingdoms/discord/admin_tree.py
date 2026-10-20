@@ -108,9 +108,9 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
     lines: list[str] = [f"\U0001f527 **{scope}** — salons vérifiés/créés :"]
     for decl in spec.channels:
         channel_id = resolved.get(decl.key, "")
-        where = f"<#{channel_id}>" if channel_id else "\u274c absent"
+        where = f"<#{channel_id}>" if channel_id else "❌ absent"
         access = _ACCESS_LABELS.get(decl.access, decl.access)
-        lines.append(f"\u2022 {where} — {access}")
+        lines.append(f"• {where} — {access}")
     return "\n".join(lines)
 
 
@@ -256,7 +256,7 @@ async def build_admin_menu(
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay("# \U0001f6e0\ufe0f Admin"),
+            discord.ui.TextDisplay("# \U0001f6e0️ Admin"),
             accent_colour=discord.Colour(0x5865F2),
         )
     )

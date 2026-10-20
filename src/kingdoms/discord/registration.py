@@ -64,7 +64,7 @@ class RegistrationConfirmButton(
         workflow_id = _active_workflow_id(interaction.user.id)
         if workflow_id is None:
             await interaction.response.send_message(
-                "No enrollment in progress — start again with /register.", ephemeral=True
+                "Aucune inscription en cours — recommence avec /register.", ephemeral=True
             )
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -102,7 +102,7 @@ class ProfileIdModal(discord.ui.Modal, title="AoE2 profile"):
         workflow_id = _active_workflow_id(interaction.user.id)
         if workflow_id is None:
             await interaction.response.send_message(
-                "No enrollment in progress — start again with /register.", ephemeral=True
+                "Aucune inscription en cours — recommence avec /register.", ephemeral=True
             )
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -117,11 +117,11 @@ class ProfileIdModal(discord.ui.Modal, title="AoE2 profile"):
         if state.status == "COMPLETED":
             _clear_active(interaction.user.id)
             await interaction.followup.send(
-                f"Enrolled! Your AoE2 profile `{state.payload.get('binding', '')}` is linked — you can join the ladder.",  # noqa: E501
+                f"Inscription terminée ! Ton profil AoE2 `{state.payload.get('binding', '')}` est lié — tu peux rejoindre le ladder.",  # noqa: E501
                 ephemeral=True,
             )
             return
-        await interaction.followup.send("Unexpected flow state — restart with /register.", ephemeral=True)
+        await interaction.followup.send("État inattendu — recommence avec /register.", ephemeral=True)
 
 
 def _profile_prompt_view() -> discord.ui.View:

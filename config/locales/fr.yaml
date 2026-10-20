@@ -269,9 +269,9 @@ fr:
     btn_refresh: Rafraîchir le contenu
     btn_manage_access: Gérer les accès
     access_title: Gérer les accès
-    access_subtitle: Choisis un serveur, puis les jeux/mods \u00e0 accorder ou retirer.
+    access_subtitle: Choisis un serveur, puis les jeux/mods à accorder ou retirer.
     access_guild_placeholder: Serveur à gérer...
-    access_no_server: Aucun serveur enregistr\u00e9.
+    access_no_server: Aucun serveur enregistré.
     access_list_failed: Échec du listing des serveurs (voir les logs).
     access_server_label: Serveur {guild_id}
     access_none_server: Aucun serveur
@@ -281,7 +281,7 @@ fr:
     access_no_keys: Aucun jeu/mod actif
     access_apply: Accorder
     access_revoke: Retirer
-    access_select_first: S\u00e9lectionne d'abord des jeux/mods.
+    access_select_first: Sélectionne d'abord des jeux/mods.
     access_granted: 'Accès accordés au serveur `{guild_id}`.
 
       Jeux : {games}
@@ -303,7 +303,7 @@ fr:
     new_civs_line: 'Nouvelles civs : {names}
 
       '
-    bot_admin_only: R\u00e9serv\u00e9 aux bot admins.
+    bot_admin_only: Réservé aux bot admins.
     access_nothing_to_add: Rien à accorder — tout est déjà actif.
     access_nothing_to_remove: Rien à retirer — aucun jeu/mod actif.
     menu_status: ⏳ {requests} demande(s) en attente · 🌐 {servers} serveur(s) actif(s)

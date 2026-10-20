@@ -141,7 +141,7 @@ async def build_dm_setup_view(
             return
         if str(getattr(interaction.user, "id", "")) != user_id:
             await interaction.response.send_message(
-                "You are not allowed to change another user's language.", ephemeral=True
+                "Tu ne peux pas changer la langue d'un autre utilisateur.", ephemeral=True
             )
             return
         try:
@@ -679,11 +679,11 @@ async def guards_require(
     try:
         if interaction.response.is_done():
             await interaction.followup.send(
-                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.", ephemeral=True
+                "Tu n'es ni opérateur du bot (BOT_ADMINS) ni administrateur du serveur.", ephemeral=True
             )
         else:
             await interaction.response.send_message(
-                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.", ephemeral=True
+                "Tu n'es ni opérateur du bot (BOT_ADMINS) ni administrateur du serveur.", ephemeral=True
             )
     except Exception:
         logger.warning("DENIAL ANSWER FAILED — best-effort", exc_info=True)

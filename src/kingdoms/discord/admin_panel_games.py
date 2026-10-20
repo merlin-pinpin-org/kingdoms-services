@@ -68,14 +68,31 @@ def _selected_values(interaction: discord.Interaction) -> list[str]:
     return [str(v) for v in raw] if isinstance(raw, (list, tuple)) else []
 
 
+
+async def _gtr(interaction: discord.Interaction, key: str, fallback: str = "") -> str:
+    """Render one ui.games key in the interaction's guild locale (EN fallback)."""
+    from kingdoms.discord.commands_i18n import reply_locale
+
+    catalog = getattr(interaction.client, "messages", None)
+    if catalog is None:
+        return fallback or key
+    locale = await reply_locale(interaction)
+    rendered = catalog.render(key, locale)
+    if rendered == key:
+        rendered = catalog.render(key, "en")
+    return rendered if rendered != key else (fallback or key)
+
+
 async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
     """Render the games admin section: game picker + per-game actions."""
-    del interaction
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay("# Games admin")]
     if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring unavailable: Mongo is not configured."))
+        wiring_note = await _gtr(
+            interaction, "replies_shared.wiring_unavailable", "Wiring indisponible : Mongo n'est pas configuré."
+        )
+        blocks.append(discord.ui.TextDisplay(wiring_note))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
         view.add_item(_back_row())
         return view
@@ -83,7 +100,10 @@ async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.Layo
 
     keys = list(await granted_game_keys("", tuple(await service.list_game_keys())))
     if not keys:
-        blocks.append(discord.ui.TextDisplay("_No game known — seed a catalog._"))
+        no_game_note = await _gtr(
+            interaction, "ui.games.no_game", "Aucun jeu connu — seede un catalogue."
+        )
+        blocks.append(discord.ui.TextDisplay(no_game_note))
     else:
         lines = []
         for key in keys[:15]:
@@ -201,7 +221,7 @@ class GamesGameSelect(
             discord.ui.Select(
                 custom_id=f"{_NS}:game:picker",
                 options=options or [discord.SelectOption(label="No game", value="none")],
-                placeholder="Manage a game...",
+                placeholder="Gérer un jeu...",
             )
         )
 
@@ -762,7 +782,7 @@ async def maps_admin_view(game_key: str, from_pin: bool = False, guild_id: str =
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay(f"# Maps ({game_key})")]
     if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring unavailable."))
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
         return view
@@ -846,7 +866,7 @@ class GamesMapCreateModal(discord.ui.Modal):
     def __init__(self, game_key: str, global_scope: bool = False) -> None:
         self.game_key = game_key
         self.global_scope = global_scope
-        super().__init__(title="Create a global map" if global_scope else "Creer une map", timeout=None)
+        super().__init__(title="Créer une map globale" if global_scope else "Créer une map", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Map name", max_length=64, required=True)
         self.filename: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="File (rms/txt filename)", max_length=128, required=False
@@ -943,8 +963,8 @@ class GamesMapArchiveSelect(
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:maps:archive:{game_key}"[:100],
-                options=options or [discord.SelectOption(label="No map", value="none")],
-                placeholder="Enable / disable a map...",
+                options=options or [discord.SelectOption(label="Aucune map", value="none")],
+                placeholder="Activer / désactiver une map...",
             )
         )
 
@@ -1224,8 +1244,8 @@ class GamesPoolEditSelect(
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:pools:edit:{game_key}"[:100],
-                options=options or [discord.SelectOption(label="No map pool", value="none")],
-                placeholder="Edit a pool...",
+                options=options or [discord.SelectOption(label="Aucun pool", value="none")],
+                placeholder="Éditer un pool...",
             )
         )
 
@@ -1326,7 +1346,7 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin:
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay("# Editer le pool")]
     if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring unavailable."))
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
         return view
@@ -1477,7 +1497,7 @@ class GamesPoolRenameModal(discord.ui.Modal):
 
     def __init__(self, pool_id: str) -> None:
         self.pool_id = pool_id
-        super().__init__(title="Rename the pool", timeout=None)
+        super().__init__(title="Renommer le pool", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="New name", max_length=64, required=True)
         self.add_item(self.name)
 
@@ -1776,8 +1796,8 @@ class GamesPoolMapToggle(
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:pools:maps:{page}:{pool_id}"[:100],
-                options=options or [discord.SelectOption(label="No map", value="none")],
-                placeholder="Add / remove a map...",
+                options=options or [discord.SelectOption(label="Aucune map", value="none")],
+                placeholder="Ajouter / retirer une map...",
             )
         )
 
@@ -1933,7 +1953,7 @@ class GamesMapsBackButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Back to the game",
+                label="Retour au jeu",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:mapsback:{game_key}"[:100],
             )
@@ -1966,7 +1986,7 @@ class GamesPoolsBackButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Back to the game",
+                label="Retour au jeu",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:poolsback:{game_key}"[:100],
             )
@@ -2039,7 +2059,7 @@ class GamesPoolDuplicateModal(discord.ui.Modal):
 
     def __init__(self, pool_id: str, source_name: str) -> None:
         self.pool_id = pool_id
-        super().__init__(title="Duplicate the pool", timeout=None)
+        super().__init__(title="Dupliquer le pool", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Copy name", max_length=64, required=True, default=f"{source_name} (copie)"
         )
@@ -2076,7 +2096,7 @@ class GamesPoolSendButton(
         self.pool_id = pool_id
         super().__init__(
             discord.ui.Button(
-                label="Send to a guild",
+                label="Envoyer à un serveur",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:pools:send:{pool_id}"[:100],
             )
@@ -2116,7 +2136,7 @@ class GamesPoolSendModal(discord.ui.Modal):
 
     def __init__(self, pool_id: str, pool_name: str) -> None:
         self.pool_id = pool_id
-        super().__init__(title="Send the pool", timeout=None)
+        super().__init__(title="Envoyer le pool", timeout=None)
         self.guild_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Target guild ID", max_length=25, required=True
         )
@@ -2290,7 +2310,7 @@ class GamesMapImportModal(discord.ui.Modal):
 
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
-        super().__init__(title="Import a map (Liquipedia)", timeout=None)
+        super().__init__(title="Importer une map (Liquipedia)", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Map name (Liquipedia page)", max_length=64, required=True
         )
@@ -2666,7 +2686,7 @@ class GamesPoolImportModal(discord.ui.Modal):
 
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
-        super().__init__(title="Import a map pool", timeout=None)
+        super().__init__(title="Importer un map pool", timeout=None)
         self.pool_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Source pool id (e.g. map_pool:aoe2:ladder_cf_s1_r1)",
             max_length=100,

@@ -45,17 +45,25 @@ async def _deny(interaction: discord.Interaction) -> None:
 
 
 async def _dm_locale(source: Any) -> str:
-    """Resolve the invoking admin's DM locale (user settings, en fallback)."""
+    """Resolve the invoking admin's DM locale.
+
+    Precedence: the stored DM setting, then the invoking Discord
+    client's own locale (``interaction.locale`` — a French client gets
+    French DMs even without a stored setting), then English.
+    """
     client = source if isinstance(source, discord.Client) else getattr(source, "client", None)
     user = getattr(source, "user", None)
     user_id = str(getattr(user, "id", "") or "") if user is not None else ""
     logs = getattr(client, "logs_service", None)
+    client_locale = str(getattr(source, "locale", "") or "").split("-")[0]
+    fallback = client_locale if client_locale in ("en", "fr") else "en"
     if logs is None or not user_id:
-        return "en"
+        return fallback
     try:
-        return str(await logs.get_user_locale(user_id) or "en")
+        stored = str(await logs.get_user_locale(user_id) or "")
+        return stored if stored in ("en", "fr") else fallback
     except Exception:
-        return "en"
+        return fallback
 
 
 def _dm_tr(source: Any, locale: str, key: str, **kwargs: Any) -> str:
@@ -104,7 +112,7 @@ async def build_admin_dm_panel(
 
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay("# \U0001f6e1\ufe0f " + _dm_tr(interaction, dm_locale, "title")),
+            discord.ui.TextDisplay("# \U0001f6e1️ " + _dm_tr(interaction, dm_locale, "title")),
             discord.ui.TextDisplay("\n".join(status_parts)),
             accent_colour=discord.Colour(0x5865F2),
         )
@@ -122,7 +130,7 @@ async def _render_dm_menu_into(message: Any, client: Any) -> None:
     try:
         await message.edit(view=await build_admin_dm_panel(client))
     except Exception:
-        logger.warning("DM PANEL: menu refresh failed \u2014 best-effort", exc_info=True)
+        logger.warning("DM PANEL: menu refresh failed — best-effort", exc_info=True)
 
 
 async def _refresh_admin_dm_menus(client: Any, exclude_channel: int | None = None) -> None:
@@ -138,7 +146,7 @@ async def _refresh_admin_dm_menus(client: Any, exclude_channel: int | None = Non
             await message.edit(view=await build_admin_dm_panel(client))
         except Exception:
             _ADMIN_MENU_MESSAGES.pop(channel_id, None)
-            logger.info("DM PANEL: menu gone (channel %s) \u2014 dropping from the store", channel_id)
+            logger.info("DM PANEL: menu gone (channel %s) — dropping from the store", channel_id)
 
 
 _ADMIN_MENU_MESSAGES: dict[int, Any] = {}
@@ -233,8 +241,8 @@ async def _open_servers(interaction: discord.Interaction) -> None:
     for doc in docs:
         guild = client.get_guild(int(doc.get("guild_id") or 0))
         name = guild.name if guild is not None else _dm_tr(interaction, dm_locale, "unknown_server")
-        games = ", ".join(doc.get("games") or []) or "\u2014"
-        mods = ", ".join(doc.get("mods") or []) or "\u2014"
+        games = ", ".join(doc.get("games") or []) or "—"
+        mods = ", ".join(doc.get("mods") or []) or "—"
         blocks.append(
             discord.ui.TextDisplay(
                 _dm_tr(

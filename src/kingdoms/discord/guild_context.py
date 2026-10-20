@@ -40,8 +40,8 @@ class GuildContextPicker(
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_PICK_NS}:{view_key}"[:100],
-                options=options or [discord.SelectOption(label="No guild", value="none")],
-                placeholder="Which guild?",
+                options=options or [discord.SelectOption(label="Aucun serveur", value="none")],
+                placeholder="Quel serveur ?",
             )
         )
 

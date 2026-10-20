@@ -58,29 +58,37 @@ def _tr(catalog: Any, key: str, locale: str, fallback: str = "") -> str:
 
 
 _ACCESS_LABELS = {
-    "public": "public (lecture + \u00e9criture pour tous)",
-    "readonly": "lecture seule (menus \u00e9pingl\u00e9s du bot uniquement)",
-    "admin": "admin (lecture + \u00e9criture pour les admins du bot)",
+    "public": "public (lecture + écriture pour tous)",
+    "readonly": "lecture seule (menus épinglés du bot uniquement)",
+    "admin": "admin (lecture + écriture pour les admins du bot)",
 }
 
 
-async def _tree_notice(guild_id: str, scope: str) -> str:
-    """One contextual line: the scope's channels (and access) from the tree.
+async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: str = "en") -> str:
+    """One contextual line: the scope's channels (linked) and access.
 
     The homes explain what the bot provisions instead of offering a
     management view: the tree is declared (panels_scopes), the admins
-    carry the ensure button.
+    carry the ensure button. Each channel renders as a Discord link
+    (``<#id>``) when its stored id resolves.
     """
     from kingdoms.discord.ui.panels import registered_scopes
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
     spec = next((sp for sp in registered_scopes() if sp.scope == scope), None)
     if spec is None:
         return ""
-    lines: list[str] = ["\U0001f4cb **Salons de ce p\u00e9rim\u00e8tre** (g\u00e9n\u00e9r\u00e9s par le bot) :"]
+    lines: list[str] = ["\U0001f4cb **Salons de ce périmètre** (générés par le bot) :"]
     for decl in spec.channels:
-        label = decl.label_key.rsplit(".", 1)[-1]
+        label = _tr(catalog, decl.label_key, locale, decl.label_key.rsplit(".", 1)[-1])
         access = _ACCESS_LABELS.get(decl.access, decl.access)
-        lines.append(f"\u2022 {label} \u2014 {access}")
+        try:
+            channel_id = await stored_channel_id(guild_id, scope, decl.key)
+        except Exception:
+            channel_id = None
+        where = f"<#{channel_id}>" if channel_id else label
+        shown = f"{where} — {access}" if channel_id else f"{label} — {access} (à créer)"
+        lines.append(f"• {shown}")
     return "\n".join(lines)
 
 
@@ -157,7 +165,7 @@ def _home_builder(bot: Any, scope: str) -> Any:
                 description=description,
                 view_id="view:home" if scope == "root" else scope_view_key(scope, "home"),
                 sections=sections,
-                extra_lines=(await _tree_notice(guild_id, scope),),
+                extra_lines=(await _tree_notice(guild_id, scope, catalog, locale),),
             )
         )
 
@@ -233,18 +241,18 @@ def _admin_builder(bot: Any, scope: str) -> Any:
             list_view = "games" if scope == "games" else "mods"
             return build_menu(
                 MenuSpec(
-                    title=_tr(catalog, f"ui.homes.{kind}_admin_title", locale, f"{kind} \u2014 admin"),
+                    title=_tr(catalog, f"ui.homes.{kind}_admin_title", locale, f"{kind} — admin"),
                     description=_tr(
                         catalog,
                         f"ui.homes.{kind}_admin_description",
                         locale,
-                        "Les p\u00e9rim\u00e8tres du serveur et leur configuration.",
+                        "Les périmètres du serveur et leur configuration.",
                     ),
-                    extra_lines=(await _tree_notice(guild_id, scope),),
+                    extra_lines=(await _tree_notice(guild_id, scope, catalog, locale),),
                     view_id=scope_view_key(scope, "admin"),
                     sections=(
                         MenuSection(
-                            heading_key=_tr(catalog, "ui.homes.heading_perimeters", locale, "P\u00e9rim\u00e8tres"),
+                            heading_key=_tr(catalog, "ui.homes.heading_perimeters", locale, "Périmètres"),
                             buttons=(
                                 (
                                     f"home:open:{list_view}",
@@ -258,7 +266,7 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                             buttons=(
                                 (
                                     f"admin:tree:ensure:{scope}",
-                                    _tr(catalog, "ui.homes.btn_ensure", locale, "Tout reg\u00e9n\u00e9rer"),
+                                    _tr(catalog, "ui.homes.btn_ensure", locale, "Tout regénérer"),
                                     "\U0001f527",
                                 ),
                             ),
