@@ -179,17 +179,21 @@ class LogService:
     ) -> None:
         """Wire the stores; ``state`` is a StateService (Redis cache-aside).
 
-        ``catalog`` localizes the audit events with the guild's locale;
-        None keeps the built-in English messages. The superseded
-        boot-status messages stay (unpinned, never deleted): the boot
-        status declares ``delete_when_superseded=False`` on the static
-        -pin registry — the log trail stays readable.
+        ``catalog`` localizes the audit events; ``locale_resolver``
+        resolves a guild's native Discord locale from its id (the
+        bot injects ``guild.preferred_locale`` — the platform stores
+        no locale of its own). None keeps the built-in English
+        messages. The superseded boot-status messages stay (unpinned,
+        never deleted): the boot status declares
+        ``delete_when_superseded=False`` on the static-pin registry —
+        the log trail stays readable.
         """
         self._db = database
         self._platform = platform
         self._state = state
         self._clock = clock
         self._catalog = catalog
+        self._locale_resolver: Any = None
 
     def _tr(self, key: str, locale: str, **kwargs: Any) -> str:
         """Render a lifecycle message, falling back to English strings."""
@@ -421,45 +425,26 @@ class LogService:
         """List the guild's text channels (id, name) for the admin picker."""
         return await self._platform.list_text_channels(guild_id)
 
-    async def get_locale(self, guild_id: str) -> str:
-        """Read the guild's locale (en fallback)."""
-        settings = await self._safe(self._db.get_guild_settings(guild_id))
-        locale = str((settings or {}).get("locale", ""))
-        return locale if locale in SUPPORTED_LOCALES else "en"
+    def set_locale_resolver(self, resolver: Any) -> None:
+        """Inject the native-locale resolver (guild id -> en/fr).
 
-    async def set_locale(self, guild_id: str, locale: str, by: str) -> None:
-        """Persist the guild's locale (fr/en); audited as an event."""
-        if locale not in SUPPORTED_LOCALES:
-            raise ValueError(f"unsupported locale: {locale!r}")
-        settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
-        settings["locale"] = locale
-        settings["updated_at"] = int(time.time())
-        settings["updated_by"] = by
-        await self._db.set_guild_settings(guild_id, settings)
-        await self.log_event(
-            guild_id,
-            LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.language", locale, lang=locale, by=by)),
-        )
-
-    async def get_user_locale(self, user_id: str) -> str:
-        """Read the user's DM locale (en fallback)."""
-        settings = await self._safe(self._db.get_user_settings(user_id))
-        locale = str((settings or {}).get("locale", ""))
-        return locale if locale in SUPPORTED_LOCALES else "en"
-
-    async def set_user_locale(self, user_id: str, locale: str) -> None:
-        """Persist the user's DM locale (fr/en).
-
-        DM settings are personal: they follow the user across guilds and
-        are never audited in a guild's logs channel (a DM has no channel
-        to audit into — the change is acknowledged in the DM itself).
+        The bot wires ``guild.preferred_locale`` here at startup: the
+        audit events follow the server's Discord language, with no
+        platform-stored locale setting left.
         """
-        if locale not in SUPPORTED_LOCALES:
-            raise ValueError(f"unsupported locale: {locale!r}")
-        settings = await self._safe(self._db.get_user_settings(user_id)) or {}
-        settings["locale"] = locale
-        settings["updated_at"] = int(time.time())
-        await self._db.set_user_settings(user_id, settings)
+        self._locale_resolver = resolver
+
+    async def get_locale(self, guild_id: str) -> str:
+        """Return the guild's native Discord locale through the resolver."""
+        if self._locale_resolver is None:
+            return "en"
+        try:
+            locale = str(await self._locale_resolver(guild_id) or "en")
+        except TypeError:
+            locale = str(self._locale_resolver(guild_id) or "en")
+        except Exception:
+            return "en"
+        return locale if locale in SUPPORTED_LOCALES else "en"
 
     async def _cache(self, guild_id: str, channel_id: str) -> None:
         await self._safe(

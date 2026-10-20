@@ -144,6 +144,8 @@ class KingdomsBot(discord.Client):
         self.status_service = status
         self.registry = registry
         self.logs_service = logs
+        if logs is not None:
+            logs.set_locale_resolver(self._native_guild_locale)
         self.messages = MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
@@ -253,7 +255,7 @@ class KingdomsBot(discord.Client):
             deploy_env=self.config.deploy_env,
             enabled=announce_enabled,
             thumbnail_url=self.user.display_avatar.url if self.user else "",
-            locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
+            locale_resolver=self._native_guild_locale if self.logs_service is not None else None,
             commands=self.tree.get_commands(),
             sync_scope=self._sync_scope(),
         )
@@ -353,13 +355,13 @@ class KingdomsBot(discord.Client):
         if self.messages is None or self.logs_service is None:
             return
         try:
-            from kingdoms.core.services.i18n import DEFAULT_LOCALE
             from kingdoms.discord.ui.panels_provisioning import provision_all
             from kingdoms.discord.ui.panels_scopes import register_platform_scopes
 
             register_platform_scopes()
-            locale = await self.logs_service.get_locale(guild_id) or DEFAULT_LOCALE
-            await provision_all(guild, locale, self._translate_panel_label)
+            from kingdoms.discord.locales import guild_locale
+
+            await provision_all(guild, guild_locale(guild), self._translate_panel_label)
         except Exception:
             logger.warning(
                 "CHANNEL TREE provisioning failed (guild %s) — best-effort",
@@ -461,6 +463,12 @@ class KingdomsBot(discord.Client):
                 exc_info=True,
             )
 
+    def _native_guild_locale(self, guild_id: str) -> str:
+        """Resolve a guild's native Discord locale (Server Settings language)."""
+        from kingdoms.discord.locales import guild_locale_by_id
+
+        return guild_locale_by_id(self, str(guild_id))
+
     def _translate_panel_label(self, key: str, locale: str) -> str:
         """Render one panels label key in the guild's locale (fallback EN)."""
         if self.messages is None:
@@ -515,15 +523,14 @@ class KingdomsBot(discord.Client):
 
             if self.logs_service is None:
                 return discord.ui.LayoutView(timeout=None)
-            try:
-                locale = str(await self.logs_service.get_locale(guild_id) or "en")
-            except Exception:
-                locale = "en"
+
+            from kingdoms.discord.locales import guild_locale_by_id
+
             return await build_pin_main_menu(
                 self.logs_service,
                 guild_id,
                 self.messages,
-                locale,
+                guild_locale_by_id(self, str(guild_id)),
                 self.admin_channel_service,
                 client=self,
             )
@@ -833,12 +840,10 @@ class KingdomsBot(discord.Client):
         )
 
     async def _locale_for(self, interaction: discord.Interaction) -> str:
-        """Resolve the answering locale: the guild's, or the user's in DM."""
-        if self.logs_service is None:
-            return "en"
-        if interaction.guild_id is not None:
-            return await self.logs_service.get_locale(str(interaction.guild_id))
-        return await self.logs_service.get_user_locale(str(interaction.user.id))
+        """Resolve the answering locale: the guild's, or the client's in DM."""
+        from kingdoms.discord.locales import interaction_locale
+
+        return interaction_locale(interaction)
 
     async def crash_report(self, interaction: discord.Interaction, exc: BaseException) -> None:
         """Report a component-callback failure to bot-logs + BOT_ADMINS DMs.
@@ -878,7 +883,9 @@ class KingdomsBot(discord.Client):
         """Log the stop lifecycle event, then close the gateway connection."""
         if self.logs_service is not None:
             for guild in self.guilds:
-                locale = await self.logs_service.get_locale(str(guild.id))
+                from kingdoms.discord.locales import guild_locale
+
+                locale = guild_locale(guild)
                 event = LifecycleEvent(
                     kind="stop",
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",

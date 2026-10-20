@@ -90,7 +90,7 @@ async def test_main_menu_hides_without_sections() -> None:
     view = await build_pin_main_menu(_Logs(), "1")  # type: ignore[arg-type]
     rendered = str(getattr(view, "to_components", lambda: [])())
     assert "admin:pin:mod:" not in rendered
-    assert "admin:tree:open:lang" in rendered
+    assert "admin:tree:open:games" in rendered
 
 
 async def test_main_menu_renders_registered_sections() -> None:

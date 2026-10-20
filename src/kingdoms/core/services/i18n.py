@@ -40,7 +40,6 @@ FALLBACKS: dict[str, str] = {
     "lifecycle.policy.reset": "Access policy reset to admin-only, by <@{by}>.",
     "lifecycle.policy.route": "Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>.",
     "lifecycle.policy.visibility": "Bot logs visibility set to {state}, by <@{by}>.",
-    "lifecycle.policy.language": "Language set to {lang}, by <@{by}>.",
 }
 
 

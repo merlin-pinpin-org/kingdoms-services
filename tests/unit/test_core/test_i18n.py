@@ -19,7 +19,7 @@ def test_catalog_loads_the_real_locales() -> None:
     catalog = MessageCatalog(CONFIG_DIR)
     assert catalog.render("admin.title", "en") == "Kingdoms — Admin"
     assert catalog.render("admin.title", "fr") == "Kingdoms — Admin"
-    assert catalog.render("admin.language", "fr") == "Langue du serveur"
+    assert catalog.render("admin.visibility_admin_hint", "fr"), "a live fr key renders"
 
 
 def test_nested_sections_flatten_to_dotted_keys() -> None:
@@ -30,10 +30,14 @@ def test_nested_sections_flatten_to_dotted_keys() -> None:
     assert "admin" not in fr or isinstance(fr["admin"], str)
 
 
-def test_render_falls_back_to_english_for_missing_fr_keys() -> None:
-    catalog = MessageCatalog(CONFIG_DIR)
-    rendered = catalog.render("admin.dm_title", "fr")
-    assert rendered == "Kingdoms — Admin (DM)"
+def test_render_falls_back_to_english_for_missing_fr_keys(tmp_path: Path) -> None:
+    (tmp_path / "locales").mkdir(parents=True)
+    (tmp_path / "locales" / "en.yaml").write_text(
+        "en:\n  admin:\n    fallback_only: the English wording\n", encoding="utf-8"
+    )
+    (tmp_path / "locales" / "fr.yaml").write_text("fr:\n  admin:\n    autre: valeur\n", encoding="utf-8")
+    catalog = MessageCatalog(tmp_path)
+    assert catalog.render("admin.fallback_only", "fr") == "the English wording"
 
 
 def test_render_degrades_to_the_key_for_unknown_entries() -> None:
@@ -43,9 +47,9 @@ def test_render_degrades_to_the_key_for_unknown_entries() -> None:
 
 def test_render_formats_placeholders() -> None:
     catalog = MessageCatalog(CONFIG_DIR)
-    rendered = catalog.render("admin.language_hint", "fr", value="Français")
-    assert "Français" in rendered
-    assert rendered == catalog.render("admin.language_hint", "fr", value="Français")
+    rendered = catalog.render("lifecycle.policy.route", "fr", channel_id="42", previous_note="", by="7")
+    assert "42" in rendered
+    assert rendered == catalog.render("lifecycle.policy.route", "fr", channel_id="42", previous_note="", by="7")
 
 
 def test_lifecycle_fallbacks_ride_as_builtins() -> None:

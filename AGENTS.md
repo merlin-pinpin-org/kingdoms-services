@@ -67,14 +67,22 @@ mods, YAML configs.
   or the `bot-admins` role via the RolesService). `default_permissions`
   only hides the command entry; it never replaces the check.
 - **Guild-level settings & admin surface:** generic, mod-independent
-  settings (guild locale, reference timezone, managed channels) are
-  **core guild settings** — a mod never re-declares them or ships its
-  own locale/timezone pickers; a mod's admin needs extend the pinned
-  bot-admins panel through the core runtime seam, never a forked panel;
-  user-facing times are Discord `<t:…>` timestamps, never formatted
-  strings — see kingdoms CONVENTIONS.md (*Guild-level settings and the
-  admin surface*) and the discord-ui skill (*Times are Discord
-  timestamps*).
+  settings (reference timezone, managed channels) are **core guild
+  settings** — a mod never re-declares them or ships its own pickers;
+  a mod's admin needs extend the pinned bot-admins panel through the
+  core runtime seam, never a forked panel. The **locale is native
+  Discord**: guild surfaces render in the server's language
+  (`guild.preferred_locale`), DMs in the user's client language —
+  resolved only through `kingdoms.discord.locales`, never stored or
+  picked on our side. User-facing times are Discord `<t:…>`
+  timestamps, never formatted strings — see kingdoms CONVENTIONS.md
+  (*Guild-level settings and the admin surface*) and the discord-ui
+  skill (*Times are Discord timestamps*).
+- **Every view carries its view id as its footer** — a `-#` line with
+  the id in backticks (`view:aoe2:admin`), built through
+  `kingdoms.core.ids.footer` or `MenuSpec.view_id`. The id is the
+  anchor every human feedback refers to; a view without its footer id
+  is a bug.
 - **Admin surface (transparency rule):** admin messages with actions
   live in the guild's `🛡-bot-admins` channel (AdminChannelService,
   cache-aside provisioning); the BOT_ADMINS are synced into the

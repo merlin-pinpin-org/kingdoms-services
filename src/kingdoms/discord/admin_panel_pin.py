@@ -79,7 +79,7 @@ async def ensure_pinned_admin_menu(
             logs_service,
             guild,
             catalog,
-            await _current_locale(logs_service, guild),
+            await _current_locale(bot, guild),
             admin_channel_service,
         )
 
@@ -180,12 +180,11 @@ class _AdminPinDelivery:
             return False
 
 
-async def _current_locale(logs_service: LogService, guild_id: str) -> str:
-    """Read the guild's locale, degrading to English (best-effort)."""
-    try:
-        return await logs_service.get_locale(guild_id)
-    except Exception:
-        return "en"
+async def _current_locale(bot: discord.Client, guild_id: str) -> str:
+    """Read the guild's native Discord locale, degrading to English."""
+    from kingdoms.discord.locales import guild_locale_by_id
+
+    return guild_locale_by_id(bot, str(guild_id))
 
 
 async def _stale_pinned_menus(bot: discord.Client, guild_id: str, channel_id: str) -> list[discord.Message]:

@@ -37,7 +37,6 @@ en:
       reset: Access policy reset to admin-only, by <@{by}>.
       route: Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>.
       visibility: Bot logs visibility set to {state}, by <@{by}>.
-      language: Language set to {lang}, by <@{by}>.
   replies:
     unavailable: Registration is unavailable.
     unavailable_deploy: Registration is unavailable on this deployment.
@@ -104,7 +103,6 @@ en:
       users_server: '## {server}'
       mods_none: No active mod for this server.
       mods_admin_only: ' *(admin-installable only)*'
-      admin_btn_language: Language
       admin_btn_channels: Channels
       admin_btn_roles: Roles
       admin_btn_games: Games
@@ -117,7 +115,6 @@ en:
     admin_tree:
       title: 🛠️ Admin
       subtitle: Language, channels and roles of the guild.
-      language: 🌐 Language
       channels: 📋 Bot channels
       roles: 🧩 Roles
       no_channel: No channel
@@ -128,7 +125,6 @@ en:
       back: Back
       back_to_admin: Back to the admin menu
       admin_failed: The roles panel failed — see the bot logs.
-      language_btn: Language
       games_btn: Games
       mods_btn: Mods
       ensure_btn: Create missing channels
@@ -151,8 +147,6 @@ en:
       section_game: Games
   admin_replies:
     panel_unavailable: Admin panel unavailable.
-    language_changed: Language updated.
-    language_change_failed: Language change failed.
   commands:
     status_name: status
     staff_nominate_name: Appoint staff
@@ -218,9 +212,6 @@ en:
     visibility_admin_hint: Guild admins and BOT_ADMINS only
     visibility_public_label: Public
     visibility_public_hint: Everyone may read the logs
-    language: Guild language
-    language_hint: 'Current: {value} — used for every channel message.'
-    language_placeholder: Guild language — {value}
     channels: Channels
     channels_placeholder: Manage a channel…
     roles_button: View roles
@@ -236,12 +227,7 @@ en:
     not_provisioned: not provisioned yet
     admin_channel_note: The admin channel visibility is governed by the bot-admins role (transparency
       rule).
-    dm_title: Kingdoms — Admin (DM)
-    dm_language: DM language
-    dm_language_hint: 'This language applies to every DM the bot sends you: error reports, enrollment,
       match reports.'
-    dm_placeholder: Your DM language…
-    dm_change_failed: Language change failed — try again.
     route_failed: Routing failed — see the bot logs.
     visibility_failed: Visibility change failed — see the bot logs.
     no_service: Admin settings are unavailable (no LogService wired).
@@ -299,7 +285,6 @@ en:
     access_nothing_to_add: Nothing to grant — everything is already active.
     access_nothing_to_remove: Nothing to revoke — no active game/mod.
     menu_status: ⏳ {requests} pending request(s) · 🌐 {servers} active server(s)
-    menu_btn_language: Language
     menu_btn_requests: Requests
     menu_btn_servers: Servers
     menu_btn_sync: Sync AoE2

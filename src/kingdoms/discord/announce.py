@@ -433,10 +433,10 @@ async def announce_startup(
 ) -> None:
     """Post the deployment announcement per guild in its bot logs channel.
 
-    ``locale_resolver`` (an async ``guild_id -> locale`` callable, the
-    LogService's ``get_locale``) localizes per guild when provided —
-    each guild's language choice (managed through /admin) applies to
-    its own announcement; without it the AnnounceConfig locale stands.
+    ``locale_resolver`` (a ``guild_id -> locale`` callable, the bot's
+    native ``guild.preferred_locale``) localizes per guild when
+    provided — each server's Discord language applies to its own
+    announcement; without it the AnnounceConfig locale stands.
     ``commands`` (the synced command tree) rides the Bot section as
     the Commands block — the boot message is a non-ephemeral /status.
     """

@@ -45,8 +45,6 @@ import discord
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import BOT_LOGS_CATEGORY, LogService
 from kingdoms.discord.admin import (
-    _LOCALE_LABELS,
-    LOCALES,
     MANAGED_CHANNELS,
     VISIBILITY_ADMIN_ONLY,
     VISIBILITY_PUBLIC,
@@ -62,6 +60,16 @@ PIN_BACK_BUTTON_ID = "admin:pin:button:back"
 PIN_READ_ONLY_SELECT_ID = "admin:pin:select:read-only"
 
 
+def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
+    """Append the view id footer (the users' feedback anchor)."""
+    from kingdoms.core.ids import footer
+
+    line = footer(view_id)
+    if line:
+        view.add_item(discord.ui.TextDisplay(line))
+    return view
+
+
 def pin_route_id(category: str) -> str:
     """Return the routing select id of one managed-channel category."""
     return f"admin:pin:route:{category}"[:100]
@@ -72,39 +80,6 @@ def _select_row(item: discord.ui.DynamicItem[Any]) -> discord.ui.ActionRow[disco
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(item)
     return row
-
-
-class PinLocaleSelect(
-    discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=r"admin:pin:select:locale",
-):
-    """The pinned guild-language select (stateless, restart-proof)."""
-
-    def __init__(self, locale: str = "en") -> None:
-        super().__init__(
-            discord.ui.Select(
-                custom_id=PIN_LOCALE_SELECT_ID,
-                options=[discord.SelectOption(label=_LOCALE_LABELS[loc], value=loc) for loc in LOCALES],
-                placeholder=_LOCALE_LABELS.get(locale, locale),
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> PinLocaleSelect:
-        """Rebuild the select from the wire \u2014 the only post-restart path."""
-        return cls()
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Apply the guild language through the persistent handler."""
-        from kingdoms.discord.admin_persistent import _handle_locale
-
-        await _handle_locale(interaction)
 
 
 class PinChannelMenu(
@@ -464,4 +439,7 @@ async def build_pin_channel_menu(
     blocks.append(_select_row(PinBackButton(_t(catalog, locale, "back"))))
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(BLURPLE)))
+    from kingdoms.core.ids import footer
+
+    view.add_item(discord.ui.TextDisplay(footer("view:admin:channel")))
     return view

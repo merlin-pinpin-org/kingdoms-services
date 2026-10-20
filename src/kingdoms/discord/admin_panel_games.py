@@ -83,6 +83,17 @@ async def _gtr(interaction: discord.Interaction, key: str, fallback: str = "") -
     return rendered if rendered != key else (fallback or key)
 
 
+
+def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
+    """Append the view id footer (the users' feedback anchor)."""
+    from kingdoms.core.ids import footer
+
+    line = footer(view_id)
+    if line:
+        view.add_item(discord.ui.TextDisplay(line))
+    return view
+
+
 async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
     """Render the games admin section: game picker + per-game actions."""
     service = _games_wiring()
@@ -95,7 +106,7 @@ async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.Layo
         blocks.append(discord.ui.TextDisplay(wiring_note))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
         view.add_item(_back_row())
-        return view
+        return _view_footer(view, "view:games:admin")
     from kingdoms.discord.wiring import granted_game_keys
 
     keys = list(await granted_game_keys("", tuple(await service.list_game_keys())))
@@ -153,7 +164,7 @@ async def civs_section_layout(game_key: str, guild_id: str) -> discord.ui.Layout
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return view
+        return _view_footer(view, "view:games:civs")
     factions = await service.list_factions(game_key)
     blocks.append(discord.ui.TextDisplay(f"{len(factions)} civs"))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -172,7 +183,7 @@ async def maps_section_layout(game_key: str, guild_id: str) -> discord.ui.Layout
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return view
+        return _view_footer(view, "view:games:maps")
     maps = await service.list_maps(game_key)
     active = [m for m in maps if m.archived_at is None]
     blocks.append(discord.ui.TextDisplay(f"{len(active)} maps actives"))
@@ -197,7 +208,7 @@ async def pools_section_layout(game_key: str, guild_id: str) -> discord.ui.Layou
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return view
+        return _view_footer(view, "view:games:pools")
     pools = await service.list_map_pools(game_key)
     blocks.append(discord.ui.TextDisplay(f"{len(pools)} map pools"))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -276,7 +287,7 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
         view.add_item(discord.ui.Container(*blocks))
         if not from_pin:
             view.add_item(_back_row())
-        return view
+        return _view_footer(view, "view:games:menu")
     maps = await service.list_maps(game_key)
     pools = await service.list_map_pools(game_key)
     factions = await service.list_factions(game_key)
@@ -400,7 +411,7 @@ async def civs_section_view(game_key: str) -> discord.ui.LayoutView:
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return view
+        return _view_footer(view, "view:games:civs:manage")
     factions = await service.list_factions(game_key)
     blocks.append(discord.ui.TextDisplay(f"{len(factions)} civs"))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -785,7 +796,7 @@ async def maps_admin_view(game_key: str, from_pin: bool = False, guild_id: str =
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
-        return view
+        return _view_footer(view, "view:games:maps:manage")
     maps = await service.list_maps(game_key)
     if not maps:
         blocks.append(discord.ui.TextDisplay("_No map — seed the catalog._"))
@@ -1349,7 +1360,7 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
-        return view
+        return _view_footer(view, "view:games:pool:edit")
     pool = await service.get_map_pool(pool_id)
     if pool is None:
         blocks.append(discord.ui.TextDisplay("Pool introuvable."))
@@ -1397,7 +1408,7 @@ async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
-        return view
+        return _view_footer(view, "view:games:pools:manage")
     pools = await service.list_map_pools(game_key)
     if not pools:
         blocks.append(discord.ui.TextDisplay("_Aucun map pool._"))

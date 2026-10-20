@@ -37,7 +37,6 @@ fr:
       reset: Politique d'accès réinitialisée (admins uniquement), par <@{by}>.
       route: Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>.
       visibility: 'Visibilité des logs : {state}, par <@{by}>.'
-      language: Langue définie sur {lang}, par <@{by}>.
   replies:
     unavailable: Inscription indisponible.
     unavailable_deploy: Inscription indisponible sur ce déploiement.
@@ -104,7 +103,6 @@ fr:
       users_server: '## {server}'
       mods_none: Aucun mod actif pour ce serveur.
       mods_admin_only: ' *(installable par les bot-admins uniquement)*'
-      admin_btn_language: Langue
       admin_btn_channels: Salons
       admin_btn_roles: Rôles
       admin_btn_games: Jeux
@@ -117,7 +115,6 @@ fr:
     admin_tree:
       title: 🛠️ Admin
       subtitle: Langue, salons et rôles du serveur.
-      language: 🌐 Langue
       channels: 📋 Salons du bot
       roles: 🧩 Rôles
       no_channel: Aucun salon
@@ -128,7 +125,6 @@ fr:
       back: Retour
       back_to_admin: Retour au menu admin
       admin_failed: Le panneau des rôles a échoué — voir les logs du bot.
-      language_btn: Langue
       games_btn: Jeux
       mods_btn: Mods
       ensure_btn: Créer les salons manquants
@@ -151,8 +147,6 @@ fr:
       section_game: Jeux
   admin_replies:
     panel_unavailable: Le panneau admin n'est pas disponible.
-    language_changed: Langue mise à jour.
-    language_change_failed: Échec du changement de langue.
   commands:
     status_name: statut
     staff_nominate_name: Nommer staff
@@ -226,9 +220,6 @@ fr:
     visibility_admin_hint: Admins du serveur et BOT_ADMINS uniquement
     visibility_public_label: Public
     visibility_public_hint: Tout le monde peut lire les logs
-    language: Langue du serveur
-    language_hint: 'Actuelle : {value} — utilisée pour tous les messages de channel.'
-    language_placeholder: Langue du serveur — {value}
     channels: Channels
     channels_placeholder: Gérer un channel…
     mods_placeholder: Section d'un mod…
@@ -244,12 +235,7 @@ fr:
     not_provisioned: pas encore provisionné
     admin_channel_note: La visibilité du channel admin est gouvernée par le rôle bot-admins (règle de
       transparence).
-    dm_title: Kingdoms — Admin (DM)
-    dm_language: Langue des DM
-    dm_language_hint: 'Cette langue s''applique à tous les DM que le bot vous envoie : rapports d''erreur,
       inscription, rapports de match.'
-    dm_placeholder: Votre langue de DM…
-    dm_change_failed: Échec du changement de langue — réessayez.
     route_failed: Échec du routage — voir les logs du bot.
     visibility_failed: Échec du changement de visibilité — voir les logs du bot.
     no_service: Les réglages admin sont indisponibles (pas de LogService câblé).
@@ -307,7 +293,6 @@ fr:
     access_nothing_to_add: Rien à accorder — tout est déjà actif.
     access_nothing_to_remove: Rien à retirer — aucun jeu/mod actif.
     menu_status: ⏳ {requests} demande(s) en attente · 🌐 {servers} serveur(s) actif(s)
-    menu_btn_language: Langue
     menu_btn_requests: Demandes
     menu_btn_servers: Serveurs
     menu_btn_sync: Sync AoE2

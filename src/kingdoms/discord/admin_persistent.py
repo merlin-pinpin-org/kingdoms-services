@@ -191,54 +191,6 @@ async def _report(wiring: AdminPanelWiring, interaction: discord.Interaction, ex
         logger.warning("ADMIN PANEL (persistent): error reporting failed \u2014 best-effort", exc_info=True)
 
 
-async def _handle_locale(interaction: discord.Interaction) -> None:
-    """Apply the guild locale, then re-render the pinned main menu."""
-    wiring = await _require_wiring(interaction)
-    if wiring is None:
-        return
-    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-    if not guild_id:
-        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
-        return
-    values = await _chosen_values(interaction)
-    if not values:
-        return
-    logs_service = wiring.logs_service
-    if logs_service is None:
-        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
-        return
-    await interaction.response.defer()
-    if not await _guard(interaction, wiring):
-        return
-    by = str(interaction.user.id)
-    try:
-        await logs_service.set_locale(guild_id, values[0], by=by)
-    except Exception as exc:
-        logger.exception("ADMIN PANEL (persistent): locale change failed for guild %s", guild_id)
-        await _report(wiring, interaction, exc)
-        await _fail(interaction, await _reply(interaction, "language_change_failed"))
-        return
-    from kingdoms.discord.pinned_views import refresh_registered_pins
-
-    await refresh_registered_pins(guild_id)
-    await _fail(interaction, await _reply(interaction, "language_changed"))
-    await _resync_guild_commands(interaction, guild_id)
-
-
-async def _resync_guild_commands(interaction: discord.Interaction, guild_id: str) -> None:
-    """Re-sync this guild's slash commands so their names follow the new language."""
-    import discord
-
-    tree = getattr(interaction.client, "tree", None)
-    if tree is None:
-        return
-    try:
-        await tree.sync(guild=discord.Object(id=int(guild_id)))
-        logger.info("COMMAND RESYNC after locale change (guild %s)", guild_id)
-    except Exception:
-        logger.warning("COMMAND RESYNC failed (guild %s) — best-effort", guild_id, exc_info=True)
-
-
 async def _handle_channel(interaction: discord.Interaction) -> None:
     """Open the secondary menu of the selected managed channel."""
     wiring = await _require_wiring(interaction)
@@ -428,7 +380,6 @@ def register_admin_persistent_items(bot: discord.Client) -> None:
     from kingdoms.discord.admin_panel_dynamic import (
         PinBackButton,
         PinChannelMenu,
-        PinLocaleSelect,
         PinReadOnlySelect,
         PinRouteSelect,
         PinVisibilitySelect,
@@ -438,7 +389,6 @@ def register_admin_persistent_items(bot: discord.Client) -> None:
 
     set_panel_client(bot)
     bot.add_dynamic_items(
-        PinLocaleSelect,
         PinChannelMenu,
         PinVisibilitySelect,
         PinRouteSelect,

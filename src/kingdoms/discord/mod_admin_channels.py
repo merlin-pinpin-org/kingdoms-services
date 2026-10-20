@@ -88,6 +88,16 @@ class ModAdminChannelSpec:
         return f"mod_{self.mod}_guild_category"
 
 
+def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
+    """Append the view id footer (the users' feedback anchor)."""
+    from kingdoms.core.ids import footer
+
+    line = footer(view_id)
+    if line:
+        view.add_item(discord.ui.TextDisplay(line))
+    return view
+
+
 def spec_registry(bot: discord.Client) -> dict[str, ModAdminChannelSpec]:
     """Return the bot's mod spec registry, created on demand."""
     registry = getattr(bot, "mod_admin_channel_specs", None)
@@ -367,7 +377,7 @@ async def _build_root_layout(bot: discord.Client, spec: ModAdminChannelSpec, gui
     """Build the pinned root layout through the mod's registered builder."""
     if spec.build_root_layout is None:
         view: discord.ui.LayoutView = discord.ui.LayoutView(timeout=None)
-        return view
+        return _view_footer(view, "view:mod:admin")
     return await spec.build_root_layout(bot, guild_id)
 
 

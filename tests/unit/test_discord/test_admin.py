@@ -68,7 +68,8 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     layout = interaction.followup.messages[-1].layout
     assert isinstance(layout, discord.ui.LayoutView)
     customs = _custom_ids(layout)
-    assert f"{TREE_NS}:open:lang" in customs, "the language button is on the main menu"
+    # the language button is gone: the locale follows the server's
+    # native Discord language (Server Settings), nothing to manage.
     assert f"{TREE_NS}:open:games" in customs, "the games admin button is on the main menu"
     assert f"{TREE_NS}:open:mods" in customs, "the mods admin button is on the main menu"
     assert any(c.startswith(f"{TREE_NS}:ensure:") for c in customs), "the ensure button is on the main menu"
@@ -101,45 +102,6 @@ async def test_admin_command_dm_shows_user_locale_setup() -> None:
     ), "the DM menu carries its openers"
     await client.close()
 
-
-@pytest.mark.asyncio
-async def test_admin_command_dm_locale_change_persists() -> None:
-    """Changing the DM locale persists the user setting and re-renders."""
-    client = discord.Client(intents=discord.Intents.none())
-    tree = discord.app_commands.CommandTree(client)
-    logs = _FakeAdminLogsService(channel_id="555")
-    register_admin_command(tree, bot_admins=("111111111",), logs_service=logs)
-    command = next(c for c in tree.get_commands() if c.name == "admin")
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
-    interaction.guild_id = None
-    await command._callback(interaction)  # type: ignore[union-attr]
-    # the frozen DM menu: the language button opens the locale picker
-    menu = next(
-        (m.layout for m in interaction.followup.messages if m.layout is not None),
-        None,
-    )
-    assert menu is not None
-    assert any(
-        cid.startswith("admin:dm:open:language") for cid in _custom_ids(menu)
-    ), "the DM menu carries the language opener"
-    # clicking the opener opens the ephemeral language sub-view
-    from kingdoms.discord.admin_dm_panel import DmOpenButton
-
-    opener_interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
-    opener_interaction.guild_id = None
-    opener_interaction.client.status_service = type(
-        "Status", (), {"bot_admins": ("111111111",)}
-    )()
-    opener_interaction.client.logs_service = logs
-    opener_interaction.client.messages = None
-    opener = DmOpenButton("language", "Langue")
-    await opener.callback(opener_interaction)
-    assert opener_interaction.response.sent, "the language sub-view answers"
-    select = _find_select(opener_interaction.response.message.layout, USER_LOCALE_SELECT_ID)
-    assert select is not None
-    await _choose(select, opener_interaction, ["fr"])
-    assert logs.user_locales_set == [("111111111", "fr")]
-    await client.close()
 
 
 @pytest.mark.asyncio

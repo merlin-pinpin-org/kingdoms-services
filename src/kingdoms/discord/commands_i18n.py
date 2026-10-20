@@ -60,16 +60,10 @@ class CatalogTranslator(app_commands.Translator):
 
 
 async def reply_locale(interaction: discord.Interaction) -> str:
-    """Resolve the guild's configured locale for one interaction."""
-    bot = getattr(interaction, "client", None)
-    logs = getattr(bot, "logs_service", None)
-    guild_id = str(getattr(interaction, "guild_id", "") or "")
-    if logs is None or not guild_id:
-        return "en"
-    try:
-        return str(await logs.get_locale(guild_id) or "en")
-    except Exception:
-        return "en"
+    """Resolve the interaction's native Discord locale (guild, else client)."""
+    from kingdoms.discord.locales import interaction_locale
+
+    return interaction_locale(interaction)
 
 
 async def reply(interaction: discord.Interaction, key: str, **kwargs: object) -> str:
@@ -102,21 +96,17 @@ async def tr(interaction: discord.Interaction, key: str, fallback: str = "") -> 
 
 
 async def tr_guild(guild_id: str, bot: object, key: str, fallback: str = "") -> str:
-    """Render one UI label in a guild's locale (background builds).
+    """Render one UI label in a guild's native Discord locale.
 
     The forum syncs and pinned panels build components outside any
-    interaction: the guild's configured locale drives the render, the
-    English wording is the fallback.
+    interaction: the guild's ``preferred_locale`` (Server Settings →
+    Language) drives the render, the English wording is the fallback.
     """
+    from kingdoms.discord.locales import guild_locale_by_id
+
     catalog = getattr(bot, "messages", None)
     if catalog is None or not guild_id:
         return fallback
-    logs = getattr(bot, "logs_service", None)
-    locale = "en"
-    if logs is not None:
-        try:
-            locale = str(await logs.get_locale(guild_id) or "en")
-        except Exception:
-            locale = "en"
+    locale = guild_locale_by_id(bot, str(guild_id))
     rendered = catalog.render(key, locale)
     return rendered if rendered != key else fallback

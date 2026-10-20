@@ -131,17 +131,18 @@ Resolve&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;and&nbsp;deliver&nbsp;life
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LogService-__init__"><strong>__init__</strong></a>(self, database: 'LogsDatabase', platform: 'LogsPlatform', state: 'Any', clock: 'Any' = &lt;built-in function monotonic&gt;, catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``state``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).<br>
 &nbsp;<br>
-``catalog``&nbsp;localizes&nbsp;the&nbsp;audit&nbsp;events&nbsp;with&nbsp;the&nbsp;guild's&nbsp;locale;<br>
-None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.&nbsp;The&nbsp;superseded<br>
-boot-status&nbsp;messages&nbsp;stay&nbsp;(unpinned,&nbsp;never&nbsp;deleted):&nbsp;the&nbsp;boot<br>
-status&nbsp;declares&nbsp;``delete_when_superseded=False``&nbsp;on&nbsp;the&nbsp;static<br>
--pin&nbsp;registry&nbsp;—&nbsp;the&nbsp;log&nbsp;trail&nbsp;stays&nbsp;readable.</span></dd></dl>
+``catalog``&nbsp;localizes&nbsp;the&nbsp;audit&nbsp;events;&nbsp;``locale_resolver``<br>
+resolves&nbsp;a&nbsp;guild's&nbsp;native&nbsp;Discord&nbsp;locale&nbsp;from&nbsp;its&nbsp;id&nbsp;(the<br>
+bot&nbsp;injects&nbsp;``guild.preferred_locale``&nbsp;—&nbsp;the&nbsp;platform&nbsp;stores<br>
+no&nbsp;locale&nbsp;of&nbsp;its&nbsp;own).&nbsp;None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English<br>
+messages.&nbsp;The&nbsp;superseded&nbsp;boot-status&nbsp;messages&nbsp;stay&nbsp;(unpinned,<br>
+never&nbsp;deleted):&nbsp;the&nbsp;boot&nbsp;status&nbsp;declares<br>
+``delete_when_superseded=False``&nbsp;on&nbsp;the&nbsp;static-pin&nbsp;registry&nbsp;—<br>
+the&nbsp;log&nbsp;trail&nbsp;stays&nbsp;readable.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-get_access_policy"><strong>get_access_policy</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;access&nbsp;policy&nbsp;(default:&nbsp;admin-only).</span></dd></dl>
 
-<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>
-
-<dl><dt>async <a name="LogService-get_user_locale"><strong>get_user_locale</strong></a>(self, user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;user's&nbsp;DM&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>
+<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;native&nbsp;Discord&nbsp;locale&nbsp;through&nbsp;the&nbsp;resolver.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-grant_role_view_access"><strong>grant_role_view_access</strong></a>(self, guild_id: 'str', role_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
 
@@ -167,13 +168,11 @@ The&nbsp;channel&nbsp;must&nbsp;already&nbsp;exist&nbsp;on&nbsp;the&nbsp;platfor
 it&nbsp;from&nbsp;the&nbsp;guild's&nbsp;channels);&nbsp;the&nbsp;current&nbsp;visibility&nbsp;policy&nbsp;is<br>
 re-applied&nbsp;on&nbsp;the&nbsp;new&nbsp;target&nbsp;so&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-set_locale"><strong>set_locale</strong></a>(self, guild_id: 'str', locale: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(fr/en);&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
-
-<dl><dt>async <a name="LogService-set_user_locale"><strong>set_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;user's&nbsp;DM&nbsp;locale&nbsp;(fr/en).<br>
+<dl><dt><a name="LogService-set_locale_resolver"><strong>set_locale_resolver</strong></a>(self, resolver: 'Any') -&gt; 'None'</dt><dd><span class="code">Inject&nbsp;the&nbsp;native-locale&nbsp;resolver&nbsp;(guild&nbsp;id&nbsp;-&gt;&nbsp;en/fr).<br>
 &nbsp;<br>
-DM&nbsp;settings&nbsp;are&nbsp;personal:&nbsp;they&nbsp;follow&nbsp;the&nbsp;user&nbsp;across&nbsp;guilds&nbsp;and<br>
-are&nbsp;never&nbsp;audited&nbsp;in&nbsp;a&nbsp;guild's&nbsp;logs&nbsp;channel&nbsp;(a&nbsp;DM&nbsp;has&nbsp;no&nbsp;channel<br>
-to&nbsp;audit&nbsp;into&nbsp;—&nbsp;the&nbsp;change&nbsp;is&nbsp;acknowledged&nbsp;in&nbsp;the&nbsp;DM&nbsp;itself).</span></dd></dl>
+The&nbsp;bot&nbsp;wires&nbsp;``guild.preferred_locale``&nbsp;here&nbsp;at&nbsp;startup:&nbsp;the<br>
+audit&nbsp;events&nbsp;follow&nbsp;the&nbsp;server's&nbsp;Discord&nbsp;language,&nbsp;with&nbsp;no<br>
+platform-stored&nbsp;locale&nbsp;setting&nbsp;left.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-set_visibility"><strong>set_visibility</strong></a>(self, guild_id: 'str', public: 'bool', by: 'str') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;logs&nbsp;channel&nbsp;visibility&nbsp;(public/admin-only);&nbsp;audited.<br>
 &nbsp;<br>

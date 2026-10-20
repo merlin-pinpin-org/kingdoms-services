@@ -28,6 +28,16 @@ logger = logging.getLogger("kingdoms.admin_dm")
 _NS = "admin:dm"
 
 
+def _view_footer(view: discord.ui.LayoutView, view_id: str) -> discord.ui.LayoutView:
+    """Append the view id footer (the users' feedback anchor)."""
+    from kingdoms.core.ids import footer
+
+    line = footer(view_id)
+    if line:
+        view.add_item(discord.ui.TextDisplay(line))
+    return view
+
+
 def _is_bot_admin(interaction: discord.Interaction) -> bool:
     """Whether the clicker is a BOT_ADMINS operator (the DM panel's guard)."""
     admins = getattr(getattr(interaction.client, "status_service", None), "bot_admins", ())
@@ -51,19 +61,14 @@ async def _dm_locale(source: Any) -> str:
     client's own locale (``interaction.locale`` — a French client gets
     French DMs even without a stored setting), then English.
     """
-    client = source if isinstance(source, discord.Client) else getattr(source, "client", None)
+    from kingdoms.discord.locales import interaction_locale
+
+    if isinstance(source, discord.Interaction):
+        return interaction_locale(source)
     user = getattr(source, "user", None)
-    user_id = str(getattr(user, "id", "") or "") if user is not None else ""
-    logs = getattr(client, "logs_service", None)
-    client_locale = str(getattr(source, "locale", "") or "").split("-")[0]
-    fallback = client_locale if client_locale in ("en", "fr") else "en"
-    if logs is None or not user_id:
-        return fallback
-    try:
-        stored = str(await logs.get_user_locale(user_id) or "")
-        return stored if stored in ("en", "fr") else fallback
-    except Exception:
-        return fallback
+    raw = str(getattr(user, "locale", "") or getattr(source, "locale", "") or "")
+    code = raw.split("-")[0]
+    return code if code in ("en", "fr") else "en"
 
 
 def _dm_tr(source: Any, locale: str, key: str, **kwargs: Any) -> str:
@@ -118,11 +123,10 @@ async def build_admin_dm_panel(
         )
     )
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(DmOpenButton("language", _dm_tr(interaction, dm_locale, "menu_btn_language")))
     row.add_item(DmOpenButton("servers", _dm_tr(interaction, dm_locale, "menu_btn_servers")))
     row.add_item(DmOpenButton("sync", _dm_tr(interaction, dm_locale, "menu_btn_sync")))
     view.add_item(row)
-    return view
+    return _view_footer(view, "view:dm:admin")
 
 
 async def _render_dm_menu_into(message: Any, client: Any) -> None:
@@ -165,7 +169,7 @@ class DmOpenButton(
 ):
     """One DM menu opener: opens its section's ephemeral sub-view."""
 
-    SECTIONS = ("language", "servers", "sync")
+    SECTIONS = ("servers", "sync")
 
     def __init__(self, section: str, label: str, disabled: bool = False) -> None:
         self.section = section
@@ -192,7 +196,6 @@ class DmOpenButton(
             section = "language"
         dm_locale = await _dm_locale(interaction)
         labels = {
-            "language": "menu_btn_language",
             "servers": "menu_btn_servers",
             "sync": "menu_btn_sync",
         }
@@ -203,24 +206,12 @@ class DmOpenButton(
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
-        if self.section == "language":
-            await _open_language(interaction)
-        elif self.section == "servers":
+        if self.section == "servers":
             await _open_servers(interaction)
         elif self.section == "sync":
             await _open_sync(interaction)
-
-
-async def _open_language(interaction: discord.Interaction) -> None:
-    """Open the DM language sub-view: the locale picker panel."""
-    from kingdoms.discord.admin import build_dm_setup_view
-
-    logs = getattr(interaction.client, "logs_service", None)
-    catalog = getattr(interaction.client, "messages", None)
-    view = await build_dm_setup_view(
-        logs, str(interaction.user.id), catalog=catalog
-    )
-    await interaction.response.send_message(view=view, ephemeral=True)
+        else:
+            await interaction.response.defer(ephemeral=True)
 
 
 async def _open_servers(interaction: discord.Interaction) -> None:
@@ -257,7 +248,7 @@ async def _open_servers(interaction: discord.Interaction) -> None:
             )
         )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    await interaction.response.send_message(view=view, ephemeral=True)
+    await interaction.response.send_message(view=_view_footer(view, "view:dm:servers"), ephemeral=True)
 
 
 async def _open_sync(interaction: discord.Interaction) -> None:
@@ -274,7 +265,7 @@ async def _open_sync(interaction: discord.Interaction) -> None:
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(ContentRefreshButton(label=_dm_tr(interaction, dm_locale, "menu_btn_sync")))
     view.add_item(row)
-    await interaction.response.send_message(view=view, ephemeral=True)
+    await interaction.response.send_message(view=_view_footer(view, "view:dm:sync"), ephemeral=True)
 
 
 class ContentRefreshButton(

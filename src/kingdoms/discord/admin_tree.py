@@ -1,9 +1,8 @@
 """The admin menu: language, games, mods, and the provisioning ensure.
 
-One ephemeral menu, four openers, every item a DynamicItem (the §3b
+One ephemeral menu, three openers, every item a DynamicItem (the §3b
 reconstruction contract — a click is restart-proof):
 
-- ``admin:tree:lang`` — the guild's language (modal select);
 - ``admin:tree:games`` / ``admin:tree:mods`` — the scope admin menus
   (the shared admin dispatches);
 - ``admin:tree:ensure:<scope>`` — re-provision one scope's channels
@@ -50,17 +49,6 @@ async def _guard(interaction: discord.Interaction) -> bool:
     admins = tuple(getattr(getattr(bot, "status_service", None), "bot_admins", ()) or ())
     roles = getattr(bot, "roles_service", None)
     return await require_admin(interaction, admins, roles)
-
-
-async def _guild_locale(interaction: discord.Interaction) -> str:
-    logs = getattr(interaction.client, "logs_service", None)
-    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-    if logs is None or not guild_id:
-        return "en"
-    try:
-        return str(await logs.get_locale(guild_id) or "en")
-    except Exception:
-        return "en"
 
 
 async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
@@ -120,7 +108,7 @@ class TreeOpenButton(
 ):
     """One admin menu button: opens its section's ephemeral view."""
 
-    SECTIONS = ("lang", "games", "mods")
+    SECTIONS = ("games", "mods")
 
     def __init__(self, section: str, label: str, emoji: str) -> None:
         self.section = section
@@ -145,7 +133,6 @@ class TreeOpenButton(
         section = match.group("section")
         label = await _tree_tr(interaction, f"admin_tree.{section}_btn")
         emoji = {
-            "lang": "\U0001f310",
             "games": "\U0001f3ae",
             "mods": "\U0001f9e9",
         }.get(section, "\u2795")
@@ -158,7 +145,6 @@ class TreeOpenButton(
 
         label = await tr_guild(guild_id, bot, f"admin_tree.{section}_btn")
         emoji = {
-            "lang": "\U0001f310",
             "games": "\U0001f3ae",
             "mods": "\U0001f9e9",
         }.get(section, "\u2795")
@@ -169,15 +155,6 @@ class TreeOpenButton(
         if not await _guard(interaction):
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-        if self.section == "lang":
-            # the modal IS the ack — deferring first raises InteractionResponded
-            locale = await _guild_locale(interaction)
-            modal = TreeLocaleModal(locale, await _tree_tr(interaction, "admin_tree.language"))
-            try:
-                await interaction.response.send_modal(modal)
-                return
-            except Exception:
-                logger.warning("ADMIN TREE: language modal failed", exc_info=True)
         await interaction.response.defer(ephemeral=True, thinking=True)
         if self.section in ("games", "mods"):
             from kingdoms.discord.scope_pins import _admin_builder
@@ -249,7 +226,6 @@ async def build_admin_menu(
         return fallback
 
     buttons = (
-        ("lang", await _label("admin_tree.language_btn", "Langue"), "\U0001f310"),
         ("games", await _label("admin_tree.games_btn", "Jeux"), "\U0001f3ae"),
         ("mods", await _label("admin_tree.mods_btn", "Mods"), "\U0001f9e9"),
     )
@@ -274,67 +250,6 @@ async def build_admin_menu(
 def ensure_button(scope: str, label: str = "Create missing channels") -> TreeEnsureButton:
     """Build an ensure button for one scope (the scope admin menus)."""
     return TreeEnsureButton(scope, label)
-
-
-class TreeLocaleModal(discord.ui.Modal):
-    """The guild-language modal: a labelled select, applied on submit.
-
-    The modal's title cannot render asynchronously, so the opener
-    passes the localized title in (the click's locale); the submit
-    persists the chosen value, refreshes the pinned views, and
-    answers ephemerally.
-    """
-
-    def __init__(self, locale: str, title: str) -> None:
-        super().__init__(title=title[:45], timeout=None)
-        self.locale = locale
-        self._select: discord.ui.Select[Any] = discord.ui.Select(
-            custom_id=f"{_NS}:lang",
-            options=[
-                discord.SelectOption(label=label, value=code, default=code == locale)
-                for code, label in LOCALE_LABELS.items()
-            ],
-            placeholder=LOCALE_LABELS.get(locale, locale),
-        )
-        self.add_item(discord.ui.Label(text=LOCALE_LABELS.get(locale, locale), component=self._select))
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Apply the chosen locale: guard, persist, refresh, answer."""
-        if not await _guard(interaction):
-            return
-        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-        value = ""
-        for item in self.walk_children():
-            select = getattr(item, "item", None) or item
-            if isinstance(select, discord.ui.Select):
-                value = str(select.values[0]) if select.values else ""
-                break
-        if not guild_id or not value:
-            await interaction.response.defer(ephemeral=True)
-            return
-        await interaction.response.defer(ephemeral=True)
-        logs = getattr(interaction.client, "logs_service", None)
-        if logs is None:
-            await interaction.followup.send(
-                await _tree_tr(interaction, "admin_tree.admin_failed"), ephemeral=True
-            )
-            return
-        try:
-            await logs.set_locale(guild_id, value, by=str(interaction.user.id))
-        except Exception:
-            logger.warning("ADMIN TREE: locale set failed (guild %s)", guild_id, exc_info=True)
-            await interaction.followup.send(
-                await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True
-            )
-            return
-        from kingdoms.discord.pinned_views import refresh_registered_pins
-
-        await refresh_registered_pins(guild_id)
-        from kingdoms.discord.commands_i18n import reply
-
-        await interaction.followup.send(
-            await reply(interaction, "admin_replies.language_changed"), ephemeral=True
-        )
 
 
 def register_admin_tree_items(bot: discord.Client) -> None:

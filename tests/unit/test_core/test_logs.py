@@ -379,12 +379,11 @@ async def test_locale_roundtrip_and_fallback(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
     await service.resolve_channel(GUILD)
-    assert await service.get_locale(GUILD) == "en", "the default locale is en"
-    await service.set_locale(GUILD, "fr", by="42")
-    assert await service.get_locale(GUILD) == "fr"
-    assert database.settings[GUILD]["locale"] == "fr"
-    with pytest.raises(ValueError):
-        await service.set_locale(GUILD, "de", by="42")
+    assert await service.get_locale(GUILD) == "en", "no resolver: English fallback"
+    service.set_locale_resolver(lambda guild_id: "fr")
+    assert await service.get_locale(GUILD) == "fr", "the resolver drives the locale"
+    service.set_locale_resolver(lambda guild_id: "de")
+    assert await service.get_locale(GUILD) == "en", "unsupported locales fall back to English"
 
 
 @pytest.mark.asyncio

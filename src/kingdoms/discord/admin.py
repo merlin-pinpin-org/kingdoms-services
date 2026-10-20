@@ -613,18 +613,13 @@ def register_admin_command(
             if is_bot_admin:
                 from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
-                # One panel, one message: the admin panel embeds the DM
-                # locale picker at the end — two separate followups left
-                # the admin juggling two ephemerals.
-                dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
-                locale_select = next(
-                    (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)), None
-                )
-                admin_view = await build_admin_dm_panel(interaction, locale_select=locale_select)
+                # The DM panel only: the language follows the user's
+                # Discord client (no platform-stored locale anymore).
+                admin_view = await build_admin_dm_panel(interaction)
                 await interaction.followup.send(view=admin_view, ephemeral=True)
             else:
                 await interaction.followup.send(
-                    view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter),
+                    "Réglages personnels : la langue suit celle de ton client Discord.",
                     ephemeral=True,
                 )
             return

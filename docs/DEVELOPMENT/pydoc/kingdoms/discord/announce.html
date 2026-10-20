@@ -119,10 +119,10 @@ Data and other attributes defined here:<br>
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '', locale_resolver: 'Any' = None, commands: 'Iterable[object] | None' = None, sync_scope: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.<br>
 &nbsp;<br>
-``locale_resolver``&nbsp;(an&nbsp;async&nbsp;``guild_id&nbsp;-&gt;&nbsp;locale``&nbsp;callable,&nbsp;the<br>
-LogService's&nbsp;``get_locale``)&nbsp;localizes&nbsp;per&nbsp;guild&nbsp;when&nbsp;provided&nbsp;—<br>
-each&nbsp;guild's&nbsp;language&nbsp;choice&nbsp;(managed&nbsp;through&nbsp;/admin)&nbsp;applies&nbsp;to<br>
-its&nbsp;own&nbsp;announcement;&nbsp;without&nbsp;it&nbsp;the&nbsp;<a href="#AnnounceConfig">AnnounceConfig</a>&nbsp;locale&nbsp;stands.<br>
+``locale_resolver``&nbsp;(a&nbsp;``guild_id&nbsp;-&gt;&nbsp;locale``&nbsp;callable,&nbsp;the&nbsp;bot's<br>
+native&nbsp;``guild.preferred_locale``)&nbsp;localizes&nbsp;per&nbsp;guild&nbsp;when<br>
+provided&nbsp;—&nbsp;each&nbsp;server's&nbsp;Discord&nbsp;language&nbsp;applies&nbsp;to&nbsp;its&nbsp;own<br>
+announcement;&nbsp;without&nbsp;it&nbsp;the&nbsp;<a href="#AnnounceConfig">AnnounceConfig</a>&nbsp;locale&nbsp;stands.<br>
 ``commands``&nbsp;(the&nbsp;synced&nbsp;command&nbsp;tree)&nbsp;rides&nbsp;the&nbsp;Bot&nbsp;section&nbsp;as<br>
 the&nbsp;Commands&nbsp;block&nbsp;—&nbsp;the&nbsp;boot&nbsp;message&nbsp;is&nbsp;a&nbsp;non-ephemeral&nbsp;/status.</span></dd></dl>
  <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '', latency_ms: 'int | None' = None, commands: 'str' = '', command_ids: 'Iterable[object]' = ()) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;sections&nbsp;+&nbsp;footer.<br>

@@ -32,14 +32,12 @@ async def _refresh_admin_pin(bot: Any, guild_id: str) -> None:
         return
     from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
     from kingdoms.discord.admin_panel_pin import PINNED_MENU_CUSTOM_ID
+    from kingdoms.discord.locales import guild_locale_by_id
 
     async def _build(gid: str) -> discord.ui.LayoutView:
-        locale = "en"
-        try:
-            locale = await logs_service.get_locale(gid)
-        except Exception:
-            locale = "en"
-        return await build_pin_main_menu(logs_service, gid, catalog, locale, admin_channel_service)
+        return await build_pin_main_menu(
+            logs_service, gid, catalog, guild_locale_by_id(bot, gid), admin_channel_service, client=bot
+        )
 
     await pinned_views.refresh_pin_by_marker(bot, guild, PINNED_MENU_CUSTOM_ID, _build)
 
