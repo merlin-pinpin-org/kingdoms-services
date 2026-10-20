@@ -207,7 +207,10 @@ async def test_remove_account_multiselect_unlinks_and_refreshes(monkeypatch: Any
     object.__setattr__(modal.accounts, "_values", ["aoe2|111", "aoe2|222"])
     await modal.on_submit(interaction)
     assert registration.bindings == [], "every selected account must be unlinked"
-    assert any("retir" in str(m.content).lower() for m in interaction.followup.messages), (
+    assert any(
+            ("retir" in str(m.content).lower()) or ("removed" in str(m.content).lower())
+            for m in interaction.followup.messages
+        ), (
         "the removal confirmation must mention what was removed"
     )
     assert len(interaction.followup.messages) >= 2, "the profile view must follow the confirmation"

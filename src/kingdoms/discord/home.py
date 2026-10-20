@@ -572,7 +572,9 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
                 await _report_profile_error(interaction, "profile.remove", game_key, exc)
         if removed:
             listed = ", ".join(removed)
-            await interaction.followup.send(f"Comptes retir\u00e9s : {listed}.", ephemeral=True)
+            await interaction.followup.send(
+                await reply(interaction, "profile.accounts_removed", listed=listed), ephemeral=True
+            )
         if failures:
             await interaction.followup.send(
                 "Retrait \u00e9chou\u00e9 pour : " + ", ".join(failures) + " \u2014 le d\u00e9tail part aux admins.",

@@ -240,11 +240,9 @@ en:
     title: Kingdoms — Bot admin
     wiring_unavailable: Wiring unavailable.
     pending_title: 📩 Pending access requests
-    granted_title: 🔓 Active grants
     language_title: 🌐 DM language
     pending_line: '- Server `{guild_id}`: {keys}'
     unknown_server: Unknown server
-    granted_line: '- **{name}** `{guild_id}`: games={games}, mods={mods}'
     btn_approve: Approve
     btn_approve_pending: Approve ({pending} pending)
     btn_deny: Deny
@@ -296,6 +294,8 @@ en:
     sync_subtitle: Refreshes civilisations and maps from the aoe2techtree dataset.
     access_btn_manage: Manage access
     menu_btn_language: Language
+    servers_title: 🖥 Servers
+    servers_line: '- **{name}** `{guild_id}`'
   channel_audit:
     clean: 'Channel audit: no drift detected.'
     header: 'Channel audit — {count} drift finding(s):'
@@ -489,3 +489,11 @@ en:
         kingdom: Kingdom
   admin_tree:
     language: 🌐 Language
+  staff:
+    unconfigured: The staff is not configured here.
+    apply_registered: Staff application **{mod}** registered — the admins are notified.
+    nominated: <@{user_id}> is appointed staff {mod}.
+    no_pending: No pending application for this member.
+    decided: '## 🛡 Staff application **{mod}**
+
+      <@{user_id}> — **{verb}** by <@{decided_by}>.'

@@ -24,7 +24,7 @@ from discord import app_commands
 
 from kingdoms.core.services.season_roles import SeasonRolesService
 from kingdoms.core.services.staff import StaffService
-from kingdoms.discord.commands_i18n import localized
+from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.staff")
 
@@ -162,17 +162,17 @@ async def _apply(interaction: discord.Interaction, mod: str, message: str = "") 
 
     bot = interaction.client
     if not isinstance(bot, KingdomsBot) or bot.staff_service is None:
-        await interaction.response.send_message("Le staff n'est pas configuré ici.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "staff.unconfigured"), ephemeral=True)
         return
     staff = bot.staff_service
     if staff is None:
-        await interaction.response.send_message("Le staff n'est pas configuré ici.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "staff.unconfigured"), ephemeral=True)
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
     user_id = str(interaction.user.id)
     await staff.apply(guild_id, mod, user_id, now=_now_ms(), message=message)
     await interaction.response.send_message(
-        f"Candidature staff **{mod}** enregistrée — les admins sont notifiés.",
+        await reply(interaction, "staff.apply_registered", mod=mod),
         ephemeral=True,
     )
 
@@ -184,7 +184,7 @@ async def _nominate(interaction: discord.Interaction, member: discord.User) -> N
 
     bot = interaction.client
     if not isinstance(bot, KingdomsBot) or bot.staff_service is None:
-        await interaction.response.send_message("Le staff n'est pas configuré ici.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "staff.unconfigured"), ephemeral=True)
         return
     staff = bot.staff_service
     admins = tuple(bot.status_service.bot_admins)
@@ -200,7 +200,9 @@ async def _nominate(interaction: discord.Interaction, member: discord.User) -> N
     if season_roles is not None:
         season = await _active_season_label(bot, guild_id)
         await season_roles.sync_staff_role(guild_id, user_id, season, member=True)
-    await interaction.response.send_message(f"<@{user_id}> est nommé staff {mod}.", ephemeral=True)
+    await interaction.response.send_message(
+        await reply(interaction, "staff.nominated", user_id=user_id, mod=mod), ephemeral=True
+    )
 
 
 async def _decide(interaction: discord.Interaction, decision: str, mod: str, user_id: str) -> None:
@@ -213,7 +215,7 @@ async def _decide(interaction: discord.Interaction, decision: str, mod: str, use
         return
     staff = bot.staff_service
     if staff is None:
-        await interaction.response.send_message("Le staff n'est pas configuré ici.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "staff.unconfigured"), ephemeral=True)
         return
     admins = tuple(bot.status_service.bot_admins)
     allowed = await require_admin(interaction, admins, bot.roles_service)
@@ -225,7 +227,7 @@ async def _decide(interaction: discord.Interaction, decision: str, mod: str, use
         guild_id, mod, user_id, accept=accept, decided_by=str(interaction.user.id), now=_now_ms()
     )
     if updated is None:
-        await interaction.response.send_message("Aucune candidature en attente pour ce membre.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "staff.no_pending"), ephemeral=True)
         return
     season_roles = bot.season_roles_service
     if accept and season_roles is not None:
@@ -235,7 +237,9 @@ async def _decide(interaction: discord.Interaction, decision: str, mod: str, use
     await interaction.response.edit_message(
         view=build_staff_resolved_notice(mod, user_id, verb, str(interaction.user.id))
     )
-    await interaction.followup.send(f"<@{user_id}> est {verb} dans le staff {mod}.", ephemeral=True)
+    await interaction.followup.send(
+        await reply(interaction, "staff.nominated", user_id=user_id, mod=mod), ephemeral=True
+    )
 
 
 async def _active_season_label(bot: Any, guild_id: str) -> str:
@@ -287,10 +291,11 @@ def _notice_body(mod: str, user_id: str, message: str) -> str:
 
 def build_staff_resolved_notice(mod: str, user_id: str, verb: str, decided_by: str) -> discord.ui.LayoutView:
     """Build the post-decision notice: no interactive buttons left."""
+    text = f"## \U0001F6E1 Candidature staff **{mod}**\n<@{user_id}> \u2014 **{verb}** par <@{decided_by}>."
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(f"## 🛡️ Candidature staff **{mod}**\n<@{user_id}> — **{verb}** par <@{decided_by}>."),
+            discord.ui.TextDisplay(text),
         )
     )
     return view

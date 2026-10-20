@@ -232,7 +232,9 @@ async def build_admin_menu(
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay("# \U0001f6e0️ Admin"),
+            discord.ui.TextDisplay(
+                await tr_guild(guild_id, bot, "ui.views.menu.admin.title", "Admin")
+            ),
             accent_colour=discord.Colour(0x5865F2),
         )
     )

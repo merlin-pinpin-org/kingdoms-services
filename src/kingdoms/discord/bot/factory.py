@@ -815,7 +815,6 @@ class KingdomsBot(discord.Client):
             """Open the guild language picker (the stored choice wins)."""
             from kingdoms.discord.views_routing import LanguageModal
 
-            from . import home as _home  # noqa: F401  (locale rendering stays shared)
             await interaction.response.send_modal(
                 LanguageModal("Langue / Language", guild_scoped=True)
             )

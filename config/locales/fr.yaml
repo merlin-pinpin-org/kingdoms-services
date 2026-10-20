@@ -240,11 +240,9 @@ fr:
     title: Kingdoms — Bot admin
     wiring_unavailable: Wiring indisponible.
     pending_title: 📩 Demandes d'accès en attente
-    granted_title: 🔓 Accords actifs
     language_title: 🌐 Langue des DM
     pending_line: '- Serveur `{guild_id}` : {keys}'
     unknown_server: Serveur inconnu
-    granted_line: '- **{name}** `{guild_id}` : jeux={games}, mods={mods}'
     btn_approve: Approuver
     btn_approve_pending: Approuver ({pending} en attente)
     btn_deny: Refuser
@@ -296,6 +294,8 @@ fr:
     sync_subtitle: Rafraîchit les civilisations et maps depuis le dataset aoe2techtree.
     access_btn_manage: Gérer les accès
     menu_btn_language: Langue
+    servers_title: 🖥 Serveurs
+    servers_line: '- **{name}** `{guild_id}`'
   channel_audit:
     clean: 'Audit des canaux : aucun écart détecté.'
     header: 'Audit des canaux — {count} écart(s) :'
@@ -489,3 +489,11 @@ fr:
         kingdom: Kingdom
   admin_tree:
     language: 🌐 Langue
+  staff:
+    unconfigured: Le staff n'est pas configuré ici.
+    apply_registered: Candidature staff **{mod}** enregistrée — les admins sont notifiés.
+    nominated: <@{user_id}> est nommé staff {mod}.
+    no_pending: Aucune candidature en attente pour ce membre.
+    decided: '## 🛡 Candidature staff **{mod}**
+
+      <@{user_id}> — **{verb}** par <@{decided_by}>.'

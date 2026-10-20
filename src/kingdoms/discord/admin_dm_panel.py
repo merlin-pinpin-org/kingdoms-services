@@ -234,24 +234,20 @@ async def _open_servers(interaction: discord.Interaction) -> None:
     docs = list((await service.list_all()) or [])[:20]
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [
-        discord.ui.TextDisplay("# " + _dm_tr(interaction, dm_locale, "granted_title")),
+        discord.ui.TextDisplay("# " + _dm_tr(interaction, dm_locale, "servers_title")),
     ]
     client = interaction.client
     for doc in docs:
         guild = client.get_guild(int(doc.get("guild_id") or 0))
         name = guild.name if guild is not None else _dm_tr(interaction, dm_locale, "unknown_server")
-        games = ", ".join(doc.get("games") or []) or "—"
-        mods = ", ".join(doc.get("mods") or []) or "—"
         blocks.append(
             discord.ui.TextDisplay(
                 _dm_tr(
                     interaction,
                     dm_locale,
-                    "granted_line",
+                    "servers_line",
                     name=name,
                     guild_id=doc.get("guild_id"),
-                    games=games,
-                    mods=mods,
                 )
             )
         )

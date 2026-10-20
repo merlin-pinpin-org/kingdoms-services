@@ -190,7 +190,9 @@ class PoolEditButton(
         service = _games_wiring()
         pool = await service.get_map_pool(self.pool_id) if service is not None else None
         if pool is None:
-            await interaction.followup.send("Pool introuvable.", ephemeral=True)
+            from kingdoms.discord.commands_i18n import reply as _reply
+
+            await interaction.followup.send(await _reply(interaction, "replies_shared.pool_not_found"), ephemeral=True)
             return
         await interaction.followup.send(
             view=await pool_editor_view(pool.id, pool.game_key, from_pin=False), ephemeral=True
