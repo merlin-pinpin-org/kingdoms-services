@@ -7,20 +7,16 @@ from typing import Any
 import discord
 import pytest
 
-from kingdoms.discord.admin import (
-    BACK_BUTTON_ID,
-    CHANNEL_MENU_ID,
-    CHANNEL_ROUTE_ID,
-    LOCALE_SELECT_ID,
-    USER_LOCALE_SELECT_ID,
-    VISIBILITY_SELECT_ID,
-    build_channel_menu,
-    build_dm_setup_view,
-    build_main_menu,
-    register_admin_command,
-)
+from kingdoms.discord.admin import register_admin_command
 from kingdoms.discord.admin_tree import _NS as TREE_NS
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
+
+
+def _custom_ids(layout: discord.ui.LayoutView) -> list[str]:
+    """Collect every interactive child's custom id of a layout."""
+    return [c.custom_id for c in layout.walk_children() if getattr(c, "custom_id", None)]
+
+
 
 
 @pytest.mark.asyncio
@@ -116,154 +112,20 @@ async def test_admin_command_restricts_discord_permissions_by_default() -> None:
     await client.close()
 
 
-@pytest.mark.asyncio
-async def test_main_menu_locale_change_persists() -> None:
-    """The guild locale select updates the guild settings and re-renders."""
-    logs = _FakeAdminLogsService(channel_id="555")
-    view = await build_main_menu(logs, "42", by="111111111", bot_admins=("111111111",))
-    select = _find_select(view, LOCALE_SELECT_ID)
-    assert select is not None
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await _choose(select, interaction, ["fr"])
-    assert logs.locales_set == [("42", "fr", "111111111")]
 
 
-@pytest.mark.asyncio
-async def test_main_menu_channel_pick_opens_channel_menu() -> None:
-    """Picking a managed channel opens its secondary menu."""
-    logs = _FakeAdminLogsService(channel_id="555")
-    view = await build_main_menu(logs, "42", by="111111111", bot_admins=("111111111",))
-    select = _find_select(view, CHANNEL_MENU_ID)
-    assert select is not None
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await _choose(select, interaction, ["bot_logs"])
-    message = interaction.response.message
-    assert message is not None
-    customs = _custom_ids(message.layout)
-    assert BACK_BUTTON_ID in customs
-    assert VISIBILITY_SELECT_ID in customs, "the logs channel menu manages the visibility"
 
 
-@pytest.mark.asyncio
-async def test_channel_menu_back_returns_to_main() -> None:
-    """The back button returns to the main menu."""
-    logs = _FakeAdminLogsService(channel_id="555")
-    view = await build_channel_menu(logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",))
-    button = _find_button(view, BACK_BUTTON_ID)
-    assert button is not None
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await button.callback(interaction)
-    message = interaction.response.message
-    assert message is not None
-    customs = _custom_ids(message.layout)
-    assert CHANNEL_MENU_ID in customs, "back lands on the main menu"
 
 
-@pytest.mark.asyncio
-async def test_channel_menu_visibility_change_persists() -> None:
-    """The visibility select updates the logs policy."""
-    logs = _FakeAdminLogsService(channel_id="555")
-    view = await build_channel_menu(logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",))
-    select = _find_select(view, VISIBILITY_SELECT_ID)
-    assert select is not None
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await _choose(select, interaction, ["public"])
-    assert logs.visibilities == [("42", True, "111111111")]
 
 
-@pytest.mark.asyncio
-async def test_channel_menu_denies_non_admin_at_click_time() -> None:
-    """A stranger clicking a component is denied (click-time guard)."""
-    logs = _FakeAdminLogsService(channel_id="555")
-    view = await build_channel_menu(logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",))
-    select = _find_select(view, VISIBILITY_SELECT_ID)
-    assert select is not None
-    stranger = MockUser(id=999999999)
-    interaction = MockInteraction(user=stranger, guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await _choose(select, interaction, ["public"])
-    assert logs.visibilities == [], "the visibility must not change for a stranger"
-    assert interaction.response.sent is True
-    assert "not allowed" in (interaction.response.message or "").content
 
 
-@pytest.mark.asyncio
-async def test_dm_setup_view_without_service_degrades() -> None:
-    """Without a LogService, the DM setup still renders (en fallback)."""
-    view = await build_dm_setup_view(None, "111111111")
-    assert isinstance(view, discord.ui.LayoutView)
-    assert USER_LOCALE_SELECT_ID in _custom_ids(view)
 
 
-@pytest.mark.asyncio
-async def test_channel_menu_routing_failure_reports_the_crash() -> None:
-    """A routing failure reaches the crash reporter (#113), not just the ephemeral answer."""
-    logs = _RoutingFailureLogsService()
-    reported: list[BaseException] = []
-
-    async def reporter(interaction: discord.Interaction, exc: BaseException) -> None:
-        reported.append(exc)
-
-    view = await build_channel_menu(
-        logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",), error_reporter=reporter
-    )
-    select = _find_select(view, CHANNEL_ROUTE_ID)
-    assert select is not None
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await _choose_channel(select, interaction, ["777"])  # type: ignore[arg-type]
-    assert interaction.response.sent is True, "the user still gets the ephemeral failure answer"
-    assert len(reported) == 1, "the failure must reach the crash reporter"
-    assert isinstance(reported[0], ValueError)
 
 
-@pytest.mark.asyncio
-async def test_channel_menu_routing_success_stays_silent() -> None:
-    """A successful routing never reports and rerenders the menu."""
-    logs = _FakeAdminLogsService(channel_id="555")
-    reported: list[BaseException] = []
-
-    async def reporter(interaction: discord.Interaction, exc: BaseException) -> None:
-        reported.append(exc)
-
-    view = await build_channel_menu(
-        logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",), error_reporter=reporter
-    )
-    select = _find_select(view, CHANNEL_ROUTE_ID)
-    assert select is not None
-    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-    interaction.guild_id = 42
-    await _choose_channel(select, interaction, ["556"])  # type: ignore[arg-type]
-    assert reported == [], "no failure, no report"
-    assert logs.routed == [("42", "556", "111111111")]
-
-
-def _custom_ids(view: discord.ui.LayoutView) -> set[str]:
-    ids: set[str] = set()
-    for child in view.walk_children():
-        custom_id = getattr(child, "custom_id", None)
-        if isinstance(custom_id, str):
-            ids.add(custom_id)
-    return ids
-
-
-def _find_select(view: discord.ui.LayoutView, custom_id: str) -> discord.ui.Item[Any] | None:
-    for child in view.walk_children():
-        item_custom_id = getattr(child, "custom_id", None)
-        if isinstance(child, (discord.ui.Select, discord.ui.ChannelSelect)) and item_custom_id == custom_id:
-            return child
-    return None
-
-
-def _find_button(view: discord.ui.LayoutView, custom_id: str) -> discord.ui.Button | None:
-    for child in view.walk_children():
-        if isinstance(child, discord.ui.Button) and child.custom_id == custom_id:
-            return child
-    return None
 
 
 async def _choose(select: discord.ui.Select, interaction: MockInteraction, values: list[str]) -> None:

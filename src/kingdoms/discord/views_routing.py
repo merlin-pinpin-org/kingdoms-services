@@ -127,6 +127,7 @@ def menu_buttons(decl: Any, catalog: Any, locale: str) -> list[discord.ui.Button
     out: list[discord.ui.Button[Any]] = []
     for button in decl.buttons:
         emoji = default_button_emoji(button)
+        item: Any
         if button.target:
             item = ViewOpenButton(button.target, _label(catalog, button.label_key, locale), emoji, button.disabled)
         elif button.sync:

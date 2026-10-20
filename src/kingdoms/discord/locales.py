@@ -51,11 +51,12 @@ def interaction_locale(interaction: discord.Interaction) -> str:
     return client_code
 
 
-def guild_locale_by_id(bot: discord.Client, guild_id: str) -> str:
+def guild_locale_by_id(bot: object, guild_id: str) -> str:
     """Resolve a guild's native locale from its id (live object only)."""
-    if not guild_id or not str(guild_id).isdigit():
+    get_guild = getattr(bot, "get_guild", None)
+    if not guild_id or not str(guild_id).isdigit() or get_guild is None:
         return "en"
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(int(guild_id))
     return guild_locale(guild)
 
 
