@@ -181,6 +181,55 @@ _CONSCRIPTION_ROLE_CANDIDATES: tuple[tuple[str, ...], ...] = (
     ("kingdoms_king", "Kingdoms King"),
 )
 
+_PLAYER_CATEGORY_SLUGS: tuple[str, ...] = ("profils", "kingdoms", "gaia", "champs-de-bataille")
+"""permissions-serveur-v1 (Drasah 20/10): the player-facing categories gated
+to @everyone — a newcomer sees only Beta and Conscription (headers included)."""
+
+_PLAYER_ROLE_CANDIDATES: tuple[tuple[str, ...], ...] = (
+    ("kingdoms_lord", "Kingdoms Lord"),
+    ("kingdoms_king", "Kingdoms King"),
+    ("kingdoms_admin", "Kingdoms Admin"),
+)
+
+
+async def _enforce_player_category_gating(guild: discord.Guild) -> None:
+    """Hide the player categories from @everyone (idempotent, best effort).
+
+    permissions-serveur-v1 (Drasah 20/10): the salons were already gated,
+    but the category HEADERS stayed visible — a newcomer saw four empty
+    categories in the sidebar. This pass denies @everyone view on the
+    four player categories and unlocks them through the player roles
+    (granted at acceptance). ONE ``edit(overwrites=...)`` call per
+    category: editing overwrites is heavily rate-limited on the real
+    API (lesson Check 89 — the realm incident of 2026-10-10).
+    """
+    roles = list(getattr(guild, "roles", []) or [])
+    for slug in _PLAYER_CATEGORY_SLUGS:
+        category = _find_category(guild, slug)
+        if category is None:
+            continue
+        overwrites: dict[Any, discord.PermissionOverwrite] = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False, read_message_history=False
+            )
+        }
+        if guild.me is not None:
+            overwrites[guild.me] = discord.PermissionOverwrite(
+                view_channel=True, send_messages=True, manage_channels=True
+            )
+        for candidates in _PLAYER_ROLE_CANDIDATES:
+            role = next((r for r in roles if str(getattr(r, "name", "")) in candidates), None)
+            if role is None:
+                continue
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True, read_message_history=True
+            )
+        try:
+            await category.edit(overwrites=overwrites)
+            logger.info("KINGDOM SETUP: player category gated %s", slug)
+        except Exception:
+            logger.warning("KINGDOM SETUP: player category gating failed %s", slug, exc_info=True)
+
 
 async def _apply_structure_charte(guild: discord.Guild) -> None:
     """Rename the LIVE structure to the charte display names (idempotent).
@@ -367,6 +416,9 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     # permissions-serveur-v1: the Admin category stays hidden from
     # non-admins even when it was adopted long before the flag.
     await _enforce_admin_category_deny(guild)
+    # permissions-serveur-v1 (20/10): the player category HEADERS are
+    # gated too — a newcomer sees only Beta and Conscription.
+    await _enforce_player_category_gating(guild)
     # admin-console-v1: the console salon gets its pinned welcome message.
     console_id = report.channel_ids.get("console")
     console_channel = guild.get_channel(int(console_id)) if console_id and console_id.isdigit() else None
