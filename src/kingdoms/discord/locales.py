@@ -35,12 +35,20 @@ def guild_locale(guild: discord.Guild | None) -> str:
 
 
 def interaction_locale(interaction: discord.Interaction) -> str:
-    """Return the interaction's native locale: the guild's, else the client's."""
+    """Return the locale of an interaction-driven (ephemeral) surface.
+
+    The clicker's own client language wins — Discord localizes slash
+    commands the same way — then the server's language when the client
+    speaks a language the catalog does not carry, then English.
+    """
+    client_code = normalize(getattr(interaction, "locale", None))
+    if client_code in SUPPORTED:
+        return client_code
     guild = getattr(interaction, "guild", None)
     preferred = getattr(guild, "preferred_locale", None)
     if preferred:
         return normalize(preferred)
-    return normalize(getattr(interaction, "locale", None))
+    return client_code
 
 
 def guild_locale_by_id(bot: discord.Client, guild_id: str) -> str:
