@@ -601,6 +601,7 @@ def register_admin_command(
                 catalog,
                 locale,
                 admin_channel_service,
+                invoker_admin=True,
             )
         except Exception as exc:
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)

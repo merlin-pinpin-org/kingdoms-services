@@ -163,7 +163,6 @@ class KingdomsBot(discord.Client):
         self.registration_service: RegistrationService | None = None
         self.identity_service: IdentityService | None = None
         self.home_channel_service: Any | None = None
-        self._console_enabled: bool = False
         self.staff_service: Any | None = None
         self.home_service: Any | None = None
         self.message_registry: Any | None = None
@@ -317,10 +316,13 @@ class KingdomsBot(discord.Client):
         admin_ids = self.status_service.bot_admins
         for guild in list(self.guilds):
             guild_id = str(guild.id)
-            from kingdoms.discord.console_quiesce import guild_quiesced
+            from kingdoms.discord.console_quiesce import guild_nuked, guild_quiesced
 
-            if await guild_quiesced(self, guild_id):
-                logger.info("DEFAULT CHANNEL provisioning skipped (guild %s) — quiesced by a console action", guild_id)
+            if await guild_quiesced(self, guild_id) or await guild_nuked(guild_id):
+                logger.info(
+                    "DEFAULT CHANNEL provisioning skipped (guild %s) — quiesced or nuked by a console action",
+                    guild_id,
+                )
                 continue
             if self.logs_service is not None:
                 try:
@@ -547,19 +549,6 @@ class KingdomsBot(discord.Client):
         await super().close()
 
 
-def console_enabled() -> bool:
-    """Whether this boot opts into the console button (test envs only).
-
-    The opt-in renders the console section in the /admin panel (its
-    action buttons stay disabled outside the allowlist); without it
-    the section is absent and the console unreachable from Discord.
-    """
-    from kingdoms.discord.console import CONSOLE_ENV_VAR
-    from kingdoms.discord.console import console_enabled as _enabled
-
-    return os.environ.get(CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes") or _enabled()
-
-
 def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     """Build the Kingdoms bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
@@ -671,7 +660,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     set_guild_access_platform(games, tuple(registry.enabled()))
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
-    bot._console_enabled = console_enabled()
     return bot
 
 

@@ -86,3 +86,56 @@ async def guild_quiesced(bot: Any, guild_id: str | int | None) -> bool:
     except Exception:
         return False
     return bool((entry or {}).get("quiesced"))
+
+
+async def mark_guild_nuked(guild_id: str | int | None) -> None:
+    """Persist the nuked flag: the guild's self-healing surfaces stay off.
+
+    Unlike the quiesce marker (a short-lived TTL lock held during a
+    destructive pass), the nuked flag is durable guild state: after a
+    nuke the guild is expected to stay EMPTY — the live dashboard must
+    not recreate its channel 15 seconds later. The flag lives in the
+    guild settings (Mongo, ``guild_settings``) so it survives restarts
+    and deployments; ``clear_guild_nuked`` turns the surfaces back on
+    (a re-provision through /admin, an install, or a reset).
+    """
+    from kingdoms.core.models.db import get_async_database
+    from kingdoms.core.services.logs import GUILD_SETTINGS_COLLECTION
+
+    database = get_async_database()
+    await database[GUILD_SETTINGS_COLLECTION].update_one(
+        {"_id": str(guild_id)},
+        {"$set": {"console_nuked": True}},
+        upsert=True,
+    )
+    logger.warning("CONSOLE nuked flag set (guild %s) — self-healing stays off until re-provision", guild_id)
+
+
+async def clear_guild_nuked(guild_id: str | int | None) -> None:
+    """Clear the nuked flag: the guild's self-healing surfaces resume."""
+    from kingdoms.core.models.db import get_async_database
+    from kingdoms.core.services.logs import GUILD_SETTINGS_COLLECTION
+
+    database = get_async_database()
+    await database[GUILD_SETTINGS_COLLECTION].update_one(
+        {"_id": str(guild_id)},
+        {"$set": {"console_nuked": False}},
+        upsert=True,
+    )
+    logger.info("CONSOLE nuked flag cleared (guild %s) — self-healing resumes", guild_id)
+
+
+async def guild_nuked(guild_id: str | int | None) -> bool:
+    """Whether the guild was nuked and not yet re-provisioned."""
+    if guild_id is None:
+        return False
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.logs import GUILD_SETTINGS_COLLECTION
+
+        database = get_async_database()
+        doc = await database[GUILD_SETTINGS_COLLECTION].find_one({"_id": str(guild_id)})
+        return bool((doc or {}).get("console_nuked"))
+    except Exception:
+        logger.warning("CONSOLE nuked flag read failed (guild %s) — assuming not nuked", guild_id)
+        return False

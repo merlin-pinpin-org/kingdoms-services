@@ -16,11 +16,7 @@ from kingdoms.core.services.mod_definition import (
     RoleDef,
 )
 from kingdoms.core.services.mod_registry import ModRegistry
-from kingdoms.discord.console import (
-    CONSOLE_ENV_VAR,
-    _propagate,
-    console_enabled,
-)
+from kingdoms.discord.console import _propagate
 from kingdoms.discord.console_guilds import (
     TEST_GUILD_IDS_ENV_VAR,
     is_test_guild,
@@ -61,14 +57,6 @@ def _registry() -> ModRegistry:
             ),
         }
     )
-
-
-def test_console_opt_in_gate() -> None:
-    assert console_enabled({CONSOLE_ENV_VAR: "1"}) is True
-    assert console_enabled({CONSOLE_ENV_VAR: "true"}) is True
-    assert console_enabled({}) is False
-    assert console_enabled({CONSOLE_ENV_VAR: "0"}) is False
-    assert console_enabled({CONSOLE_ENV_VAR: ""}) is False
 
 
 def test_prod_env_is_recognized() -> None:
@@ -295,9 +283,21 @@ async def test_nuke_quiesces_guild_during_deletion(monkeypatch: Any) -> None:
 
     monkeypatch.setattr(console_mod, "_nuke_everything_for_guild_inner", _inner)
 
+    class FakeSettings:
+        async def update_one(self, query: dict[str, Any], update: dict[str, Any], upsert: bool = False) -> None:
+            markers.append(f"nuked:{query['_id']}")
+
+    class FakeDatabase:
+        def __getitem__(self, name: str) -> FakeSettings:
+            return FakeSettings()
+
+    import kingdoms.core.models.db as db_mod
+
+    monkeypatch.setattr(db_mod, "get_async_database", lambda: FakeDatabase(), raising=False)
+
     channels, roles = await console_mod._nuke_everything_for_guild(FakeGuild())  # type: ignore[arg-type]
     assert (channels, roles) == (0, 0)
-    assert markers == ["set:console:quiesce:4242", "del:console:quiesce:4242"]
+    assert markers == ["set:console:quiesce:4242", "del:console:quiesce:4242", "nuked:4242"]
 
 
 async def test_quiesce_surfaces_skip_quiesced_guild() -> None:
@@ -324,3 +324,71 @@ async def test_quiesce_surfaces_skip_quiesced_guild() -> None:
     assert await console_quiesce.guild_quiesced(FakeBot(FakeState(True)), "123") is True
     assert await console_quiesce.guild_quiesced(FakeBot(FakeState(False)), "123") is False
     assert await console_quiesce.guild_quiesced(FakeBot(None), "123") is False
+
+
+async def test_nuke_marks_guild_durably_nuked(monkeypatch: Any) -> None:
+    """After a nuke the guild stays empty: the durable flag is set (no self-healing)."""
+    import kingdoms.discord.console as console_mod
+
+    class FakeState:
+        async def set_state(self, *args: Any, **kwargs: Any) -> bool:
+            return True
+
+        async def delete_state(self, *args: Any, **kwargs: Any) -> bool:
+            return True
+
+        async def get_state(self, *args: Any, **kwargs: Any) -> dict[str, Any] | None:
+            return None
+
+    class FakeClient:
+        state_service = FakeState()
+
+    class FakeSettings:
+        def __init__(self) -> None:
+            self.docs: dict[str, dict[str, Any]] = {}
+
+        async def update_one(self, query: dict[str, Any], update: dict[str, Any], upsert: bool = False) -> None:
+            self.docs[str(query["_id"])] = update
+
+    settings = FakeSettings()
+
+    class FakeDatabase:
+        def __getitem__(self, name: str) -> FakeSettings:
+            return settings
+
+    monkeypatch.setattr(console_mod, "_client_of", lambda guild: FakeClient())
+    import kingdoms.core.models.db as db_mod
+
+    monkeypatch.setattr(db_mod, "get_async_database", lambda: FakeDatabase(), raising=False)
+
+    async def fake_inner(guild: Any) -> tuple[int, int]:
+        return 3, 2
+
+    monkeypatch.setattr(console_mod, "_nuke_everything_for_guild_inner", fake_inner)
+
+    class FakeGuild:
+        id = 4242
+
+    channels, roles = await console_mod._nuke_everything_for_guild(FakeGuild())  # type: ignore[arg-type]
+    assert (channels, roles) == (3, 2)
+    assert settings.docs["4242"] == {"$set": {"console_nuked": True}}
+
+
+async def test_nuked_guild_is_sked_by_self_healing(monkeypatch: Any) -> None:
+    """The live dashboard must not recreate its channel on a nuked guild."""
+    import kingdoms.discord.console_quiesce as quiesce_mod
+
+    class FakeSettings:
+        async def find_one(self, query: dict[str, Any]) -> dict[str, Any] | None:
+            return {"console_nuked": True} if query["_id"] == "777" else None
+
+    class FakeDatabase:
+        def __getitem__(self, name: str) -> FakeSettings:
+            return FakeSettings()
+
+    import kingdoms.core.models.db as db_mod
+
+    monkeypatch.setattr(db_mod, "get_async_database", lambda: FakeDatabase(), raising=False)
+    assert await quiesce_mod.guild_nuked("777") is True
+    assert await quiesce_mod.guild_nuked("888") is False
+    assert await quiesce_mod.guild_nuked(None) is False

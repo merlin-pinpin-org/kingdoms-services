@@ -445,21 +445,22 @@ def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.Layout
     return row
 
 
-def _console_boot_enabled() -> bool:
-    """Whether this boot opted into the console (KINGDOMS_DEV_CONSOLE)."""
-    from kingdoms.discord.console import CONSOLE_ENV_VAR, console_enabled
-
-    return console_enabled({CONSOLE_ENV_VAR: __import__("os").environ.get(CONSOLE_ENV_VAR, "")})
-
-
 async def build_pin_main_menu(
     logs_service: LogService,
     guild_id: str,
     catalog: MessageCatalog | None = None,
     locale: str = "en",
     admin_channel_service: Any = None,
+    invoker_admin: bool = True,
 ) -> discord.ui.LayoutView:
-    """Build the pinned main menu: fully dynamic, no captured state."""
+    """Build the pinned main menu: fully dynamic, no captured state.
+
+    ``invoker_admin`` gates the console section (test guilds, bot
+    admins only): the interactive callers (/admin, the persistent
+    handlers) pass the live guard verdict; the background refreshers
+    pass nothing (default True) — the section is rendered but every
+    click re-checks the guard anyway (the mandate).
+    """
     from kingdoms.discord.admin_panel_mods import (
         PinModRouteSelect,
     )
@@ -503,8 +504,9 @@ async def build_pin_main_menu(
         _access_request_row(guild_id),
     ]
     from kingdoms.discord.console import AdminConsoleButton
+    from kingdoms.discord.console_guilds import is_test_guild
 
-    if _console_boot_enabled():
+    if is_test_guild(guild_id) and invoker_admin:
         container_blocks.append(discord.ui.Separator())
         container_blocks.append(discord.ui.TextDisplay("## \u2699 Console"))
         container_blocks.append(

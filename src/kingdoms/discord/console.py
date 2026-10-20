@@ -3,13 +3,13 @@
 Three layers of protection (developer-mandated \u2014 "que \u00e7a n'arrive
 jamais en prod"):
 
-1. **Registration gate** \u2014 the ``/console`` command is only registered when
-   the environment opts in (``KINGDOMS_DEV_CONSOLE=1``). CI, unit tests
-   and production-style boots never even see the command.
-2. **Runtime gate** \u2014 every invocation re-reads ``KINGDOMS_DEPLOY_ENV``
-   and refuses on ``prod`` (whatever the opt-in flag says), and every
-   callback re-checks the guard at click time (the mandate: seeing a
-   button never implies being allowed to click it).
+1. **Visibility gate** \u2014 the console section renders in the /admin
+   panel only on the env-declared test guilds
+   (``KINGDOMS_TEST_GUILD_IDS``) and only for bot admins: nowhere
+   else, no flag to flip.
+2. **Runtime gate** \u2014 every click re-reads ``KINGDOMS_DEPLOY_ENV``
+   and refuses on ``prod``, and re-checks the guard at click time (the
+   mandate: seeing the button never implies being allowed to click it).
 3. **Permission gate** \u2014 bot admins only (``require_admin``).
 
 Capabilities:
@@ -45,23 +45,11 @@ from kingdoms.discord.guards import require_admin
 
 logger = logging.getLogger("kingdoms.discord.console")
 
-__all__ = [
-    "CONSOLE_ENV_VAR",
-    "console_enabled",
-]
-
-CONSOLE_ENV_VAR = "KINGDOMS_DEV_CONSOLE"
 DEPLOY_ENV_VAR = "KINGDOMS_DEPLOY_ENV"
 
 PROD_ENV_NAMES = ("prod", "production")
 
 _NS = "console"
-
-
-def console_enabled(environ: dict[str, str] | None = None) -> bool:
-    """Whether this boot must register the dev console (opt-in only)."""
-    env = os.environ if environ is None else environ
-    return env.get(CONSOLE_ENV_VAR, "").strip().lower() in ("1", "true", "yes")
 
 
 def _deploy_env(environ: dict[str, str] | None = None) -> str:
@@ -151,13 +139,17 @@ async def _nuke_everything_for_guild(guild: discord.Guild) -> tuple[int, int]:
     self-healing surfaces (live dashboard, boot provisioning) skip the
     guild while the marker is up, so nothing is recreated mid-nuke.
     """
-    from kingdoms.discord.console_quiesce import quiesce_guild, release_guild
+    from kingdoms.discord.console_quiesce import mark_guild_nuked, quiesce_guild, release_guild
 
     await quiesce_guild(_client_of(guild), guild.id)
     try:
-        return await _nuke_everything_for_guild_inner(guild)
+        result = await _nuke_everything_for_guild_inner(guild)
     finally:
         await release_guild(_client_of(guild), guild.id)
+    # Durable flag: the guild stays empty \u2014 no self-healing surface may
+    # recreate anything until an explicit re-provision (install).
+    await mark_guild_nuked(guild.id)
+    return result
 
 
 def _client_of(guild: discord.Guild) -> discord.Client:
@@ -320,6 +312,9 @@ async def _apply_selection(interaction: discord.Interaction, mods: list[str], ga
     mod_roles_service = wire["mod_roles_service"]
     provisioned = 0
     if channel_service is not None and mod_roles_service is not None:
+        from kingdoms.discord.console_quiesce import clear_guild_nuked
+
+        await clear_guild_nuked(guild_id)
         for mod_name in mods:
             try:
                 await channel_service.setup_mod_channels(guild_id, mod_name)
@@ -416,10 +411,12 @@ class DevCleanManagedButton(
         match: re.Match[str],
         /,
     ) -> DevCleanManagedButton:
+        """Rebuild the item from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Clean what the bot created (managed clean)."""
         if not await _guard(interaction):
             return
         await interaction.response.defer(ephemeral=True)
@@ -470,10 +467,12 @@ class DevNukeButton(
         match: re.Match[str],
         /,
     ) -> DevNukeButton:
+        """Rebuild the item from the wire."""
         del interaction, item
         return cls(int(match.group("step")))
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Advance the nuke confirmation, or execute it at the last step."""
         if not await _guard(interaction):
             return
         if self.step < 3:
@@ -529,10 +528,12 @@ class DevResetDataButton(
         match: re.Match[str],
         /,
     ) -> DevResetDataButton:
+        """Rebuild the item from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Wipe this guild's persisted data (isolated)."""
         if not await _guard(interaction):
             return
         await interaction.response.defer(ephemeral=True)
@@ -571,10 +572,12 @@ class DevInstallButton(
         match: re.Match[str],
         /,
     ) -> DevInstallButton:
+        """Rebuild the item from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the mods/games install modal."""
         if not await _guard(interaction):
             return
         await interaction.response.send_modal(DevInstallModal())
@@ -616,6 +619,7 @@ class DevInstallModal(discord.ui.Modal):
         self.add_item(games_select)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Guard, propagate the selection, apply it."""
         if not await _guard(interaction):
             return
         mods = [v for v in self.mods_select.values if v != "none"]
@@ -638,11 +642,11 @@ class AdminConsoleButton(
 ):
     """The /admin panel's console opener (test environments only).
 
-    Rendered by ``build_pin_main_menu`` when the boot opted in
-    (``KINGDOMS_DEV_CONSOLE``); the click re-runs the full console
-    guard (bot admin, never prod, test-guild allowlist) before opening
-    the console view — the mandate: seeing the button never implies
-    being allowed to click it.
+    Rendered by ``build_pin_main_menu`` only on the env-declared test
+    guilds (allowlist) and for bot admins; the click re-runs the full
+    console guard (bot admin, never prod, allowlist) before opening the
+    console view — the mandate: seeing the button never implies being
+    allowed to click it.
     """
 
     def __init__(self) -> None:
@@ -662,10 +666,12 @@ class AdminConsoleButton(
         match: re.Match[str],
         /,
     ) -> AdminConsoleButton:
+        """Rebuild the item from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the console view from the /admin panel."""
         if _deploy_env() in PROD_ENV_NAMES or not is_test_guild(interaction.guild_id):
             await interaction.response.edit_message(view=_console_view(interaction.guild_id))
             return
@@ -697,10 +703,12 @@ class ConsoleBackButton(
         match: re.Match[str],
         /,
     ) -> ConsoleBackButton:
+        """Rebuild the item from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Return to the /admin main menu."""
         from kingdoms.discord.admin_persistent import _handle_back
 
         await _handle_back(interaction)
