@@ -7,7 +7,7 @@ seams, the gates through environment dicts.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from kingdoms.core.services.guild_access import GuildAccessService
 from kingdoms.core.services.mod_definition import (
@@ -280,8 +280,8 @@ async def test_nuke_quiesces_guild_during_deletion(monkeypatch: Any) -> None:
 
     class FakeGuild:
         id = 4242
-        channels: list[Any] = []
-        roles: list[Any] = []
+        channels: ClassVar[list[Any]] = []
+        roles: ClassVar[list[Any]] = []
 
     class FakeClient:
         state_service = FakeState()
