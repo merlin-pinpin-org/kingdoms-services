@@ -37,7 +37,31 @@ def render_button(label: str, flags: list[str]) -> str:
     return "".join(parts)
 
 
-def render(raw_views: dict) -> str:
+def render_scopes(scopes: dict) -> list[str]:
+    """Render the channel-tree scopes section (the provisioned tree)."""
+    lines: list[str] = []
+    lines.append("## The channel tree (the provisioned scopes)")
+    lines.append("")
+    lines.append("The scopes the platform provisions — the channels and categories the")
+    lines.append("sync button recreates. A channel: `key` (stable id), `label` (i18n key),")
+    lines.append("`kind` (text|forum), `access` (public|readonly|admin).")
+    lines.append("")
+    for scope, raw in scopes.items():
+        category = raw.get("category", "")
+        lines.append(f"### `{scope}`")
+        lines.append("")
+        if category:
+            lines.append(f"Category: `{category}`.")
+            lines.append("")
+        for ch in raw.get("channels", []) or []:
+            lines.append(
+                f"- `{ch['key']}` — {ch.get('label', '')} · {ch.get('kind', 'text')} · {ch.get('access', 'public')}"
+            )
+        lines.append("")
+    return lines
+
+
+def render(raw_views: dict, scopes: dict | None = None) -> str:
     lines: list[str] = []
     lines.append("# VIEWS — the map of menus and panels")
     lines.append("")
@@ -99,6 +123,8 @@ def render(raw_views: dict) -> str:
             lines.append("_(no buttons — content comes from its wired handler)_")
             lines.append("")
 
+    if scopes:
+        lines.extend(render_scopes(scopes))
     lines.append("## Adding or moving a view")
     lines.append("")
     lines.append("Platform views live in `config/views.yaml`; a mod's own views live in")
@@ -127,11 +153,12 @@ def main() -> int:
     with open(args.config, encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
     views = data.get("views")
+    scopes = data.get("scopes")
     if not isinstance(views, dict):
         print(f"{args.config}: no 'views' mapping", file=sys.stderr)
         return 1
 
-    content = render(views)
+    content = render(views, scopes)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content, encoding="utf-8")

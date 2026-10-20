@@ -51,6 +51,19 @@ HOME_MESSAGE_LEGACY_KEY = "home-menu"
 HOME_MESSAGE_PLATFORM = "discord"
 
 
+# The legacy home:open ids mapped onto the declared view ids — the
+# pins deployed before the views registry keep working through it.
+_LEGACY_VIEW_KEYS = {
+    "profile": "panel:profile",
+    "status": "panel:status",
+    "games": "menu:games:home",
+    "mods": "menu:mods:home",
+    "admin": "menu:admin",
+    "live": "panel:game:aoe2:live",
+    "users": "panel:game:aoe2:players",
+}
+
+
 class HomeButton(discord.ui.DynamicItem[discord.ui.Button[Any]], template=r"home:open:(?P<view>[a-z0-9:_-]+)"):
     """One persistent home button: opens an ephemeral view at click time."""
 
@@ -85,8 +98,16 @@ class HomeButton(discord.ui.DynamicItem[discord.ui.Button[Any]], template=r"home
         return cls(match.group("view"), item.label or "?", emoji)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the view at click time (ephemeral)."""
-        await open_home_view(interaction, self.view_key)
+        """Open the declared view at click time (legacy ids mapped).
+
+        The declared menus carry ``view:open:<view id>`` buttons; the
+        legacy ``home:open:<key>`` ids ride the pins deployed before
+        the views registry. They map onto the same declared views so
+        an un-refreshed pin still opens the right thing.
+        """
+        from kingdoms.discord.views_routing import open_declared_view
+
+        await open_declared_view(interaction, _LEGACY_VIEW_KEYS.get(self.view_key, self.view_key))
 
 
 def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
@@ -1095,46 +1116,6 @@ async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
         await interaction.response.send_message(await reply(interaction, "no_home_view"), ephemeral=True)
         return
     await builder(interaction)
-
-
-def _home_static_pin_spec(bot: discord.Client) -> Any:
-    """Declare (and register) the home menu as a static pinned view."""
-    from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
-
-    home = getattr(bot, "home_service", None)
-    if home is None:
-        return None
-    registry = getattr(bot, "message_registry", None)
-
-    async def _resolve(guild_id: str) -> str | None:
-        """Resolve the tree's ``root/general`` (stored id only)."""
-        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
-
-        return await stored_channel_id(guild_id, "root", "general")
-
-    spec = StaticPinnedView(
-        key=HOME_MESSAGE_KEY,
-        mark_suffix=HOME_MESSAGE_KEY,
-        resolve_channel=_resolve,
-        build_layout=_async_layout(home),
-        registry=registry,
-    )
-    register_static_pin(spec)
-    return spec
-
-
-async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
-    """Ensure the guild's home channel holds its pinned menu (registry cycle).
-
-    The static-pin cycle owns everything: channel resolution (recreated
-    on delete), pin creation/refresh/re-pin, and the view-id mark.
-    """
-    from kingdoms.discord.static_pins import ensure_static_pin
-
-    spec = _home_static_pin_spec(bot)
-    if spec is None:
-        return False
-    return await ensure_static_pin(bot, spec, guild_id)
 
 
 async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: Any) -> bool:

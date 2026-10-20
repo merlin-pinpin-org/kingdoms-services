@@ -20,18 +20,20 @@ from kingdoms.discord.ui.panels_provisioning import (
     _sorted_channels,
     provision_scope,
 )
-from kingdoms.discord.ui.panels_scopes import (
-    AOE2_SCOPE,
-    BOT_SCOPE,
-    ROOT_SCOPE,
-    register_platform_scopes,
-)
+from kingdoms.discord.ui.panels_scopes import register_platform_scopes, scopes_from_config
 from tests.mocks.discord_mock import (
     MockGuild,
     MockTextChannel,
 )
 
 CONFIG_DIR = str(Path(__file__).resolve().parents[3] / "config")
+
+_SCOPES = scopes_from_config(CONFIG_DIR)
+AOE2_SCOPE = _SCOPES["games/aoe2"]
+BOT_SCOPE = _SCOPES["bot"]
+GAMES_SCOPE = _SCOPES["games"]
+MODS_SCOPE = _SCOPES["mods"]
+ROOT_SCOPE = _SCOPES["root"]
 
 _STORED: dict[str, str] = {}
 

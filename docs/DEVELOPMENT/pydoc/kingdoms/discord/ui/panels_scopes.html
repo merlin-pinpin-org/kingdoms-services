@@ -9,35 +9,34 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.panels_scopes</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/panels_scopes.py">SOURCE_ROOT/discord/ui/panels_scopes.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;platform's&nbsp;channel-tree&nbsp;scopes&nbsp;—&nbsp;the&nbsp;reference&nbsp;tree,&nbsp;declared.<br>
+    <p><span class="code">The&nbsp;platform's&nbsp;channel-tree&nbsp;scopes&nbsp;—&nbsp;generated&nbsp;from&nbsp;views.yaml.<br>
 &nbsp;<br>
-One&nbsp;declaration&nbsp;per&nbsp;scope&nbsp;folder&nbsp;of&nbsp;docs/architecture/channel-tree.md<br>
-(the&nbsp;kingdoms&nbsp;repo&nbsp;is&nbsp;the&nbsp;source&nbsp;of&nbsp;truth):&nbsp;`bot`&nbsp;(private),&nbsp;`games`,<br>
-`games/aoe2`,&nbsp;`mods`.&nbsp;Each&nbsp;folder&nbsp;carries&nbsp;its&nbsp;channels&nbsp;with&nbsp;stable<br>
-keys,&nbsp;i18n&nbsp;labels&nbsp;and&nbsp;access&nbsp;bands.&nbsp;Every&nbsp;resolution&nbsp;is&nbsp;persisted&nbsp;at<br>
-provisioning&nbsp;time&nbsp;(stored&nbsp;channel&nbsp;ids)&nbsp;—&nbsp;the&nbsp;syncs&nbsp;and&nbsp;the&nbsp;pins<br>
-resolve&nbsp;by&nbsp;those&nbsp;stored&nbsp;ids,&nbsp;never&nbsp;by&nbsp;the&nbsp;translated&nbsp;name.<br>
-&nbsp;<br>
-Registering&nbsp;at&nbsp;boot&nbsp;is&nbsp;enough:&nbsp;the&nbsp;provisioning&nbsp;applies&nbsp;the&nbsp;tree<br>
-rules&nbsp;(canonical&nbsp;order,&nbsp;guild-locale&nbsp;naming,&nbsp;read-only&nbsp;menu&nbsp;channels,<br>
-admin&nbsp;visibility),&nbsp;idempotently,&nbsp;in&nbsp;every&nbsp;guild.</span></p>
+The&nbsp;scopes&nbsp;section&nbsp;of&nbsp;``config/views.yaml``&nbsp;is&nbsp;the&nbsp;single&nbsp;source&nbsp;of<br>
+truth&nbsp;(kingdoms#179):&nbsp;the&nbsp;loader&nbsp;turns&nbsp;it&nbsp;into&nbsp;the&nbsp;ScopeSpec&nbsp;the<br>
+Panels&nbsp;SDK&nbsp;provisions&nbsp;(channels,&nbsp;categories,&nbsp;access&nbsp;bands).&nbsp;The<br>
+sync&nbsp;button&nbsp;re-provisions&nbsp;from&nbsp;the&nbsp;same&nbsp;declaration;&nbsp;a&nbsp;missing&nbsp;or<br>
+broken&nbsp;section&nbsp;fails&nbsp;loudly&nbsp;at&nbsp;boot.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-register_platform_scopes"><strong>register_platform_scopes</strong></a>() -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;platform's&nbsp;reference&nbsp;scopes&nbsp;(idempotent,&nbsp;boot-time).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-load_scopes_config"><strong>load_scopes_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;scopes&nbsp;section&nbsp;of&nbsp;the&nbsp;views&nbsp;config.</span></dd></dl>
+ <dl><dt><a name="-register_platform_scopes"><strong>register_platform_scopes</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;every&nbsp;declared&nbsp;scope&nbsp;(idempotent,&nbsp;boot-time).</span></dd></dl>
+ <dl><dt><a name="-scopes_from_config"><strong>scopes_from_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'dict[str, ScopeSpec]'</dt><dd><span class="code">Turn&nbsp;the&nbsp;YAML&nbsp;scopes&nbsp;into&nbsp;ScopeSpecs&nbsp;(fail&nbsp;loudly&nbsp;on&nbsp;a&nbsp;bad&nbsp;entry).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>AOE2_SCOPE</strong> = ScopeSpec(scope='games/aoe2', category_key='ui.p...ext', access='admin', position=None)), panels=())<br>
-<strong>BOT_SCOPE</strong> = ScopeSpec(scope='bot', category_key='ui.panels.c...ext', access='admin', position=None)), panels=())<br>
-<strong>GAMES_SCOPE</strong> = ScopeSpec(scope='games', category_key='ui.panels...ext', access='admin', position=None)), panels=())<br>
-<strong>MODS_SCOPE</strong> = ScopeSpec(scope='mods', category_key='ui.panels....ext', access='admin', position=None)), panels=())<br>
-<strong>ROOT_SCOPE</strong> = ScopeSpec(scope='root', category_key='', channel...xt', access='public', position=None)), panels=())<br>
-<strong>__all__</strong> = ['AOE2_SCOPE', 'BOT_SCOPE', 'GAMES_SCOPE', 'MODS_SCOPE', 'ROOT_SCOPE', 'register_platform_scopes']</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['load_scopes_config', 'register_platform_scopes', 'scopes_from_config']</td></tr></table>
 </body></html>

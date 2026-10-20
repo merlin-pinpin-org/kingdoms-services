@@ -55,7 +55,7 @@ Constraints&nbsp;baked&nbsp;in:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="ButtonDecl">class <strong>ButtonDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ButtonDecl">ButtonDecl</a>(target:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;label_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;admin:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;sync:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;action:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ButtonDecl">ButtonDecl</a>(target:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;label_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;admin:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;sync:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;action:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 One&nbsp;button&nbsp;of&nbsp;a&nbsp;view:&nbsp;a&nbsp;navigation&nbsp;target&nbsp;or&nbsp;a&nbsp;wired&nbsp;action.<br>
 &nbsp;<br>
@@ -76,7 +76,7 @@ action&nbsp;renders&nbsp;disabled&nbsp;—&nbsp;never&nbsp;a&nbsp;dead&nbsp;butt
 
 <dl><dt><a name="ButtonDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="ButtonDecl-__init__"><strong>__init__</strong></a>(self, target: 'str' = '', label_key: 'str' = '', admin: 'bool' = False, sync: 'bool' = False, disabled: 'bool' = False, action: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ButtonDecl-__init__"><strong>__init__</strong></a>(self, target: 'str' = '', label_key: 'str' = '', emoji: 'str' = '', admin: 'bool' = False, sync: 'bool' = False, disabled: 'bool' = False, action: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="ButtonDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -92,6 +92,8 @@ Data descriptors defined here:<br>
 </dl>
 <dl><dt><strong>disabled</strong></dt>
 </dl>
+<dl><dt><strong>emoji</strong></dt>
+</dl>
 <dl><dt><strong>label_key</strong></dt>
 </dl>
 <dl><dt><strong>sync</strong></dt>
@@ -100,13 +102,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'action': 'str', 'admin': 'bool', 'disabled': 'bool', 'label_key': 'str', 'sync': 'bool', 'target': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'action': 'str', 'admin': 'bool', 'disabled': 'bool', 'emoji': 'str', 'label_key': 'str', 'sync': 'bool', 'target': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'action': Field(name='action',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'admin': Field(name='admin',type='bool',default=False,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'disabled': Field(name='disabled',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync': Field(name='sync',type='bool',default=False,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'target': Field(name='target',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'action': Field(name='action',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'admin': Field(name='admin',type='bool',default=False,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'disabled': Field(name='disabled',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'emoji': Field(name='emoji',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync': Field(name='sync',type='bool',default=False,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'target': Field(name='target',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('target', 'label_key', 'admin', 'sync', 'disabled', 'action')</dl>
+<dl><dt><strong>__match_args__</strong> = ('target', 'label_key', 'emoji', 'admin', 'sync', 'disabled', 'action')</dl>
 
 </td></tr></table> <p>
 <table class="section">

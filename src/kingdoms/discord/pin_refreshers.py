@@ -50,7 +50,8 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return
-    from kingdoms.discord.home import HOME_MESSAGE_KEY, HOME_MESSAGE_PLATFORM, build_home_menu_view
+    from kingdoms.discord.home import HOME_MESSAGE_KEY, HOME_MESSAGE_PLATFORM
+    from kingdoms.discord.views_routing import build_declared_menu
 
     try:
         registered = await registry.resolve(HOME_MESSAGE_PLATFORM, HOME_MESSAGE_KEY, guild_id)
@@ -58,7 +59,8 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
             return
         channel = guild.get_channel(int(registered.channel_id))
         message = await channel.fetch_message(int(registered.message_id))
-        await message.edit(view=await build_home_menu_view(bot, guild_id))
+        builder = build_declared_menu(bot, "menu:home")
+        await message.edit(view=await builder(guild_id))
     except Exception:
         logger.warning("home pin refresh failed — best-effort", exc_info=True)
 

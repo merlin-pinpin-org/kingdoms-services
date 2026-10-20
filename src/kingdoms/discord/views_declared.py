@@ -51,6 +51,7 @@ def _parse_button(view_id: str, raw: dict[str, Any]) -> ButtonDecl:
     button = ButtonDecl(
         target=str(raw.get("target", "") or ""),
         label_key=str(raw.get("label", "") or ""),
+        emoji=str(raw.get("emoji", "") or ""),
         admin=bool(raw.get("admin", False)),
         sync=bool(raw.get("sync", False)),
         disabled=bool(raw.get("disabled", False)),

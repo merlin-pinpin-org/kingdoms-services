@@ -315,8 +315,8 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
     # (views_declared), the legacy builders only serve the scopes no
     # declared view covers yet.
     declared_for = {
-        "root": {"home": "menu:home"},
-        "bot": {"admin": "menu:admin"},
+        "root": {"home": "menu:home", "legacy": "view:home"},
+        "bot": {"admin": "menu:admin", "legacy": "admin-panel"},
         "games": {"home": "menu:games:home", "admin": "menu:games:admin"},
         "games/aoe2": {"home": "menu:games:aoe2", "admin": "menu:game:aoe2:admin"},
         "mods": {"home": "menu:mods:home", "admin": "menu:mods:admin"},
@@ -336,6 +336,7 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
                     StaticPinnedView(
                         key=home_key,
                         mark_suffix=home_key,
+                        legacy_key=pins.get("legacy", ""),
                         resolve_channel=_scope_channel(scope, "general"),
                         build_layout=builder,
                         registry=registry,
@@ -355,6 +356,7 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
                     StaticPinnedView(
                         key=admin_key,
                         mark_suffix=admin_key,
+                        legacy_key=pins.get("legacy", ""),
                         resolve_channel=_scope_channel(scope, "admin"),
                         build_layout=builder,
                         registry=registry,

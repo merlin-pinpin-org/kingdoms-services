@@ -1,116 +1,66 @@
-"""The platform's channel-tree scopes — the reference tree, declared.
+"""The platform's channel-tree scopes — generated from views.yaml.
 
-One declaration per scope folder of docs/architecture/channel-tree.md
-(the kingdoms repo is the source of truth): `bot` (private), `games`,
-`games/aoe2`, `mods`. Each folder carries its channels with stable
-keys, i18n labels and access bands. Every resolution is persisted at
-provisioning time (stored channel ids) — the syncs and the pins
-resolve by those stored ids, never by the translated name.
-
-Registering at boot is enough: the provisioning applies the tree
-rules (canonical order, guild-locale naming, read-only menu channels,
-admin visibility), idempotently, in every guild.
+The scopes section of ``config/views.yaml`` is the single source of
+truth (kingdoms#179): the loader turns it into the ScopeSpec the
+Panels SDK provisions (channels, categories, access bands). The
+sync button re-provisions from the same declaration; a missing or
+broken section fails loudly at boot.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
+import yaml
+
 from kingdoms.discord.ui.panels import ChannelDecl, ScopeSpec
 
-ROOT_SCOPE = ScopeSpec(
-    scope="root",
-    category_key="",
-    channels=(
-        ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(key="discussions", label_key="ui.panels.channels.discussions"),
-    ),
-)
-
-BOT_SCOPE = ScopeSpec(
-    scope="bot",
-    category_key="ui.panels.categories.bot",
-    channels=(
-        ChannelDecl(
-            key="logs",
-            label_key="ui.panels.channels.logs",
-            access="admin"
-        ),
-        ChannelDecl(
-            key="admin",
-            label_key="ui.panels.channels.admin",
-            access="admin"
-        ),
-        ChannelDecl(
-            key="decisions",
-            label_key="ui.panels.channels.decisions",
-            access="admin",
-        ),
-    ),
-)
-
-GAMES_SCOPE = ScopeSpec(
-    scope="games",
-    category_key="ui.panels.categories.games",
-    channels=(
-        ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
-    ),
-)
-
-AOE2_SCOPE = ScopeSpec(
-    scope="games/aoe2",
-    category_key="ui.panels.categories.games_aoe2",
-    channels=(
-        ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(
-            key="live",
-            label_key="ui.panels.channels.live",
-            access="readonly"
-        ),
-        ChannelDecl(
-            key="civs",
-            label_key="ui.panels.channels.civs",
-            kind="forum",
-            access="readonly"
-        ),
-        ChannelDecl(
-            key="maps",
-            label_key="ui.panels.channels.maps",
-            kind="forum",
-            access="readonly"
-        ),
-        ChannelDecl(
-            key="map-pools",
-            label_key="ui.panels.channels.map_pools",
-            kind="forum",
-            access="readonly"
-        ),
-        ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
-    ),
-)
-
-MODS_SCOPE = ScopeSpec(
-    scope="mods",
-    category_key="ui.panels.categories.mods",
-    channels=(
-        ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
-    ),
-)
+CONFIG = Path("config/views.yaml")
 
 
-def register_platform_scopes() -> None:
-    """Register the platform's reference scopes (idempotent, boot-time)."""
+def load_scopes_config(config_dir: Path | str | None = None) -> dict[str, Any]:
+    """Read the scopes section of the views config."""
+    path = Path(config_dir) / "views.yaml" if config_dir else CONFIG
+    with open(path, encoding="utf-8") as fh:
+        data = yaml.safe_load(fh)
+    scopes = (data or {}).get("scopes")
+    if not isinstance(scopes, dict):
+        raise ValueError(f"{path}: the views config must carry a 'scopes' mapping")
+    return scopes
+
+
+def scopes_from_config(config_dir: Path | str | None = None) -> dict[str, ScopeSpec]:
+    """Turn the YAML scopes into ScopeSpecs (fail loudly on a bad entry)."""
+    scopes = load_scopes_config(config_dir)
+    out: dict[str, ScopeSpec] = {}
+    for scope, raw in scopes.items():
+        if not isinstance(raw, dict):
+            raise ValueError(f"views config: scope {scope!r} must be a mapping")
+        channels = []
+        for decl in raw.get("channels", []) or []:
+            channels.append(
+                ChannelDecl(
+                    key=str(decl["key"]),
+                    label_key=str(decl.get("label", "")),
+                    kind=str(decl.get("kind", "text")),
+                    access=str(decl.get("access", "public")),
+                )
+            )
+        out[str(scope)] = ScopeSpec(
+            scope=str(scope),
+            category_key=str(raw.get("category", "") or ""),
+            channels=tuple(channels),
+        )
+    return out
+
+
+def register_platform_scopes(config_dir: Path | str | None = None) -> None:
+    """Register every declared scope (idempotent, boot-time)."""
     from kingdoms.discord.ui.panels import register_scope
 
-    for spec in (ROOT_SCOPE, BOT_SCOPE, GAMES_SCOPE, AOE2_SCOPE, MODS_SCOPE):
+    for spec in scopes_from_config(config_dir).values():
         register_scope(spec)
 
 
-__all__ = [
-    "AOE2_SCOPE",
-    "BOT_SCOPE",
-    "GAMES_SCOPE",
-    "MODS_SCOPE",
-    "ROOT_SCOPE",
-    "register_platform_scopes",
-]
+__all__ = ["load_scopes_config", "register_platform_scopes", "scopes_from_config"]

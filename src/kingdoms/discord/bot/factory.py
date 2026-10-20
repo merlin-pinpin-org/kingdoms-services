@@ -178,7 +178,6 @@ class KingdomsBot(discord.Client):
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
         self.live_client: Any = None
-        self._home_pin_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
     async def setup_hook(self) -> None:
@@ -238,7 +237,7 @@ class KingdomsBot(discord.Client):
             logger.info("REGISTRATION ENGINE STARTED (workflow store connected)")
         if getattr(self, "_home_pin_pending", False):
             self._home_pin_pending = False
-            self._home_pin_task = asyncio.create_task(_maintain_pinned_home_menu(self))
+    
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -557,40 +556,13 @@ class KingdomsBot(discord.Client):
             await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
     async def _register_pinned_menus(self: KingdomsBot) -> None:
-        """Declare every pinned menu (admin + game sections) once at boot."""
-        from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
+        """Declare every pinned menu once at boot.
 
-
-
-        async def _build_admin_panel(guild_id: str) -> Any:
-            """Build the admin panel layout for the static-pin registry."""
-            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
-
-            if self.logs_service is None:
-                return discord.ui.LayoutView(timeout=None)
-            try:
-                return await build_pin_main_menu(
-                    self.logs_service,
-                    guild_id,
-                    self.messages,
-                    "en",
-                    self.admin_channel_service,
-                )
-            except Exception:
-                logger.warning("admin panel build failed — best-effort", exc_info=True)
-                return discord.ui.LayoutView(timeout=None)
-
-        register_static_pin(
-            StaticPinnedView(
-                key="view:bot:admin",
-                mark_suffix="view:bot:admin",
-                legacy_key="admin-panel",
-                resolve_channel=self._resolve_admin_pin_channel,
-                build_layout=_build_admin_panel,
-                registry=getattr(self, "message_registry", None),
-            )
-        )
-
+        Every menu (home, admin, scopes) is declared through the views
+        registry (config/views.yaml): the scope pins own root/general,
+        bot/admin and every scope folder. No legacy pinned menu
+        remains — one declaration source, one builder.
+        """
     def _games_section_pin_specs(self: KingdomsBot, game_key: str) -> list[Any]:
         """Build the per-forum section pins for one game (aoe2).
 
@@ -660,20 +632,12 @@ class KingdomsBot(discord.Client):
         ]
 
     async def _ensure_pinned_menus(self: KingdomsBot, guild_id: str) -> None:
-        """Ensure every declared pinned menu exists (admin + game sections)."""
-        from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
+        """Ensure every declared pinned menu exists (the game sections).
 
-        if self.logs_service is None:
-            return
-        await ensure_pinned_admin_menu(
-            self,
-            guild_id,
-            self.logs_service,
-            self.roles_service,
-            self.admin_channel_service,
-            self.status_service.bot_admins,
-            self.messages,
-        )
+        The home/admin/scope menus ensure through the declared pins
+        (the registry); this pass covers the per-forum game sections.
+        """
+        await self._ensure_section_pins(guild_id)
 
     def _register_scope_pins(self: KingdomsBot) -> None:
         """Declare every scope's home and admin pins (idempotent)."""
@@ -1211,20 +1175,6 @@ def _build_home_provider(config: BotConfig) -> Any | None:
         return LibrematchAdapter(api_key=os.environ.get("AOE2_API_KEY", ""))
     except Exception:
         return None
-
-
-async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
-    """Keep the pinned home menu alive in every guild (self-healing)."""
-    from kingdoms.discord.home import ensure_pinned_home_menu
-
-    await asyncio.sleep(5)
-    while True:
-        for guild in list(bot.guilds):
-            try:
-                await ensure_pinned_home_menu(bot, str(guild.id))
-            except Exception:
-                logger.warning("PINNED HOME MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
-        await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
 
 def _build_permission_service(

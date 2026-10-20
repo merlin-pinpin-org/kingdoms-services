@@ -51,6 +51,7 @@ class ButtonDecl:
 
     target: str = ""
     label_key: str = ""
+    emoji: str = ""
     admin: bool = False
     sync: bool = False
     disabled: bool = False

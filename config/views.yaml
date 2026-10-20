@@ -15,6 +15,8 @@
 #   buttons   list of:
 #     target  the view id the button opens (menus) — must exist in
 #             this file; rendered as `view:open:<target>`.
+#     emoji   the button's emoji (a Discord-valid emoji; the padlock
+#             rides admin buttons, the gear rides sync buttons).
 #     label   the i18n key of the button's label.
 #     admin   true -> the padlock emoji 🔒, the most discreet style.
 #     sync    true -> the channels & roles ensure button (⚙️) — never
@@ -36,10 +38,13 @@ views:
     buttons: &home-buttons
       - target: panel:profile
         label: ui.homes.btn_profile
+        emoji: "\U0001F464"
       - target: menu:games:home
         label: ui.homes.btn_games
+        emoji: "\U0001F3AE"
       - target: menu:mods:home
         label: ui.homes.btn_mods
+        emoji: "\U0001F9E9"
       - target: menu:admin
         label: ui.homes.btn_admin
         admin: true
@@ -170,3 +175,92 @@ views:
 
   menu:mod:kingdom:admin:
     kind: menu
+
+# The channel tree — the scopes the platform provisions, declared here
+# (the single source of truth; panels_scopes mirrors it at boot until
+# the loader fully replaces it, then this section generates the
+# channels and categories, and the sync button recreates them).
+#
+# channel fields: key (stable resolution id), label (i18n key), kind
+# (text|forum), access (public|readonly|admin).
+
+scopes:
+
+  root:
+    channels:
+      - key: general
+        label: ui.panels.channels.general
+        kind: text
+        access: readonly
+      - key: discussions
+        label: ui.panels.channels.discussions
+        kind: text
+        access: public
+
+  bot:
+    category: ui.panels.categories.bot
+    channels:
+      - key: logs
+        label: ui.panels.channels.logs
+        kind: text
+        access: admin
+      - key: admin
+        label: ui.panels.channels.admin
+        kind: text
+        access: admin
+      - key: decisions
+        label: ui.panels.channels.decisions
+        kind: text
+        access: admin
+
+  games:
+    category: ui.panels.categories.games
+    channels:
+      - key: general
+        label: ui.panels.channels.general
+        kind: text
+        access: readonly
+      - key: admin
+        label: ui.panels.channels.admin
+        kind: text
+        access: admin
+
+  games/aoe2:
+    category: ui.panels.categories.games_aoe2
+    channels:
+      - key: general
+        label: ui.panels.channels.general
+        kind: text
+        access: readonly
+      - key: live
+        label: ui.panels.channels.live
+        kind: text
+        access: readonly
+      - key: civs
+        label: ui.panels.channels.civs
+        kind: forum
+        access: readonly
+      - key: maps
+        label: ui.panels.channels.maps
+        kind: forum
+        access: readonly
+      - key: map-pools
+        label: ui.panels.channels.map_pools
+        kind: forum
+        access: readonly
+      - key: admin
+        label: ui.panels.channels.admin
+        kind: text
+        access: admin
+
+  mods:
+    category: ui.panels.categories.mods
+    channels:
+      - key: general
+        label: ui.panels.channels.general
+        kind: text
+        access: readonly
+      - key: admin
+        label: ui.panels.channels.admin
+        kind: text
+        access: admin
