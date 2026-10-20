@@ -128,7 +128,12 @@ def test_console_view_buttons_disabled_outside_allowlist(monkeypatch: Any) -> No
         states: list[bool] = []
         while stack:
             item = stack.pop()
-            if "Button" in type(item).__name__:
+            if type(item).__name__ in (
+                "DevCleanManagedButton",
+                "DevNukeButton",
+                "DevResetDataButton",
+                "DevInstallButton",
+            ):
                 states.append(bool(item.item.disabled))
             stack.extend(getattr(item, "children", []) or [])
         return states

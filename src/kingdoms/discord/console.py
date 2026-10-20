@@ -39,9 +39,8 @@ import re
 from typing import Any
 
 import discord
-from discord import app_commands
 
-from kingdoms.discord.console_guilds import allowed_test_guild_ids, is_test_guild
+from kingdoms.discord.console_guilds import is_test_guild
 from kingdoms.discord.guards import require_admin
 
 logger = logging.getLogger("kingdoms.discord.console")
@@ -49,7 +48,6 @@ logger = logging.getLogger("kingdoms.discord.console")
 __all__ = [
     "CONSOLE_ENV_VAR",
     "console_enabled",
-    "register_console",
 ]
 
 CONSOLE_ENV_VAR = "KINGDOMS_DEV_CONSOLE"
@@ -148,8 +146,27 @@ async def _nuke_everything_for_guild(guild: discord.Guild) -> tuple[int, int]:
     """Delete every channel and role of the guild; return (channels, roles).
 
     Guild-based seam: the Discord callbacks and the headless CLI
-    (kingdoms.cli.console_ops) share this one implementation.
+    (kingdoms.cli.console_ops) share this one implementation. The
+    guild is quiesced first (console_quiesce): the running bot's
+    self-healing surfaces (live dashboard, boot provisioning) skip the
+    guild while the marker is up, so nothing is recreated mid-nuke.
     """
+    from kingdoms.discord.console_quiesce import quiesce_guild, release_guild
+
+    await quiesce_guild(_client_of(guild), guild.id)
+    try:
+        return await _nuke_everything_for_guild_inner(guild)
+    finally:
+        await release_guild(_client_of(guild), guild.id)
+
+
+def _client_of(guild: discord.Guild) -> discord.Client:
+    """Recover the client from a guild object (discord.py state seam)."""
+    return guild._state._get_client()
+
+
+async def _nuke_everything_for_guild_inner(guild: discord.Guild) -> tuple[int, int]:
+    """Delete every channel and role of the guild (quiesce is held by the caller)."""
     channels_deleted = 0
     roles_deleted = 0
     for channel in list(getattr(guild, "channels", ()) or ()):
@@ -369,6 +386,9 @@ def _console_view(guild_id: str | int | None) -> discord.ui.LayoutView:
     row.add_item(DevInstallButton(disabled=not allowed))
     container.add_item(row)
     view.add_item(container)
+    back_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    back_row.add_item(ConsoleBackButton())
+    view.add_item(back_row)
     return view
 
 
@@ -608,40 +628,79 @@ class DevInstallModal(discord.ui.Modal):
         await interaction.followup.send(f"Install applied.\n{summary}", ephemeral=True)
 
 
-def register_console(
-    tree: app_commands.CommandTree[discord.Client],
-    bot_admins: tuple[str, ...] = (),
-) -> None:
-    """Register the /console command (call only when console_enabled()).
+PIN_CONSOLE_BUTTON_ID = "admin:pin:button:console"
+CONSOLE_BACK_BUTTON_ID = "console:back"
 
-    The registration itself is the first prod barrier: CI, unit tests
-    and production boots never register the command, so it cannot be
-    invoked at all. The runtime gates are the second and third: the
-    deploy env (never prod) and the test-guild allowlist (empty
-    allowlist \u2192 fail closed, no console anywhere).
+
+class AdminConsoleButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{PIN_CONSOLE_BUTTON_ID}",
+):
+    """The /admin panel's console opener (test environments only).
+
+    Rendered by ``build_pin_main_menu`` when the boot opted in
+    (``KINGDOMS_DEV_CONSOLE``); the click re-runs the full console
+    guard (bot admin, never prod, test-guild allowlist) before opening
+    the console view — the mandate: seeing the button never implies
+    being allowed to click it.
     """
-    if not allowed_test_guild_ids():
-        logger.warning(
-            "CONSOLE allowlist empty (KINGDOMS_TEST_GUILD_IDS): the action "
-            "buttons will render disabled everywhere"
-        )
-    admins = bot_admins
 
-    @tree.command(
-        name="console",
-        description="Ops console (bot admins only)",
-    )
-    @app_commands.default_permissions(administrator=True)
-    async def console_command(interaction: discord.Interaction) -> None:
-        if interaction.guild_id is None:
-            await interaction.response.send_message("The console runs in a guild only.", ephemeral=True)
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="\u2699 Console",
+                style=discord.ButtonStyle.danger,
+                custom_id=PIN_CONSOLE_BUTTON_ID,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> AdminConsoleButton:
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if _deploy_env() in PROD_ENV_NAMES or not is_test_guild(interaction.guild_id):
+            await interaction.response.edit_message(view=_console_view(interaction.guild_id))
             return
-        if _deploy_env() in PROD_ENV_NAMES:
-            await interaction.response.send_message(_prod_refusal(), ephemeral=True)
+        if not await _guard(interaction):
             return
-        roles = getattr(interaction.client, "roles_service", None)
-        if not await require_admin(
-            interaction, admins, roles, denied_message="The console is reserved for bot admins."
-        ):
-            return
-        await interaction.response.send_message(view=_console_view(interaction.guild_id), ephemeral=True)
+        await interaction.response.edit_message(view=_console_view(interaction.guild_id))
+
+
+class ConsoleBackButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{CONSOLE_BACK_BUTTON_ID}",
+):
+    """Return from the console view to the /admin main menu."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="\u2190 Admin",
+                style=discord.ButtonStyle.secondary,
+                custom_id=CONSOLE_BACK_BUTTON_ID,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> ConsoleBackButton:
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        from kingdoms.discord.admin_persistent import _handle_back
+
+        await _handle_back(interaction)

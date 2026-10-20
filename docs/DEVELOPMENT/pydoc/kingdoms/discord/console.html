@@ -46,25 +46,17 @@ Capabilities:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
-<a href="discord.html">discord</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
 </td><td class="multicolumn"><a href="logging.html">logging</a><br>
-<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
 </td><td class="multicolumn"><a href="re.html">re</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-console_enabled"><strong>console_enabled</strong></a>(environ: 'dict[str, str] | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;this&nbsp;boot&nbsp;must&nbsp;register&nbsp;the&nbsp;dev&nbsp;console&nbsp;(opt-in&nbsp;only).</span></dd></dl>
- <dl><dt><a name="-register_console"><strong>register_console</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/console&nbsp;command&nbsp;(call&nbsp;only&nbsp;when&nbsp;<a href="#-console_enabled">console_enabled</a>()).<br>
-&nbsp;<br>
-The&nbsp;registration&nbsp;itself&nbsp;is&nbsp;the&nbsp;first&nbsp;prod&nbsp;barrier:&nbsp;CI,&nbsp;unit&nbsp;tests<br>
-and&nbsp;production&nbsp;boots&nbsp;never&nbsp;register&nbsp;the&nbsp;command,&nbsp;so&nbsp;it&nbsp;cannot&nbsp;be<br>
-invoked&nbsp;at&nbsp;all.&nbsp;The&nbsp;runtime&nbsp;gates&nbsp;are&nbsp;the&nbsp;second&nbsp;and&nbsp;third:&nbsp;the<br>
-deploy&nbsp;env&nbsp;(never&nbsp;prod)&nbsp;and&nbsp;the&nbsp;test-guild&nbsp;allowlist&nbsp;(empty<br>
-allowlist&nbsp;→&nbsp;fail&nbsp;closed,&nbsp;no&nbsp;console&nbsp;anywhere).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -72,5 +64,5 @@ allowlist&nbsp;→&nbsp;fail&nbsp;closed,&nbsp;no&nbsp;console&nbsp;anywhere).</
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>CONSOLE_ENV_VAR</strong> = 'KINGDOMS_DEV_CONSOLE'<br>
-<strong>__all__</strong> = ['CONSOLE_ENV_VAR', 'console_enabled', 'register_console']</td></tr></table>
+<strong>__all__</strong> = ['CONSOLE_ENV_VAR', 'console_enabled']</td></tr></table>
 </body></html>

@@ -163,6 +163,7 @@ class KingdomsBot(discord.Client):
         self.registration_service: RegistrationService | None = None
         self.identity_service: IdentityService | None = None
         self.home_channel_service: Any | None = None
+        self._console_enabled: bool = False
         self.staff_service: Any | None = None
         self.home_service: Any | None = None
         self.message_registry: Any | None = None
@@ -316,6 +317,11 @@ class KingdomsBot(discord.Client):
         admin_ids = self.status_service.bot_admins
         for guild in list(self.guilds):
             guild_id = str(guild.id)
+            from kingdoms.discord.console_quiesce import guild_quiesced
+
+            if await guild_quiesced(self, guild_id):
+                logger.info("DEFAULT CHANNEL provisioning skipped (guild %s) — quiesced by a console action", guild_id)
+                continue
             if self.logs_service is not None:
                 try:
                     await self.logs_service.resolve_channel(guild_id)
@@ -542,11 +548,11 @@ class KingdomsBot(discord.Client):
 
 
 def console_enabled() -> bool:
-    """Whether this boot opts into the /console command (test envs only).
+    """Whether this boot opts into the console button (test envs only).
 
-    The opt-in registers the command (its action buttons stay disabled
-    outside the allowlist); without it the command is never registered,
-    so it cannot be invoked at all.
+    The opt-in renders the console section in the /admin panel (its
+    action buttons stay disabled outside the allowlist); without it
+    the section is absent and the console unreachable from Discord.
     """
     from kingdoms.discord.console import CONSOLE_ENV_VAR
     from kingdoms.discord.console import console_enabled as _enabled
@@ -665,10 +671,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     set_guild_access_platform(games, tuple(registry.enabled()))
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
-    if console_enabled():
-        from kingdoms.discord.console import register_console
-
-        register_console(bot.tree, bot_admins=status.bot_admins)
+    bot._console_enabled = console_enabled()
     return bot
 
 

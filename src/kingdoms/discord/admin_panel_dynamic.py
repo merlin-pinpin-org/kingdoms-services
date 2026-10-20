@@ -445,6 +445,13 @@ def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.Layout
     return row
 
 
+def _console_boot_enabled() -> bool:
+    """Whether this boot opted into the console (KINGDOMS_DEV_CONSOLE)."""
+    from kingdoms.discord.console import CONSOLE_ENV_VAR, console_enabled
+
+    return console_enabled({CONSOLE_ENV_VAR: __import__("os").environ.get(CONSOLE_ENV_VAR, "")})
+
+
 async def build_pin_main_menu(
     logs_service: LogService,
     guild_id: str,
@@ -495,6 +502,20 @@ async def build_pin_main_menu(
         ),
         _access_request_row(guild_id),
     ]
+    from kingdoms.discord.console import AdminConsoleButton
+
+    if _console_boot_enabled():
+        container_blocks.append(discord.ui.Separator())
+        container_blocks.append(discord.ui.TextDisplay("## \u2699 Console"))
+        container_blocks.append(
+            discord.ui.TextDisplay(
+                "Actions de test (clean managed, nuke, reset data, install) \u2014 "
+                "r\u00e9serv\u00e9es aux bot admins, uniquement sur les guildes de test allowlist\u00e9es."
+            )
+        )
+        console_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        console_row.add_item(AdminConsoleButton())
+        container_blocks.append(console_row)
     from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
 
     if registered_admin_core_sections():

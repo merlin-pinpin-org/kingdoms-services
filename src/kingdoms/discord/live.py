@@ -371,6 +371,10 @@ async def ensure_live_dashboard(
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return False
+    from kingdoms.discord.console_quiesce import guild_quiesced
+
+    if await guild_quiesced(bot, guild_id):
+        return False
     channel = await ensure_live_dashboard_channel(guild)
     try:
         snapshot = await client.watch(GAME_KEY)
