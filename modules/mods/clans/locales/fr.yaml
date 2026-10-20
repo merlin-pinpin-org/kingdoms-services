@@ -1,0 +1,9 @@
+fr:
+  clans:
+    title: "Clans"
+    dashboard_empty: "Aucun clan pour l'instant — le premier est à créer."
+    dashboard_count: "{count} clans"
+    members: "membres"
+    join_button: "Demander à rejoindre"
+    created: "Clan **{name}** créé — tu en es le chef."
+    left: "Tu as quitté le clan."
