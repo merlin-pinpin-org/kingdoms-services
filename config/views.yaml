@@ -21,6 +21,10 @@ views:
     kind: menu
     scope: bot/admin
     buttons:
+    - target: ''
+      label: ui.homes.btn_language
+      action: set-language
+      emoji: 🌐
     - target: panel:status
       label: ui.homes.btn_status
       emoji: 📊

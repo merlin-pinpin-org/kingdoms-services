@@ -194,6 +194,73 @@ def register_view_router(bot: discord.Client) -> None:
     bot.add_dynamic_items(ActionButton)
 
 
+LOCALE_LABELS = {"en": "\U0001F1EC\U0001F1E7 English", "fr": "\U0001F1EB\U0001F1F7 Fran\u00e7ais"}
+
+
+class LanguageModal(discord.ui.Modal):
+    """The language picker modal (guild or DM scope).
+
+    One labelled select, applied on submit: the stored choice wins
+    over every Discord signal (a non-Community server has no language
+    setting at all), the pins refresh in the chosen language.
+    """
+
+    def __init__(self, title: str, guild_scoped: bool) -> None:
+        super().__init__(title=title[:45], timeout=None)
+        self.guild_scoped = guild_scoped
+        self._select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=f"{ACT_NAMESPACE}:language-select",
+            options=[
+                discord.SelectOption(label=label, value=code)
+                for code, label in LOCALE_LABELS.items()
+            ],
+            placeholder=next(iter(LOCALE_LABELS.values())),
+        )
+        self.add_item(discord.ui.Label(text=title[:45], component=self._select))
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Persist the choice, refresh, confirm."""
+        from kingdoms.discord.commands_i18n import reply
+
+        value = ""
+        for item in self.walk_children():
+            select = getattr(item, "item", None) or item
+            if isinstance(select, discord.ui.Select):
+                value = str(select.values[0]) if select.values else ""
+                break
+        if not value:
+            await interaction.response.defer(ephemeral=True)
+            return
+        logs = getattr(interaction.client, "logs_service", None)
+        if logs is None:
+            await interaction.response.send_message(
+                await reply(interaction, "not_configured"), ephemeral=True
+            )
+            return
+        try:
+            if self.guild_scoped and interaction.guild_id:
+                await logs.set_locale(
+                    str(interaction.guild_id), value, by=str(interaction.user.id)
+                )
+            else:
+                await logs.set_user_locale(str(interaction.user.id), value)
+        except Exception:
+            import logging
+
+            logging.getLogger("kingdoms.views").warning(
+                "language set failed", exc_info=True
+            )
+            await interaction.response.defer(ephemeral=True)
+            return
+        if self.guild_scoped and interaction.guild_id:
+            from kingdoms.discord.pinned_views import refresh_registered_pins
+
+            await refresh_registered_pins(str(interaction.guild_id))
+        await interaction.response.send_message(
+            (await reply(interaction, "admin_replies.language_changed")), ephemeral=True
+        )
+
+
 __all__ = [
     "ACT_NAMESPACE",
     "BUTTON_TEMPLATE",

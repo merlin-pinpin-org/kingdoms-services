@@ -187,6 +187,14 @@ en:
     admin_season_bad_days: Invalid duration (a number of days).
     admin_season_name_required: The name is required.
     admin_title_seasons: Ladder admin — seasons
+    join_failed: 'Could not join: {reason}'
+    join_no_profile: No linked AoE2 profile — use /game-link first.
+    join_unconfigured: Registration is not configured — profiles cannot resolve.
+    joined_queue: You joined the queue.
+    leaderboard_empty: No players yet.
+    leave_failed: 'Could not leave: {reason}'
+    left_queue: You left the queue.
+    queue_empty: The queue is empty.
   errors:
     validation: Invalid input. Please check your values and try again.
     configuration: Configuration error. Please contact an administrator.
@@ -286,6 +294,7 @@ en:
     sync_title: AoE2 data sync
     sync_subtitle: Refreshes civilisations and maps from the aoe2techtree dataset.
     access_btn_manage: Manage access
+    menu_btn_language: Language
   channel_audit:
     clean: 'Channel audit: no drift detected.'
     header: 'Channel audit — {count} drift finding(s):'
@@ -446,6 +455,7 @@ en:
       btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.
       btn_sync: Sync now
+      btn_language: Language
     views:
       menu.home:
         title: 🏰 Kingdoms
@@ -476,3 +486,5 @@ en:
         ladder: Ladder
         tournament: Tournament
         kingdom: Kingdom
+  admin_tree:
+    language: 🌐 Language

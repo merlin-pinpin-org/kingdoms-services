@@ -484,8 +484,17 @@ class LogService:
         best = max(counts.items(), key=lambda kv: kv[1])[0]
         return best if best in SUPPORTED_LOCALES else "en"
 
+    async def set_user_locale(self, user_id: str, locale: str) -> None:
+        """Persist the user's DM language choice (the DM picker)."""
+        if locale not in SUPPORTED_LOCALES:
+            raise ValueError(f"unsupported locale: {locale!r}")
+        settings = await self._safe(self._db.get_user_settings(user_id)) or {}
+        settings["locale"] = locale
+        settings["updated_at"] = int(time.time())
+        await self._db.set_user_settings(user_id, settings)
+
     async def get_user_locale(self, user_id: str) -> str:
-        """Return the language the user was last seen using (en fallback)."""
+        """Return the user's DM language: the stored choice, the observed one."""
         try:
             settings = await self._safe(self._db.get_user_settings(user_id))
         except Exception:
@@ -494,16 +503,38 @@ class LogService:
         return locale if locale in SUPPORTED_LOCALES else "en"
 
     def set_locale_resolver(self, resolver: Any) -> None:
-        """Inject the native-locale resolver (guild id -> en/fr).
+        """Inject the fallback locale resolver (guild id -> en/fr).
 
-        The bot wires ``guild.preferred_locale`` here at startup: the
-        audit events follow the server's Discord language, with no
-        platform-stored locale setting left.
+        The stored guild choice (the admin language picker, bot/admin)
+        always wins; the resolver only serves the guilds that never
+        picked — Discord's own signal (preferred_locale), then the
+        members' observed majority.
         """
         self._locale_resolver = resolver
 
+    async def set_locale(self, guild_id: str, locale: str, by: str) -> None:
+        """Persist the guild's language choice (the admin picker)."""
+        if locale not in SUPPORTED_LOCALES:
+            raise ValueError(f"unsupported locale: {locale!r}")
+        settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
+        settings["locale"] = locale
+        settings["updated_at"] = int(time.time())
+        settings["updated_by"] = by
+        await self._db.set_guild_settings(guild_id, settings)
+        await self.log_event(
+            guild_id,
+            LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.language", locale, lang=locale, by=by)),
+        )
+
     async def get_locale(self, guild_id: str) -> str:
-        """Return the guild's native Discord locale through the resolver."""
+        """Return the guild's language: the stored choice, then the fallback."""
+        try:
+            settings = await self._safe(self._db.get_guild_settings(guild_id))
+        except Exception:
+            settings = None
+        stored = str((settings or {}).get("locale", ""))
+        if stored in SUPPORTED_LOCALES:
+            return stored
         if self._locale_resolver is None:
             return "en"
         try:

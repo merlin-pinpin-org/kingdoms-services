@@ -294,6 +294,7 @@ fr:
     sync_title: Sync des données AoE2
     sync_subtitle: Rafraîchit les civilisations et maps depuis le dataset aoe2techtree.
     access_btn_manage: Gérer les accès
+    menu_btn_language: Langue
   channel_audit:
     clean: 'Audit des canaux : aucun écart détecté.'
     header: 'Audit des canaux — {count} écart(s) :'
@@ -454,6 +455,7 @@ fr:
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
       btn_sync: Synchroniser
+      btn_language: Langue
     views:
       menu.home:
         title: 🏰 Kingdoms
@@ -484,3 +486,5 @@ fr:
         ladder: Ladder
         tournament: Tournoi
         kingdom: Kingdom
+  admin_tree:
+    language: 🌐 Langue

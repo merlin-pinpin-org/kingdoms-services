@@ -811,6 +811,16 @@ class KingdomsBot(discord.Client):
             item = GamesPoolCreateButton("aoe2")
             await item.callback(interaction)
 
+        async def _set_language(interaction: discord.Interaction) -> None:
+            """Open the guild language picker (the stored choice wins)."""
+            from kingdoms.discord.views_routing import LanguageModal
+
+            from . import home as _home  # noqa: F401  (locale rendering stays shared)
+            await interaction.response.send_modal(
+                LanguageModal("Langue / Language", guild_scoped=True)
+            )
+
+        wire_action("menu:admin", "set-language", _set_language)
         wire_action("menu:game:aoe2:admin", "import-map", _import_map)
         wire_action("menu:game:aoe2:admin", "bulk-import-map", _bulk_import_map)
         wire_action("menu:game:aoe2:admin", "create-pool", _create_pool)

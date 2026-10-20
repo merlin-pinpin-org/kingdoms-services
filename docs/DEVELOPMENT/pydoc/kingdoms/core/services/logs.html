@@ -142,9 +142,9 @@ the&nbsp;log&nbsp;trail&nbsp;stays&nbsp;readable.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-get_access_policy"><strong>get_access_policy</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;access&nbsp;policy&nbsp;(default:&nbsp;admin-only).</span></dd></dl>
 
-<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;native&nbsp;Discord&nbsp;locale&nbsp;through&nbsp;the&nbsp;resolver.</span></dd></dl>
+<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;language:&nbsp;the&nbsp;stored&nbsp;choice,&nbsp;then&nbsp;the&nbsp;fallback.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-get_user_locale"><strong>get_user_locale</strong></a>(self, user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;language&nbsp;the&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using&nbsp;(en&nbsp;fallback).</span></dd></dl>
+<dl><dt>async <a name="LogService-get_user_locale"><strong>get_user_locale</strong></a>(self, user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;DM&nbsp;language:&nbsp;the&nbsp;stored&nbsp;choice,&nbsp;the&nbsp;observed&nbsp;one.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-grant_role_view_access"><strong>grant_role_view_access</strong></a>(self, guild_id: 'str', role_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
 
@@ -187,11 +187,16 @@ The&nbsp;channel&nbsp;must&nbsp;already&nbsp;exist&nbsp;on&nbsp;the&nbsp;platfor
 it&nbsp;from&nbsp;the&nbsp;guild's&nbsp;channels);&nbsp;the&nbsp;current&nbsp;visibility&nbsp;policy&nbsp;is<br>
 re-applied&nbsp;on&nbsp;the&nbsp;new&nbsp;target&nbsp;so&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing.</span></dd></dl>
 
-<dl><dt><a name="LogService-set_locale_resolver"><strong>set_locale_resolver</strong></a>(self, resolver: 'Any') -&gt; 'None'</dt><dd><span class="code">Inject&nbsp;the&nbsp;native-locale&nbsp;resolver&nbsp;(guild&nbsp;id&nbsp;-&gt;&nbsp;en/fr).<br>
+<dl><dt>async <a name="LogService-set_locale"><strong>set_locale</strong></a>(self, guild_id: 'str', locale: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;language&nbsp;choice&nbsp;(the&nbsp;admin&nbsp;picker).</span></dd></dl>
+
+<dl><dt><a name="LogService-set_locale_resolver"><strong>set_locale_resolver</strong></a>(self, resolver: 'Any') -&gt; 'None'</dt><dd><span class="code">Inject&nbsp;the&nbsp;fallback&nbsp;locale&nbsp;resolver&nbsp;(guild&nbsp;id&nbsp;-&gt;&nbsp;en/fr).<br>
 &nbsp;<br>
-The&nbsp;bot&nbsp;wires&nbsp;``guild.preferred_locale``&nbsp;here&nbsp;at&nbsp;startup:&nbsp;the<br>
-audit&nbsp;events&nbsp;follow&nbsp;the&nbsp;server's&nbsp;Discord&nbsp;language,&nbsp;with&nbsp;no<br>
-platform-stored&nbsp;locale&nbsp;setting&nbsp;left.</span></dd></dl>
+The&nbsp;stored&nbsp;guild&nbsp;choice&nbsp;(the&nbsp;admin&nbsp;language&nbsp;picker,&nbsp;bot/admin)<br>
+always&nbsp;wins;&nbsp;the&nbsp;resolver&nbsp;only&nbsp;serves&nbsp;the&nbsp;guilds&nbsp;that&nbsp;never<br>
+picked&nbsp;—&nbsp;Discord's&nbsp;own&nbsp;signal&nbsp;(preferred_locale),&nbsp;then&nbsp;the<br>
+members'&nbsp;observed&nbsp;majority.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-set_user_locale"><strong>set_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;user's&nbsp;DM&nbsp;language&nbsp;choice&nbsp;(the&nbsp;DM&nbsp;picker).</span></dd></dl>
 
 <dl><dt>async <a name="LogService-set_visibility"><strong>set_visibility</strong></a>(self, guild_id: 'str', public: 'bool', by: 'str') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;logs&nbsp;channel&nbsp;visibility&nbsp;(public/admin-only);&nbsp;audited.<br>
 &nbsp;<br>

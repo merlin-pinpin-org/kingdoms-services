@@ -124,6 +124,7 @@ async def build_admin_dm_panel(
     )
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(DmOpenButton("servers", _dm_tr(interaction, dm_locale, "menu_btn_servers")))
+    row.add_item(DmOpenButton("language", _dm_tr(interaction, dm_locale, "menu_btn_language")))
     row.add_item(DmOpenButton("sync", _dm_tr(interaction, dm_locale, "menu_btn_sync")))
     view.add_item(row)
     return _view_footer(view, "view:dm:admin")
@@ -169,7 +170,7 @@ class DmOpenButton(
 ):
     """One DM menu opener: opens its section's ephemeral sub-view."""
 
-    SECTIONS = ("servers", "sync")
+    SECTIONS = ("language", "servers", "sync")
 
     def __init__(self, section: str, label: str, disabled: bool = False) -> None:
         self.section = section
@@ -196,6 +197,7 @@ class DmOpenButton(
             section = "language"
         dm_locale = await _dm_locale(interaction)
         labels = {
+            "language": "menu_btn_language",
             "servers": "menu_btn_servers",
             "sync": "menu_btn_sync",
         }
@@ -206,7 +208,13 @@ class DmOpenButton(
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
-        if self.section == "servers":
+        if self.section == "language":
+            from kingdoms.discord.views_routing import LanguageModal
+
+            await interaction.response.send_modal(
+                LanguageModal("Langue / Language", guild_scoped=False)
+            )
+        elif self.section == "servers":
             await _open_servers(interaction)
         elif self.section == "sync":
             await _open_sync(interaction)
