@@ -61,26 +61,9 @@ def render_scopes(scopes: dict) -> list[str]:
     return lines
 
 
-def render(raw_views: dict, scopes: dict | None = None) -> str:
+def render_views(raw_views: dict) -> list[str]:
+    """Render one section per view with GitHub anchors and links."""
     lines: list[str] = []
-    lines.append("# VIEWS — the map of menus and panels")
-    lines.append("")
-    lines.append("<!-- Generated from kingdoms-services config/views.yaml — edit the")
-    lines.append("     YAML, then regenerate (scripts/generate_views_doc.py). -->")
-    lines.append("")
-    lines.append(
-        "Every view of the bot: its id, its kind (a **menu** only navigates; a"
-        " **panel** informs or acts), where it pins, and its buttons — each a"
-        " link to its target."
-    )
-    lines.append("")
-    lines.append("Shared rules:")
-    lines.append("")
-    lines.append("- an admin button carries the 🔒 emoji, the most discreet style;")
-    lines.append("- a sync button (channels & roles) carries the ⚙️ emoji;")
-    lines.append("- every view renders its id as its footer;")
-    lines.append("- caps: 20 maps/pool · 20 active pools/guild · 20 games · 20 mods.")
-    lines.append("")
     lines.append("## The views")
     lines.append("")
 
@@ -103,15 +86,15 @@ def render(raw_views: dict, scopes: dict | None = None) -> str:
                 label = b.get("label", "")
                 flags = []
                 if b.get("admin"):
-                    flags.append("🔒")
+                    flags.append("\U0001F512")
                 if b.get("sync"):
-                    flags.append("⚙️ sync")
+                    flags.append("\u2699\ufe0f sync")
                 if b.get("disabled"):
                     flags.append("*(disabled)*")
                 action = b.get("action", "")
                 if target:
                     lines.append(
-                        f"- → [`{target}`](#{anchor(target)}) — `{label}`"
+                        f"- \u2192 [`{target}`](#{anchor(target)}) — `{label}`"
                         + (" " + " ".join(flags) if flags else "")
                     )
                 elif action:
@@ -122,7 +105,30 @@ def render(raw_views: dict, scopes: dict | None = None) -> str:
         else:
             lines.append("_(no buttons — content comes from its wired handler)_")
             lines.append("")
+    return lines
 
+
+def render(raw_views: dict, scopes: dict | None = None) -> str:
+    lines: list[str] = []
+    lines.append("# VIEWS — the map of menus and panels")
+    lines.append("")
+    lines.append("<!-- Generated from kingdoms-services config/views.yaml — edit the")
+    lines.append("     YAML, then regenerate (scripts/generate_views_doc.py). -->")
+    lines.append("")
+    lines.append(
+        "Every view of the bot: its id, its kind (a **menu** only navigates; a"
+        " **panel** informs or acts), where it pins, and its buttons — each a"
+        " link to its target."
+    )
+    lines.append("")
+    lines.append("Shared rules:")
+    lines.append("")
+    lines.append("- an admin button carries the 🔒 emoji, the most discreet style;")
+    lines.append("- a sync button (channels & roles) carries the ⚙️ emoji;")
+    lines.append("- every view renders its id as its footer;")
+    lines.append("- caps: 20 maps/pool · 20 active pools/guild · 20 games · 20 mods.")
+    lines.append("")
+    lines.extend(render_views(raw_views))
     if scopes:
         lines.extend(render_scopes(scopes))
     lines.append("## Adding or moving a view")
