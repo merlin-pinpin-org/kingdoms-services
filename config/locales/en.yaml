@@ -58,12 +58,9 @@ en:
       add_success: ✅ Account linked — here is your updated profile.
       add_taken: This profile is already linked — remove it first or pick another one.
       add_game_unconfigured: 'Add failed: the game {game} is not configured for registration.'
-      add_unknown: 'Add failed: no profile found for {profile}. Paste your aoe2insights page URL (or the
-        id it holds) — the right id will be resolved automatically.'
-      add_provider_error: 'Add failed: the provider {provider} did not answer properly — the details go
-        to the admins (see the bot logs).'
-      add_not_configured: 'Add failed: the provider {provider} does not serve profile stats — see the
-        bot logs.'
+      add_unknown: 'Add failed: no profile found for {profile}. Paste your aoe2insights page URL (or the id it holds) — the right id will be resolved automatically.'
+      add_provider_error: 'Add failed: the provider {provider} did not answer properly — the details go to the admins (see the bot logs).'
+      add_not_configured: 'Add failed: the provider {provider} does not serve profile stats — see the bot logs.'
       remove_title: Remove accounts
       remove_placeholder: Accounts to remove...
       remove_label: Accounts to remove
@@ -225,9 +222,7 @@ en:
     visibility_placeholder: Visibility…
     route_placeholder: Route to a guild channel…
     not_provisioned: not provisioned yet
-    admin_channel_note: The admin channel visibility is governed by the bot-admins role (transparency
-      rule).
-      match reports.'
+    admin_channel_note: The admin channel visibility is governed by the bot-admins role (transparency rule). match reports.'
     route_failed: Routing failed — see the bot logs.
     visibility_failed: Visibility change failed — see the bot logs.
     no_service: Admin settings are unavailable (no LogService wired).
@@ -301,8 +296,7 @@ en:
     no_players: No linked players yet — link a profile with /game-link.
     all_offline: Everyone is offline for more than an hour.
     unavailable: 'Live dashboard unavailable: CORE_URI not configured.'
-    linked: Linked profile `{profile}` to <@{user}> — the dashboard will show it. Link more profiles by
-      running /game-link again.
+    linked: Linked profile `{profile}` to <@{user}> — the dashboard will show it. Link more profiles by running /game-link again.
     unlinked: Profile `{profile}` unlinked.
     no_link: No link found for profile `{profile}`.
     degraded: ⚠️ Providers unreachable — states may be stale, all shown offline.
@@ -314,8 +308,7 @@ en:
     creation_failed: Creation failed (name already taken?).
     edit_failed: Edit failed (see the logs).
     import_failed: Import failed (name already taken? see the logs).
-    liquipedia_unconfigured: Liquipedia import disabled — the LIQUIPEDIA_CONTACT variable is missing on
-      this environment.
+    liquipedia_unconfigured: Liquipedia import disabled — the LIQUIPEDIA_CONTACT variable is missing on this environment.
     pool_locked: This pool is locked — duplicate it to edit.
     guild_maps_only: Only guild-owned maps are editable.
     transition_failed: State transition failed (see the logs).
@@ -392,6 +385,8 @@ en:
       map_deleted: Map deleted
       map_disabled: Map disabled (archived) - reactivable
       pool_deleted: Pool deleted
+      homes:
+        aoe2: ⚔️ Age of Empires II
     panels:
       channels:
         general: 🗺️ general
@@ -414,8 +409,7 @@ en:
       games_home_title: 🎮 Games
       games_home_description: 'The server''s games: data forums, discussions and management.'
       games_aoe2_home_title: ⚔️ Age of Empires II
-      games_aoe2_home_description: The game's data — civilisations, maps and map pools — and its live
-        tracking.
+      games_aoe2_home_description: The game's data — civilisations, maps and map pools — and its live tracking.
       mods_home_title: 🧩 Mods
       mods_home_description: 'The server''s mods: data, discussions and management.'
       bot_home_title: 🤖 Bot
@@ -451,3 +445,34 @@ en:
       btn_create_pool: Create a map pool
       btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.
+      btn_sync: Channels & roles
+    views:
+      menu.home:
+        title: 🏰 Kingdoms
+        description: 'The starting point: your profile, the games, the mods and the admin.'
+      menu.admin:
+        title: 🛠️ Admin
+        description: 'The bot''s operation: status, games, mods, and the channels & roles sync.'
+      menu.games.home:
+        title: 🎮 Games
+        description: The games available on this server.
+      menu.games.admin:
+        title: 🎮 Games — admin
+        description: Manage the server's games.
+      menu.games.aoe2:
+        title: ⚔️ Age of Empires II
+        description: 'The game''s resources: channels, roles, live, players.'
+      menu.game.aoe2.admin:
+        title: ⚔️ Age of Empires II — admin
+        description: 'Manage the game''s data: maps, map pools, sync.'
+      menu.mods.home:
+        title: 🧩 Mods
+        description: The mods available on this server.
+      menu.mods.admin:
+        title: 🧩 Mods — admin
+        description: Manage the server's mods.
+    mods:
+      homes:
+        ladder: 🏆 Ladder
+        tournament: 🎯 Tournament
+        kingdom: 👑 Kingdom

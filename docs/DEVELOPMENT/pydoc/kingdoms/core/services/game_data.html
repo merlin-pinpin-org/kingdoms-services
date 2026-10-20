@@ -434,7 +434,9 @@ every&nbsp;map&nbsp;of&nbsp;the&nbsp;game&nbsp;(the&nbsp;admin&nbsp;views).</spa
 &nbsp;<br>
 Sections&nbsp;``maps``,&nbsp;``factions``&nbsp;(YAML&nbsp;section&nbsp;``civs``),&nbsp;``rules``:&nbsp;each&nbsp;a&nbsp;list&nbsp;of&nbsp;entries&nbsp;with<br>
 a&nbsp;``name``&nbsp;plus&nbsp;optional&nbsp;fields.&nbsp;Entries&nbsp;already&nbsp;present&nbsp;(same&nbsp;id)<br>
-are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.</span></dd></dl>
+are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.&nbsp;The&nbsp;platform&nbsp;carries<br>
+at&nbsp;most&nbsp;``MAX_GAMES``&nbsp;games&nbsp;—&nbsp;seeding&nbsp;a&nbsp;new&nbsp;game&nbsp;past&nbsp;the&nbsp;cap<br>
+fails&nbsp;loudly.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-send_map_pool_to_guild"><strong>send_map_pool_to_guild</strong></a>(self, entry_id: 'str', target_guild_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Send&nbsp;one&nbsp;pool&nbsp;to&nbsp;another&nbsp;guild:&nbsp;the&nbsp;received&nbsp;copy&nbsp;is&nbsp;locked.<br>
 &nbsp;<br>
@@ -676,8 +678,9 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>MAP_PACKS_COLLECTION</strong> = 'map_packs'<br>
 <strong>MAP_POOLS_COLLECTION</strong> = 'map_pools'<br>
 <strong>MAP_POOL_HISTORY_COLLECTION</strong> = 'map_pool_history'<br>
-<strong>MAX_ACTIVE_POOLS</strong> = 25<br>
-<strong>MAX_POOL_MAPS</strong> = 25<br>
+<strong>MAX_ACTIVE_POOLS</strong> = 20<br>
+<strong>MAX_GAMES</strong> = 20<br>
+<strong>MAX_POOL_MAPS</strong> = 20<br>
 <strong>POOL_STATES</strong> = ('draft', 'published', 'used', 'closed')<br>
 <strong>POOL_STATE_CLOSED</strong> = 'closed'<br>
 <strong>POOL_STATE_DRAFT</strong> = 'draft'<br>

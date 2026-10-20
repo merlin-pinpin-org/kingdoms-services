@@ -58,12 +58,9 @@ fr:
       add_success: ✅ Compte lié — voilà ton profil à jour.
       add_taken: Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil.
       add_game_unconfigured: 'Ajout échoué : le jeu {game} n''est pas configuré pour l''inscription.'
-      add_unknown: 'Ajout échoué : aucun profil trouvé pour {profile}. Colle l''URL de ta page aoe2insights
-        (ou l''id qu''elle contient) — le bon id sera récupéré automatiquement.'
-      add_provider_error: 'Ajout échoué : le provider {provider} ne répond pas correctement — le détail
-        part aux admins (vois les logs du bot).'
-      add_not_configured: 'Ajout échoué : le provider {provider} ne sert pas les stats de profil — vois
-        les logs du bot.'
+      add_unknown: 'Ajout échoué : aucun profil trouvé pour {profile}. Colle l''URL de ta page aoe2insights (ou l''id qu''elle contient) — le bon id sera récupéré automatiquement.'
+      add_provider_error: 'Ajout échoué : le provider {provider} ne répond pas correctement — le détail part aux admins (vois les logs du bot).'
+      add_not_configured: 'Ajout échoué : le provider {provider} ne sert pas les stats de profil — vois les logs du bot.'
       remove_title: Retirer des comptes
       remove_placeholder: Comptes à retirer...
       remove_label: Comptes à retirer
@@ -233,9 +230,7 @@ fr:
     visibility_placeholder: Visibilité…
     route_placeholder: Router vers un channel…
     not_provisioned: pas encore provisionné
-    admin_channel_note: La visibilité du channel admin est gouvernée par le rôle bot-admins (règle de
-      transparence).
-      inscription, rapports de match.'
+    admin_channel_note: La visibilité du channel admin est gouvernée par le rôle bot-admins (règle de transparence). inscription, rapports de match.'
     route_failed: Échec du routage — voir les logs du bot.
     visibility_failed: Échec du changement de visibilité — voir les logs du bot.
     no_service: Les réglages admin sont indisponibles (pas de LogService câblé).
@@ -309,8 +304,7 @@ fr:
     no_players: Aucun joueur lié — liez un profil avec /game-link.
     all_offline: Tout le monde est hors ligne depuis plus d'une heure.
     unavailable: 'Dashboard indisponible : CORE_URI n''est pas configuré.'
-    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez /game-link pour lier
-      d'autres profils.
+    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez /game-link pour lier d'autres profils.
     unlinked: Profil `{profile}` délié.
     no_link: Aucun lien pour le profil `{profile}`.
     degraded: ⚠️ Fournisseurs injoignables — états potentiellement périmés, tout le monde hors ligne.
@@ -322,8 +316,7 @@ fr:
     creation_failed: Création impossible (nom déjà pris ?).
     edit_failed: Modification impossible (voir les logs).
     import_failed: Import échoué (nom déjà pris ? voir les logs).
-    liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur
-      l’environnement.'
+    liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur l’environnement.'
     pool_locked: Ce pool est verrouillé — dupliquez-le pour l'éditer.
     guild_maps_only: Seules les maps du serveur sont modifiables.
     transition_failed: Transition impossible (voir les logs).
@@ -400,6 +393,8 @@ fr:
       map_deleted: Map supprimée
       map_disabled: Map désactivée (archivée) - réactivable
       pool_deleted: Pool supprimé
+      homes:
+        aoe2: ⚔️ Age of Empires II
     panels:
       channels:
         general: 🗺️ général
@@ -418,13 +413,11 @@ fr:
         mods: 🧩 mods
     homes:
       root_home_title: 🏰 Kingdoms
-      root_home_description: Bienvenue — chaque bouton ouvre une vue réservée à toi. Les échanges vont
-        dans 💬 discussions.
+      root_home_description: Bienvenue — chaque bouton ouvre une vue réservée à toi. Les échanges vont dans 💬 discussions.
       games_home_title: 🎮 Games
       games_home_description: 'Les jeux du serveur : forums de données, discussions et gestion.'
       games_aoe2_home_title: ⚔️ Age of Empires II
-      games_aoe2_home_description: Les données du jeu — civilisations, maps et map pools — et son suivi
-        live.
+      games_aoe2_home_description: Les données du jeu — civilisations, maps et map pools — et son suivi live.
       mods_home_title: 🧩 Mods
       mods_home_description: 'Les mods du serveur : données, discussions et gestion.'
       bot_home_title: 🤖 Bot
@@ -460,3 +453,34 @@ fr:
       btn_create_pool: Créer un map pool
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
+      btn_sync: Salons & rôles
+    views:
+      menu.home:
+        title: 🏰 Kingdoms
+        description: 'Le point de départ : ton profil, les jeux, les mods et l''admin.'
+      menu.admin:
+        title: 🛠️ Admin
+        description: 'L''exploitation du bot : statut, jeux, mods, et la synchronisation des salons et rôles.'
+      menu.games.home:
+        title: 🎮 Jeux
+        description: Les jeux disponibles sur ce serveur.
+      menu.games.admin:
+        title: 🎮 Jeux — admin
+        description: Gérer les jeux du serveur.
+      menu.games.aoe2:
+        title: ⚔️ Age of Empires II
+        description: 'Les ressources du jeu : salons, rôles, live, joueurs.'
+      menu.game.aoe2.admin:
+        title: ⚔️ Age of Empires II — admin
+        description: 'Gérer les données du jeu : maps, map pools, synchronisation.'
+      menu.mods.home:
+        title: 🧩 Mods
+        description: Les mods disponibles sur ce serveur.
+      menu.mods.admin:
+        title: 🧩 Mods — admin
+        description: Gérer les mods du serveur.
+    mods:
+      homes:
+        ladder: 🏆 Ladder
+        tournament: 🎯 Tournoi
+        kingdom: 👑 Kingdom

@@ -140,7 +140,13 @@ def load_mod_definitions(config_dir: Path) -> ModDefs:
     definitions: ModDefs = {}
     if not mods_dir.is_dir():
         return definitions
+    max_mods = 20
     for path in sorted(mods_dir.glob("*.yaml")):
+        if len(definitions) >= max_mods:
+            raise ValueError(
+                f"the platform carries at most {max_mods} mods ({mods_dir}); "
+                "disable one before declaring another"
+            )
         with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         if not isinstance(data, dict):

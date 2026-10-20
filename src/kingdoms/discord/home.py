@@ -246,6 +246,9 @@ async def _profile_followup(interaction: discord.Interaction, banner: str = "") 
         header = f"{header}\n\n{banner}"
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(header), *blocks))
     view.add_item(row)
+    from kingdoms.core.ids import footer
+
+    view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -990,6 +993,50 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
         )
     )
     await interaction.followup.send(view=view, ephemeral=True)
+
+
+def _view_users_for_game(game_key: str) -> Any:
+    """Build the players panel opener for one game (generic, per game).
+
+    The panel lists the registered players of that game — name and
+    linked account, one line each, capped at Discord's budget — with
+    the view id footer ``panel:game:<key>:players``.
+    """
+
+    async def _open(interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        bot = interaction.client
+        roster = getattr(bot, "_registration_database", None)
+        if roster is None:
+            await interaction.followup.send(await reply(interaction, "not_configured"), ephemeral=True)
+            return
+        try:
+            bindings = await roster.list_bindings_for_game(game_key)
+        except Exception:
+            logger.warning("PLAYERS PANEL roster read failed (%s)", game_key, exc_info=True)
+            bindings = []
+        lines_list: list[str] = []
+        for binding in bindings[:25]:
+            profile = binding.get("profile") or {}
+            name = str(profile.get("display_name") or profile.get("name") or "") or "?"
+            pid = str(binding.get("profile_id", "?"))
+            url = _game_account_url(game_key, pid)
+            account = f"[{name}]({url})" if url else name
+            lines_list.append(f"\u2022 {account} (`{pid}`)")
+        body = "\n".join(lines_list) if lines_list else await reply(interaction, "profile.no_members_bound")
+        from kingdoms.core.ids import footer
+
+        view = discord.ui.LayoutView(timeout=None)
+        view.add_item(
+            discord.ui.Container(
+                discord.ui.TextDisplay(f"# \U0001f465 {game_key}\n\n{body}"),
+                accent_colour=discord.Colour(0x5865F2),
+            )
+        )
+        view.add_item(discord.ui.TextDisplay(footer(f"panel:game:{game_key}:players")))
+        await interaction.followup.send(view=view, ephemeral=True)
+
+    return _open
 
 
 async def _view_admin(interaction: discord.Interaction) -> None:

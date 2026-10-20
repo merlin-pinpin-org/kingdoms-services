@@ -78,6 +78,13 @@ mods, YAML configs.
   timestamps, never formatted strings — see kingdoms CONVENTIONS.md
   (*Guild-level settings and the admin surface*) and the discord-ui
   skill (*Times are Discord timestamps*).
+- **Menus vs panels (views registry):** every view is declared in
+  `views_declared.py` (the executable mirror of the kingdoms repo's
+  docs/DEVELOPMENT/VIEWS.md — read it before touching any surface).
+  A menu only navigates (its buttons open declared views through the
+  `view:open:<view id>` router); a panel informs or acts. Admin
+  buttons render with 🔒, sync buttons with 🔄. Declaring a menu
+  button whose target is undeclared is a drift the tests reject.
 - **Every view carries its view id as its footer** — a `-#` line with
   the id in backticks (`view:aoe2:admin`), built through
   `kingdoms.core.ids.footer` or `MenuSpec.view_id`. The id is the

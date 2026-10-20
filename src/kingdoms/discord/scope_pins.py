@@ -311,34 +311,69 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
 
     registry = getattr(bot, "message_registry", None)
     specs: list[Any] = []
+    # scope pin -> declared view id: the menus render from the registry
+    # (views_declared), the legacy builders only serve the scopes no
+    # declared view covers yet.
+    declared_for = {
+        "root": {"home": "menu:home"},
+        "bot": {"admin": "menu:admin"},
+        "games": {"home": "menu:games:home", "admin": "menu:games:admin"},
+        "games/aoe2": {"home": "menu:games:aoe2", "admin": "menu:game:aoe2:admin"},
+        "mods": {"home": "menu:mods:home", "admin": "menu:mods:admin"},
+    }
     for scope in scopes:
-        if scope not in ("root", "bot"):  # root's home is the legacy view:home spec
+        pins = declared_for.get(scope, {})
+        if "home" in pins or (scope not in ("root", "bot") and "home" not in pins):
             home_key = scope_view_key(scope, "home")
+            home_view_id = pins.get("home")
+            builder = (
+                _declared_menu_builder(bot, home_view_id)
+                if home_view_id is not None
+                else _home_builder(bot, scope)
+            )
             specs.append(
                 register_static_pin(
                     StaticPinnedView(
                         key=home_key,
                         mark_suffix=home_key,
                         resolve_channel=_scope_channel(scope, "general"),
-                        build_layout=_home_builder(bot, scope),
+                        build_layout=builder,
                         registry=registry,
                     )
                 )
             )
-        if scope != "root":  # the root has no admin channel of its own
+        if scope != "root" and "admin" not in ("root",):
             admin_key = scope_view_key(scope, "admin")
+            admin_view_id = pins.get("admin")
+            builder = (
+                _declared_menu_builder(bot, admin_view_id)
+                if admin_view_id is not None
+                else _admin_builder(bot, scope)
+            )
             specs.append(
                 register_static_pin(
                     StaticPinnedView(
                         key=admin_key,
                         mark_suffix=admin_key,
                         resolve_channel=_scope_channel(scope, "admin"),
-                        build_layout=_admin_builder(bot, scope),
+                        build_layout=builder,
                         registry=registry,
                     )
                 )
             )
     return specs
+
+
+def _declared_menu_builder(bot: Any, view_id: str) -> Any:
+    """Build a declared menu's pin builder (registry-driven layout)."""
+    from kingdoms.discord.views_routing import build_declared_menu
+
+    inner = build_declared_menu(bot, "", view_id)
+
+    async def _resolve_and_build(guild_id: str) -> Any:
+        return await inner(guild_id)
+
+    return _resolve_and_build
 
 
 __all__ = ["register_scope_pins"]

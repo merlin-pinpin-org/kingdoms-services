@@ -416,6 +416,9 @@ def build_announcement_layout(
     container = container.add(*_services_blocks(status, catalog))
     container = container.add(Separator())
     container = container.add(*_infra_blocks(status, catalog))
+    from kingdoms.core.ids import footer
+
+    container = container.add(Text(footer("panel:status")))
     return UILayout().add(container).build()
 
 

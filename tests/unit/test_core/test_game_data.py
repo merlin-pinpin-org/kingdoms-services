@@ -29,6 +29,14 @@ class FakeGameDataDatabase:
     def _collection(self, name: str) -> dict[str, dict[str, Any]]:
         return self.collections.setdefault(name, {})
 
+    async def find_game_keys(self) -> list[str]:
+        keys: set[str] = set()
+        for doc in self._collection("maps").values():
+            keys.add(str(doc.get("game_key", "")))
+        for doc in self._collection("factions").values():
+            keys.add(str(doc.get("game_key", "")))
+        return sorted(k for k in keys if k)
+
     async def upsert_entry(self, collection: str, document: dict[str, Any]) -> None:
         self._collection(collection)[document["_id"]] = document
 

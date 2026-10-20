@@ -223,6 +223,12 @@ class KingdomsBot(discord.Client):
         register_roles_admin_items(self)
         register_admin_dm_items(self)
         register_admin_tree_items(self)
+        from kingdoms.discord.views_declared import declare_platform_views
+        from kingdoms.discord.views_routing import register_view_router
+
+        declare_platform_views()
+        self._wire_declared_views()
+        register_view_router(self)
 
         if self.state_service is not None:
             await self.state_service.start()
@@ -803,6 +809,16 @@ class KingdomsBot(discord.Client):
         hourly pass recreates the missing post with its full layout.
         """
         return
+
+    def _wire_declared_views(self) -> None:
+        """Wire the declared views' open handlers (the router's targets)."""
+        from kingdoms.discord import home
+        from kingdoms.discord.views_routing import wire_view
+
+        wire_view("panel:profile", home._view_profile)
+        wire_view("panel:status", home._view_status)
+        wire_view("panel:game:aoe2:live", home._view_live)
+        wire_view("panel:game:aoe2:players", home._view_users_for_game("aoe2"))
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
         """Observe the clicker's Discord client language (best-effort).

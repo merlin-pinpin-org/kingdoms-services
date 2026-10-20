@@ -39,8 +39,9 @@ logger = logging.getLogger("kingdoms.core.game_data")
 T = TypeVar("T")
 
 MAPS_COLLECTION = "maps"
-MAX_POOL_MAPS = 25
-MAX_ACTIVE_POOLS = 25
+MAX_POOL_MAPS = 20
+MAX_ACTIVE_POOLS = 20
+MAX_GAMES = 20
 
 POOL_STATE_DRAFT = "draft"
 POOL_STATE_PUBLISHED = "published"
@@ -762,8 +763,16 @@ class GameDataService:
 
         Sections ``maps``, ``factions`` (YAML section ``civs``), ``rules``: each a list of entries with
         a ``name`` plus optional fields. Entries already present (same id)
-        are skipped, so seeding is safe to re-run.
+        are skipped, so seeding is safe to re-run. The platform carries
+        at most ``MAX_GAMES`` games — seeding a new game past the cap
+        fails loudly.
         """
+        known = await self.list_game_keys()
+        if game_key not in known and len(known) >= MAX_GAMES:
+            raise ValueError(
+                f"the platform carries at most {MAX_GAMES} games (got {len(known)}); "
+                "archive one before seeding another"
+            )
         counts = {"maps": 0, "factions": 0, "rules": 0}
         for spec in data.get("maps", []) or []:
             if await self.get_map(map_entry_id(game_key, spec["name"], None)) is not None:
