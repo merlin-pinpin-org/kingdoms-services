@@ -58,6 +58,8 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
         if registered is None:
             return
         channel = guild.get_channel(int(registered.channel_id))
+        if channel is None:
+            return  # the channel is gone; the static-pin sweep recreates the menu
         message = await channel.fetch_message(int(registered.message_id))
         builder = build_declared_menu(bot, "menu:home")
         await message.edit(view=await builder(guild_id))

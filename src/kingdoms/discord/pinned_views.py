@@ -209,6 +209,10 @@ async def refresh_pin_by_marker(
     True when a pin was refreshed.
     """
     for channel in list(getattr(guild, "channels", ()) or ()):
+        # categories and forums carry no pins — skip them instead of
+        # crashing the whole refresh cascade (AttributeError .pins())
+        if isinstance(channel, (discord.CategoryChannel, discord.ForumChannel)):
+            continue
         pins = None
         try:
             pins = await channel.pins()

@@ -37,6 +37,7 @@ en:
       reset: Access policy reset to admin-only, by <@{by}>.
       route: Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>.
       visibility: Bot logs visibility set to {state}, by <@{by}>.
+      language: 'Server language: {lang}, by <@{by}>.'
   replies:
     unavailable: Registration is unavailable.
     unavailable_deploy: Registration is unavailable on this deployment.

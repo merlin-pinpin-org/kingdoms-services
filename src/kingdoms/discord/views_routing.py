@@ -252,13 +252,24 @@ class LanguageModal(discord.ui.Modal):
             )
             await interaction.response.defer(ephemeral=True)
             return
-        if self.guild_scoped and interaction.guild_id:
-            from kingdoms.discord.pinned_views import refresh_registered_pins
-
-            await refresh_registered_pins(str(interaction.guild_id))
+        # Ack FIRST: the pin refresh is a slow cascade (provisioning reads),
+        # and an exception inside it must never eat the modal's answer
+        # (the 2026-10-20 Unknown interaction: the refresh crashed on a
+        # category channel, the ack never landed).
         await interaction.response.send_message(
             (await reply(interaction, "admin_replies.language_changed")), ephemeral=True
         )
+        if self.guild_scoped and interaction.guild_id:
+            from kingdoms.discord.pinned_views import refresh_registered_pins
+
+            try:
+                await refresh_registered_pins(str(interaction.guild_id))
+            except Exception:
+                import logging
+
+                logging.getLogger("kingdoms.views").warning(
+                    "pin refresh after language change failed — best-effort", exc_info=True
+                )
 
 
 __all__ = [

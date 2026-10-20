@@ -37,6 +37,7 @@ fr:
       reset: Politique d'accès réinitialisée (admins uniquement), par <@{by}>.
       route: Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>.
       visibility: 'Visibilité des logs : {state}, par <@{by}>.'
+      language: 'Langue du serveur : {lang}, par <@{by}>.'
   replies:
     unavailable: Inscription indisponible.
     unavailable_deploy: Inscription indisponible sur ce déploiement.
