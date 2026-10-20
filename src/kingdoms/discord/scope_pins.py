@@ -52,16 +52,16 @@ def _catalog(bot: Any) -> Any:
 
 def _tr(catalog: Any, key: str, locale: str, fallback: str = "") -> str:
     """Render one key; the fallback when unknown."""
+    if catalog is None:
+        return fallback or key
     rendered = catalog.render(key, locale)
     return rendered if rendered != key else (fallback or key)
 
 
 
-_ACCESS_LABELS = {
-    "public": "public (lecture + écriture pour tous)",
-    "readonly": "lecture seule (menus épinglés du bot uniquement)",
-    "admin": "admin (lecture + écriture pour les admins du bot)",
-}
+_LOCK = "\U0001F512"  # the admin/read-only marker; the live permissions
+# live on the Discord server (the overwrites), the notice describes
+# what the channel holds
 
 
 async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: str = "en") -> str:
@@ -79,17 +79,29 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
     if spec is None:
         return ""
     lines: list[str] = ["\U0001f4cb **Salons de ce périmètre** (générés par le bot) :"]
+    raw_channels = _declared_channel_meta(scope)
     for decl in spec.channels:
+        meta = raw_channels.get(decl.key, {})
         label = _tr(catalog, decl.label_key, locale, decl.label_key.rsplit(".", 1)[-1])
-        access = _ACCESS_LABELS.get(decl.access, decl.access)
+        description = str(meta.get("description", ""))
+        icon = "\U0001F9F5" if getattr(decl, "kind", "text") == "forum" else ""
+        lock = _LOCK if decl.access in ("admin", "readonly") else ""
         try:
             channel_id = await stored_channel_id(guild_id, scope, decl.key)
         except Exception:
             channel_id = None
-        where = f"<#{channel_id}>" if channel_id else label
-        shown = f"{where} — {access}" if channel_id else f"{label} — {access} (à créer)"
+        where = f"<#{channel_id}>" if channel_id else f"**{label}** (à créer)"
+        shown = f"{icon}{lock}{where} — {description}" if description else f"{icon}{lock}{where}"
         lines.append(f"• {shown}")
     return "\n".join(lines)
+
+
+def _declared_channel_meta(scope: str) -> dict[str, dict[str, Any]]:
+    """Return the scope's channel declarations' raw metadata (descriptions)."""
+    from kingdoms.discord.ui.panels_scopes import load_scopes_config
+
+    raw = load_scopes_config().get(scope, {})
+    return {str(c.get("key")): c for c in raw.get("channels", []) or []}
 
 
 
