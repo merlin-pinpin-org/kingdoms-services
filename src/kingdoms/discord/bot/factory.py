@@ -167,7 +167,6 @@ class KingdomsBot(discord.Client):
         self.registration_service: RegistrationService | None = None
         self.identity_service: IdentityService | None = None
         self.home_channel_service: Any | None = None
-        self.staff_service: Any | None = None
         self.home_service: Any | None = None
         self.message_registry: Any | None = None
         self.mod_home_builders: dict[str, Any] = {}
@@ -1051,11 +1050,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     else:
         bot.live_client = None
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
-    bot.staff_service = _build_staff_service(resolved, bot, admin_channel_service)
-    if bot.staff_service is not None:
-        from kingdoms.discord.staff import register_staff_surface
-
-        register_staff_surface(bot.tree, bot)
     if home_channel_service is not None:
         bot._home_pin_pending = True
     register_registration_command(
@@ -1103,50 +1097,6 @@ def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
 
     return asyncio.create_task(_run())
 
-
-def _build_staff_database(config: BotConfig) -> Any | None:
-    """Wire the staff persistence (Mongo); None unwired."""
-    if not config.mongo_uri:
-        return None
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.discord.staff_platform import MongoStaffDatabase
-
-        return MongoStaffDatabase(get_async_database())
-    except Exception:
-        return None
-
-
-def _build_staff_service(
-    config: BotConfig,
-    bot: KingdomsBot,
-    admin_channel_service: AdminChannelService | None,
-) -> Any | None:
-    """Wire the staff service: persistence + the admin-channel notice seam."""
-    database = _build_staff_database(config)
-    if database is None:
-        return None
-    from kingdoms.core.services.staff import StaffEvents, StaffService
-    from kingdoms.discord.staff import build_staff_notice
-
-    class _AdminNoticeEvents(StaffEvents):
-        """Deliver the staff notices to the guild's admin channel."""
-
-        async def notify_admins(self, message: str, payload: dict[str, Any]) -> None:
-            """Forward an admin notification into the guild admin salon."""
-            guild_id = str(payload.get("guild_id", ""))
-            if not guild_id or admin_channel_service is None:
-                return
-            user_id = str(payload.get("user_id", ""))
-            mod = str(payload.get("mod", ""))
-            if payload.get("kind") == "staff.applied" and user_id:
-                await admin_channel_service.deliver(
-                    guild_id,
-                    build_staff_notice(mod, user_id, str(payload.get("message", ""))),
-                    tuple(bot.status_service.bot_admins),
-                )
-
-    return StaffService(database, _AdminNoticeEvents())
 
 
 def _build_home_channel_service(
