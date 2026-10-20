@@ -86,8 +86,16 @@ class _Platform:
     def __init__(self) -> None:
         self.posts: list[tuple[str, str]] = []
 
-    async def create_map_post(self, guild_id: str, forum_id: str, name: str, content: str, view: Any = None) -> str:
-        del guild_id, forum_id, view
+    async def create_map_post(
+        self,
+        guild_id: str,
+        forum_id: str,
+        name: str,
+        content: str,
+        view: Any = None,
+        attachment: Any = None,
+    ) -> str:
+        del guild_id, forum_id, view, attachment
         self.posts.append((name, content))
         return "thread-1"
 

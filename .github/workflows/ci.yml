@@ -46,7 +46,7 @@ jobs:
           python-version: "3.12"
       - name: Run mypy
         run: |
-          uv sync
+          uv sync --group visuals
           uv run mypy src/
 
   test:
@@ -59,7 +59,7 @@ jobs:
           python-version: "3.12"
       - name: Run pytest
         run: |
-          uv sync
+          uv sync --group visuals --group dev
           uv run pytest
 
   cli-doctor:

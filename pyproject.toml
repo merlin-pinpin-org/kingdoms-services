@@ -30,6 +30,7 @@ build-backend = "hatchling.build"
 packages = ["src/kingdoms"]
 
 [dependency-groups]
+visuals = ["visual-generator"]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
@@ -82,3 +83,7 @@ pythonpath = [".github/workflows"]
 [[tool.mypy.overrides]]
 module = ["kingdoms.rpc_generated.*", "kingdoms.core.rpc.*", "kingdoms.core_process.*"]
 disable_error_code = ["no-untyped-def", "attr-defined", "no-untyped-call", "import-untyped", "name-defined", "type-arg", "arg-type", "assignment", "return-value"]
+
+[tool.uv.sources]
+# Pinned archive of the lib's main (becomes the PyPI/GitHub release once published)
+visual-generator = { url = "https://github.com/merlin-pinpin-org/visual-generator/archive/e92d719cbfda23cd9a13724053b434f3d0e944fb.tar.gz" }
