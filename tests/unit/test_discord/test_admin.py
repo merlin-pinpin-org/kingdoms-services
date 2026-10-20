@@ -8,8 +8,21 @@ import discord
 import pytest
 
 from kingdoms.discord.admin import register_admin_command
-from kingdoms.discord.admin_tree import _NS as TREE_NS
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
+
+
+def _declare_views() -> None:
+    from kingdoms.discord.views_declared import declare_views_from_config
+    from kingdoms.discord.views_registry import clear_registry
+
+    clear_registry()
+    declare_views_from_config("config")
+
+
+@pytest.fixture(autouse=True)
+def _views_declared() -> None:
+    """The /admin and /home commands route through the views registry."""
+    _declare_views()
 
 
 def _custom_ids(layout: discord.ui.LayoutView) -> list[str]:
@@ -59,18 +72,19 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
     interaction.guild_id = 42
     await command._callback(interaction)  # type: ignore[union-attr]
-    assert interaction.response.deferred is True, "the command answers immediately (defer)"
-    assert interaction.followup.messages, "the panel arrives through the followup"
+    # the declared router defers then follows up with the menu layout
+    assert interaction.followup.messages, "the declared menu arrives through the followup"
     layout = interaction.followup.messages[-1].layout
     assert isinstance(layout, discord.ui.LayoutView)
     customs = _custom_ids(layout)
     # the language button is gone: the locale follows the server's
     # native Discord language (Server Settings), nothing to manage.
-    assert f"{TREE_NS}:open:games" in customs, "the games admin button is on the main menu"
-    assert f"{TREE_NS}:open:mods" in customs, "the mods admin button is on the main menu"
-    assert any(c.startswith(f"{TREE_NS}:ensure:") for c in customs), "the ensure button is on the main menu"
-    # the channels/roles management views are gone: the tree is declared
-    # and provisioned, the homes explain it, the admins carry the ensure.
+    assert "view:open:menu:games:admin" in customs, "the games admin button is on the menu"
+    assert "view:open:menu:mods:admin" in customs, "the mods admin button is on the menu"
+    assert "view:open:panel:status" in customs, "the status button is on the menu"
+    assert any(":ensure:" in c for c in customs), "the sync button is on the menu"
+    # the menus are declared (config/views.yaml): the tree provisions from
+    # the same source and the sync button recreates the missing channels.
     await client.close()
 
 

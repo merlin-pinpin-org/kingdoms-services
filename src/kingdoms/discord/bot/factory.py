@@ -1021,9 +1021,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
             return self._builders.get(mod)
 
     bot.home_service = HomeService(registry, _DiscordModHomeViews(bot.mod_home_builders))
-    from kingdoms.discord.home import hold_home_bot
-
-    hold_home_bot(bot)
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
     import os as _os

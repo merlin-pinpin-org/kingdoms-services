@@ -251,31 +251,10 @@ def register_admin_command(
             )
             return
 
-        await interaction.response.defer(ephemeral=True)
-        try:
-            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+        from kingdoms.discord.views_routing import open_declared_view
 
-            locale = await logs_service.get_locale(guild_id)
-            panel = await build_pin_main_menu(
-                logs_service,
-                guild_id,
-                catalog,
-                locale,
-                admin_channel_service,
-            )
-        except Exception as exc:
-            logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
-            await _report_failure(error_reporter, interaction, exc)
-            detail = f"{type(exc).__name__}: {exc}"[:120]
-            await interaction.followup.send(
-                view=build_admin_note_view(
-                    _t(catalog, "en", "panel_failed", detail=discord.utils.escape_markdown(detail))
-                ),
-                ephemeral=True,
-            )
-            return
-
-        await interaction.followup.send(view=panel, ephemeral=True)
+        await open_declared_view(interaction, "menu:admin")
+        return
 
 
 async def guards_require(

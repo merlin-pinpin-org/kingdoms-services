@@ -110,70 +110,6 @@ class HomeButton(discord.ui.DynamicItem[discord.ui.Button[Any]], template=r"home
         await open_declared_view(interaction, _LEGACY_VIEW_KEYS.get(self.view_key, self.view_key))
 
 
-def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
-    """Build the home menu layout: one button per home view."""
-    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
-    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    for i, button in enumerate(home.buttons()):
-        if i and i % 5 == 0:
-            rows.append(row)
-            row = discord.ui.ActionRow()
-        row.add_item(
-            discord.ui.Button(
-                custom_id=f"home:open:{button.view}",
-                label=button.label,
-                emoji=discord.PartialEmoji.from_str(button.emoji) if button.emoji else None,
-                style=discord.ButtonStyle.secondary,
-            )
-        )
-    rows.append(row)
-    from kingdoms.discord.pinned_marks import pinned_mark
-
-    view = discord.ui.LayoutView(timeout=None)
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay("## 🏛 Kingdoms\nBienvenue — chaque bouton ouvre une vue réservée à toi."),
-            *rows,
-            discord.ui.TextDisplay(pinned_mark(HOME_MESSAGE_KEY)),
-        )
-    )
-    return view
-
-
-async def open_home_menu(interaction: discord.Interaction) -> None:
-    """Answer with the home menu itself (the back target of mod views)."""
-    home = getattr(interaction.client, "home_service", None)
-    if home is None:
-        await interaction.response.send_message(await reply(interaction, "menu_unavailable"), ephemeral=True)
-        return
-    await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
-
-
-async def open_home_view(interaction: discord.Interaction, view_key: str) -> None:
-    """Answer a home click with the matching ephemeral view."""
-    simple = {
-        "home": open_home_menu,
-        "status": _view_status,
-        "profile": _view_profile,
-        "games": _view_games,
-        "mods": _view_mods,
-        "live": _view_live,
-        "users": _view_users,
-        "admin": _view_admin,
-    }
-    handler = simple.get(view_key)
-    if handler is not None:
-        await handler(interaction)
-    elif view_key.startswith("guild-admin:"):
-        await _view_admin_for_guild(interaction, view_key[len("guild-admin:") :])
-    elif view_key.startswith("guild-games:"):
-        await _view_game_for_guild(interaction, view_key[len("guild-games:") :])
-    elif view_key.startswith("mod:"):
-        await _view_mod(interaction, view_key[4:])
-    else:
-        await interaction.response.send_message(await reply(interaction, "unknown_view"), ephemeral=True)
-
-
 async def _view_status(interaction: discord.Interaction) -> None:
     """Render the /status layout, ephemeral."""
     await interaction.response.defer(ephemeral=True)
@@ -646,16 +582,6 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             await _profile_followup(interaction)
 
 
-async def _view_games(interaction: discord.Interaction) -> None:
-    """Render the known games, their catalog sizes and provider status."""
-    from kingdoms.discord.guild_context import require_guild_context
-
-    guild_id = await require_guild_context(interaction, "guild-games:games")
-    if guild_id is None:
-        return
-    await _view_games_for_guild(interaction, guild_id)
-
-
 async def _tree_channel_link(guild_id: str, scope: str, key: str) -> str:
     """Resolve one tree channel into a Discord mention (empty when unknown)."""
     from kingdoms.discord.ui.panels_provisioning import stored_channel_id
@@ -761,71 +687,6 @@ async def _view_live(interaction: discord.Interaction) -> None:
     for embed in embeds:
         embed.set_footer(text="panel:game:aoe2:live")
     await interaction.followup.send(embed=embeds[0], ephemeral=True)
-
-
-async def _view_game_for_guild(interaction: discord.Interaction, game_key: str) -> None:
-    """One game's dashboard: players, civs, maps, pools + forum links."""
-    from kingdoms.discord.guild_context import require_guild_context
-
-    guild_id = await require_guild_context(interaction, f"guild-games:{game_key}")
-    if guild_id is None:
-        return
-    await interaction.response.defer(ephemeral=True)
-    from kingdoms.discord.admin_panel_games import _games_wiring
-
-    service = _games_wiring()
-    bot = interaction.client
-    players = 0
-    roster = getattr(bot, "_registration_database", None)
-    if roster is not None:
-        try:
-            players = len(await roster.list_bindings_for_game(game_key))
-        except Exception:
-            players = 0
-    civs = maps = pools = 0
-    if service is not None:
-        try:
-            civs = sum(1 for c in await service.list_factions(game_key) if c.archived_at is None)
-            maps = sum(1 for m in await service.list_maps(game_key) if m.archived_at is None)
-            pools = sum(1 for p in await service.list_map_pools(game_key) if p.archived_at is None)
-        except Exception:
-            logger.warning("GAME VIEW catalog read failed", exc_info=True)
-
-    civs_link = await _tree_channel_link(guild_id, f"games/{game_key}", "civs")
-    maps_link = await _tree_channel_link(guild_id, f"games/{game_key}", "maps")
-    pools_link = await _tree_channel_link(guild_id, f"games/{game_key}", "map-pools")
-
-    def bullet(label: str, count: int, lnk: str) -> str:
-        """Render one catalog line: count, and its channel when routed."""
-        text = f"\u2022 {label} : **{count}**"
-        return f"{text} \u2014 {lnk}" if lnk else text
-
-    lines = [
-        f"# \u2694\ufe0f {game_key}",
-        "",
-        f"\u2022 Joueurs avec un compte li\u00e9 : **{players}**",
-        bullet("Civs", civs, civs_link),
-        bullet("Maps", maps, maps_link),
-        bullet("Map pools", pools, pools_link),
-    ]
-    view = discord.ui.LayoutView(timeout=None)
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay("\n".join(lines)),
-            accent_colour=discord.Colour(0x5865F2),
-        )
-    )
-    await interaction.followup.send(view=view, ephemeral=True)
-
-
-async def _view_mods(interaction: discord.Interaction) -> None:
-    """Render the guild's granted mods with their channels."""
-    from kingdoms.discord.guild_context import require_guild_context
-
-    guild_id = await require_guild_context(interaction, "guild-mods:mods")
-    if guild_id is None:
-        return
-    await _view_mods_for_guild(interaction, guild_id)
 
 
 async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
@@ -950,20 +811,6 @@ async def _is_guild_member(guild: Any, user_id: int) -> bool:
         return False
 
 
-async def _view_users(interaction: discord.Interaction) -> None:
-    """Render the guild's roster: members with linked profiles (name + game)."""
-    registration = getattr(interaction.client, "registration_service", None)
-    if registration is None:
-        await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
-        return
-    from kingdoms.discord.guild_context import require_guild_context
-
-    guild_id = await require_guild_context(interaction, "guild-users:users")
-    if guild_id is None:
-        return
-    await _view_users_for_guild(interaction, guild_id)
-
-
 async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
     """Render the guild's roster (DM re-dispatch friendly: ack first)."""
     if not interaction.response.is_done():
@@ -1085,28 +932,16 @@ def _view_users_for_game(game_key: str) -> Any:
     return _open
 
 
-async def _view_admin(interaction: discord.Interaction) -> None:
-    """Open the admin panel ephemerally, guarded at click time."""
-    from kingdoms.discord.guild_context import require_guild_context
-
-    guild_id = await require_guild_context(interaction, "guild-admin:admin")
-    if guild_id is None:
-        return
-    await _view_admin_for_guild(interaction, guild_id)
-
-
 async def open_home_view_for_guild(interaction: discord.Interaction, view_key: str, guild_id: str) -> None:
-    """Re-dispatch a home view key with an explicit guild scope (DM pick)."""
-    if view_key.startswith("guild-admin:"):
-        await _view_admin_for_guild(interaction, guild_id)
-    elif view_key.startswith("guild-games:"):
-        await _view_game_for_guild(interaction, view_key[len("guild-games:") :])
-    elif view_key.startswith("guild-mods:"):
-        await _view_mods_for_guild(interaction, guild_id)
-    elif view_key.startswith("guild-users:"):
-        await _view_users_for_guild(interaction, guild_id)
-    else:
-        await interaction.response.send_message("Vue inconnue.", ephemeral=True)
+    """Re-dispatch a declared view with an explicit guild scope (DM pick).
+
+    The DM guild picker re-dispatches a view on a chosen guild; the
+    declared router owns the resolution (the legacy view keys map
+    through the same table as the home buttons).
+    """
+    from kingdoms.discord.views_routing import open_declared_view
+
+    await open_declared_view(interaction, _LEGACY_VIEW_KEYS.get(view_key, view_key))
 
 
 async def _view_admin_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
@@ -1141,37 +976,6 @@ async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
         await interaction.response.send_message(await reply(interaction, "no_home_view"), ephemeral=True)
         return
     await builder(interaction)
-
-
-async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: Any) -> bool:
-    """Whether the registered menu message exists **and is current**.
-
-    A live message is edited in place to the current layout revision —
-    a boot with a changed surface must update the pin, not keep the old
-    version. The message id stays stable. Re-pins best-effort.
-    """
-    message_id = await _resolve_menu_message_id(bot, guild_id)
-    if message_id is None:
-        return False
-    try:
-        message = await channel.fetch_message(int(message_id))
-    except Exception:
-        return False
-    try:
-        home = getattr(bot, "home_service", None)
-        if home is not None:
-            await message.edit(view=await _async_layout(home)(guild_id))
-    except Exception:
-        logger.warning(
-            "PINNED HOME MENU in-place update failed (message %s) — keeping the old pin",
-            message_id,
-            exc_info=True,
-        )
-    try:
-        await message.pin(reason="kingdoms: pinned home menu (guild front door)")
-    except Exception:
-        logger.warning("PINNED HOME MENU re-pin failed (guild %s) - best-effort", guild_id)
-    return True
 
 
 async def _resolve_menu_message_id(bot: discord.Client, guild_id: str) -> str | None:
@@ -1218,70 +1022,6 @@ async def _register_menu_message(bot: discord.Client, guild_id: str, channel_id:
         logger.warning("PINNED HOME MENU registry register failed - best-effort")
 
 
-async def build_home_menu_view(bot: Any, guild_id: str) -> discord.ui.LayoutView:
-    """Build the pinned home menu layout for a guild (localized labels)."""
-    home = getattr(bot, "home_service", None)
-    if home is None:
-        return discord.ui.LayoutView(timeout=None)
-    return await build_home_menu_for_guild(home, bot, guild_id)
-
-
-async def build_home_menu_for_guild(home: HomeService, bot: Any, guild_id: str) -> discord.ui.LayoutView:
-    """Build the home menu with the guild's localized button labels."""
-    from kingdoms.core.services.home import HomeButton
-    from kingdoms.discord.commands_i18n import tr_guild
-
-    label_keys = {
-        "status": ("ui.homes.btn_status", "Status"),
-        "profile": ("ui.homes.btn_profile", "Profile"),
-        "games": ("ui.homes.btn_games", "Games"),
-        "mods": ("ui.homes.btn_mods", "Mods"),
-        "users": ("ui.homes.btn_users", "Users"),
-        "admin": ("ui.homes.btn_admin", "Admin"),
-    }
-
-    async def localized(view: str, fallback: str) -> str:
-        """Resolve one view button's label in the guild's locale."""
-        if view.startswith("mod:"):
-            return await tr_guild(guild_id, bot, "ui.homes.btn_mods", fallback)
-        key, default = label_keys.get(view, ("", fallback))
-        if not key:
-            return fallback
-        return await tr_guild(guild_id, bot, key, default)
-
-    buttons = [
-        HomeButton(view=b.view, label=await localized(b.view, b.label), emoji=b.emoji)
-        for b in home.buttons()
-    ]
-    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
-    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    for i, button in enumerate(buttons):
-        if i and i % 5 == 0:
-            rows.append(row)
-            row = discord.ui.ActionRow()
-        row.add_item(
-            discord.ui.Button(
-                custom_id=f"home:open:{button.view}",
-                label=button.label,
-                emoji=discord.PartialEmoji.from_str(button.emoji) if button.emoji else None,
-                style=discord.ButtonStyle.secondary,
-            )
-        )
-    rows.append(row)
-    from kingdoms.discord.pinned_marks import pinned_mark
-
-    view = discord.ui.LayoutView(timeout=None)
-    header = "## \U0001f3d0 Kingdoms\nBienvenue \u2014 chaque bouton ouvre une vue r\u00e9serv\u00e9e \u00e0 toi."
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay(header),
-            *rows,
-            discord.ui.TextDisplay(pinned_mark(HOME_MESSAGE_KEY)),
-        )
-    )
-    return view
-
-
 def register_home_command(
     tree: app_commands.CommandTree[discord.Client],
     home: HomeService,
@@ -1294,33 +1034,9 @@ def register_home_command(
         description=localized("commands.home_description", "The guild's home menu"),
     )
     async def home_command(interaction: discord.Interaction) -> None:
-        """Answer /home with the home menu (ephemeral, localized)."""
-        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-        await interaction.response.send_message(
-            view=await build_home_menu_for_guild(home, interaction.client, guild_id),
-            ephemeral=True,
-        )
+        """Answer /home with the declared home menu (ephemeral, localized)."""
+        from kingdoms.discord.views_routing import open_declared_view
+
+        await open_declared_view(interaction, "menu:home")
 
 
-def _async_layout(home: HomeService) -> Any:
-    """Return the awaited-layout builder expected by PinnedMenuService."""
-
-    async def build(guild_id: str) -> discord.ui.LayoutView:
-        """Render the pinned home menu for one guild."""
-        return await build_home_menu_for_guild(home, _home_bot_ref(), guild_id)
-
-    return build
-
-
-def _home_bot_ref() -> Any:
-    """Resolve the running client held by the home module (boot wiring)."""
-    return _HOME_BOT_REF[0] if _HOME_BOT_REF else None
-
-
-def hold_home_bot(bot: Any) -> None:
-    """Hold the running client so the pinned menu renders localized labels."""
-    _HOME_BOT_REF.clear()
-    _HOME_BOT_REF.append(bot)
-
-
-_HOME_BOT_REF: list[Any] = []
