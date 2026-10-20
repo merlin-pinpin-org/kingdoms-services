@@ -132,7 +132,8 @@ async def _sync_maps_forum_locked(guild_id: str, game_key: str, bot: Any, servic
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
         content = f"{content}\n\n{footer(entry.id)}"
-        thread_id = await platform.create_map_post(guild_id, forum_id, entry.name, content, view=view)
+        post_name = f"{entry.name[:1].upper()}{entry.name[1:]}" if entry.name else entry.name
+        thread_id = await platform.create_map_post(guild_id, forum_id, post_name, content, view=view)
         await service.set_map_forum_message(entry.id, thread_id)
         created += 1
     return created

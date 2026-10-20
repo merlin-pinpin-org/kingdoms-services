@@ -107,11 +107,6 @@ def spec_registry(bot: discord.Client) -> dict[str, ModAdminChannelSpec]:
     return registry
 
 
-def register_mod_admin_channel(bot: discord.Client, spec: ModAdminChannelSpec) -> None:
-    """Register a mod's admin surfaces; the last registration wins."""
-    spec_registry(bot)[spec.mod] = spec
-
-
 def _root_pin_store(bot: discord.Client) -> dict[tuple[str, str], str]:
     """Return the in-memory fallback for the root pins (id by mod+guild)."""
     store = getattr(bot, "_mod_admin_menu_message_ids", None)
@@ -235,30 +230,6 @@ class ModAdminChannelPlatform:
             raise RuntimeError(f"{self._spec.mod} admin channel {channel_id} not reachable")
         message = await channel.send(view=layout)
         return str(message.id)
-
-
-def build_mod_admin_channel_service(
-    bot: discord.Client, spec: ModAdminChannelSpec, mongo_uri: str, redis_uri: str
-) -> Any | None:
-    """Wire one mod's root admin channel; None when stores are absent."""
-    if not mongo_uri or not redis_uri:
-        return None
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.managed_channel import ManagedChannelService
-        from kingdoms.core.services.state import StateService
-        from kingdoms.discord.logs_platform import MongoLogsDatabase
-
-        return ManagedChannelService(
-            platform=ModAdminChannelPlatform(bot, spec),
-            database=MongoLogsDatabase(get_async_database()),
-            category=spec.category_label,
-            name=spec.channel_name,
-            state=StateService(redis_uri=redis_uri),
-        )
-    except Exception:
-        logger.exception("%s admin channel wiring failed — panel stays in the bot admin channel", spec.mod)
-        return None
 
 
 async def _resolve_root_message_id(bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str) -> str | None:
@@ -401,39 +372,6 @@ async def maintain_pinned_mod_admin_menus(bot: discord.Client) -> None:
         await asyncio.sleep(300)
 
 
-async def ensure_pinned_season_admin_panel(spec: ModAdminChannelSpec, guild: Any, scope: str, channel: Any) -> None:
-    """Keep the pinned per-season config panel alive in the season's salon.
-
-    The season admin channel is provisioned by the mod's channels sync
-    (it lives inside the season's category); this helper only keeps the
-    pinned panel alive in it, under a scope-addressed registry key.
-    """
-    if spec.build_season_layout is None or channel is None:
-        return
-
-    class _Delivery:
-        async def deliver(self, channel: object, layout: object) -> str:
-            """Send the layout and return the delivered message id."""
-            message = await channel.send(view=layout)  # type: ignore[attr-defined]
-            return str(message.id)
-
-    async def _build(guild_id: str) -> object:
-        builder = spec.build_season_layout
-        if builder is None:
-            return discord.ui.LayoutView(timeout=None)
-        return await builder(guild.client, guild_id, scope)
-
-    service = PinnedMenuService(cast("Any", _Delivery()))
-    await service.ensure(
-        f"{guild.id}:{scope}",
-        cast("PinnedMenuChannel", channel),
-        marker=f"{spec.root_marker}season:",
-        build_layout=_build,
-        pin_reason=f"kingdoms: pinned {spec.mod} season admin panel (season {scope})",
-    )
-
-
-@dataclass
 class SeasonAdminPanelRef:
     """A resolved season admin channel reference (id-based, never names)."""
 

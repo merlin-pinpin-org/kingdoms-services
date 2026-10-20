@@ -242,29 +242,3 @@ def _walk_custom_ids(component: Any, ids: list[str]) -> None:
                 _walk_custom_ids(child, ids)
 
 
-async def refresh_or_edit(
-    interaction: discord.Interaction,
-    rebuild: Callable[[], Awaitable[discord.ui.LayoutView]],
-    refresher_key: str | None = None,
-) -> None:
-    """Answer a click without ever moving a pinned view.
-
-    On a pinned message the pin is re-rendered **in place** (the same
-    message, the new state — it never moves nor duplicates); on a live
-    sub-view message the view is edited as before — sub-menus keep
-    their navigation.
-    """
-    message = getattr(interaction, "message", None)
-    pinned = bool(getattr(message, "pinned", False))
-    guild_id = str(getattr(interaction, "guild_id", "") or "")
-    if pinned:
-        view = await rebuild()
-        try:
-            await interaction.response.edit_message(view=view)
-            return
-        except Exception:
-            logger.warning("pinned edit failed — falling back to refresh", exc_info=True)
-    if pinned:
-        await refresh_registered_pins(guild_id)
-        return
-    await interaction.response.edit_message(view=await rebuild())

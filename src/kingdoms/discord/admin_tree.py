@@ -177,7 +177,7 @@ class TreeEnsureButton(
 ):
     """Re-provision one scope's channels (and mod/game roles), on demand."""
 
-    def __init__(self, scope: str, label: str = "Create missing channels", emoji: str = "\U0001f527") -> None:
+    def __init__(self, scope: str, label: str = "Sync now", emoji: str = "\u27f3") -> None:
         self.scope = scope
         super().__init__(
             discord.ui.Button(
@@ -241,13 +241,13 @@ async def build_admin_menu(
         row.add_item(TreeOpenButton(section, label, emoji))
     view.add_item(row)
     ensure_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    ensure_row.add_item(TreeEnsureButton("bot", await _label("admin_tree.ensure_btn", "Create missing channels")))
+    ensure_row.add_item(TreeEnsureButton("bot", await _label("admin_tree.ensure_btn", "Sync now")))
     view.add_item(ensure_row)
     view.add_item(discord.ui.TextDisplay(footer("view:bot:admin")))
     return view
 
 
-def ensure_button(scope: str, label: str = "Create missing channels") -> TreeEnsureButton:
+def ensure_button(scope: str, label: str = "Sync now") -> TreeEnsureButton:
     """Build an ensure button for one scope (the scope admin menus)."""
     return TreeEnsureButton(scope, label)
 

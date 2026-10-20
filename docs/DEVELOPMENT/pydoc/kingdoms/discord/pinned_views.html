@@ -62,12 +62,6 @@ Default:&nbsp;read-only&nbsp;—&nbsp;the&nbsp;parameter&nbsp;reads&nbsp;``pinne
 the&nbsp;guild&nbsp;settings&nbsp;and&nbsp;falls&nbsp;back&nbsp;to&nbsp;``True``&nbsp;(every&nbsp;pinned&nbsp;channel<br>
 starts&nbsp;read-only;&nbsp;the&nbsp;admin&nbsp;opens&nbsp;it&nbsp;from&nbsp;the&nbsp;panel).</span></dd></dl>
  <dl><dt><a name="-read_only_overwrite"><strong>read_only_overwrite</strong></a>(read_only: 'bool', base: 'discord.PermissionOverwrite') -&gt; 'discord.PermissionOverwrite'</dt><dd><span class="code">Return&nbsp;the&nbsp;overwrite&nbsp;with&nbsp;``send_messages``&nbsp;closed&nbsp;for&nbsp;@everyone.</span></dd></dl>
- <dl><dt>async <a name="-refresh_or_edit"><strong>refresh_or_edit</strong></a>(interaction: 'discord.Interaction', rebuild: 'Callable[[], Awaitable[discord.ui.LayoutView]]', refresher_key: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;click&nbsp;without&nbsp;ever&nbsp;moving&nbsp;a&nbsp;pinned&nbsp;view.<br>
-&nbsp;<br>
-On&nbsp;a&nbsp;pinned&nbsp;message&nbsp;the&nbsp;pin&nbsp;is&nbsp;re-rendered&nbsp;**in&nbsp;place**&nbsp;(the&nbsp;same<br>
-message,&nbsp;the&nbsp;new&nbsp;state&nbsp;—&nbsp;it&nbsp;never&nbsp;moves&nbsp;nor&nbsp;duplicates);&nbsp;on&nbsp;a&nbsp;live<br>
-sub-view&nbsp;message&nbsp;the&nbsp;view&nbsp;is&nbsp;edited&nbsp;as&nbsp;before&nbsp;—&nbsp;sub-menus&nbsp;keep<br>
-their&nbsp;navigation.</span></dd></dl>
  <dl><dt>async <a name="-refresh_pin_by_marker"><strong>refresh_pin_by_marker</strong></a>(bot: 'Any', guild: 'Any', marker: 'str', builder: 'Callable[[str], Awaitable[discord.ui.LayoutView]]') -&gt; 'bool'</dt><dd><span class="code">Re-render&nbsp;one&nbsp;pinned&nbsp;message&nbsp;in&nbsp;place&nbsp;(found&nbsp;by&nbsp;marker,&nbsp;id-based).<br>
 &nbsp;<br>
 The&nbsp;pin&nbsp;never&nbsp;moves:&nbsp;its&nbsp;layout&nbsp;is&nbsp;edited&nbsp;where&nbsp;it&nbsp;lives.&nbsp;Returns<br>

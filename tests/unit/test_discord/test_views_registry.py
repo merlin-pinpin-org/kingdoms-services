@@ -94,7 +94,7 @@ def test_a_button_is_exactly_one_driver() -> None:
 
 def test_emojis() -> None:
     assert ADMIN_EMOJI == "\U0001f512"
-    assert SYNC_EMOJI == "\u2699\ufe0f"
+    assert SYNC_EMOJI == "\u27f3"
 
 
 @pytest.mark.asyncio

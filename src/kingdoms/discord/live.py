@@ -519,9 +519,8 @@ def _dashboard_embed(
     user = getattr(bot, "user", None) if bot is not None else None
     icon = getattr(user, "display_avatar", None) if user else None
     icon_url = getattr(icon, "url", None) if icon else None
-    from kingdoms.discord.pinned_marks import pinned_mark
 
-    description = truncate_body(body + "\n" + pinned_mark(LIVE_MESSAGE_KEY), MAX_EMBED_DESCRIPTION)
+    description = truncate_body(body, MAX_EMBED_DESCRIPTION)
     title = _t(bot, locale, "title", "🎮 Live dashboard")
     if page_count > 1:
         title += f" ({page_index}/{page_count})"
@@ -530,7 +529,7 @@ def _dashboard_embed(
         description=description,
         colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
     )
-    embed.set_footer(text=f"panel:game:{GAME_KEY}:live")
+    embed.set_footer(text=f"`panel:game:{GAME_KEY}:live`")
     if icon_url:
         embed.set_thumbnail(url=icon_url)
     return embed

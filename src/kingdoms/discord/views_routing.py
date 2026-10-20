@@ -235,7 +235,7 @@ def menu_buttons(decl: Any, catalog: Any, locale: str) -> list[discord.ui.Button
             # "/general", which the tree does not declare
             scope = decl.scope.rsplit("/", 1)[0] if decl.scope and "/" in decl.scope else (decl.scope or "bot")
             item = TreeEnsureButton(
-                scope, _label(catalog, button.label_key, locale) or "Create missing channels"
+                scope, _label(catalog, button.label_key, locale) or "Sync now"
             )
         elif button.action:
             item = ActionButton(

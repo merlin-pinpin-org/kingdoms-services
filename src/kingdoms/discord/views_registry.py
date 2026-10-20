@@ -30,7 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 ADMIN_EMOJI = "\U0001f512"
-SYNC_EMOJI = "\u2699\ufe0f"
+SYNC_EMOJI = "\u27f3"
 
 MAX_GAMES = 20
 MAX_MODS = 20

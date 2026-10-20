@@ -217,9 +217,7 @@ class KingdomsBot(discord.Client):
         register_pool_flow_items(self)
         register_entity_admin_items(self)
         register_guild_context_items(self)
-        from kingdoms.discord.admin_roles import register_roles_admin_items
 
-        register_roles_admin_items(self)
         register_admin_dm_items(self)
         register_admin_tree_items(self)
         from kingdoms.discord.views_declared import declare_platform_views

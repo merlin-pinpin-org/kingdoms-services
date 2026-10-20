@@ -84,7 +84,6 @@ async def build_entity_admin_menu(
         PoolAddMapButton,
         PoolDeleteButton,
         PoolRemoveMapsButton,
-        PoolTransitionButton,
     )
     from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
 
@@ -116,7 +115,7 @@ async def build_entity_admin_menu(
         pool_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         pool_row.add_item(PoolAddMapButton(entity_id))
         pool_row.add_item(PoolRemoveMapsButton(entity_id))
-        pool_row.add_item(PoolTransitionButton(entity_id))
+        pool_row.add_item(PoolEditButton(entity_id, game_key=game_key))
         pool_row.add_item(PoolDeleteButton(entity_id, game_key=game_key))
         menu.add_item(pool_row)
         return menu
@@ -138,8 +137,61 @@ async def build_entity_admin_menu(
 
 
 def register_entity_admin_items(bot: discord.Client) -> None:
-    """Register the entity admin button on the client."""
+    """Register the entity admin items on the client."""
     bot.add_dynamic_items(EntityAdminButton)
+    bot.add_dynamic_items(PoolEditButton)
 
 
 __all__ = ["EntityAdminButton", "build_entity_admin_menu", "register_entity_admin_items"]
+
+
+class PoolEditButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"games:pool:open-editor:(?P<pool_id>.+)",
+):
+    """The pool post's edit action: open the pool's editor view.
+
+    The editor carries the lifecycle actions (publish, archive, delete)
+    and the composition — one surface instead of the state-select dance.
+    """
+
+    def __init__(self, pool_id: str, game_key: str = "") -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label="Editer",
+                emoji="\U0001F4DD",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"games:pool:open-editor:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PoolEditButton:
+        """Rebuild the button from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then open the pool's editor view (ephemeral)."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        from kingdoms.discord.admin_panel_games import _games_wiring, pool_editor_view
+
+        service = _games_wiring()
+        pool = await service.get_map_pool(self.pool_id) if service is not None else None
+        if pool is None:
+            await interaction.followup.send("Pool introuvable.", ephemeral=True)
+            return
+        await interaction.followup.send(
+            view=await pool_editor_view(pool.id, pool.game_key, from_pin=False), ephemeral=True
+        )

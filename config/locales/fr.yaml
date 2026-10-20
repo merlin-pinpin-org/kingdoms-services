@@ -124,7 +124,7 @@ fr:
       admin_failed: Le panneau des rôles a échoué — voir les logs du bot.
       games_btn: Jeux
       mods_btn: Mods
-      ensure_btn: Créer les salons manquants
+      ensure_btn: Synchroniser
       channel_access_everyone: '👁️ Lecture : @everyone
 
         ✍️ Écriture : @everyone'
@@ -453,7 +453,7 @@ fr:
       btn_create_pool: Créer un map pool
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
-      btn_sync: Créer les salons manquants
+      btn_sync: Synchroniser
     views:
       menu.home:
         title: 🏰 Kingdoms

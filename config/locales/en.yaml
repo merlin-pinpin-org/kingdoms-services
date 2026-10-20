@@ -124,7 +124,7 @@ en:
       admin_failed: The roles panel failed — see the bot logs.
       games_btn: Games
       mods_btn: Mods
-      ensure_btn: Create missing channels
+      ensure_btn: Sync now
       channel_access_everyone: '👁️ Read: @everyone
 
         ✍️ Write: @everyone'
@@ -445,7 +445,7 @@ en:
       btn_create_pool: Create a map pool
       btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.
-      btn_sync: Create missing channels
+      btn_sync: Sync now
     views:
       menu.home:
         title: 🏰 Kingdoms

@@ -1665,7 +1665,7 @@ class GamesPoolHardDeleteButton(
         super().__init__(
             discord.ui.Button(
                 label="Supprimer",
-                emoji="\U0001f5d1",
+                emoji="\u274c",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_NS}:pools:harddelete:{pool_id}"[:100],
             )
