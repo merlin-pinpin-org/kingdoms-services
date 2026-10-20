@@ -21,7 +21,7 @@ def main() -> int:
     from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
     from kingdoms.core.models.db import close_async_client
 
-    async def run() -> dict[str, int]:
+    async def run() -> dict[str, int | list[str]]:
         """Run the refresh and close the database connection."""
         try:
             return await refresh_aoe2_content()
