@@ -77,4 +77,4 @@ def test_the_placeholder_mods_are_disabled() -> None:
 
 def test_emojis() -> None:
     assert ADMIN_EMOJI == "\U0001f512"
-    assert SYNC_EMOJI == "\U0001f504"
+    assert SYNC_EMOJI == "\u2699\ufe0f"

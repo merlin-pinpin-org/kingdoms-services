@@ -20,7 +20,7 @@ Constraints baked in:
   lives) and its buttons' targets — all registered ids, checked;
 - an admin button renders with the padlock emoji 🔒, as discreet as
   Discord allows (secondary style, no label weight);
-- a sync button (channels & roles provisioning) renders with 🔄;
+- a sync button (channels & roles provisioning) renders with the gear emoji;
 - the registry caps what the platform carries: 20 games, 20 mods.
 """
 
@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 ADMIN_EMOJI = "\U0001f512"
-SYNC_EMOJI = "\U0001f504"
+SYNC_EMOJI = "\u2699\ufe0f"
 
 MAX_GAMES = 20
 MAX_MODS = 20

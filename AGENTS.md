@@ -6,6 +6,12 @@ mods, YAML configs.
 
 ## Read first
 
+**Everything on the repositories is in English** — docs, comments,
+docstrings, commit messages, PR titles and descriptions (the
+conventions' *Working language* rule). The only French allowed is
+the **user-facing UI content** (locale catalogs, rendered labels).
+A session writing a doc, a comment or a commit in French is a bug.
+
 - [kingdoms/docs/CONVENTIONS.md](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/CONVENTIONS.md)
   — conventions shared by the three repositories (language,
   humans-never-code, secrets, PR lifecycle, issues, checks).
