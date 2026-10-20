@@ -1,0 +1,172 @@
+# The platform's views — the single source of truth.
+#
+# This YAML declares every menu and panel (docs/DEVELOPMENT/VIEWS.md in
+# the kingdoms repo renders it for humans). The runtime consumes it:
+# the menu builder, the pin registrations and the button router all
+# render from this file — a new menu is a few YAML lines, zero code.
+#
+# Vocabulary:
+#   kind      menu | panel     — a menu only navigates (buttons open
+#                               other views); a panel informs or acts
+#                               (its content comes from the wired
+#                               Python handler).
+#   scope     the channel-tree scope the view pins into (menus only);
+#                               e.g. "games/aoe2/general".
+#   buttons   list of:
+#     target  the view id the button opens (menus) — must exist in
+#             this file; rendered as `view:open:<target>`.
+#     label   the i18n key of the button's label.
+#     admin   true -> the padlock emoji 🔒, the most discreet style.
+#     sync    true -> the channels & roles ensure button (⚙️) — never
+#             with a target.
+#     disabled true -> rendered disabled (the mod placeholders).
+#     action  a menu-level action id (e.g. add-map) — rendered disabled
+#             unless the code wires a handler for it.
+#
+# YAML anchors (&name) and aliases (*name) keep the repetition out:
+# &admin-sync is the standard admin sync button, *game-btn the
+# per-game admin opener. Anchors are a YAML feature — they resolve at
+# load time and never reach the runtime.
+
+views:
+
+  menu:home:
+    kind: menu
+    scope: root/general
+    buttons: &home-buttons
+      - target: panel:profile
+        label: ui.homes.btn_profile
+      - target: menu:games:home
+        label: ui.homes.btn_games
+      - target: menu:mods:home
+        label: ui.homes.btn_mods
+      - target: menu:admin
+        label: ui.homes.btn_admin
+        admin: true
+
+  panel:profile:
+    kind: panel
+
+  menu:admin:
+    kind: menu
+    scope: bot/admin
+    buttons:
+      - target: panel:status
+        label: ui.homes.btn_status
+      - target: menu:games:admin
+        label: ui.homes.btn_games
+        admin: true
+      - target: menu:mods:admin
+        label: ui.homes.btn_mods
+        admin: true
+      - label: ui.homes.btn_sync
+        sync: true
+
+  panel:status:
+    kind: panel
+
+  menu:games:home:
+    kind: menu
+    scope: games/general
+    buttons:
+      - target: menu:games:aoe2
+        label: ui.games.homes.aoe2
+      - target: menu:games:admin
+        label: ui.homes.btn_games
+        admin: true
+
+  menu:games:admin:
+    kind: menu
+    scope: games/admin
+    buttons:
+      - target: menu:game:aoe2:admin
+        label: ui.games.homes.aoe2
+        admin: true
+      - label: ui.homes.btn_sync
+        sync: true
+
+  menu:games:aoe2:
+    kind: menu
+    scope: games/aoe2/general
+    buttons: &game-buttons
+      - target: panel:game:aoe2:live
+        label: ui.homes.btn_live
+      - target: panel:game:aoe2:players
+        label: ui.homes.btn_users
+      - target: menu:game:aoe2:admin
+        label: ui.homes.btn_admin
+        admin: true
+
+  menu:game:aoe2:admin:
+    kind: menu
+    scope: games/aoe2/admin
+    buttons:
+      - label: ui.homes.btn_add_map
+        action: add-map
+      - label: ui.homes.btn_create_pool
+        action: create-pool
+      - label: ui.homes.btn_sync
+        sync: true
+
+  panel:game:aoe2:live:
+    kind: panel
+
+  panel:game:aoe2:players:
+    kind: panel
+
+  menu:mods:home:
+    kind: menu
+    scope: mods/general
+    buttons:
+      - target: menu:mod:ladder
+        label: ui.mods.homes.ladder
+        disabled: true
+      - target: menu:mod:tournament
+        label: ui.mods.homes.tournament
+        disabled: true
+      - target: menu:mod:kingdom
+        label: ui.mods.homes.kingdom
+        disabled: true
+      - target: menu:mods:admin
+        label: ui.homes.btn_mods
+        admin: true
+
+  menu:mods:admin:
+    kind: menu
+    scope: mods/admin
+    buttons:
+      - target: menu:mod:ladder:admin
+        label: ui.mods.homes.ladder
+        disabled: true
+        admin: true
+      - target: menu:mod:tournament:admin
+        label: ui.mods.homes.tournament
+        disabled: true
+        admin: true
+      - target: menu:mod:kingdom:admin
+        label: ui.mods.homes.kingdom
+        disabled: true
+        admin: true
+      - label: ui.homes.btn_sync
+        sync: true
+
+  # The mod placeholders — targets declared so the buttons exist and
+  # validate; disabled until the mods ship.
+
+  menu:mod:ladder:
+    kind: menu
+
+  menu:mod:tournament:
+    kind: menu
+
+  menu:mod:kingdom:
+    kind: menu
+
+  menu:mod:ladder:admin:
+    kind: menu
+
+  menu:mod:tournament:admin:
+    kind: menu
+
+  menu:mod:kingdom:admin:
+    kind: menu

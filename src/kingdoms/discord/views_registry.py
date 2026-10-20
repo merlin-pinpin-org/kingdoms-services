@@ -9,9 +9,10 @@ Two kinds of views, one vocabulary:
 
 Every view carries a **view id** (``menu:games:aoe2``,
 ``panel:game:aoe2:players``) rendered as its footer — the anchor
-every human feedback refers to. The registry is the single source of
-truth the doc (docs/DEVELOPMENT/VIEWS.md in the kingdoms repo) and
-the builders stay consistent with; a view built but not declared here
+every human feedback refers to. The registry loads from ``config/views.yaml`` (the single source
+of truth): the runtime menu builder, the pin registrations and the
+button router all render from it, and the kingdoms repo's
+views-doc page renders it for humans. A view built but not declared
 (or declared but never built) is a drift the tests catch.
 
 Constraints baked in:
@@ -40,13 +41,20 @@ KIND_PANEL = "panel"
 
 @dataclass(frozen=True, slots=True)
 class ButtonDecl:
-    """One button of a view: a label key and its target view id."""
+    """One button of a view: a navigation target or a wired action.
 
-    target: str
+    Exactly one of ``target`` (opens the declared view), ``sync`` (the
+    channels & roles ensure) or ``action`` (a behavior wired at boot
+    through ``wire_action``) drives the click; a declared-but-unwired
+    action renders disabled — never a dead button.
+    """
+
+    target: str = ""
     label_key: str = ""
     admin: bool = False
     sync: bool = False
     disabled: bool = False
+    action: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,8 +99,15 @@ def validate_registry() -> list[str]:
             if target not in _REGISTRY:
                 drifts.append(f"{decl.id} opens undeclared view {target}")
         for button in decl.buttons:
-            if decl.kind == KIND_MENU and not button.target and not button.sync and not button.label_key:
-                drifts.append(f"{decl.id}: a menu button needs a target, the sync flag or a label")
+            drivers = sum(1 for d in (button.target, button.sync, button.action) if d)
+            if drivers > 1:
+                drifts.append(
+                    f"{decl.id}: a button is target, sync or action — never two"
+                )
+            if drivers == 0:
+                drifts.append(f"{decl.id}: a button needs a target, the sync flag or an action")
+            if button.action and not button.label_key:
+                drifts.append(f"{decl.id}: the action button {button.action!r} needs a label")
     return drifts
 
 

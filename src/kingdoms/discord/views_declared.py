@@ -1,16 +1,24 @@
-"""The platform's declared views — the doc's list, in code.
+"""The platform's declared views — loaded from ``config/views.yaml``.
 
-This module is the executable mirror of docs/DEVELOPMENT/VIEWS.md
-(kingdoms repo): every view the platform ships is declared here,
-exactly as the doc lists them. Changing the organization means
-changing this file (and the doc in the same PR).
+The YAML is the single source of truth (docs/DEVELOPMENT/VIEWS.md in
+the kingdoms repo renders it for humans): every menu, panel, button
+and navigation target is declared there, and this loader turns it
+into the runtime registry. Adding a menu is YAML lines, zero code —
+the menu builder, the pins and the router all render from the
+registry.
 
-Today: one game (aoe2), no mods yet — the mod menus carry the
-placeholders the doc declares (disabled buttons), removed or
-replaced as real mods land.
+An action button (``action: <action-id>``) references a behavior the
+code wires at boot (``wire_action``); an unwired action renders
+disabled, never dead.
 """
 
 from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import Any
+
+import yaml
 
 from kingdoms.discord.views_registry import (
     KIND_MENU,
@@ -20,84 +28,61 @@ from kingdoms.discord.views_registry import (
     register_view,
 )
 
-_BUTTONS_HOME = (
-    ButtonDecl(target="panel:profile", label_key="ui.homes.btn_profile"),
-    ButtonDecl(target="menu:games:home", label_key="ui.homes.btn_games"),
-    ButtonDecl(target="menu:mods:home", label_key="ui.homes.btn_mods"),
-    ButtonDecl(target="menu:admin", label_key="ui.homes.btn_admin", admin=True),
-)
+logger = logging.getLogger("kingdoms.views.declared")
 
-_BUTTONS_ADMIN = (
-    ButtonDecl(target="panel:status", label_key="ui.homes.btn_status"),
-    ButtonDecl(target="menu:games:admin", label_key="ui.homes.btn_games", admin=True),
-    ButtonDecl(target="menu:mods:admin", label_key="ui.homes.btn_mods", admin=True),
-    ButtonDecl(target="", label_key="ui.homes.btn_sync", sync=True),
-)
-
-_BUTTONS_GAMES_HOME = (
-    ButtonDecl(target="menu:games:aoe2", label_key="ui.games.homes.aoe2"),
-    ButtonDecl(target="menu:games:admin", label_key="ui.homes.btn_games", admin=True),
-)
-
-_BUTTONS_GAMES_ADMIN = (
-    ButtonDecl(target="menu:game:aoe2:admin", label_key="ui.games.homes.aoe2", admin=True),
-    ButtonDecl(target="", label_key="ui.homes.btn_sync", sync=True),
-)
-
-_BUTTONS_GAME_AOE2 = (
-    ButtonDecl(target="panel:game:aoe2:live", label_key="ui.games.homes.btn_live"),
-    ButtonDecl(target="panel:game:aoe2:players", label_key="ui.homes.btn_users"),
-    ButtonDecl(target="menu:game:aoe2:admin", label_key="ui.homes.btn_admin", admin=True),
-)
-
-_BUTTONS_GAME_AOE2_ADMIN = (
-    ButtonDecl(target="", label_key="ui.homes.btn_add_map"),
-    ButtonDecl(target="", label_key="ui.homes.btn_create_pool"),
-    ButtonDecl(target="", label_key="ui.homes.btn_sync", sync=True),
-)
-
-_BUTTONS_MODS_HOME = (
-    ButtonDecl(target="menu:mod:ladder", label_key="ui.mods.homes.ladder", disabled=True),
-    ButtonDecl(target="menu:mod:tournament", label_key="ui.mods.homes.tournament", disabled=True),
-    ButtonDecl(target="menu:mod:kingdom", label_key="ui.mods.homes.kingdom", disabled=True),
-    ButtonDecl(target="menu:mods:admin", label_key="ui.homes.btn_mods", admin=True),
-)
-
-_BUTTONS_MODS_ADMIN = (
-    ButtonDecl(target="menu:mod:ladder:admin", label_key="ui.mods.homes.ladder", disabled=True, admin=True),
-    ButtonDecl(target="menu:mod:tournament:admin", label_key="ui.mods.homes.tournament", disabled=True, admin=True),
-    ButtonDecl(target="menu:mod:kingdom:admin", label_key="ui.mods.homes.kingdom", disabled=True, admin=True),
-    ButtonDecl(target="", label_key="ui.homes.btn_sync", sync=True),
-)
+VIEWS_CONFIG = Path("config/views.yaml")
 
 
-def declare_platform_views() -> None:
-    """Declare every platform view (idempotent, boot-time)."""
-    register_view(ViewDecl(id="menu:home", kind=KIND_MENU, scope="root/general", buttons=_BUTTONS_HOME))
-    register_view(ViewDecl(id="panel:profile", kind=KIND_PANEL))
-    register_view(ViewDecl(id="menu:admin", kind=KIND_MENU, scope="bot/admin", buttons=_BUTTONS_ADMIN))
-    register_view(ViewDecl(id="panel:status", kind=KIND_PANEL))
-    register_view(ViewDecl(id="menu:games:home", kind=KIND_MENU, scope="games/general", buttons=_BUTTONS_GAMES_HOME))
-    register_view(ViewDecl(id="menu:games:admin", kind=KIND_MENU, scope="games/admin", buttons=_BUTTONS_GAMES_ADMIN))
-    register_view(
-        ViewDecl(id="menu:games:aoe2", kind=KIND_MENU, scope="games/aoe2/general", buttons=_BUTTONS_GAME_AOE2)
+def load_views_config(config_dir: Path | str | None = None) -> dict[str, Any]:
+    """Read and parse the views YAML (anchors and aliases resolve here)."""
+    path = Path(config_dir) / "views.yaml" if config_dir else VIEWS_CONFIG
+    with open(path, encoding="utf-8") as fh:
+        data = yaml.safe_load(fh)
+    if not isinstance(data, dict) or not isinstance(data.get("views"), dict):
+        raise ValueError(f"{path}: the views config must carry a 'views' mapping")
+    views: dict[str, Any] = data["views"]
+    return views
+
+
+def _parse_button(view_id: str, raw: dict[str, Any]) -> ButtonDecl:
+    """Turn one YAML button entry into a ButtonDecl (fail loudly)."""
+    if not isinstance(raw, dict):
+        raise ValueError(f"views config: {view_id}: a button must be a mapping, got {raw!r}")
+    button = ButtonDecl(
+        target=str(raw.get("target", "") or ""),
+        label_key=str(raw.get("label", "") or ""),
+        admin=bool(raw.get("admin", False)),
+        sync=bool(raw.get("sync", False)),
+        disabled=bool(raw.get("disabled", False)),
+        action=str(raw.get("action", "") or ""),
     )
-    register_view(
-        ViewDecl(id="menu:game:aoe2:admin",
-                 kind=KIND_MENU,
-                 scope="games/aoe2/admin",
-                 buttons=_BUTTONS_GAME_AOE2_ADMIN)
-    )
-    register_view(ViewDecl(id="panel:game:aoe2:live", kind=KIND_PANEL))
-    register_view(ViewDecl(id="panel:game:aoe2:players", kind=KIND_PANEL))
-    register_view(ViewDecl(id="menu:mods:home", kind=KIND_MENU, scope="mods/general", buttons=_BUTTONS_MODS_HOME))
-    register_view(ViewDecl(id="menu:mods:admin", kind=KIND_MENU, scope="mods/admin", buttons=_BUTTONS_MODS_ADMIN))
-    register_view(ViewDecl(id="menu:mod:ladder", kind=KIND_MENU))
-    register_view(ViewDecl(id="menu:mod:tournament", kind=KIND_MENU))
-    register_view(ViewDecl(id="menu:mod:kingdom", kind=KIND_MENU))
-    register_view(ViewDecl(id="menu:mod:ladder:admin", kind=KIND_MENU))
-    register_view(ViewDecl(id="menu:mod:tournament:admin", kind=KIND_MENU))
-    register_view(ViewDecl(id="menu:mod:kingdom:admin", kind=KIND_MENU))
+    return button
 
 
-__all__ = ["declare_platform_views"]
+def declare_views_from_config(config_dir: Path | str | None = None) -> None:
+    """Load every declared view from the YAML into the registry."""
+    views = load_views_config(config_dir)
+    for view_id, raw in views.items():
+        if not isinstance(raw, dict):
+            raise ValueError(f"views config: {view_id}: a view must be a mapping")
+        kind = str(raw.get("kind", ""))
+        if kind not in (KIND_MENU, KIND_PANEL):
+            raise ValueError(f"views config: {view_id}: kind must be menu or panel, got {kind!r}")
+        buttons = tuple(_parse_button(view_id, b) for b in raw.get("buttons", []) or ())
+        register_view(
+            ViewDecl(
+                id=str(view_id),
+                kind=kind,
+                scope=str(raw.get("scope", "") or ""),
+                buttons=buttons,
+            )
+        )
+    logger.info("VIEWS declared from config: %d views", len(views))
+
+
+def declare_platform_views(config_dir: Path | str | None = None) -> None:
+    """Declare every platform view (compatibility name, boot-time)."""
+    declare_views_from_config(config_dir)
+
+
+__all__ = ["declare_platform_views", "declare_views_from_config", "load_views_config"]

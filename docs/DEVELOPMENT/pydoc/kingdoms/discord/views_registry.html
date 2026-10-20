@@ -20,9 +20,10 @@ Two&nbsp;kinds&nbsp;of&nbsp;views,&nbsp;one&nbsp;vocabulary:<br>
 &nbsp;<br>
 Every&nbsp;view&nbsp;carries&nbsp;a&nbsp;**view&nbsp;id**&nbsp;(``menu:games:aoe2``,<br>
 ``panel:game:aoe2:players``)&nbsp;rendered&nbsp;as&nbsp;its&nbsp;footer&nbsp;—&nbsp;the&nbsp;anchor<br>
-every&nbsp;human&nbsp;feedback&nbsp;refers&nbsp;to.&nbsp;The&nbsp;registry&nbsp;is&nbsp;the&nbsp;single&nbsp;source&nbsp;of<br>
-truth&nbsp;the&nbsp;doc&nbsp;(docs/DEVELOPMENT/VIEWS.md&nbsp;in&nbsp;the&nbsp;kingdoms&nbsp;repo)&nbsp;and<br>
-the&nbsp;builders&nbsp;stay&nbsp;consistent&nbsp;with;&nbsp;a&nbsp;view&nbsp;built&nbsp;but&nbsp;not&nbsp;declared&nbsp;here<br>
+every&nbsp;human&nbsp;feedback&nbsp;refers&nbsp;to.&nbsp;The&nbsp;registry&nbsp;loads&nbsp;from&nbsp;``config/views.yaml``&nbsp;(the&nbsp;single&nbsp;source<br>
+of&nbsp;truth):&nbsp;the&nbsp;runtime&nbsp;menu&nbsp;builder,&nbsp;the&nbsp;pin&nbsp;registrations&nbsp;and&nbsp;the<br>
+button&nbsp;router&nbsp;all&nbsp;render&nbsp;from&nbsp;it,&nbsp;and&nbsp;the&nbsp;kingdoms&nbsp;repo's<br>
+views-doc&nbsp;page&nbsp;renders&nbsp;it&nbsp;for&nbsp;humans.&nbsp;A&nbsp;view&nbsp;built&nbsp;but&nbsp;not&nbsp;declared<br>
 (or&nbsp;declared&nbsp;but&nbsp;never&nbsp;built)&nbsp;is&nbsp;a&nbsp;drift&nbsp;the&nbsp;tests&nbsp;catch.<br>
 &nbsp;<br>
 Constraints&nbsp;baked&nbsp;in:<br>
@@ -54,9 +55,14 @@ Constraints&nbsp;baked&nbsp;in:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="ButtonDecl">class <strong>ButtonDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ButtonDecl">ButtonDecl</a>(target:&nbsp;'str',&nbsp;label_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;admin:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;sync:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ButtonDecl">ButtonDecl</a>(target:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;label_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;admin:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;sync:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;action:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
-One&nbsp;button&nbsp;of&nbsp;a&nbsp;view:&nbsp;a&nbsp;label&nbsp;key&nbsp;and&nbsp;its&nbsp;target&nbsp;view&nbsp;id.<br>&nbsp;</span></td></tr>
+One&nbsp;button&nbsp;of&nbsp;a&nbsp;view:&nbsp;a&nbsp;navigation&nbsp;target&nbsp;or&nbsp;a&nbsp;wired&nbsp;action.<br>
+&nbsp;<br>
+Exactly&nbsp;one&nbsp;of&nbsp;``target``&nbsp;(opens&nbsp;the&nbsp;declared&nbsp;view),&nbsp;``sync``&nbsp;(the<br>
+channels&nbsp;&amp;&nbsp;roles&nbsp;ensure)&nbsp;or&nbsp;``action``&nbsp;(a&nbsp;behavior&nbsp;wired&nbsp;at&nbsp;boot<br>
+through&nbsp;``wire_action``)&nbsp;drives&nbsp;the&nbsp;click;&nbsp;a&nbsp;declared-but-unwired<br>
+action&nbsp;renders&nbsp;disabled&nbsp;—&nbsp;never&nbsp;a&nbsp;dead&nbsp;button.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="ButtonDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
@@ -70,7 +76,7 @@ One&nbsp;button&nbsp;of&nbsp;a&nbsp;view:&nbsp;a&nbsp;label&nbsp;key&nbsp;and&nb
 
 <dl><dt><a name="ButtonDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="ButtonDecl-__init__"><strong>__init__</strong></a>(self, target: 'str', label_key: 'str' = '', admin: 'bool' = False, sync: 'bool' = False, disabled: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ButtonDecl-__init__"><strong>__init__</strong></a>(self, target: 'str' = '', label_key: 'str' = '', admin: 'bool' = False, sync: 'bool' = False, disabled: 'bool' = False, action: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="ButtonDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -80,6 +86,8 @@ One&nbsp;button&nbsp;of&nbsp;a&nbsp;view:&nbsp;a&nbsp;label&nbsp;key&nbsp;and&nb
 
 <hr>
 Data descriptors defined here:<br>
+<dl><dt><strong>action</strong></dt>
+</dl>
 <dl><dt><strong>admin</strong></dt>
 </dl>
 <dl><dt><strong>disabled</strong></dt>
@@ -92,13 +100,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'admin': 'bool', 'disabled': 'bool', 'label_key': 'str', 'sync': 'bool', 'target': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'action': 'str', 'admin': 'bool', 'disabled': 'bool', 'label_key': 'str', 'sync': 'bool', 'target': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'admin': Field(name='admin',type='bool',default=False,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'disabled': Field(name='disabled',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync': Field(name='sync',type='bool',default=False,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'target': Field(name='target',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'action': Field(name='action',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'admin': Field(name='admin',type='bool',default=False,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'disabled': Field(name='disabled',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync': Field(name='sync',type='bool',default=False,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'target': Field(name='target',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('target', 'label_key', 'admin', 'sync', 'disabled')</dl>
+<dl><dt><strong>__match_args__</strong> = ('target', 'label_key', 'admin', 'sync', 'disabled', 'action')</dl>
 
 </td></tr></table> <p>
 <table class="section">

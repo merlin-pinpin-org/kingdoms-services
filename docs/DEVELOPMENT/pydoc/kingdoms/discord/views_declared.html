@@ -9,28 +9,40 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.views_declared</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/views_declared.py">SOURCE_ROOT/discord/views_declared.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;platform's&nbsp;declared&nbsp;views&nbsp;—&nbsp;the&nbsp;doc's&nbsp;list,&nbsp;in&nbsp;code.<br>
+    <p><span class="code">The&nbsp;platform's&nbsp;declared&nbsp;views&nbsp;—&nbsp;loaded&nbsp;from&nbsp;``config/views.yaml``.<br>
 &nbsp;<br>
-This&nbsp;module&nbsp;is&nbsp;the&nbsp;executable&nbsp;mirror&nbsp;of&nbsp;docs/DEVELOPMENT/VIEWS.md<br>
-(kingdoms&nbsp;repo):&nbsp;every&nbsp;view&nbsp;the&nbsp;platform&nbsp;ships&nbsp;is&nbsp;declared&nbsp;here,<br>
-exactly&nbsp;as&nbsp;the&nbsp;doc&nbsp;lists&nbsp;them.&nbsp;Changing&nbsp;the&nbsp;organization&nbsp;means<br>
-changing&nbsp;this&nbsp;file&nbsp;(and&nbsp;the&nbsp;doc&nbsp;in&nbsp;the&nbsp;same&nbsp;PR).<br>
+The&nbsp;YAML&nbsp;is&nbsp;the&nbsp;single&nbsp;source&nbsp;of&nbsp;truth&nbsp;(docs/DEVELOPMENT/VIEWS.md&nbsp;in<br>
+the&nbsp;kingdoms&nbsp;repo&nbsp;renders&nbsp;it&nbsp;for&nbsp;humans):&nbsp;every&nbsp;menu,&nbsp;panel,&nbsp;button<br>
+and&nbsp;navigation&nbsp;target&nbsp;is&nbsp;declared&nbsp;there,&nbsp;and&nbsp;this&nbsp;loader&nbsp;turns&nbsp;it<br>
+into&nbsp;the&nbsp;runtime&nbsp;registry.&nbsp;Adding&nbsp;a&nbsp;menu&nbsp;is&nbsp;YAML&nbsp;lines,&nbsp;zero&nbsp;code&nbsp;—<br>
+the&nbsp;menu&nbsp;builder,&nbsp;the&nbsp;pins&nbsp;and&nbsp;the&nbsp;router&nbsp;all&nbsp;render&nbsp;from&nbsp;the<br>
+registry.<br>
 &nbsp;<br>
-Today:&nbsp;one&nbsp;game&nbsp;(aoe2),&nbsp;no&nbsp;mods&nbsp;yet&nbsp;—&nbsp;the&nbsp;mod&nbsp;menus&nbsp;carry&nbsp;the<br>
-placeholders&nbsp;the&nbsp;doc&nbsp;declares&nbsp;(disabled&nbsp;buttons),&nbsp;removed&nbsp;or<br>
-replaced&nbsp;as&nbsp;real&nbsp;mods&nbsp;land.</span></p>
+An&nbsp;action&nbsp;button&nbsp;(``action:&nbsp;&lt;action-id&gt;``)&nbsp;references&nbsp;a&nbsp;behavior&nbsp;the<br>
+code&nbsp;wires&nbsp;at&nbsp;boot&nbsp;(``wire_action``);&nbsp;an&nbsp;unwired&nbsp;action&nbsp;renders<br>
+disabled,&nbsp;never&nbsp;dead.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-declare_platform_views"><strong>declare_platform_views</strong></a>() -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;every&nbsp;platform&nbsp;view&nbsp;(idempotent,&nbsp;boot-time).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-declare_platform_views"><strong>declare_platform_views</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;every&nbsp;platform&nbsp;view&nbsp;(compatibility&nbsp;name,&nbsp;boot-time).</span></dd></dl>
+ <dl><dt><a name="-declare_views_from_config"><strong>declare_views_from_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'None'</dt><dd><span class="code">Load&nbsp;every&nbsp;declared&nbsp;view&nbsp;from&nbsp;the&nbsp;YAML&nbsp;into&nbsp;the&nbsp;registry.</span></dd></dl>
+ <dl><dt><a name="-load_views_config"><strong>load_views_config</strong></a>(config_dir: 'Path | str | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;and&nbsp;parse&nbsp;the&nbsp;views&nbsp;YAML&nbsp;(anchors&nbsp;and&nbsp;aliases&nbsp;resolve&nbsp;here).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__all__</strong> = ['declare_platform_views']</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['declare_platform_views', 'declare_views_from_config', 'load_views_config']</td></tr></table>
 </body></html>

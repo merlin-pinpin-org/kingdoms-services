@@ -811,14 +811,35 @@ class KingdomsBot(discord.Client):
         return
 
     def _wire_declared_views(self) -> None:
-        """Wire the declared views' open handlers (the router's targets)."""
+        """Wire the declared views and actions (the router's targets).
+
+        Navigation: one handler per declared panel; menus render from
+        the registry alone. Actions: the declared behavior ids map to
+        the existing DynamicItem flows (the map/pool creation modals),
+        guarded exactly like their original buttons.
+        """
         from kingdoms.discord import home
-        from kingdoms.discord.views_routing import wire_view
+        from kingdoms.discord.views_routing import wire_action, wire_view
 
         wire_view("panel:profile", home._view_profile)
         wire_view("panel:status", home._view_status)
         wire_view("panel:game:aoe2:live", home._view_live)
         wire_view("panel:game:aoe2:players", home._view_users_for_game("aoe2"))
+
+        async def _add_map(interaction: discord.Interaction) -> None:
+            from kingdoms.discord.admin_panel_games import GamesMapCreateButton
+
+            item = GamesMapCreateButton("aoe2")
+            await item.callback(interaction)
+
+        async def _create_pool(interaction: discord.Interaction) -> None:
+            from kingdoms.discord.admin_panel_games import GamesPoolCreateButton
+
+            item = GamesPoolCreateButton("aoe2")
+            await item.callback(interaction)
+
+        wire_action("menu:game:aoe2:admin", "add-map", _add_map)
+        wire_action("menu:game:aoe2:admin", "create-pool", _create_pool)
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
         """Observe the clicker's Discord client language (best-effort).

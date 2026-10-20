@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kingdoms.discord.views_declared import declare_platform_views
+from kingdoms.discord.views_declared import declare_views_from_config
 from kingdoms.discord.views_registry import (
     ADMIN_EMOJI,
     SYNC_EMOJI,
@@ -18,7 +18,7 @@ from kingdoms.discord.views_registry import (
 @pytest.fixture(autouse=True)
 def _fresh_registry() -> None:
     clear_registry()
-    declare_platform_views()
+    declare_views_from_config("config")
 
 
 def test_the_platform_views_are_declared() -> None:
@@ -73,6 +73,23 @@ def test_the_placeholder_mods_are_disabled() -> None:
     assert mods_home is not None
     placeholders = [b for b in mods_home.buttons if b.disabled]
     assert len(placeholders) == 3, "ladder, tournament, kingdom: the three placeholders"
+
+
+def test_the_game_admin_menu_declares_its_actions() -> None:
+    admin_menu = get_view("menu:game:aoe2:admin")
+    assert admin_menu is not None
+    actions = {b.action for b in admin_menu.buttons if b.action}
+    assert actions == {"add-map", "create-pool"}
+    for button in admin_menu.buttons:
+        if button.action:
+            assert not button.target, "an action button never navigates"
+
+
+def test_a_button_is_exactly_one_driver() -> None:
+    for decl in registered_views():
+        for button in decl.buttons:
+            drivers = sum(1 for d in (button.target, button.sync, button.action) if d)
+            assert drivers == 1, f"{decl.id}: a button is target, sync or action — never {drivers}"
 
 
 def test_emojis() -> None:
