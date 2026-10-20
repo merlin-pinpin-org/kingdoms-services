@@ -381,7 +381,7 @@ en:
       source_pool_footer: Pool id to copy (post footer, e.g. pool:public:s1_r1)
       copy_pool_title: Copy a map pool
       bulk_import_title: Import maps (list)
-      bulk_lines_label: Maps (one per line - id, name_with_underscores or URL)
+      bulk_lines_label: Maps (id, name or URL, one per line)
       map_deleted: Map deleted
       map_disabled: Map disabled (archived) - reactivable
       pool_deleted: Pool deleted

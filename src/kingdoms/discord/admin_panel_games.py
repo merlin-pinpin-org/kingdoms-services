@@ -2533,7 +2533,7 @@ class GamesBulkImportModal(discord.ui.Modal):
         title = "Importer des maps (liste)"
         super().__init__(title=title, timeout=None)
         self.lines: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Maps (une par ligne : id, nom_avec_underscores ou URL)",
+            label="Maps (id, nom ou URL, une par ligne)",
             style=discord.TextStyle.paragraph,
             max_length=3800,
             required=True,
