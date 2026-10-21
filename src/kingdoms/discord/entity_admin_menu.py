@@ -77,12 +77,19 @@ async def build_entity_admin_menu(
     kind: str, entity_id: str, game_key: str, owned: bool
 ) -> discord.ui.LayoutView:
     """Build the ephemeral management menu of one entity (state-greyed)."""
+    from kingdoms.core.services.game_data import (
+        MAX_POOL_MAPS,
+        POOL_STATE_CLOSED,
+        POOL_STATE_DRAFT,
+        POOL_STATE_LABELS,
+        POOL_STATE_PUBLISHED,
+        POOL_TRANSITIONS,
+    )
     from kingdoms.discord.maps_pool_flow import (
         MapAddToPoolButton,
         MapDeleteButton,
         MapEditButton,
         PoolAddMapButton,
-        PoolDeleteButton,
         PoolRemoveMapsButton,
     )
     from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
@@ -104,21 +111,49 @@ async def build_entity_admin_menu(
         menu.add_item(row)
         return menu
     if kind == "pool":
+        pool = await _resolve_pool(entity_id)
+        state = getattr(pool, "state", POOL_STATE_DRAFT)
+        from kingdoms.discord.admin_panel_games import (
+            GamesPoolArchiveButton,
+            GamesPoolHardDeleteButton,
+            GamesPoolPublishButton,
+            GamesPoolRenameButton,
+        )
+        from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
+
         menu = build_menu(
             MenuSpec(
-                title="⚙️ Gestion du map pool",
-                description=f"`{entity_id}`",
+                title="\u2699\ufe0f Gestion du map pool",
+                description=f"`{entity_id}` \u2014 {POOL_STATE_LABELS.get(state, state)}",
                 view_id="",
                 sections=(),
             )
         )
-        pool_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        pool_row.add_item(PoolAddMapButton(entity_id))
-        pool_row.add_item(PoolRemoveMapsButton(entity_id))
-        pool_row.add_item(PoolEditButton(entity_id, game_key=game_key))
-        pool_row.add_item(PoolDeleteButton(entity_id, game_key=game_key))
-        menu.add_item(pool_row)
+        # line 1: composition (add capped at the pool budget, remove, rename)
+        composition: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        add_button = PoolAddMapButton(entity_id)
+        if pool is not None and len(getattr(pool, "map_ids", ()) or ()) >= MAX_POOL_MAPS:
+            add_button.item.disabled = True
+        composition.add_item(add_button)
+        composition.add_item(PoolRemoveMapsButton(entity_id))
+        composition.add_item(GamesPoolRenameButton(entity_id))
+        menu.add_item(composition)
+        # line 2: lifecycle (publish/archive/delete, disabled when the
+        # transition is impossible from the pool's current state)
+        targets = POOL_TRANSITIONS.get(state, ())
+        lifecycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        publish = GamesPoolPublishButton(entity_id)
+        publish.item.disabled = POOL_STATE_PUBLISHED not in targets
+        lifecycle.add_item(publish)
+        archive = GamesPoolArchiveButton(entity_id)
+        archive.item.disabled = POOL_STATE_CLOSED not in targets and state != POOL_STATE_PUBLISHED
+        lifecycle.add_item(archive)
+        delete = GamesPoolHardDeleteButton(entity_id)
+        delete.item.disabled = state != POOL_STATE_DRAFT
+        lifecycle.add_item(delete)
+        menu.add_item(lifecycle)
         return menu
+
     # civ (and any future kind): the cross-guild data is managed through
     # the DM panel — a plain note keeps the surface honest
     menu = build_menu(
@@ -136,64 +171,25 @@ async def build_entity_admin_menu(
     return menu
 
 
+async def _resolve_pool(entity_id: str) -> Any:
+    """Resolve one pool for the admin menu (None when unreachable)."""
+    from kingdoms.discord.admin_panel_games import _games_wiring
+
+    service = _games_wiring()
+    if service is None:
+        return None
+    try:
+        return await service.get_map_pool(entity_id)
+    except Exception:
+        return None
+
+
 def register_entity_admin_items(bot: discord.Client) -> None:
     """Register the entity admin items on the client."""
     bot.add_dynamic_items(EntityAdminButton)
-    bot.add_dynamic_items(PoolEditButton)
 
 
 __all__ = ["EntityAdminButton", "build_entity_admin_menu", "register_entity_admin_items"]
 
 
-class PoolEditButton(
-    discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"games:pool:open-editor:(?P<pool_id>.+)",
-):
-    """The pool post's edit action: open the pool's editor view.
 
-    The editor carries the lifecycle actions (publish, archive, delete)
-    and the composition — one surface instead of the state-select dance.
-    """
-
-    def __init__(self, pool_id: str, game_key: str = "") -> None:
-        self.pool_id = pool_id
-        super().__init__(
-            discord.ui.Button(
-                label="Editer",
-                emoji="\U0001F4DD",
-                style=discord.ButtonStyle.secondary,
-                custom_id=f"games:pool:open-editor:{pool_id}"[:100],
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> PoolEditButton:
-        """Rebuild the button from the wire (pool id from the custom_id)."""
-        del interaction, item
-        return cls(match.group("pool_id"))
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, then open the pool's editor view (ephemeral)."""
-        from kingdoms.discord.maps_pool_flow import _guard_admin
-
-        if not await _guard_admin(interaction):
-            return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        from kingdoms.discord.admin_panel_games import _games_wiring, pool_editor_view
-
-        service = _games_wiring()
-        pool = await service.get_map_pool(self.pool_id) if service is not None else None
-        if pool is None:
-            from kingdoms.discord.commands_i18n import reply as _reply
-
-            await interaction.followup.send(await _reply(interaction, "replies_shared.pool_not_found"), ephemeral=True)
-            return
-        await interaction.followup.send(
-            view=await pool_editor_view(pool.id, pool.game_key, from_pin=False), ephemeral=True
-        )
