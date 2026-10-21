@@ -1635,7 +1635,6 @@ class GamesPoolMapPageSelect(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
-        page = int((self.item.values or ["0"])[0])
         await interaction.response.edit_message(
             view=await _pool_admin_menu(self.pool_id, pool.game_key)
         )
