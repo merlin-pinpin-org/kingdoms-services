@@ -197,7 +197,8 @@ class MapPoolPickerSelect(
         if not pool.edition_mode:
             await interaction.response.send_message(
                 f"**{pool.name}** n'est pas en édition — une map ne peut être ajoutée "
-                "qu'à un pool en édition (les pools publiés ou utilisés sont figés).",
+                "qu'à un pool en édition (publié, utilisé ou archivé : la "
+                "composition ne change plus).",
                 ephemeral=True,
             )
             return

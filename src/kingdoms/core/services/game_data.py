@@ -55,6 +55,9 @@ POOL_STATE_LABELS = {
     POOL_STATE_CLOSED: "supprimé",
 }
 # Allowed transitions: the next state(s) a pool may move to.
+# Pool search rules (the designers' contract):
+# - using a pool (a tournament, a ladder) searches the PUBLISHED pools;
+# - adding a map to a pool searches the pools in EDITION.
 POOL_TRANSITIONS: dict[str, tuple[str, ...]] = {
     POOL_STATE_DRAFT: (POOL_STATE_PUBLISHED,),
     POOL_STATE_PUBLISHED: (POOL_STATE_DRAFT, POOL_STATE_USED),
@@ -534,9 +537,10 @@ class GameDataService:
     async def hard_delete_map_pool(self, entry_id: str) -> bool:
         """Hard-delete a pool — the definitive, id-freeing delete.
 
-        The designer confirms with the pool's exact id; the only
-        refusal is a pool still active on a ladder (deactivate it
-        first). Everything else goes: the record, the reserved id.
+        The designer confirms with the pool's exact id. Two refusals:
+        a pool still active on a ladder (deactivate it first), and a
+        pool that has ever been used (archive only — history keeps
+        its trace). Everything else goes: the record, the reserved id.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
         for doc in await self._db.find_open_activations(entry_id):
@@ -544,6 +548,10 @@ class GameDataService:
             raise ActivePoolArchiveError(
                 f"map pool {entry_id!r} is active on ladder {activation.ladder_id!r} — "
                 "deactivate it first"
+            )
+        if pool.ever_activated:
+            raise ValueError(
+                f"map pool {entry_id!r} has been used on a ladder — it can only be archived"
             )
         await self._db.delete_entry(MAP_POOLS_COLLECTION, entry_id)
         await self._audit_record("map_pool.hard_delete", {"entry_id": entry_id})

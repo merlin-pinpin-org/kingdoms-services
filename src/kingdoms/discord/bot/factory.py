@@ -314,6 +314,14 @@ class KingdomsBot(discord.Client):
         if self._provisioned:
             return
         self._provisioned = True
+        # declare the scopes (views.yaml): the registry drives the sync
+        # buttons and the pins — a declaration, never a creation
+        try:
+            from kingdoms.discord.ui.panels_scopes import register_platform_scopes
+
+            register_platform_scopes()
+        except Exception:
+            logger.warning("SCOPE REGISTRATION failed — best-effort", exc_info=True)
         if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
             logger.info("BOOT ROUTING skipped: announcements disabled (CI/CD smoke bot?)")
             return

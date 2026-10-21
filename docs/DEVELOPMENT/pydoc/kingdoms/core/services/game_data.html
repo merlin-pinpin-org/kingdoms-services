@@ -415,9 +415,10 @@ duplicating&nbsp;guild&nbsp;owns&nbsp;it,&nbsp;whatever&nbsp;the&nbsp;source's&n
 
 <dl><dt>async <a name="GameDataService-hard_delete_map_pool"><strong>hard_delete_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Hard-delete&nbsp;a&nbsp;pool&nbsp;—&nbsp;the&nbsp;definitive,&nbsp;id-freeing&nbsp;delete.<br>
 &nbsp;<br>
-The&nbsp;designer&nbsp;confirms&nbsp;with&nbsp;the&nbsp;pool's&nbsp;exact&nbsp;id;&nbsp;the&nbsp;only<br>
-refusal&nbsp;is&nbsp;a&nbsp;pool&nbsp;still&nbsp;active&nbsp;on&nbsp;a&nbsp;ladder&nbsp;(deactivate&nbsp;it<br>
-first).&nbsp;Everything&nbsp;else&nbsp;goes:&nbsp;the&nbsp;record,&nbsp;the&nbsp;reserved&nbsp;id.</span></dd></dl>
+The&nbsp;designer&nbsp;confirms&nbsp;with&nbsp;the&nbsp;pool's&nbsp;exact&nbsp;id.&nbsp;Two&nbsp;refusals:<br>
+a&nbsp;pool&nbsp;still&nbsp;active&nbsp;on&nbsp;a&nbsp;ladder&nbsp;(deactivate&nbsp;it&nbsp;first),&nbsp;and&nbsp;a<br>
+pool&nbsp;that&nbsp;has&nbsp;ever&nbsp;been&nbsp;used&nbsp;(archive&nbsp;only&nbsp;—&nbsp;history&nbsp;keeps<br>
+its&nbsp;trace).&nbsp;Everything&nbsp;else&nbsp;goes:&nbsp;the&nbsp;record,&nbsp;the&nbsp;reserved&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-list_all_map_pools"><strong>list_all_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapPoolModel]'</dt><dd><span class="code">List&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game,&nbsp;archived&nbsp;included&nbsp;(the&nbsp;forum&nbsp;mirror).<br>
 &nbsp;<br>
