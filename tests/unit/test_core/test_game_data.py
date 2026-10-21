@@ -278,3 +278,21 @@ def test_map_pool_model_roundtrip() -> None:
     doc = pool.to_mongo()
     assert doc["_id"] == pool.id
     assert MapPoolModel.from_mongo(doc) == pool
+
+
+@pytest.mark.asyncio
+async def test_create_map_title_cases_the_display_name() -> None:
+    """A lowercase designer input lands title-cased in the catalog."""
+    svc, _, _ = _service()
+    entry = await svc.create_map(GAME, "team islands", filename="team_islands")
+    assert entry.name == "Team Islands"
+
+
+@pytest.mark.asyncio
+async def test_create_map_pool_title_cases_the_display_name() -> None:
+    """A lowercase pool name lands title-cased in the catalog."""
+    map_entry = None
+    svc, _, _ = _service()
+    map_entry = await svc.create_map(GAME, "Arabia", filename="arabia.v0")
+    pool = await svc.create_map_pool(GAME, "rotation un", map_ids=(map_entry.id,))
+    assert pool.name == "Rotation Un"

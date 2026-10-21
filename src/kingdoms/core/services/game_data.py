@@ -206,6 +206,10 @@ class GameDataService:
         admins). Global entries sync into every guild's forum; a
         guild's entries stay in that guild's forum.
         """
+        # the display name is title-cased once, at the source: a designer
+        # typing "arabia" or "team islands" gets "Arabia" / "Team Islands"
+        # everywhere — the catalog, the menus and the forum posts.
+        name = " ".join(w[:1].upper() + w[1:] for w in name.split()) or name
         if await self._db.find_by_name(MAPS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map {name!r} already exists for game {game_key!r}")
         entry = MapModel(
@@ -364,6 +368,9 @@ class GameDataService:
         (None); a public pool is shared with every guild while keeping
         its owner (#04fcb94c).
         """
+        # the pool's display name is title-cased like the maps': one
+        # convention for every catalog entity
+        name = " ".join(w[:1].upper() + w[1:] for w in name.split()) or name
         if await self._db.find_by_name(MAP_POOLS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map pool {name!r} already exists for game {game_key!r}")
         for map_id in map_ids:

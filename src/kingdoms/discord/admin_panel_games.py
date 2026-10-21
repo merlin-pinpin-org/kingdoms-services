@@ -1378,7 +1378,14 @@ class GamesPoolRenameModal(discord.ui.Modal):
         await interaction.response.edit_message(
             view=await _pool_admin_menu(pool.id, pool.game_key)
         )
-        await interaction.followup.send(f"Pool renomme **{pool.name}**.", ephemeral=True)
+        if interaction.guild_id is not None:
+            try:
+                from kingdoms.discord.pools_forum import sync_pools_forum
+
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+            except Exception:
+                logger.warning("pool rename: pools forum sync failed — best-effort", exc_info=True)
+        await interaction.followup.send(f"Pool renommé **{pool.name}** — son post est à jour.", ephemeral=True)
 
 
 class GamesPoolArchiveButton(

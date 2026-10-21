@@ -143,12 +143,12 @@ async def build_entity_admin_menu(
         # transition is impossible from the pool's current state)
         targets = POOL_TRANSITIONS.get(state, ())
         lifecycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        publish = GamesPoolPublishButton(entity_id)
-        publish.item.disabled = POOL_STATE_PUBLISHED not in targets
-        lifecycle.add_item(publish)
         to_draft = GamesPoolToDraftButton(entity_id)
         to_draft.item.disabled = POOL_STATE_DRAFT not in targets
         lifecycle.add_item(to_draft)
+        publish = GamesPoolPublishButton(entity_id)
+        publish.item.disabled = POOL_STATE_PUBLISHED not in targets
+        lifecycle.add_item(publish)
         archive = GamesPoolArchiveButton(entity_id)
         archive.item.disabled = POOL_STATE_CLOSED not in targets and state != POOL_STATE_PUBLISHED
         lifecycle.add_item(archive)

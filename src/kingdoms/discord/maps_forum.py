@@ -215,6 +215,26 @@ def _map_post_view(
 
 
 
+async def _heal_thread_title(platform: Any, guild_id: str, thread_id: str, display: str) -> None:
+    """Align a post's thread title with its display name (best-effort).
+
+    A post created before the capitalize rule (or renamed by hand)
+    heals on every sync — the title is part of the post's face.
+    """
+    if not guild_id.isdigit() or not thread_id.isdigit():
+        return
+    guild = platform._bot.get_guild(int(guild_id))
+    if guild is None:
+        return
+    channel = guild.get_channel_or_thread(int(thread_id))
+    if channel is None or channel.name == display[:100]:
+        return
+    try:
+        await channel.edit(name=display[:100], reason="kingdoms: post title heal")
+    except Exception:
+        logger.debug("maps forum: title heal skipped (%s)", thread_id, exc_info=True)
+
+
 async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, service: Any) -> None:
     """Keep an existing map post's content and layout in sync (best-effort)."""
     import time
@@ -268,6 +288,7 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
         if _last_layout_render(thread_id) == fingerprint:
             return
         _remember_layout_render(thread_id, fingerprint)
+        await _heal_thread_title(platform, guild_id, thread_id, display)
         await platform.edit_forum_post(guild_id, entry.forum_message_id, content, view)
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:
