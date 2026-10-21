@@ -57,7 +57,11 @@ async def _dm_locale(source: Any) -> str:
     """
     client = source if isinstance(source, discord.Client) else getattr(source, "client", None)
     user = getattr(source, "user", None)
-    user_id = str(getattr(user, "id", "") or "") if user is not None else ""
+    # an explicit user_id wins (the boot delivery knows its recipient
+    # but carries no interaction); then the interaction's clicker
+    user_id = str(getattr(source, "_dm_user_id", "") or "")
+    if not user_id and user is not None:
+        user_id = str(getattr(user, "id", "") or "")
     logs = getattr(client, "logs_service", None)
     if logs is not None and user_id:
         try:
@@ -87,15 +91,38 @@ def _dm_tr(source: Any, locale: str, key: str, **kwargs: Any) -> str:
     return str(rendered)
 
 
+class _Recipient:
+    """The boot delivery's locale source: a client plus a recipient id."""
+
+    def __init__(self, client: Any, user_id: str) -> None:
+        self.client = client
+        self._dm_user_id = user_id
+
+
 async def _access_service() -> Any | None:
     from kingdoms.discord.wiring import build_guild_access_service
 
     return build_guild_access_service()
 
 
+_PANEL_CACHE: dict[str, discord.ui.LayoutView] = {}
+
+
+def clear_admin_dm_panel_cache() -> None:
+    """Drop the cached per-locale views (a new delivery re-renders).
+
+    The cache only spans one delivery pass (the boot loop, one
+    refresh sweep): same language, same view; the next pass rebuilds
+    with the current data.
+    """
+    _PANEL_CACHE.clear()
+
+
 async def build_admin_dm_panel(
     interaction: discord.Interaction | discord.Client,
     locale_select: discord.ui.Item[Any] | None = None,
+    *,
+    user_id: str = "",
 ) -> discord.ui.LayoutView:
     """Render the bot-admin DM menu: frozen, five openers (the home/admin charte).
 
@@ -104,7 +131,11 @@ async def build_admin_dm_panel(
     servers) so the data reads at a glance, and the callers
     that mutate the data re-render it in place (same message id).
     """
-    dm_locale = await _dm_locale(interaction)
+    dm_locale = await _dm_locale(interaction if not user_id else _Recipient(interaction, user_id))
+    # the boot delivers one menu per bot-admin: same language, same view —
+    # the per-locale cache renders once and every recipient reuses it
+    if dm_locale in _PANEL_CACHE:
+        return _PANEL_CACHE[dm_locale]
     view = discord.ui.LayoutView(timeout=None)
     service = await _access_service()
 
@@ -136,13 +167,24 @@ async def build_admin_dm_panel(
     row.add_item(DmOpenButton("language", _dm_tr(interaction, dm_locale, "menu_btn_language")))
     row.add_item(DmOpenButton("sync", _dm_tr(interaction, dm_locale, "menu_btn_sync")))
     view.add_item(row)
-    return add_view_footer(view, "panel:dm:admin")
+    rendered = add_view_footer(view, "panel:dm:admin")
+    _PANEL_CACHE[dm_locale] = rendered
+    return rendered
+
+
+def _message_recipient_id(message: Any) -> str:
+    """Return the DM channel's recipient id ("" when the shape is unexpected)."""
+    channel = getattr(message, "channel", None)
+    recipient = getattr(channel, "recipient", None)
+    return str(getattr(recipient, "id", "") or "")
 
 
 async def _render_dm_menu_into(message: Any, client: Any) -> None:
     """Edit one DM menu message to the current menu (best-effort)."""
     try:
-        await message.edit(view=await build_admin_dm_panel(client))
+        await message.edit(
+            view=await build_admin_dm_panel(client, user_id=_message_recipient_id(message))
+        )
     except Exception:
         logger.warning("DM PANEL: menu refresh failed — best-effort", exc_info=True)
 
@@ -151,13 +193,18 @@ async def _refresh_admin_dm_menus(client: Any, exclude_channel: int | None = Non
     """Re-render every bot-admin's pinned DM menu (best-effort).
 
     The boot delivery pins one menu per admin; each is registered in
-    the module's store, so a data change re-renders them all.
+    the module's store, so a data change re-renders them all — each
+    in its recipient's stored language (the per-locale cache renders
+    once, every same-language menu reuses the view).
     """
+    clear_admin_dm_panel_cache()
     for channel_id, message in list(_ADMIN_MENU_MESSAGES.items()):
         if exclude_channel is not None and channel_id == exclude_channel:
             continue
         try:
-            await message.edit(view=await build_admin_dm_panel(client))
+            await message.edit(
+                view=await build_admin_dm_panel(client, user_id=_message_recipient_id(message))
+            )
         except Exception:
             _ADMIN_MENU_MESSAGES.pop(channel_id, None)
             logger.info("DM PANEL: menu gone (channel %s) — dropping from the store", channel_id)

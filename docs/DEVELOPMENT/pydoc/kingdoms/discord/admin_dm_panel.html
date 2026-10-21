@@ -338,12 +338,17 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-build_admin_dm_panel"><strong>build_admin_dm_panel</strong></a>(interaction: 'discord.Interaction | discord.Client', locale_select: 'discord.ui.Item[Any] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;bot-admin&nbsp;DM&nbsp;menu:&nbsp;frozen,&nbsp;five&nbsp;openers&nbsp;(the&nbsp;home/admin&nbsp;charte).<br>
+<td class="singlecolumn"><dl><dt>async <a name="-build_admin_dm_panel"><strong>build_admin_dm_panel</strong></a>(interaction: 'discord.Interaction | discord.Client', locale_select: 'discord.ui.Item[Any] | None' = None, *, user_id: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;bot-admin&nbsp;DM&nbsp;menu:&nbsp;frozen,&nbsp;five&nbsp;openers&nbsp;(the&nbsp;home/admin&nbsp;charte).<br>
 &nbsp;<br>
 The&nbsp;menu&nbsp;never&nbsp;re-renders&nbsp;on&nbsp;navigation&nbsp;—&nbsp;every&nbsp;button&nbsp;opens&nbsp;an<br>
 ephemeral&nbsp;sub-view.&nbsp;It&nbsp;carries&nbsp;one&nbsp;status&nbsp;line&nbsp;(the&nbsp;server&nbsp;count),<br>
 servers)&nbsp;so&nbsp;the&nbsp;data&nbsp;reads&nbsp;at&nbsp;a&nbsp;glance,&nbsp;and&nbsp;the&nbsp;callers<br>
 that&nbsp;mutate&nbsp;the&nbsp;data&nbsp;re-render&nbsp;it&nbsp;in&nbsp;place&nbsp;(same&nbsp;message&nbsp;id).</span></dd></dl>
+ <dl><dt><a name="-clear_admin_dm_panel_cache"><strong>clear_admin_dm_panel_cache</strong></a>() -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;the&nbsp;cached&nbsp;per-locale&nbsp;views&nbsp;(a&nbsp;new&nbsp;delivery&nbsp;re-renders).<br>
+&nbsp;<br>
+The&nbsp;cache&nbsp;only&nbsp;spans&nbsp;one&nbsp;delivery&nbsp;pass&nbsp;(the&nbsp;boot&nbsp;loop,&nbsp;one<br>
+refresh&nbsp;sweep):&nbsp;same&nbsp;language,&nbsp;same&nbsp;view;&nbsp;the&nbsp;next&nbsp;pass&nbsp;rebuilds<br>
+with&nbsp;the&nbsp;current&nbsp;data.</span></dd></dl>
  <dl><dt><a name="-register_admin_dm_items"><strong>register_admin_dm_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;DM&nbsp;panel's&nbsp;persistent&nbsp;dynamic&nbsp;items.</span></dd></dl>
  <dl><dt><a name="-track_admin_menu"><strong>track_admin_menu</strong></a>(message: 'Any') -&gt; 'None'</dt><dd><span class="code">Track&nbsp;one&nbsp;freshly&nbsp;delivered&nbsp;DM&nbsp;menu&nbsp;message&nbsp;(per&nbsp;admin).</span></dd></dl>
 </td></tr></table><p>
@@ -353,6 +358,6 @@ that&nbsp;mutate&nbsp;the&nbsp;data&nbsp;re-render&nbsp;it&nbsp;in&nbsp;place&nb
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ClassVar</strong> = typing.ClassVar<br>
-<strong>__annotations__</strong> = {'_ADMIN_MENU_MESSAGES': 'dict[int, Any]'}<br>
+<strong>__annotations__</strong> = {'_ADMIN_MENU_MESSAGES': 'dict[int, Any]', '_PANEL_CACHE': 'dict[str, discord.ui.LayoutView]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.admin_dm (WARNING)&gt;</td></tr></table>
 </body></html>

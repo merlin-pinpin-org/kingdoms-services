@@ -472,6 +472,9 @@ async def _announce_boot_to_admins(
     bot-admin, best-effort (a closed DM or an unreachable user logs
     and moves on — the guild announcement above is the fallback).
     """
+    from kingdoms.discord.admin_dm_panel import clear_admin_dm_panel_cache
+
+    clear_admin_dm_panel_cache()
     command_items = tuple(commands or ())
     commands_block = commands_section(sync_scope, command_items, config.locale, config.config_dir)
     layout = build_announcement_layout(
@@ -519,7 +522,7 @@ async def _send_boot_admin_dm(bot: discord.Client, user: Any) -> None:
     from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
     try:
-        panel = await build_admin_dm_panel(bot)
+        panel = await build_admin_dm_panel(bot, user_id=str(user.id))
         message = await user.send(view=panel)
         try:
             await message.pin(reason="kingdoms: boot admin DM menu")
