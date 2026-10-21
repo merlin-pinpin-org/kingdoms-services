@@ -64,7 +64,7 @@ _GOOD_1F5XX = {
     0x1F5FC,  # tokyo tower
     0x1F5FD,  # statue of liberty
     0x1F5DE,  # bookmark tabs (labels only — NOT valid as component emoji)
-    0x1F5AE,  # wastebasket (live-checked on test 2026-10-21)
+# 0x1F5AE rejected live (50035 Invalid emoji, 2026-10-21 test env)
     0x1F5D1,  # trash bin
 }
 

@@ -488,6 +488,74 @@ fr:
         ladder: Ladder
         tournament: Tournoi
         kingdom: Kingdom
+    flows:
+      wiring_unavailable: Wiring indisponible.
+      pool_not_found: Pool introuvable.
+      map_not_found: Map introuvable.
+      entry_not_found: Entrée introuvable.
+      pool_full: Le pool est plein ({max} maps max) — retire une map pour en ajouter une autre.
+      empty_pool: Le pool est vide.
+      no_map_in_list: Aucune map dans la liste.
+      no_liquipedia_page: Aucune page Liquipedia pour "{name}" — crée la map localement.
+      rename_failed: Renommage échoué (voir les logs).
+      archive_failed: Archivage échoué (pool actif ? voir les logs).
+      duplicate_failed: Duplication échouée (voir les logs).
+      send_failed: Envoi échoué (nom déjà pris ? voir les logs).
+      import_failed_step: Import échoué à l'étape « {step} » — la map a été supprimée.
+      import_failed_step_cleanup: Import échoué à l'étape « {step} » et le nettoyage a aussi échoué.
+      import_taken: Import refusé — {detail} Supprime ou archive la map existante d'abord.
+      import_create_failed: 'Import échoué à l''étape « création » :'
+      bulk_partial: '{count} maps importées mais l''association au pool a échoué (voir les logs).'
+      copy_failed: 'Échec de la copie : {detail}'
+      hard_delete_only_draft: Seul un pool en édition jamais utilisé peut être supprimé totalement.
+      published_only: Seuls les pools publiés peuvent être importés.
+      already_owned: Ce pool appartient déjà à ce serveur.
+      numeric_guild_id: L'ID du serveur doit être numérique.
+      pool_deleted: Pool **{name}** supprimé — son post disparaît au prochain sync.
+      pool_duplicated: Pool dupliqué en **{name}** (éditable).
+      pool_sent: Pool **{name}** envoyé au serveur **{guild}** — il y sera verrouillé (non modifiable).
+      pool_copied: Pool **{name}** copié (`{id}`) — {count} maps, son post est dans le forum des pools.
+      pool_imported: Pool **{name}** importé (verrouillé, non modifiable).
+      map_updated: Map **{name}** mise à jour — la fiche se rafraîchit à la prochaine sync.
+      map_added_to_pool: '**{map}** ajoutée à **{pool}**.'
+      already_in_pool: '**{map}** est déjà dans **{pool}**.'
+      pool_created_with_map: Pool **{name}** créé — la map a été ajoutée.
+      pool_created: Pool **{name}** créé — synchronisation du forum…
+      pool_renamed: Pool renommé **{name}**.
+      pool_archived: Pool archivé.
+      pool_hard_deleted: Pool **{name}** supprimé totalement (aucune référence ne pointait vers lui).
+      pool_published_line: Pool publié.
+      maps_removed: '{count} map(s) retirée(s).'
+      bulk_imported: '{count} maps importées — les posts arrivent dans le forum maps.'
+      map_imported: Map **{name}** importée.
+      map_created: Map **{name}** créée — elle apparaîtra dans le forum maps.
+      transition_impossible: Ce pool est **{state}** — aucune transition possible.
+      transition_applied: 'Pool **{name}** : {state} — la fiche se met à jour à la prochaine sync.'
+      add_map_to_which_pool: '## Ajouter à quel map pool ?'
+      add_map_to_pool_title: Ajouter une map à **{pool}**
+      remove_maps_of: Retirer des maps de **{pool}**
+      catalog_too_big: Le catalogue dépasse 25 maps — pas de sélecteur ici. Ajoute la map depuis sa fiche.
+      name_mismatch: 'Nom ne correspond pas — abandon. Attendu : **{expected}**.'
+      cannot_delete_in_use: Impossible de supprimer **{map}** — elle fait partie d'un map pool.
+      delete_impossible: Suppression impossible — {detail}
+      failure_prefix: 'Échec : {detail}'
+      pool_editor_title: '# Éditer le pool'
+      no_pool: _Aucun map pool._
+      no_map_seed: _No map — seed the catalog._
+      game_menu_failed: Le menu du jeu a échoué à s'ouvrir (voir les logs).
+      game_menu_not_sent: Le menu du jeu n'a pas pu être envoyé (voir les logs).
+      global_maps_admins: Les maps globales sont réservées aux bot admins.
+      unexpected_state: État inattendu — recommence avec /register.
+      no_enrollment: Aucune inscription en cours — recommence avec /register.
+      enrolled: Inscription terminée ! Ton profil AoE2 `{profile}` est lié — tu peux rejoindre le ladder.
+      enrolled_cancelled: Inscription annulée — /register quand tu veux.
+      enrolled_cancelled_short: Inscription annulée.
+      unknown_panel: Panneau inconnu
+      registered: Inscrit ({value}).
+      error_processing_registration: Une erreur est survenue pendant le traitement de ton inscription. Réessaie.
+      error_processing_feedback: Une erreur est survenue pendant le traitement de ton retour. Réessaie.
+      not_bot_operator: Tu n'es ni opérateur du bot (BOT_ADMINS) ni administrateur du serveur.
+      dm_settings_follow_client: 'Réglages personnels : la langue suit celle de ton client Discord.'
   admin_tree:
     language: 🌐 Langue
   staff:

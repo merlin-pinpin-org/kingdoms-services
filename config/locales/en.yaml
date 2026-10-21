@@ -488,6 +488,74 @@ en:
         ladder: Ladder
         tournament: Tournament
         kingdom: Kingdom
+    flows:
+      wiring_unavailable: Wiring unavailable.
+      pool_not_found: Pool not found.
+      map_not_found: Map not found.
+      entry_not_found: Entry not found.
+      pool_full: The pool is full ({max} maps max) — remove a map to add another.
+      empty_pool: The pool is empty.
+      no_map_in_list: No map in the list.
+      no_liquipedia_page: No Liquipedia page for "{name}" — create the map locally.
+      rename_failed: Rename failed (see the logs).
+      archive_failed: Archive failed (active pool? see the logs).
+      duplicate_failed: Duplicate failed (see the logs).
+      send_failed: Send failed (name taken? see the logs).
+      import_failed_step: Import failed at the « {step} » step — the map was removed.
+      import_failed_step_cleanup: Import failed at the « {step} » step and the cleanup failed too.
+      import_taken: Import refused — {detail} Delete or archive the existing map first.
+      import_create_failed: 'Import failed at the « creation » step:'
+      bulk_partial: '{count} maps imported but the pool association failed (see the logs).'
+      copy_failed: 'Copy failed: {detail}'
+      hard_delete_only_draft: Only a never-used draft pool can be fully deleted.
+      published_only: Only published pools can be imported.
+      already_owned: This pool already belongs to this server.
+      numeric_guild_id: The server ID must be numeric.
+      pool_deleted: Pool **{name}** deleted — its post disappears at the next sync.
+      pool_duplicated: Pool duplicated as **{name}** (editable).
+      pool_sent: Pool **{name}** sent to server **{guild}** — it will be locked there (not editable).
+      pool_copied: Pool **{name}** copied (`{id}`) — {count} maps, its post is in the pools forum.
+      pool_imported: Pool **{name}** imported (locked, not editable).
+      map_updated: Map **{name}** updated — the post refreshes at the next sync.
+      map_added_to_pool: '**{map}** added to **{pool}**.'
+      already_in_pool: '**{map}** is already in **{pool}**.'
+      pool_created_with_map: Pool **{name}** created — the map was added.
+      pool_created: Pool **{name}** created — forum sync…
+      pool_renamed: Pool renamed **{name}**.
+      pool_archived: Pool archived.
+      pool_hard_deleted: Pool **{name}** fully deleted (no reference pointed to it).
+      pool_published_line: Pool published.
+      maps_removed: '{count} map(s) removed.'
+      bulk_imported: '{count} maps imported — the posts land in the maps forum.'
+      map_imported: Map **{name}** imported.
+      map_created: Map **{name}** created — it will appear in the maps forum.
+      transition_impossible: This pool is **{state}** — no transition possible.
+      transition_applied: 'Pool **{name}**: {state} — the post updates at the next sync.'
+      add_map_to_which_pool: '## Add to which map pool?'
+      add_map_to_pool_title: Add a map to **{pool}**
+      remove_maps_of: Remove maps from **{pool}**
+      catalog_too_big: The catalog exceeds 25 maps — no picker here. Add the map from its post.
+      name_mismatch: 'Name does not match — aborted. Expected: **{expected}**.'
+      cannot_delete_in_use: Cannot delete **{map}** — it is part of a map pool.
+      delete_impossible: Delete impossible — {detail}
+      failure_prefix: 'Failed: {detail}'
+      pool_editor_title: '# Edit the pool'
+      no_pool: _No map pool._
+      no_map_seed: _Aucune map — peuple le catalogue._
+      game_menu_failed: The game menu failed to open (see the logs).
+      game_menu_not_sent: The game menu could not be sent (see the logs).
+      global_maps_admins: Global maps are reserved for bot admins.
+      unexpected_state: Unexpected state — restart with /register.
+      no_enrollment: No enrollment in progress — restart with /register.
+      enrolled: Enrolled! Your AoE2 profile `{profile}` is linked — you can join the ladder.
+      enrolled_cancelled: Enrollment cancelled — /register whenever you like.
+      enrolled_cancelled_short: Enrollment cancelled.
+      unknown_panel: Unknown panel
+      registered: Registered ({value}).
+      error_processing_registration: An error occurred while processing your registration. Please try again.
+      error_processing_feedback: An error occurred while processing your feedback. Please try again.
+      not_bot_operator: You are not a bot operator (BOT_ADMINS) nor a server administrator.
+      dm_settings_follow_client: 'Personal settings: the language follows your Discord client.'
   admin_tree:
     language: 🌐 Language
   staff:

@@ -1118,11 +1118,11 @@ class GamesPoolDeleteSelect(
         await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.wiring_unavailable")), ephemeral=True)
             return
         entry = await service.get_map_pool(chosen)
         if entry is None:
-            await interaction.followup.send("Entrée introuvable.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.entry_not_found")), ephemeral=True)
             return
         from kingdoms.discord.maps_pool_flow import _pool_delete_confirm_view
 
@@ -1180,11 +1180,11 @@ class GamesMapDeleteSelect(
         await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.wiring_unavailable")), ephemeral=True)
             return
         entry = await service.get_map(chosen)
         if entry is None:
-            await interaction.followup.send("Entrée introuvable.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.entry_not_found")), ephemeral=True)
             return
         from kingdoms.discord.maps_pool_flow import _map_delete_confirm_view
 
@@ -1569,7 +1569,7 @@ class GamesPoolHardDeleteButton(
         super().__init__(
             discord.ui.Button(
                 label="Supprimer",
-                emoji="\U0001F5AE",
+                emoji="\U0001F5D1",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_NS}:pools:harddelete:{pool_id}"[:100],
             )
@@ -1830,11 +1830,11 @@ class GamesPoolMapRemoveSelect(
         await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.wiring_unavailable")), ephemeral=True)
             return
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.followup.send("Pool introuvable.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.pool_not_found")), ephemeral=True)
             return
         remaining = tuple(m for m in pool.map_ids if m not in set(chosen))
         try:
@@ -2466,7 +2466,7 @@ class GamesBulkImportModal(discord.ui.Modal):
             return
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.wiring_unavailable")), ephemeral=True)
             return
 
         created, failure = await _bulk_import_maps(service, self.game_key, parsed)
@@ -2561,7 +2561,7 @@ class GamesPoolCopyModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            await interaction.followup.send((await reply(interaction, "ui.flows.wiring_unavailable")), ephemeral=True)
             return
         source_id = str(self.source_id.value or "").strip()
         source = await service.get_map_pool(source_id) if source_id else None

@@ -389,7 +389,7 @@ class PoolRemoveMapsButton(
         super().__init__(
             discord.ui.Button(
                 label=label,
-                emoji="\U0001F5AE",
+                emoji="\U0001F5D1",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_REMOVE_FROM_POOL_NS}:{pool_id}"[:100],
             )
@@ -571,7 +571,7 @@ class PoolDeleteButton(
         super().__init__(
             discord.ui.Button(
                 label="Supprimer",
-                emoji="\U0001F5AE",
+                emoji="\U0001F5D1",
                 style=discord.ButtonStyle.danger,
                 custom_id=(f"games:pool:delete:{pool_id}")[:100],
             )
@@ -622,7 +622,7 @@ def _pool_delete_confirm_view(pool_id: str, name: str) -> discord.ui.View:
             super().__init__(
                 label="Confirmer la suppression",
                 style=_discord.ButtonStyle.danger,
-                emoji="\U0001F5AE",
+                emoji="\U0001F5D1",
             )
 
         async def callback(self, interaction: _discord.Interaction) -> None:
@@ -794,7 +794,7 @@ class MapDeleteButton(
         super().__init__(
             discord.ui.Button(
                 label=label,
-                emoji="\U0001F5AE",
+                emoji="\U0001F5D1",
                 style=discord.ButtonStyle.danger,
                 custom_id=(f"games:map:delete:{map_id}:{game_key}:{1 if owned_by_guild else 0}")[:100],
             )
@@ -849,7 +849,7 @@ def _map_delete_confirm_view(map_id: str, game_key: str, name: str) -> discord.u
             super().__init__(
                 label="Confirmer la suppression",
                 style=_discord.ButtonStyle.danger,
-                emoji="\U0001F5AE",
+                emoji="\U0001F5D1",
             )
 
         async def callback(self, interaction: _discord.Interaction) -> None:
