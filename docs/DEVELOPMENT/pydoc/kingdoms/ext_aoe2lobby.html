@@ -12,10 +12,12 @@
     <p><span class="code">ext-aoe2lobby&nbsp;—&nbsp;AoE2&nbsp;realtime&nbsp;provider&nbsp;process&nbsp;(aoe2lobby.com).<br>
 &nbsp;<br>
 Serves&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;to&nbsp;svc-core.&nbsp;Backed&nbsp;by&nbsp;the<br>
-aoe2lobby.com&nbsp;WebSocket&nbsp;API,&nbsp;which&nbsp;aggregates&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;lobby<br>
-data&nbsp;and&nbsp;provides&nbsp;real-time&nbsp;updates&nbsp;without&nbsp;polling.&nbsp;Results&nbsp;still<br>
-require&nbsp;the&nbsp;LibreMatch-side&nbsp;data,&nbsp;so&nbsp;reliable_results&nbsp;stays<br>
-conservative&nbsp;until&nbsp;the&nbsp;live&nbsp;adapter&nbsp;is&nbsp;wired.</span></p>
+aoe2lobby.com&nbsp;WebSocket&nbsp;API&nbsp;(``wss://data.aoe2lobby.com/ws/``),&nbsp;which<br>
+aggregates&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;lobby&nbsp;data&nbsp;and&nbsp;pushes&nbsp;global&nbsp;snapshots&nbsp;and<br>
+deltas;&nbsp;the&nbsp;adapter&nbsp;reduces&nbsp;them&nbsp;client-side&nbsp;into&nbsp;per-player&nbsp;lifecycle<br>
+events&nbsp;(lobby_opened&nbsp;/&nbsp;game_started&nbsp;/&nbsp;lobby_closed&nbsp;/&nbsp;game_ended)&nbsp;with<br>
+the&nbsp;15&nbsp;s&nbsp;lobby-closed&nbsp;grace&nbsp;period.&nbsp;Results&nbsp;still&nbsp;require&nbsp;the<br>
+LibreMatch-side&nbsp;data,&nbsp;so&nbsp;reliable_results&nbsp;stays&nbsp;conservative.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">

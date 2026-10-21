@@ -21,7 +21,8 @@ def main() -> None:
     from kingdoms.ext_aoe2lobby.adapter import Aoe2LobbyAdapter
 
     adapter = Aoe2LobbyAdapter(
-        ws_url=os.environ.get("AOE2LOBBY_WS_URL", "wss://data.aoe2lobby.com/ws/"),
+        ws_url=os.environ.get("AOE2LOBBY_WS_URL", "") or "wss://data.aoe2lobby.com/ws/",
+        refresh_s=float(os.environ.get("AOE2LOBBY_REFRESH_S", "60")),
     )
 
     async def match_events() -> AsyncIterator[MatchEvent]:

@@ -52,7 +52,7 @@ services:
     profiles: ["all", "providers", "aoe2lobby"]
     environment:
       - KINGDOMS_PROCESS=ext-aoe2lobby
-      - AOE2LOBBY_WS_URL=${AOE2LOBBY_WS_URL:-wss://aoe2lobby.com/ws}
+      - AOE2LOBBY_WS_URL=${AOE2LOBBY_WS_URL:-wss://data.aoe2lobby.com/ws/}
       - EXT_GRPC_PORT=50062
     expose:
       - "50062"
