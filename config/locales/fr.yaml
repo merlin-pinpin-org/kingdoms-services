@@ -1,7 +1,7 @@
 fr:
   profile_dm:
     account_added: "✅ Compte {game} lié — ton profil est à jour."
-    accounts_removed: "✅ Comptes retirés : {listed}."
+    accounts_removed: "✅ Comptes retirés : {listed} — ton profil est à jour."
     pseudo_updated: "✅ Pseudo mis à jour : {name}"
   common:
     greeting: Bienvenue sur Kingdoms !

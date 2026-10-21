@@ -1,7 +1,7 @@
 en:
   profile_dm:
     account_added: "✅ {game} account linked — your profile is up to date."
-    accounts_removed: "✅ Accounts removed: {listed}."
+    accounts_removed: "✅ Accounts removed: {listed} — your profile is up to date."
     pseudo_updated: "✅ Nickname updated: {name}"
   common:
     greeting: Welcome to Kingdoms!

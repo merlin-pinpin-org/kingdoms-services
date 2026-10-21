@@ -54,11 +54,17 @@ POOL_STATE_LABELS = {
     POOL_STATE_USED: "publié",
     POOL_STATE_CLOSED: "supprimé",
 }
+def display_name(raw: str) -> str:
+    """Title-case a display name once (Atacama, Team Islands)."""
+    return " ".join(w[:1].upper() + w[1:] for w in str(raw or "").split()) or str(raw or "")
+
+
+# the emojis of the lifecycle buttons (Editer, Publier, Archiver...)
 POOL_STATE_EMOJIS = {
-    POOL_STATE_DRAFT: "🗝",
-    POOL_STATE_PUBLISHED: "📣",
-    POOL_STATE_USED: "🎬",
-    POOL_STATE_CLOSED: "📦",
+    POOL_STATE_DRAFT: "\u270f",
+    POOL_STATE_PUBLISHED: "\U0001F4E3",
+    POOL_STATE_USED: "\U0001F3AC",
+    POOL_STATE_CLOSED: "\U0001F4E6",
 }
 
 
@@ -304,6 +310,10 @@ class GameDataService:
         entry = await self._require(MAPS_COLLECTION, entry_id, MapModel.from_mongo)
         if entry.archived_at is not None:
             raise ArchivedEntryError(f"map {entry_id!r} is archived")
+        if name is not None:
+            # the display name title-cases like at creation — one stored
+            # name, capitalized, read by every list, post and select
+            name = " ".join(w[:1].upper() + w[1:] for w in name.split()) or name
         if name is not None and name != entry.name:
             taken = await self._db.find_by_name(MAPS_COLLECTION, entry.game_key, name)
             if taken is not None and taken["_id"] != entry_id:

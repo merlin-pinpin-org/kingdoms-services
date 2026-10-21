@@ -291,8 +291,12 @@ async def _refresh_pool_post(
         if _last_layout_render(str(thread.id)) == fingerprint:
             return
         _remember_layout_render(str(thread.id), fingerprint)
-        if thread.name != pool.name:
-            await thread.edit(name=_pool_thread_title(pool), reason="kingdoms: pool renamed")
+        # the title compare uses the EXPECTED title (emoji included) —
+        # a stale comparison re-titled every pool on every sync pass and
+        # burned the channel's PATCH budget (the 492s 429 of the test env)
+        expected_title = _pool_thread_title(pool)
+        if thread.name != expected_title:
+            await thread.edit(name=expected_title, reason="kingdoms: pool state or name changed")
         await starter.edit(view=_pool_post_layout(pool, maps, editable))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:

@@ -387,14 +387,14 @@ class PoolComposeModal(discord.ui.Modal):
         if available:
             add_select: discord.ui.Select[Any] = discord.ui.Select(
                 options=[discord.SelectOption(label=m.name, value=m.id) for m in available[:25]],
-                min_values=1,
+                min_values=0,
                 max_values=min(len(available), 25),
             )
             self.add_item(discord.ui.Label(text="Maps \u00e0 ajouter", component=add_select))
         if members:
             remove_select: discord.ui.Select[Any] = discord.ui.Select(
                 options=[discord.SelectOption(label=m.name, value=m.id) for m in members[:25]],
-                min_values=1,
+                min_values=0,
                 max_values=len(members[:25]),
             )
             self.add_item(discord.ui.Label(text="Maps \u00e0 retirer", component=remove_select))

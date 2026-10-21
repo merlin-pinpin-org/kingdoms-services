@@ -391,12 +391,15 @@ class GamesPoolCreateModal(discord.ui.Modal):
                 await sync_pools_forum(str(interaction.guild_id), interaction.client)
         except Exception:
             logger.warning("GAMES ADMIN: pools forum sync after create failed — best-effort")
+        # the pool's post link: the thread id is the message id of a
+        # forum post's starter message (the link targets the channel id,
+        # then the thread id)
         pool_link = ""
         fresh = await service.get_map_pool(pool.id)
-        if fresh is not None and getattr(fresh, "forum_message_id", None) and interaction.guild_id:
+        if fresh is not None and getattr(fresh, "forum_thread_id", None) and interaction.guild_id:
             pool_link = (
                 f" — son post : https://discord.com/channels/{interaction.guild_id}/"
-                f"{fresh.forum_message_id}/{fresh.forum_message_id}"
+                f"{fresh.forum_thread_id}/{fresh.forum_thread_id}"
             )
         await interaction.edit_original_response(
             content=f"Pool **{pool.name}** créé{pool_link or ' — son post est dans le forum des map pools.'}"
@@ -443,22 +446,31 @@ class GamesPoolAddByIdButton(
 
 
 async def _finish_pool_transition(
-    interaction: discord.Interaction, pool: Any, *, answer_menu: bool = True
+    interaction: discord.Interaction,
+    pool: Any,
+    *,
+    answer_menu: bool = True,
+    origin: Any = None,
 ) -> None:
-    """After a pool mutation: edit the menu in place, sync the post after.
+    """After a pool mutation: edit the ORIGINAL menu in place, sync after.
 
-    Every lifecycle button answers the same way: the admin menu the
-    clicker sees is edited in place (same message, fresh view), and the
-    forum post follows through the sync (the post is only a mirror of
-    the database record). The ack always lands before the slow sync.
+    The ephemeral contract: the lifecycle buttons capture the menu
+    message they live on (or their modal does) and THAT message is
+    edited with the fresh view — a followup copy is the forbidden
+    shape. The forum post follows through the sync (the post is only
+    a mirror of the database record), after the ack.
     """
     if answer_menu:
-        if interaction.response.is_done():
-            await interaction.followup.send(
-                view=await _pool_admin_menu(pool.id, pool.game_key), ephemeral=True
-            )
+        view = await _pool_admin_menu(pool.id, pool.game_key)
+        if origin is not None:
+            try:
+                await origin.edit(view=view)
+            except Exception:
+                logger.warning("pool menu edit in place failed — best-effort", exc_info=True)
+        elif interaction.response.is_done():
+            await interaction.followup.send(view=view, ephemeral=True)
         else:
-            await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
+            await interaction.response.edit_message(view=view)
     if interaction.guild_id is not None:
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum
@@ -502,14 +514,17 @@ class GamesPoolRenameButton(
         if not self.pool_id:
             await interaction.response.send_message("Pool introuvable - rouvre l'editeur.", ephemeral=True)
             return
-        await interaction.response.send_modal(GamesPoolRenameModal(self.pool_id))
+        await interaction.response.send_modal(
+            GamesPoolRenameModal(self.pool_id, origin=getattr(interaction, "message", None))
+        )
 
 
 class GamesPoolRenameModal(discord.ui.Modal):
     """The pool rename form."""
 
-    def __init__(self, pool_id: str) -> None:
+    def __init__(self, pool_id: str, origin: Any = None) -> None:
         self.pool_id = pool_id
+        self.origin = origin
         super().__init__(title="Renommer le pool", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="New name", max_length=64, required=True)
         self.add_item(self.name)
@@ -529,8 +544,10 @@ class GamesPoolRenameModal(discord.ui.Modal):
             logger.exception("GAMES ADMIN: pool rename failed")
             await interaction.followup.send("Renommage échoué (voir les logs).", ephemeral=True)
             return
-        await _finish_pool_transition(interaction, pool)
-        await interaction.followup.send(f"Pool renommé **{pool.name}** — son post est à jour.", ephemeral=True)
+        await _finish_pool_transition(interaction, pool, origin=self.origin)
+        await interaction.followup.send(
+            f"Pool renommé **{pool.name}** — son post est à jour.", ephemeral=True
+        )
 
 
 class GamesPoolArchiveButton(

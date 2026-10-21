@@ -683,7 +683,8 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-pool_state_badge"><strong>pool_state_badge</strong></a>(state: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;pool's&nbsp;state&nbsp;as&nbsp;a&nbsp;prominent&nbsp;badge&nbsp;line&nbsp;(emoji&nbsp;+&nbsp;bold).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-display_name"><strong>display_name</strong></a>(raw: 'str') -&gt; 'str'</dt><dd><span class="code">Title-case&nbsp;a&nbsp;display&nbsp;name&nbsp;once&nbsp;(Atacama,&nbsp;Team&nbsp;Islands).</span></dd></dl>
+ <dl><dt><a name="-pool_state_badge"><strong>pool_state_badge</strong></a>(state: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;pool's&nbsp;state&nbsp;as&nbsp;a&nbsp;prominent&nbsp;badge&nbsp;line&nbsp;(emoji&nbsp;+&nbsp;bold).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -702,7 +703,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>POOL_STATES</strong> = ('draft', 'published', 'used', 'closed')<br>
 <strong>POOL_STATE_CLOSED</strong> = 'closed'<br>
 <strong>POOL_STATE_DRAFT</strong> = 'draft'<br>
-<strong>POOL_STATE_EMOJIS</strong> = {'closed': '📦', 'draft': '🗝', 'published': '📣', 'used': '🎬'}<br>
+<strong>POOL_STATE_EMOJIS</strong> = {'closed': '📦', 'draft': '✏', 'published': '📣', 'used': '🎬'}<br>
 <strong>POOL_STATE_LABELS</strong> = {'closed': 'supprimé', 'draft': 'édition', 'published': 'publié', 'used': 'publié'}<br>
 <strong>POOL_STATE_PUBLISHED</strong> = 'published'<br>
 <strong>POOL_STATE_USED</strong> = 'used'<br>
