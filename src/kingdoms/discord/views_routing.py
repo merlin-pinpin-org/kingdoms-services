@@ -431,9 +431,9 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         blocks: list[Any] = [discord.ui.TextDisplay(header)]
         if description:
             blocks.append(discord.ui.TextDisplay(description))
-        # the admin menus state the current language: the operator sees
-        # what the guild (or their DM) renders in before switching it
-        if decl.admin_surface:
+        # only the menus that carry the language picker state the current
+        # language: the operator sees what they are about to switch
+        if any(button.action == "set-language" for button in decl.buttons):
             current = await _stored_locale(bot, guild_id)
             blocks.append(
                 discord.ui.TextDisplay(

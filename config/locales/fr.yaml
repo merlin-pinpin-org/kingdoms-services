@@ -475,14 +475,12 @@ fr:
       menu.games.admin:
         title: 🎮 Jeux
         description: Gérer les jeux du serveur.
-        current_language: '**Langue du serveur** : {current}'
       menu.games.aoe2:
         title: ⚔️ Age of Empires II
         description: 'Les ressources du jeu : salons, rôles, live, joueurs.'
       menu.game.aoe2.admin:
         title: ⚔️ Age of Empires II
         description: 'Gérer les données du jeu : maps, map pools, synchronisation.'
-        current_language: '**Langue du serveur** : {current}'
       menu.mods.home:
         title: 🧩 Mods
         description: Les mods disponibles sur ce serveur.

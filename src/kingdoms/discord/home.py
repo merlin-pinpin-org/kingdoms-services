@@ -683,12 +683,17 @@ async def _view_live(interaction: discord.Interaction) -> None:
         [str(p.get("profile_id", "")) for p in snapshot.get("players", [])]
     )
     body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
-    from kingdoms.discord.live import _dashboard_embeds
+    from kingdoms.discord.message_limits import truncate_body
+    from kingdoms.discord.ui.view_footer import add_view_footer
 
-    embeds = _dashboard_embeds(snapshot, body, None, locale=str(interaction.locale or "en"))
-    for embed in embeds:
-        embed.set_footer(text="panel:game:aoe2:live")
-    await interaction.followup.send(embed=embeds[0], ephemeral=True)
+    # the ephemeral panel is a components-v2 view, not an embed: the view
+    # id rides its own -# line UNDER the container, backticked — never
+    # inside an embed footer
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(truncate_body(body, 3800))))
+    await interaction.followup.send(
+        view=add_view_footer(view, "panel:game:aoe2:live"), ephemeral=True
+    )
 
 
 async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
