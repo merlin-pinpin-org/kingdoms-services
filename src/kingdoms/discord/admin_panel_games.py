@@ -610,13 +610,13 @@ class GamesPoolArchiveButton(
                 f"Archivage \u00e9chou\u00e9 \u2014 {exc}", ephemeral=True
             )
             return
-        # the post is a mirror: the sync removes the archived pool's thread
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        # confirm FIRST \u2014 the sync is best-effort and never eats the answer
         await interaction.followup.send(
             f"Pool **{pool.name}** archiv\u00e9 \u2014 inutilisable mais toujours visible. "
             "Son id reste r\u00e9serv\u00e9 tant qu'il n'est pas supprim\u00e9 totalement.",
             ephemeral=True,
         )
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
         await _refresh_pins_after_mutation(interaction)
 
 
@@ -673,10 +673,10 @@ class GamesPoolToDraftButton(
             return
         # same shape as the other lifecycle buttons: the menu edits in place
         await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
         await interaction.followup.send(
             f"Pool **{pool.name}** repassé en édition.", ephemeral=True
         )
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
 
 
 class GamesPoolPublishButton(
@@ -741,10 +741,10 @@ class GamesPoolPublishButton(
             )
             return
         await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
         await interaction.followup.send(
             f"Pool **{pool.name}** publié.", ephemeral=True
         )
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
 
 
 class GamesPoolHardDeleteButton(

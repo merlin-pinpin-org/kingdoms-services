@@ -1,6 +1,6 @@
 fr:
   profile_dm:
-    account_added: "✅ Compte {game} lié — ton profil est à jour."
+    account_added: "✅ Compte {account} lié — ton profil est à jour."
     accounts_removed: "✅ Comptes retirés : {listed} — ton profil est à jour."
     pseudo_updated: "✅ Pseudo mis à jour : {name}"
   common:
@@ -58,6 +58,7 @@ fr:
       no_account: Aucun compte de jeu lié — ajoute-en un ci-dessous.
       account_removed: Compte retiré — la vue profil se rouvre.
       accounts_removed: 'Comptes retirés : {listed}.'
+      updated: Profil mis à jour.
       removal_failed_for: 'Retrait échoué pour : {failed}'
       add_title: Ajouter un compte
       add_success: ✅ Compte lié — voilà ton profil à jour.

@@ -223,7 +223,13 @@ async def _profile_followup(
             await origin.edit(view=view)
             return
         except Exception:
-            logger.warning("PROFILE edit in place failed — falling back to a send", exc_info=True)
+            # the origin is gone (an expired message, a superseded view):
+            # NEVER send a copy of the profile view — the ephemeral contract
+            # forbids it. The action's banner answers as plain text instead.
+            logger.warning("PROFILE edit in place failed — answering as text", exc_info=True)
+            note = banner or await reply(interaction, "profile.updated")
+            await interaction.followup.send(note, ephemeral=True)
+            return
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -423,7 +429,12 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
-        await _dm_profile_notice(interaction, "account_added", game=str(chosen))
+        bound_url = _game_account_url(str(chosen), str(self.profile_id.value).strip())
+        await _dm_profile_notice(
+            interaction,
+            "account_added",
+            account=f"[{chosen} {self.profile_id.value}]({bound_url})" if bound_url else str(chosen),
+        )
         await _profile_followup(
             interaction,
             banner=await reply(interaction, "profile.add_success"),
@@ -631,7 +642,8 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             game_key, _, profile_id = str(entry).partition("|")
             try:
                 if await registration.unlink_profile(str(interaction.user.id), game_key, profile_id):
-                    removed.append(f"{game_key} (`{profile_id}`)")
+                    url = _game_account_url(game_key, str(profile_id))
+                    removed.append(f"[{game_key} {profile_id}]({url})" if url else f"{game_key} (`{profile_id}`)")
                 else:
                     failures.append(f"{game_key} `{profile_id}`")
                     await _report_profile_error(

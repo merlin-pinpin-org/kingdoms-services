@@ -139,10 +139,15 @@ A session writing a doc, a comment or a commit in French is a bug.
 
 ## Discord UI rules (the skill's memory)
 
-- **An ephemeral view never sends a copy of itself** — a click inside it
-  updates THAT message (`interaction.response.edit_message`), it never
-  answers with a second ephemeral message rendering the same or a
-  successor view. One interaction, one ephemeral message, N updates.
+- **An ephemeral view never sends a copy of itself — even after a modal
+  submit.** The ONLY valid shapes: (1) a component click answers
+  `interaction.response.edit_message(...)`; (2) a modal submit edits the
+  message its opening button CAPTURED (`origin = interaction.message` at
+  the click, `origin.edit(view=fresh)` at the submit — the pattern of
+  `_profile_followup`); the first-ever render sends the one message.
+  When the captured origin is gone (expired, superseded), the fallback
+  is a PLAIN TEXT answer — never a new copy of the view. A followup
+  that renders the same view again is a bug, whatever the defers.
 - **An ephemeral view is never swapped for another view**: the update
   re-renders the same logical view with fresh data.
 - **Ack before the slow work**: `defer()` or the in-place edit always

@@ -1,6 +1,6 @@
 en:
   profile_dm:
-    account_added: "✅ {game} account linked — your profile is up to date."
+    account_added: "✅ {account} account linked — your profile is up to date."
     accounts_removed: "✅ Accounts removed: {listed} — your profile is up to date."
     pseudo_updated: "✅ Nickname updated: {name}"
   common:
@@ -58,6 +58,7 @@ en:
       no_account: No linked game account — add one below.
       account_removed: Account removed — your profile view reopens.
       accounts_removed: 'Accounts removed: {listed}.'
+      updated: Profile updated.
       removal_failed_for: 'Removal failed for: {failed}'
       add_title: Add an account
       add_success: ✅ Account linked — here is your updated profile.
