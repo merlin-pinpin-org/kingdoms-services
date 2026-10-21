@@ -51,6 +51,37 @@ async def _guard(interaction: discord.Interaction) -> bool:
     return await require_admin(interaction, admins, roles)
 
 
+async def _ensure_scope_roles(bot: Any, guild_id: str, scope: str) -> int:
+    """Ensure the scope's roles live (mods roles, the bot-admins role).
+
+    A role deleted on Discord comes back at the next sync: the stored
+    mapping is existence-checked, the missing roles re-adopt by name
+    or re-create (the declared roles always live).
+    """
+    ensured = 0
+    # the bot-admins role belongs to the bot menu's perimeter
+    if scope in ("bot", "root"):
+        roles_service = getattr(bot, "roles_service", None)
+        if roles_service is not None:
+            try:
+                await roles_service.provision_admin_role(guild_id)
+                ensured += 1
+            except Exception:
+                logger.warning("admin role ensure failed — best-effort", exc_info=True)
+    # the mods' declared roles live under the mods perimeter
+    if scope == "mods" or scope.startswith("mods/"):
+        mod_roles_service = getattr(bot, "mod_roles_service", None)
+        registry = getattr(bot, "registry", None)
+        if mod_roles_service is not None and registry is not None:
+            for mod_name in registry.enabled():
+                try:
+                    resolved = await mod_roles_service.setup_mod_roles(guild_id, mod_name)
+                    ensured += len(resolved)
+                except Exception:
+                    logger.warning("mod roles ensure failed (%s) — best-effort", mod_name, exc_info=True)
+    return ensured
+
+
 async def _ensure_scope_pins(bot: Any, guild_id: str, scope: str) -> int:
     """Ensure every pinned view registered for the scope (and its sub-scopes).
 
@@ -106,6 +137,7 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
             locale = DEFAULT_LOCALE
     lines: list[str] = []
     pins_ok = 0
+    roles_ok = 0
     for spec in specs:
         try:
             resolved = await provision_scope(guild, spec, locale, _translate)
@@ -120,10 +152,12 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
             where = f"<#{channel_id}>{lock}" if channel_id else f"**{decl.key}** (absent)"
             lines.append(f"\u2022 {where}")
         pins_ok += await _ensure_scope_pins(bot, guild_id, spec.scope)
+        roles_ok += await _ensure_scope_roles(bot, guild_id, spec.scope)
     from kingdoms.discord.scope_surfaces import run_scope_syncs
 
     synced_posts = await run_scope_syncs(guild_id, bot, ",".join(scopes))
     lines.append(f"\n\U0001f4cc Vues \u00e9pingl\u00e9es v\u00e9rifi\u00e9es/recr\u00e9\u00e9es : {pins_ok}")
+    lines.append(f"\U0001F465 R\u00f4les v\u00e9rifi\u00e9s/cr\u00e9\u00e9s : {roles_ok}")
     lines.append(f"\U0001f4dc Posts de forum v\u00e9rifi\u00e9s/recr\u00e9\u00e9s : {synced_posts}")
     return "\n".join(lines)
 
@@ -277,7 +311,7 @@ async def build_admin_menu(
     ensure_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     ensure_row.add_item(TreeEnsureButton("bot", await _label("admin_tree.ensure_btn", "Sync now")))
     view.add_item(ensure_row)
-    view.add_item(discord.ui.TextDisplay(footer("view:bot:admin")))
+    view.add_item(discord.ui.TextDisplay(footer("panel:bot:admin")))
     return view
 
 

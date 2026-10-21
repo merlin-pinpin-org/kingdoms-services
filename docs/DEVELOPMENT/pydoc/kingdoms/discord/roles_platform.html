@@ -107,6 +107,8 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;roles&nbsp;platform&nbsp;se
 
 <dl><dt>async <a name="DiscordRolesPlatform-remove_role_from_member"><strong>remove_role_from_member</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;a&nbsp;role&nbsp;from&nbsp;a&nbsp;member&nbsp;(audited&nbsp;through&nbsp;``reason``).</span></dd></dl>
 
+<dl><dt>async <a name="DiscordRolesPlatform-role_exists"><strong>role_exists</strong></a>(self, guild_id: 'str', role_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;role&nbsp;id&nbsp;still&nbsp;lives&nbsp;in&nbsp;the&nbsp;guild&nbsp;(a&nbsp;deleted&nbsp;role&nbsp;heals).</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>

@@ -51,6 +51,15 @@ class DiscordRolesPlatform:
         role = await guild.create_role(name=name, reason=reason)
         return str(role.id)
 
+    async def role_exists(self, guild_id: str, role_id: str) -> bool:
+        """Whether a role id still lives in the guild (a deleted role heals)."""
+        if not role_id or not role_id.isdigit():
+            return False
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return False
+        return discord.utils.get(guild.roles, id=int(role_id)) is not None
+
     async def add_role_to_member(self, guild_id: str, user_id: str, role_id: str, reason: str) -> None:
         """Add a role to a member (audited through ``reason``)."""
         guild = await self._guild(guild_id)

@@ -432,5 +432,5 @@ async def build_pin_channel_menu(
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(BLURPLE)))
     from kingdoms.core.ids import footer
 
-    view.add_item(discord.ui.TextDisplay(footer("view:admin:channel")))
+    view.add_item(discord.ui.TextDisplay(footer("panel:admin:channel")))
     return view

@@ -77,7 +77,7 @@ def _picker_view(view_key: str, options: list[discord.SelectOption]) -> discord.
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(GuildContextPicker(view_key, options))
     view.add_item(row)
-    return add_view_footer(view, "view:guild:picker")
+    return add_view_footer(view, "panel:guild:picker")
 
 
 async def require_guild_context(

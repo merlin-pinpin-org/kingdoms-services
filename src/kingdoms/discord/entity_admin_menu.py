@@ -99,7 +99,7 @@ async def build_entity_admin_menu(
             MenuSpec(
                 title="⚙️ Gestion de la map",
                 description=f"`{entity_id}`",
-                view_id=f"view:game:{game_key}:map",
+                view_id=f"panel:game:{game_key}:map",
                 sections=(),
             )
         )
@@ -126,7 +126,7 @@ async def build_entity_admin_menu(
             MenuSpec(
                 title="\u2699\ufe0f Gestion du map pool",
                 description=f"`{entity_id}` \u2014 {POOL_STATE_LABELS.get(state, state)}",
-                view_id=f"view:game:{game_key}:pool",
+                view_id=f"panel:game:{game_key}:pool",
                 sections=(),
             )
         )

@@ -136,7 +136,7 @@ async def build_admin_dm_panel(
     row.add_item(DmOpenButton("language", _dm_tr(interaction, dm_locale, "menu_btn_language")))
     row.add_item(DmOpenButton("sync", _dm_tr(interaction, dm_locale, "menu_btn_sync")))
     view.add_item(row)
-    return add_view_footer(view, "view:dm:admin")
+    return add_view_footer(view, "panel:dm:admin")
 
 
 async def _render_dm_menu_into(message: Any, client: Any) -> None:
@@ -269,7 +269,7 @@ async def _open_servers(interaction: discord.Interaction) -> None:
             )
         )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    await interaction.response.send_message(view=add_view_footer(view, "view:dm:servers"), ephemeral=True)
+    await interaction.response.send_message(view=add_view_footer(view, "panel:dm:servers"), ephemeral=True)
 
 
 async def _open_sync(interaction: discord.Interaction) -> None:
@@ -286,7 +286,7 @@ async def _open_sync(interaction: discord.Interaction) -> None:
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(ContentRefreshButton(label=_dm_tr(interaction, dm_locale, "btn_refresh_aoe2_civs")))
     view.add_item(row)
-    await interaction.response.send_message(view=add_view_footer(view, "view:dm:sync"), ephemeral=True)
+    await interaction.response.send_message(view=add_view_footer(view, "panel:dm:sync"), ephemeral=True)
 
 
 class ContentRefreshButton(

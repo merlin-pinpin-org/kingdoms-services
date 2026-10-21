@@ -42,6 +42,10 @@ class RolesPlatform(Protocol):
         """Create a guild role; return its id."""
         ...
 
+    async def role_exists(self, guild_id: str, role_id: str) -> bool:
+        """Whether a role id still lives on the platform."""
+        ...
+
 
 class RolesCache(Protocol):
     """Narrow cache seam (the StateService get_state/set_state pair)."""
@@ -227,9 +231,11 @@ class ModRolesService:
     async def _resolve_or_provision(self, guild_id: str, mod_name: str, role_def: RoleDef) -> str:
         """Resolve one declared role to a platform role id, creating it when missing."""
         existing = await self._db.find_role_mapping(guild_id, mod_name, role_def.key)
-        if existing is not None:
+        if existing is not None and await self._platform.role_exists(guild_id, existing.role_id):
             await self._cache_set(self._cache_key(guild_id, mod_name, role_def.key), existing.role_id)
             return existing.role_id
+        # the mapped role is gone (deleted on Discord): re-adopt by name
+        # or re-create — the mapping heals, the declared roles always live
         adopted = await self._platform.find_role_by_name(guild_id, role_def.display_name)
         if adopted is not None:
             await self._persist_mapping(guild_id, mod_name, role_def.key, adopted)

@@ -340,7 +340,7 @@ async def _build_root_layout(bot: discord.Client, spec: ModAdminChannelSpec, gui
     """Build the pinned root layout through the mod's registered builder."""
     if spec.build_root_layout is None:
         view: discord.ui.LayoutView = discord.ui.LayoutView(timeout=None)
-        return add_view_footer(view, "view:mod:admin")
+        return add_view_footer(view, "panel:mod:admin")
     return await spec.build_root_layout(bot, guild_id)
 
 
