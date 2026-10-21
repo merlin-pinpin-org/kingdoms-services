@@ -863,7 +863,11 @@ class GamesMapCreateButton(
         self.global_scope = global_scope
         label = "+ Map globale" if global_scope else "Créer une map"
         custom_id = f"{_NS}:maps:create:{'global' if global_scope else 'guild'}:{game_key}"
-        super().__init__(discord.ui.Button(label=label, emoji="\u2795", style=discord.ButtonStyle.success, custom_id=custom_id[:100]))
+        super().__init__(
+            discord.ui.Button(
+                label=label, emoji="\u2795", style=discord.ButtonStyle.success, custom_id=custom_id[:100]
+            )
+        )
 
     @classmethod
     async def from_custom_id(
