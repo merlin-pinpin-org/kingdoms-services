@@ -51,6 +51,28 @@ async def _guard(interaction: discord.Interaction) -> bool:
     return await require_admin(interaction, admins, roles)
 
 
+async def _sync_scope_forums(bot: Any, guild_id: str, scope: str) -> int:
+    """Sync the scope's data-mirror forums (maps, pools, civs), best-effort.
+
+    A deleted post is recreated from the database right away instead
+    of waiting for the hourly tick — the post is only a mirror.
+    """
+    del scope
+    actions = 0
+    try:
+        from kingdoms.core.services.entity_forum import sync_entity_forum
+        from kingdoms.discord.factions_forum import factions_forum_spec
+        from kingdoms.discord.maps_forum import sync_maps_forum
+        from kingdoms.discord.pools_forum import sync_pools_forum
+
+        await sync_maps_forum(guild_id, "aoe2", bot)
+        actions += await sync_pools_forum(guild_id, bot)
+        actions += await sync_entity_forum(guild_id, bot, factions_forum_spec(bot))
+    except Exception:
+        logger.warning("ADMIN TREE: forum sync after ensure failed \u2014 best-effort", exc_info=True)
+    return actions
+
+
 async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
     """Re-provision one scope's declared channels, best-effort.
 
@@ -91,12 +113,15 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
     from kingdoms.discord.pinned_views import refresh_registered_pins
 
     await refresh_registered_pins(guild_id)
+    synced_posts = await _sync_scope_forums(bot, guild_id, scope) if scope.startswith("games") else 0
     lines: list[str] = [f"\U0001F527 **{scope}** \u2014 salons v\u00e9rifi\u00e9s/cr\u00e9\u00e9s :"]
     for decl in spec.channels:
         channel_id = resolved.get(decl.key, "")
         lock = "\U0001F512" if decl.access == "admin" else ""
         where = f"<#{channel_id}>{lock}" if channel_id else f"**{decl.key}** (absent)"
         lines.append(f"\u2022 {where}")
+    if scope.startswith("games"):
+        lines.append(f"\n\U0001f4dc Posts de forum v\u00e9rifi\u00e9s/recr\u00e9\u00e9s : {synced_posts}")
     return "\n".join(lines)
 
 
