@@ -363,7 +363,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileAddAccountModal">class <strong>ProfileAddAccountModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileAddAccountModal">ProfileAddAccountModal</a>(options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileAddAccountModal">ProfileAddAccountModal</a>(options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;origin:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;add-account&nbsp;form:&nbsp;game&nbsp;select&nbsp;(aoe2&nbsp;preselected)&nbsp;+&nbsp;profile&nbsp;id.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -375,7 +375,7 @@ The&nbsp;add-account&nbsp;form:&nbsp;game&nbsp;select&nbsp;(aoe2&nbsp;preselecte
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileAddAccountModal-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileAddAccountModal-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption] | None' = None, origin: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="ProfileAddAccountModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;account,&nbsp;audit,&nbsp;confirm,&nbsp;then&nbsp;refresh&nbsp;the&nbsp;profile&nbsp;view.</span></dd></dl>
 
@@ -743,7 +743,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRemoveAccountModal">class <strong>ProfileRemoveAccountModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveAccountModal">ProfileRemoveAccountModal</a>(options:&nbsp;'list[discord.SelectOption]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveAccountModal">ProfileRemoveAccountModal</a>(options:&nbsp;'list[discord.SelectOption]',&nbsp;origin:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;remove-account&nbsp;form:&nbsp;one&nbsp;multi-select&nbsp;of&nbsp;the&nbsp;linked&nbsp;accounts.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -755,7 +755,7 @@ The&nbsp;remove-account&nbsp;form:&nbsp;one&nbsp;multi-select&nbsp;of&nbsp;the&n
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileRemoveAccountModal-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileRemoveAccountModal-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]', origin: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="ProfileRemoveAccountModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Unlink&nbsp;every&nbsp;chosen&nbsp;account,&nbsp;then&nbsp;refresh&nbsp;the&nbsp;profile&nbsp;view.</span></dd></dl>
 
@@ -1123,7 +1123,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRenameModal">class <strong>ProfileRenameModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRenameModal">ProfileRenameModal</a>(current:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRenameModal">ProfileRenameModal</a>(current:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;origin:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;rename&nbsp;form:&nbsp;the&nbsp;user's&nbsp;chosen&nbsp;name&nbsp;(1-16&nbsp;chars).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -1135,7 +1135,7 @@ The&nbsp;rename&nbsp;form:&nbsp;the&nbsp;user's&nbsp;chosen&nbsp;name&nbsp;(1-16
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileRenameModal-__init__"><strong>__init__</strong></a>(self, current: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileRenameModal-__init__"><strong>__init__</strong></a>(self, current: 'str' = '', origin: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="ProfileRenameModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;new&nbsp;name,&nbsp;confirm,&nbsp;then&nbsp;refresh&nbsp;the&nbsp;profile&nbsp;view.</span></dd></dl>
 

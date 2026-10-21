@@ -143,22 +143,10 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     await _profile_followup(interaction)
 
 
-async def _profile_followup(interaction: discord.Interaction, banner: str = "") -> None:
-    """Render the profile view in place when possible, followup otherwise.
-
-    Navigation contract: a component of the profile view edits it in
-    place (one ephemeral message); a modal submit (add/rename/remove)
-    lands as a followup carrying the action's banner.
-    """
-    registration = getattr(interaction.client, "registration_service", None)
-    if registration is None:
-        await interaction.followup.send(await reply(interaction, "not_configured"), ephemeral=True)
-        return
-    user_id = str(interaction.user.id)
-    bindings = await registration.list_bindings(user_id)
-    blocks: list[Any] = []
-    if not bindings:
-        blocks.append(discord.ui.TextDisplay(await reply(interaction, "profile.no_account")))
+async def _profile_game_blocks(
+    interaction: discord.Interaction, bindings: list[dict[str, Any]], user_id: str
+) -> list[discord.ui.TextDisplay[discord.ui.LayoutView]]:
+    """Render the linked accounts grouped by game (one block per game)."""
     by_game: dict[str, list[dict[str, Any]]] = {}
     for binding in bindings:
         by_game.setdefault(str(binding.get("game_key", "?")), []).append(binding)
@@ -169,6 +157,7 @@ async def _profile_followup(interaction: discord.Interaction, banner: str = "") 
             players_by_id.update(await enricher(interaction.client) or {})
         except Exception:
             logger.warning("HOME: profile enricher failed", exc_info=True)
+    blocks: list[discord.ui.TextDisplay[discord.ui.LayoutView]] = []
     for game, entries in sorted(by_game.items()):
         lines = [f"## {_game_label(game)}"]
         for entry in entries:
@@ -185,7 +174,30 @@ async def _profile_followup(interaction: discord.Interaction, banner: str = "") 
             url = _game_account_url(game, str(pid))
             account = f"[{name}]({url}) (`{pid}`)" if url else f"{name} (`{pid}`)"
             lines.append(f"• {account}{elo}")
-        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
+        blocks.append(discord.ui.TextDisplay(chr(10).join(lines)))
+    return blocks
+
+
+async def _profile_followup(
+    interaction: discord.Interaction, banner: str = "", origin: Any = None
+) -> None:
+    """Render the profile view, updating the original ephemeral message.
+
+    The ephemeral contract: the profile view NEVER sends a copy of
+    itself — the caller hands the original message (captured at the
+    button click) and it is edited in place, banner and all; only the
+    very first render sends a message.
+    """
+    registration = getattr(interaction.client, "registration_service", None)
+    if registration is None:
+        await interaction.followup.send(await reply(interaction, "not_configured"), ephemeral=True)
+        return
+    user_id = str(interaction.user.id)
+    bindings = await registration.list_bindings(user_id)
+    blocks: list[Any] = []
+    if not bindings:
+        blocks.append(discord.ui.TextDisplay(await reply(interaction, "profile.no_account")))
+    blocks.extend(await _profile_game_blocks(interaction, bindings, user_id))
     view = discord.ui.LayoutView(timeout=None)
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(
@@ -206,6 +218,12 @@ async def _profile_followup(interaction: discord.Interaction, banner: str = "") 
     from kingdoms.core.ids import footer
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
+    if origin is not None:
+        try:
+            await origin.edit(view=view)
+            return
+        except Exception:
+            logger.warning("PROFILE edit in place failed — falling back to a send", exc_info=True)
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -294,7 +312,9 @@ class ProfileAddAccountButton(
             options = await asyncio.wait_for(_game_select_options(), timeout=2.5)
         except Exception:
             options = None
-        await interaction.response.send_modal(ProfileAddAccountModal(options))
+        await interaction.response.send_modal(
+            ProfileAddAccountModal(options, origin=getattr(interaction, "message", None))
+        )
 
 
 async def _game_select_options() -> list[discord.SelectOption]:
@@ -316,8 +336,11 @@ async def _game_select_options() -> list[discord.SelectOption]:
 class ProfileAddAccountModal(discord.ui.Modal):
     """The add-account form: game select (aoe2 preselected) + profile id."""
 
-    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
+    def __init__(
+        self, options: list[discord.SelectOption] | None = None, origin: Any = None
+    ) -> None:
         super().__init__(title="Ajouter un compte", timeout=None)
+        self.origin = origin
         self.game: discord.ui.Select[Any] = discord.ui.Select(
             custom_id="home:profile:add:game",
             options=options or [discord.SelectOption(label="Age of Empires II", value="aoe2", default=True)],
@@ -369,7 +392,11 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
-        await _profile_followup(interaction, banner=await reply(interaction, "profile.add_success"))
+        await _profile_followup(
+            interaction,
+            banner=await reply(interaction, "profile.add_success"),
+            origin=self.origin,
+        )
 
 
 async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
@@ -424,14 +451,17 @@ class ProfileRenameButton(
                 current = user.display_name if user is not None and user.display_name else ""
             except Exception:
                 current = ""
-        await interaction.response.send_modal(ProfileRenameModal(current))
+        await interaction.response.send_modal(
+            ProfileRenameModal(current, origin=getattr(interaction, "message", None))
+        )
 
 
 class ProfileRenameModal(discord.ui.Modal):
     """The rename form: the user's chosen name (1-16 chars)."""
 
-    def __init__(self, current: str = "") -> None:
+    def __init__(self, current: str = "", origin: Any = None) -> None:
         super().__init__(title="Ton pseudo", timeout=None)
+        self.origin = origin
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Pseudo (16 caractères max)",
             max_length=16,
@@ -466,7 +496,9 @@ class ProfileRenameModal(discord.ui.Modal):
             await interaction.followup.send(await reply(interaction, "profile.rename_failed"), ephemeral=True)
             return
         await _profile_followup(
-            interaction, banner=await reply(interaction, "profile.rename_success", name=self.name.value)
+            interaction,
+            banner=await reply(interaction, "profile.rename_success", name=self.name.value),
+            origin=self.origin,
         )
 
 
@@ -530,14 +562,19 @@ class ProfileRemoveAccountButton(
         if not bindings:
             await interaction.response.send_message(await reply(interaction, "no_account"), ephemeral=True)
             return
-        await interaction.response.send_modal(ProfileRemoveAccountModal(_remove_options(bindings)))
+        await interaction.response.send_modal(
+            ProfileRemoveAccountModal(
+                _remove_options(bindings), origin=getattr(interaction, "message", None)
+            )
+        )
 
 
 class ProfileRemoveAccountModal(discord.ui.Modal):
     """The remove-account form: one multi-select of the linked accounts."""
 
-    def __init__(self, options: list[discord.SelectOption]) -> None:
+    def __init__(self, options: list[discord.SelectOption], origin: Any = None) -> None:
         super().__init__(title="Retirer des comptes", timeout=None)
+        self.origin = origin
         self.accounts: discord.ui.Select[Any] = discord.ui.Select(
             custom_id="home:profile:remove:select",
             options=options,
@@ -581,7 +618,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
                 ephemeral=True,
             )
         if removed:
-            await _profile_followup(interaction)
+            await _profile_followup(interaction, origin=self.origin)
 
 
 async def _tree_channel_link(guild_id: str, scope: str, key: str) -> str:
