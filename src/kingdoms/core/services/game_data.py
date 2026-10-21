@@ -508,6 +508,10 @@ class GameDataService:
     ) -> dict[str, Any]:
         """Build the pool's change set; only the provided fields change."""
         updates: dict[str, Any] = {}
+        if name is not None:
+            # the display name is title-cased like at creation: 'bibi'
+            # lands as 'Bibi' everywhere (the base, the menus, the posts)
+            name = " ".join(w[:1].upper() + w[1:] for w in name.split()) or name
         if name is not None and name != pool.name:
             updates["name"] = name
         if description is not None:

@@ -1320,12 +1320,20 @@ class GamesPoolAddByIdButton(
 async def _finish_pool_transition(
     interaction: discord.Interaction, pool: Any, *, answer_menu: bool = True
 ) -> None:
-    """After a pool mutation: re-render the forum post, then the menu.
+    """After a pool mutation: edit the menu in place, sync the post after.
 
-    The post is only a mirror of the database record: the pools forum
-    sync re-edits it (state badge, title) right away, and the admin
-    menu re-renders with the pool's new state and buttons.
+    Every lifecycle button answers the same way: the admin menu the
+    clicker sees is edited in place (same message, fresh view), and the
+    forum post follows through the sync (the post is only a mirror of
+    the database record). The ack always lands before the slow sync.
     """
+    if answer_menu:
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                view=await _pool_admin_menu(pool.id, pool.game_key), ephemeral=True
+            )
+        else:
+            await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
     if interaction.guild_id is not None:
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum
@@ -1333,12 +1341,6 @@ async def _finish_pool_transition(
             await sync_pools_forum(str(interaction.guild_id), interaction.client)
         except Exception:
             logger.warning("pool transition: pools forum sync failed — best-effort", exc_info=True)
-    if answer_menu:
-        view = await _pool_admin_menu(pool.id, pool.game_key)
-        if interaction.response.is_done():
-            await interaction.followup.send(view=view, ephemeral=True)
-        else:
-            await interaction.response.edit_message(view=view)
 
 
 class GamesPoolRenameButton(
@@ -1351,7 +1353,7 @@ class GamesPoolRenameButton(
         self.pool_id = pool_id
         super().__init__(
             discord.ui.Button(
-                label="Rename",
+                label="Renommer",
                 emoji="\u270f",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:pools:rename:{pool_id}"[:100],
@@ -1388,10 +1390,11 @@ class GamesPoolRenameModal(discord.ui.Modal):
         self.add_item(self.name)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Rename the pool, audit, re-render the editor."""
+        """Ack first, rename, sync, confirm (the sync is slow — never past the 3s window)."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
@@ -1399,17 +1402,9 @@ class GamesPoolRenameModal(discord.ui.Modal):
             pool = await service.update_map_pool(self.pool_id, name=str(self.name.value).strip())
         except Exception:
             logger.exception("GAMES ADMIN: pool rename failed")
-            await interaction.response.send_message("Renommage echoue (voir les logs).", ephemeral=True)
+            await interaction.followup.send("Renommage échoué (voir les logs).", ephemeral=True)
             return
-        fresh = await service.get_map_pool(pool.id)
-        await _finish_pool_transition(interaction, fresh if fresh is not None else pool)
-        if interaction.guild_id is not None:
-            try:
-                from kingdoms.discord.pools_forum import sync_pools_forum
-
-                await sync_pools_forum(str(interaction.guild_id), interaction.client)
-            except Exception:
-                logger.warning("pool rename: pools forum sync failed — best-effort", exc_info=True)
+        await _finish_pool_transition(interaction, pool)
         await interaction.followup.send(f"Pool renommé **{pool.name}** — son post est à jour.", ephemeral=True)
 
 
@@ -1460,13 +1455,17 @@ class GamesPoolArchiveButton(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
+        if pool.archived_at is not None:
+            await interaction.response.send_message(
+                f"**{pool.name}** est d\u00e9j\u00e0 archiv\u00e9.", ephemeral=True
+            )
+            return
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             pool = await service.archive_map_pool(self.pool_id)
-        except Exception:
-            logger.exception("GAMES ADMIN: pool archive failed")
+        except Exception as exc:
             await interaction.followup.send(
-                "Archivage \u00e9chou\u00e9 (pool actif ? voir les logs).", ephemeral=True
+                f"Archivage \u00e9chou\u00e9 \u2014 {exc}", ephemeral=True
             )
             return
         # the post is a mirror: the sync removes the archived pool's thread
@@ -1513,10 +1512,9 @@ class GamesPoolToDraftButton(
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None or not self.pool_id:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
@@ -1524,11 +1522,16 @@ class GamesPoolToDraftButton(
             pool = await service.transition_map_pool(self.pool_id, "draft")
         except Exception:
             logger.exception("GAMES ADMIN: pool to-draft failed (%s)", self.pool_id)
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 await reply(interaction, "replies_shared.transition_failed"), ephemeral=True
             )
             return
-        await _finish_pool_transition(interaction, pool)
+        # same shape as the other lifecycle buttons: the menu edits in place
+        await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await interaction.followup.send(
+            f"Pool **{pool.name}** repassé en édition.", ephemeral=True
+        )
 
 
 class GamesPoolPublishButton(
@@ -1585,15 +1588,17 @@ class GamesPoolPublishButton(
             )
             return
         try:
-            await service.transition_map_pool(pool.id, "published")
+            pool = await service.transition_map_pool(pool.id, "published")
         except Exception:
             logger.exception("GAMES ADMIN: pool publish failed")
             await interaction.response.send_message(
                 await reply(interaction, "replies_shared.transition_failed"), ephemeral=True
             )
             return
-        await interaction.response.edit_message(
-            view=await _pool_admin_menu(pool.id, pool.game_key)
+        await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await interaction.followup.send(
+            f"Pool **{pool.name}** publié.", ephemeral=True
         )
 
 

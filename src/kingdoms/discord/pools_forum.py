@@ -282,7 +282,8 @@ async def _refresh_pool_post(
             return
         _remember_layout_render(str(thread.id), fingerprint)
         if thread.name != pool.name:
-            await thread.edit(name=pool.name[:100], reason="kingdoms: pool renamed")
+            title = pool.name[:1].upper() + pool.name[1:]
+            await thread.edit(name=title[:100], reason="kingdoms: pool renamed")
         await starter.edit(view=_pool_post_layout(pool, maps, editable))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:

@@ -316,16 +316,16 @@ class PoolMapsButton(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
-        modal = await _build_compose_modal(service, pool, interaction)
-        await interaction.response.send_modal(modal)
+        view = await _build_compose_view(service, pool, interaction)
+        await view.build(interaction)
 
 
-async def _build_compose_modal(
+async def _build_compose_view(
     service: Any, pool: Any, interaction: discord.Interaction
-) -> PoolComposeModal:
+) -> PoolComposeView:
     """Resolve the pool's members and the guild's available maps.
 
-    Available: the maps the guild may add \u2014 its own locals plus the
+    Available: the maps the guild may add — its own locals plus the
     public catalog, never the pool's current members. Members: the
     pool's maps (at most MAX_POOL_MAPS, always select-fit).
     """
@@ -342,54 +342,85 @@ async def _build_compose_modal(
         and m.id not in pool.map_ids
         and (m.owner_guild_id is None or m.owner_guild_id == guild_id)
     ]
-    return PoolComposeModal(pool, available, members)
+    return PoolComposeView(pool, available, members)
 
 
-class PoolComposeModal(discord.ui.Modal):
-    """The pool's composition editor: one form, two multi-selects.
+class PoolComposeView(discord.ui.View):
+    """The pool's composition editor: one ephemeral view, both selections.
 
-    The add select carries the guild's available maps (not in the
-    pool, 25-option cap); the remove select the pool's own maps (at
-    most 20 \u2014 the pool cap, always select-fit). Over 25 available
-    maps the modal adds a parsed text block (the Liquipedia import
-    contract: one map per line, id or name) and the select is capped
-    to the first 25. The rails run at submit: only available maps in,
-    only members out, the 20-map cap enforced with a clear answer.
+    Two selects side by side: the guild's available maps (not in the
+    pool, 25-option cap) and the pool's own maps (at most 20 — the
+    pool cap, always select-fit). Over 25 available maps the add path
+    becomes a button opening the parsed-block modal (the Liquipedia
+    import contract: one map per line, id or name). The rails run at
+    apply: only available maps in, only members out, the 20-map cap
+    enforced with a clear answer.
     """
 
     def __init__(self, pool: Any, available: list[Any], members: list[Any]) -> None:
-        super().__init__(title=f"Maps \u2014 {pool.name[:40]}", timeout=600)
+        super().__init__(timeout=300)
         self.pool = pool
         self.available = available
         self.members = members
-        if available:
-            add_select: discord.ui.Select[Any] = discord.ui.Select(
-                placeholder="Maps \u00e0 ajouter",
-                options=[discord.SelectOption(label=m.name, value=m.id) for m in available[:25]],
-                min_values=1,
-                max_values=min(len(available), 25),
-            )
-            self.add_item(add_select)
-        if members:
-            remove_select: discord.ui.Select[Any] = discord.ui.Select(
-                placeholder="Maps \u00e0 retirer",
-                options=[discord.SelectOption(label=m.name, value=m.id) for m in members[:25]],
-                min_values=1,
-                max_values=len(members[:25]),
-            )
-            self.add_item(remove_select)
-        if available and len(available) > 25:
-            block: discord.ui.TextInput[Any] = discord.ui.TextInput(
-                label="Plus de 25 maps \u2014 saisie libre (une par ligne : id ou nom)",
-                style=discord.TextStyle.paragraph,
-                max_length=3800,
-                required=False,
-                placeholder="Arabia\nHideout\nmap:aoe2:public:arena",
-            )
-            self.add_item(block)
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Collect the selections, apply through the shared composition step."""
+    async def build(self, interaction: discord.Interaction) -> None:
+        """Answer with the two selects (or the parsed-block button over 25)."""
+        if self.available and len(self.available) <= 25:
+            add_select: discord.ui.Select[Any] = discord.ui.Select(
+                placeholder="Maps à ajouter (pas encore dans le pool)",
+                options=[discord.SelectOption(label=m.name, value=m.id) for m in self.available[:25]],
+                min_values=1,
+                max_values=min(len(self.available), 25),
+            )
+            add_select.callback = self._on_apply  # type: ignore[method-assign]
+            self.add_item(add_select)
+        elif self.available:
+            block_btn: discord.ui.Button[Any] = discord.ui.Button(
+                label="Ajouter par saisie (id ou nom)",
+                emoji="📝",
+                style=discord.ButtonStyle.secondary,
+            )
+            block_btn.callback = self._on_block  # type: ignore[method-assign]
+            self.add_item(block_btn)
+        if self.members:
+            remove_select: discord.ui.Select[Any] = discord.ui.Select(
+                placeholder="Maps à retirer (déjà dans le pool)",
+                options=[discord.SelectOption(label=m.name, value=m.id) for m in self.members[:25]],
+                min_values=1,
+                max_values=len(self.members[:25]),
+            )
+            remove_select.callback = self._on_apply  # type: ignore[method-assign]
+            self.add_item(remove_select)
+        apply_btn: discord.ui.Button[Any] = discord.ui.Button(
+            label="Appliquer", style=discord.ButtonStyle.primary
+        )
+        apply_btn.callback = self._on_apply  # type: ignore[method-assign]
+        self.add_item(apply_btn)
+        note = f"Pool **{self.pool.name}** — {len(self.pool.map_ids)}/{MAX_POOL_MAPS} maps"
+        if self.available and len(self.available) > 25:
+            note += (
+                "\nLe catalogue dépasse 25 maps — saisis les maps à ajouter dans le bloc "
+                "de texte (une par ligne : id ou nom, comme l'import Liquipedia)."
+            )
+        await interaction.response.send_message(note, view=self, ephemeral=True)
+
+    async def _on_block(self, interaction: discord.Interaction) -> None:
+        """Open the parsed-block modal (the over-25 add path)."""
+        await interaction.response.send_modal(PoolAddBlockModal(self.pool))
+
+    async def _on_apply(self, interaction: discord.Interaction) -> None:
+        """Collect both selections, delegate to the apply step."""
+        add_ids, remove_ids = self._collect()
+        if not add_ids and not remove_ids:
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.selection_invalid")
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        await _apply_composition(interaction, self.pool, add_ids, remove_ids)
+
+    def _collect(self) -> tuple[list[str], list[str]]:
+        """Gather the add selection and the remove one."""
         add_ids: list[str] = []
         remove_ids: list[str] = []
         for child in self.children:
@@ -398,18 +429,7 @@ class PoolComposeModal(discord.ui.Modal):
                     add_ids.extend(child.values or [])
                 else:
                     remove_ids.extend(child.values or [])
-            elif isinstance(child, discord.ui.TextInput):
-                from kingdoms.mapsdata.bulk_import import parse_import_line
-
-                for line in str(child.value or "").splitlines():
-                    parsed = parse_import_line(line.strip())
-                    if parsed.raw and not parsed.error:
-                        add_ids.append(parsed.raw)
-        if not add_ids and not remove_ids:
-            await interaction.response.defer(ephemeral=True)
-            return
-        await interaction.response.defer(ephemeral=True)
-        await _apply_composition(interaction, self.pool, add_ids, remove_ids)
+        return add_ids, remove_ids
 
 
 async def _apply_composition(
@@ -435,10 +455,9 @@ async def _apply_composition(
     final = remaining + tuple(mid for mid in chosen_add if mid not in remaining)
     if len(final) > MAX_POOL_MAPS:
         await interaction.followup.send(
-            content=(
-                f"Un map pool tient au plus {MAX_POOL_MAPS} maps \u2014 "
-                f"la s\u00e9lection en donne {len(final)}. Retire des maps d'abord."
-            )
+            f"Un map pool tient au plus {MAX_POOL_MAPS} maps \u2014 "
+            f"la s\u00e9lection en donne {len(final)}. Retire des maps d'abord.",
+            ephemeral=True,
         )
         return
     try:
@@ -446,11 +465,11 @@ async def _apply_composition(
     except Exception:
         logger.warning("POOL FLOW: compose apply failed", exc_info=True)
         await interaction.followup.send(
-            content=await reply(interaction, "replies_shared.action_failed")
+            await reply(interaction, "replies_shared.action_failed"), ephemeral=True
         )
         return
     await interaction.followup.send(
-        content=_compose_report(pool, updated, catalog, chosen_add, chosen_remove, skipped)
+        _compose_report(pool, updated, catalog, chosen_add, chosen_remove, skipped), ephemeral=True
     )
     try:
         from kingdoms.discord.pools_forum import sync_pools_forum

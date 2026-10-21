@@ -79,7 +79,6 @@ async def build_entity_admin_menu(
     """Build the ephemeral management menu of one entity (state-greyed)."""
     from kingdoms.core.services.game_data import (
         MAX_POOL_MAPS,
-        POOL_STATE_CLOSED,
         POOL_STATE_DRAFT,
         POOL_STATE_LABELS,
         POOL_STATE_PUBLISHED,
@@ -148,10 +147,10 @@ async def build_entity_admin_menu(
         publish.item.disabled = POOL_STATE_PUBLISHED not in targets
         lifecycle.add_item(publish)
         archive = GamesPoolArchiveButton(entity_id)
-        archive.item.disabled = POOL_STATE_CLOSED not in targets and state != POOL_STATE_PUBLISHED
+        archive.item.disabled = pool is not None and pool.archived_at is not None
         lifecycle.add_item(archive)
         delete = GamesPoolHardDeleteButton(entity_id)
-        delete.item.disabled = state != POOL_STATE_DRAFT
+        delete.item.disabled = pool is not None and bool(pool.ever_activated)
         lifecycle.add_item(delete)
         menu.add_item(lifecycle)
         return menu
