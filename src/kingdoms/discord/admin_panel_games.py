@@ -1325,7 +1325,10 @@ class GamesPoolRenameButton(
         self.pool_id = pool_id
         super().__init__(
             discord.ui.Button(
-                label="Rename", style=discord.ButtonStyle.primary, custom_id=f"{_NS}:pools:rename:{pool_id}"[:100]
+                label="Rename",
+                emoji="\u270f",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:pools:rename:{pool_id}"[:100],
             )
         )
 
@@ -1434,6 +1437,61 @@ class GamesPoolArchiveButton(
 
 
 
+class GamesPoolToDraftButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pools:todraft:(?P<pool_id>.+)",
+):
+    """Move a published pool back to edition (published -> draft)."""
+
+    def __init__(self, pool_id: str) -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label="Repasser en \u00e9dition",
+                emoji="\u270f",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:pools:todraft:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolToDraftButton:
+        """Rebuild from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, move the pool to draft, re-render the admin menu."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None or not self.pool_id:
+            await interaction.followup.send(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
+            return
+        try:
+            pool = await service.transition_map_pool(self.pool_id, "draft")
+        except Exception:
+            logger.exception("GAMES ADMIN: pool to-draft failed (%s)", self.pool_id)
+            await interaction.followup.send(
+                await reply(interaction, "replies_shared.transition_failed"), ephemeral=True
+            )
+            return
+        await interaction.followup.send(
+            view=await _pool_admin_menu(pool.id, pool.game_key), ephemeral=True
+        )
+
+
 class GamesPoolPublishButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:pools:publish:(?P<pool_id>.+)",
@@ -1511,7 +1569,7 @@ class GamesPoolHardDeleteButton(
         super().__init__(
             discord.ui.Button(
                 label="Supprimer",
-                emoji="\U0001F5D1",
+                emoji="\U0001F5AE",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_NS}:pools:harddelete:{pool_id}"[:100],
             )
@@ -2612,6 +2670,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesMapCreateButton,
         GamesPoolCreateButton,
         GamesPoolRenameButton,
+        GamesPoolToDraftButton,
         GamesPoolArchiveButton,
         GamesPoolMapToggle,
         GamesPoolMapPageSelect,

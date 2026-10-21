@@ -118,6 +118,7 @@ async def build_entity_admin_menu(
             GamesPoolHardDeleteButton,
             GamesPoolPublishButton,
             GamesPoolRenameButton,
+            GamesPoolToDraftButton,
         )
         from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
 
@@ -145,6 +146,9 @@ async def build_entity_admin_menu(
         publish = GamesPoolPublishButton(entity_id)
         publish.item.disabled = POOL_STATE_PUBLISHED not in targets
         lifecycle.add_item(publish)
+        to_draft = GamesPoolToDraftButton(entity_id)
+        to_draft.item.disabled = POOL_STATE_DRAFT not in targets
+        lifecycle.add_item(to_draft)
         archive = GamesPoolArchiveButton(entity_id)
         archive.item.disabled = POOL_STATE_CLOSED not in targets and state != POOL_STATE_PUBLISHED
         lifecycle.add_item(archive)

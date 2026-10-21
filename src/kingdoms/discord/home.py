@@ -499,7 +499,7 @@ class ProfileRemoveAccountButton(
     def __init__(self, label: str = "Retirer un compte") -> None:
         super().__init__(
             discord.ui.Button(
-                label=label, emoji="\U0001F5D1", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+                label=label, emoji="\U0001F5AE", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
             )
         )
 

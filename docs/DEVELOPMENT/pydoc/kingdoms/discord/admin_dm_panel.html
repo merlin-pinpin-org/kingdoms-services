@@ -221,7 +221,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>SECTIONS</strong> = ('language', 'servers', 'sync')</dl>
 
-<dl><dt><strong>__annotations__</strong> = {}</dl>
+<dl><dt><strong>__annotations__</strong> = {'EMOJIS': 'ClassVar[dict[str, str]]'}</dl>
 
 <dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:dm:open:(?P&lt;section&gt;[a-z]+)')</dl>
 
@@ -352,6 +352,7 @@ that&nbsp;mutate&nbsp;the&nbsp;data&nbsp;re-render&nbsp;it&nbsp;in&nbsp;place&nb
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__annotations__</strong> = {'_ADMIN_MENU_MESSAGES': 'dict[int, Any]'}<br>
+<td class="singlecolumn"><strong>ClassVar</strong> = typing.ClassVar<br>
+<strong>__annotations__</strong> = {'_ADMIN_MENU_MESSAGES': 'dict[int, Any]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.admin_dm (WARNING)&gt;</td></tr></table>
 </body></html>

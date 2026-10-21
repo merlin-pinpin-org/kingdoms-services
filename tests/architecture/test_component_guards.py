@@ -64,7 +64,8 @@ _GOOD_1F5XX = {
     0x1F5FC,  # tokyo tower
     0x1F5FD,  # statue of liberty
     0x1F5DE,  # bookmark tabs (labels only — NOT valid as component emoji)
-    0x1F5D1,  # wastebasket
+    0x1F5AE,  # wastebasket (live-checked on test 2026-10-21)
+    0x1F5D1,  # trash bin
 }
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
