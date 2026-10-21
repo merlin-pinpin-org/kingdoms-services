@@ -33,6 +33,42 @@ _NS = "admin:pin:modgames"
 GAME_KEY = "aoe2"  # default context; the picker may switch it per view
 
 
+async def _pool_admin_menu(pool_id: str, game_key: str) -> discord.ui.LayoutView:
+    """Render the pool's admin menu (the post's two action lines)."""
+    from kingdoms.discord.entity_admin_menu import build_entity_admin_menu
+
+    return await build_entity_admin_menu("pool", pool_id, game_key, owned=True)
+
+
+async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
+    """Render the game's map pools management view (list + actions)."""
+    service = _games_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay(f"# Map pools ({game_key})")]
+    if service is None:
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        view.add_item(_back_row())
+        return add_view_footer(view, "view:games:pools:manage")
+    pools = await service.list_map_pools(game_key)
+    if not pools:
+        blocks.append(discord.ui.TextDisplay("_Aucun map pool._"))
+    else:
+        lines = [f"- {p.name} ({len(p.map_ids)} maps)" for p in pools[:25]]
+        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
+    view.add_item(discord.ui.Container(*blocks))
+    delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    delete_row.add_item(GamesPoolDeleteSelect(game_key))
+    view.add_item(delete_row)
+    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    action_row.add_item(GamesPoolCopyButton(game_key))
+    action_row.add_item(GamesPoolCreateButton(game_key))
+    view.add_item(action_row)
+    if not from_pin:
+        view.add_item(GamesPoolsBackButton(game_key))
+    return view
+
+
 def _back_row() -> discord.ui.ActionRow[discord.ui.LayoutView]:
     """Build the back row of the games entry (returns to the main menu)."""
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -827,7 +863,7 @@ class GamesMapCreateButton(
         self.global_scope = global_scope
         label = "+ Map globale" if global_scope else "Créer une map"
         custom_id = f"{_NS}:maps:create:{'global' if global_scope else 'guild'}:{game_key}"
-        super().__init__(discord.ui.Button(label=label, style=discord.ButtonStyle.success, custom_id=custom_id[:100]))
+        super().__init__(discord.ui.Button(label=label, emoji="\u2795", style=discord.ButtonStyle.success, custom_id=custom_id[:100]))
 
     @classmethod
     async def from_custom_id(
@@ -1164,6 +1200,7 @@ class GamesPoolCreateButton(
         super().__init__(
             discord.ui.Button(
                 label="Créer un map pool",
+                emoji="\u2795",
                 style=discord.ButtonStyle.success,
                 custom_id=f"{_NS}:pools:create:{game_key}"[:100],
             )
@@ -1234,193 +1271,6 @@ class GamesPoolCreateModal(discord.ui.Modal):
             content=f"Pool **{pool.name}** créé{pool_link or ' — son post est dans le forum des map pools.'}"
         )
         await _refresh_pins_after_mutation(interaction)
-
-
-class GamesPoolEditSelect(
-    discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=rf"{_NS}:pools:edit:(?P<game_key>[a-z0-9_]+)",
-):
-    """Pick a pool to edit; opens the pool's editor view."""
-
-    def __init__(self, game_key: str, options: list[discord.SelectOption] | None = None) -> None:
-        self.game_key = game_key
-        super().__init__(
-            discord.ui.Select(
-                custom_id=f"{_NS}:pools:edit:{game_key}"[:100],
-                options=options or [discord.SelectOption(label="Aucun pool", value="none")],
-                placeholder="Éditer un pool...",
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> GamesPoolEditSelect:
-        """Rebuild the select's options at click time."""
-        service = _games_wiring()
-        game_key = match.group("game_key")
-        options: list[discord.SelectOption] = []
-        if service is not None:
-            pools = await service.list_map_pools(game_key)
-            options = [discord.SelectOption(label=f"{p.name} ({len(p.map_ids)} maps)", value=p.id) for p in pools[:25]]
-        return cls(game_key, options)
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the chosen pool's editor view."""
-        chosen = (_selected_values(interaction) or [""])[0]
-        if not chosen or chosen == "none":
-            await interaction.response.defer()
-            return
-        await interaction.response.edit_message(
-            view=await pool_editor_view(chosen, self.game_key, from_pin=from_pin(interaction))
-        )
-
-
-
-
-def _pool_lines(pool: Any, maps: list[Any], state_labels: Any, max_maps: int) -> str:
-    """Render the editor's summary: name, counts, state and member maps."""
-    from kingdoms.core.ids import footer
-
-    names = {m.id: m.name for m in maps}
-    state = state_labels.get(getattr(pool, "state", "draft"), "cr\u00e9\u00e9")
-    lines = [f"**{pool.name}** - {len(pool.map_ids)}/{max_maps} maps - {state}", footer(pool.id)]
-    for map_id in pool.map_ids:
-        lines.append(f"- {names.get(map_id, map_id)}")
-    if not pool.map_ids:
-        lines.append("_Aucune map._")
-    return "\n".join(lines)
-
-
-
-
-def _add_pool_composition_rows(
-    view: discord.ui.LayoutView,
-    blocks: list[Any],
-    pool: Any,
-    maps: list[Any],
-    pool_id: str,
-    max_maps: int,
-) -> None:
-    """Add the composition rows of an editable pool (add + remove maps).
-
-    The two-pattern catalog contract: a select when the catalog fits
-    (<= 25 options); beyond that the by-id modal carries the mutation.
-    A full pool (25 maps) shows the cap instead of the add select.
-    """
-    select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    if len(pool.map_ids) >= max_maps:
-        blocks.append(
-            discord.ui.TextDisplay(
-                f"Le pool est plein ({max_maps} maps max) \u2014 retire une map pour en ajouter une autre."
-            )
-        )
-    elif len(maps) <= 25:
-        select_row.add_item(GamesPoolMapToggle(pool_id, 0, _page_options(pool, maps, 0)))
-    else:
-        select_row.add_item(GamesPoolAddByIdButton(pool_id))
-    if select_row.children:
-        view.add_item(select_row)
-    remove_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    catalog_names = {m.id: m.name for m in maps}
-    member_options = [
-        discord.SelectOption(label=catalog_names.get(mid, mid), value=mid)
-        for mid in pool.map_ids
-        if mid in catalog_names
-    ]
-    remove_row.add_item(GamesPoolMapRemoveSelect(pool_id, member_options or None))
-    view.add_item(remove_row)
-
-
-async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin: bool = False) -> discord.ui.LayoutView:
-    """One pool's editor: composition when editable, state-driven actions.
-
-    Buttons follow the pool's lifecycle: \u00e9diter (composition) only in
-    draft/published, publier a draft, archiver everything (reversible),
-    supprimer totalement only a never-used draft.
-    """
-    from kingdoms.core.services.game_data import MAX_POOL_MAPS, POOL_STATE_LABELS
-
-    service = _games_wiring()
-    view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# Editer le pool")]
-    if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
-        view.add_item(discord.ui.Container(*blocks))
-        view.add_item(_back_row())
-        return add_view_footer(view, "view:games:pool:edit")
-    pool = await service.get_map_pool(pool_id)
-    if pool is None:
-        blocks.append(discord.ui.TextDisplay("Pool introuvable."))
-        view.add_item(discord.ui.Container(*blocks))
-        view.add_item(_back_row())
-        return view
-    maps = [m for m in await service.list_maps(pool.game_key) if m.archived_at is None]
-    blocks.append(discord.ui.TextDisplay(_pool_lines(pool, maps, POOL_STATE_LABELS, MAX_POOL_MAPS)))
-    view.add_item(discord.ui.Container(*blocks))
-    if pool.edition_mode:
-        _add_pool_composition_rows(view, blocks, pool, maps, pool_id, MAX_POOL_MAPS)
-    # The state-driven action row: \u00e9diter / publier / archiver / supprimer.
-    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    action_row.add_item(GamesPoolDuplicateButton(pool_id))
-    if pool.state == "draft":
-        publish = GamesPoolPublishButton(pool_id)
-        if not pool.map_ids:
-            publish.item.disabled = True
-        action_row.add_item(publish)
-        action_row.add_item(GamesPoolHardDeleteButton(pool_id))
-    if pool.archived_at is None:
-        action_row.add_item(GamesPoolArchiveButton(pool_id))
-    view.add_item(action_row)
-    send_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    send_row.add_item(GamesPoolSendButton(pool_id))
-    view.add_item(send_row)
-    if not from_pin:
-        back_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        back_row.add_item(GamesPoolsBackButton(pool.game_key))
-        view.add_item(back_row)
-    return view
-
-
-async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
-    """Render the game's map pools management view.
-
-    The list (<= 25 active pools by contract), the editor select, and
-    a delete select — deleting is a first-class action, reachable
-    from the list, not only from inside the editor.
-    """
-    service = _games_wiring()
-    view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay(f"# Map pools ({game_key})")]
-    if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
-        view.add_item(discord.ui.Container(*blocks))
-        view.add_item(_back_row())
-        return add_view_footer(view, "view:games:pools:manage")
-    pools = await service.list_map_pools(game_key)
-    if not pools:
-        blocks.append(discord.ui.TextDisplay("_Aucun map pool._"))
-    else:
-        lines = [f"- {p.name} ({len(p.map_ids)} maps)" for p in pools[:25]]
-        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
-    view.add_item(discord.ui.Container(*blocks))
-    select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    select_row.add_item(GamesPoolEditSelect(game_key))
-    view.add_item(select_row)
-    delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    delete_row.add_item(GamesPoolDeleteSelect(game_key))
-    view.add_item(delete_row)
-    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    action_row.add_item(GamesPoolCopyButton(game_key))
-    action_row.add_item(GamesPoolCreateButton(game_key))
-    view.add_item(action_row)
-    if not from_pin:
-        view.add_item(GamesPoolsBackButton(game_key))
-    return view
 
 
 class GamesPoolAddByIdButton(
@@ -1519,7 +1369,7 @@ class GamesPoolRenameModal(discord.ui.Modal):
             await interaction.response.send_message("Renommage echoue (voir les logs).", ephemeral=True)
             return
         await interaction.response.edit_message(
-            view=await pool_editor_view(pool.id, pool.game_key, from_pin=from_pin(interaction))
+            view=await _pool_admin_menu(pool.id, pool.game_key)
         )
         await interaction.followup.send(f"Pool renomme **{pool.name}**.", ephemeral=True)
 
@@ -1642,7 +1492,7 @@ class GamesPoolPublishButton(
             )
             return
         await interaction.response.edit_message(
-            view=await pool_editor_view(pool.id, pool.game_key, from_pin=from_pin(interaction))
+            view=await _pool_admin_menu(pool.id, pool.game_key)
         )
 
 
@@ -1783,7 +1633,7 @@ class GamesPoolMapPageSelect(
             return
         page = int((self.item.values or ["0"])[0])
         await interaction.response.edit_message(
-            view=await pool_editor_view(self.pool_id, pool.game_key, page, from_pin=from_pin(interaction))
+            view=await _pool_admin_menu(self.pool_id, pool.game_key)
         )
 
 
@@ -1857,7 +1707,7 @@ class GamesPoolMapToggle(
             )
             return
         await interaction.response.edit_message(
-            view=await pool_editor_view(self.pool_id, pool.game_key, self.page, from_pin=from_pin(interaction))
+            view=await _pool_admin_menu(self.pool_id, pool.game_key)
         )
         await interaction.followup.send("Map retiree." if removed else "Map ajoutee.", ephemeral=True)
 
@@ -1940,7 +1790,7 @@ class GamesPoolMapRemoveSelect(
         except Exception:
             logger.warning("GAMES ADMIN: pools sync after removal failed — best-effort")
         await interaction.edit_original_response(
-            view=await pool_editor_view(self.pool_id, pool.game_key, 0, from_pin=from_pin(interaction))
+            view=await _pool_admin_menu(self.pool_id, pool.game_key)
         )
         await interaction.followup.send(f"{len(chosen)} map(s) retirée(s).", ephemeral=True)
 
@@ -2084,7 +1934,7 @@ class GamesPoolDuplicateModal(discord.ui.Modal):
             await interaction.response.send_message("Duplication echouee (voir les logs).", ephemeral=True)
             return
         await interaction.response.edit_message(
-            view=await pool_editor_view(copy.id, copy.game_key, from_pin=from_pin(interaction))
+            view=await _pool_admin_menu(copy.id, copy.game_key)
         )
         await interaction.followup.send(f"Pool duplique en **{copy.name}** (editable).", ephemeral=True)
 
@@ -2758,7 +2608,6 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesMapDeleteSelect,
         GamesMapCreateButton,
         GamesPoolCreateButton,
-        GamesPoolEditSelect,
         GamesPoolRenameButton,
         GamesPoolArchiveButton,
         GamesPoolMapToggle,
