@@ -118,6 +118,11 @@ async def build_admin_dm_panel(
         status_parts.append(_dm_tr(interaction, dm_locale, "menu_status", servers=len(servers)))
     else:
         status_parts.append(_dm_tr(interaction, dm_locale, "wiring_unavailable"))
+    from kingdoms.discord.views_routing import LOCALE_LABELS
+
+    status_parts.append(
+        _dm_tr(interaction, dm_locale, "menu_current_language", current=LOCALE_LABELS.get(dm_locale, dm_locale))
+    )
 
     view.add_item(
         discord.ui.Container(
@@ -279,7 +284,7 @@ async def _open_sync(interaction: discord.Interaction) -> None:
         )
     )
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(ContentRefreshButton(label=_dm_tr(interaction, dm_locale, "menu_btn_sync")))
+    row.add_item(ContentRefreshButton(label=_dm_tr(interaction, dm_locale, "btn_refresh_aoe2_civs")))
     view.add_item(row)
     await interaction.response.send_message(view=add_view_footer(view, "view:dm:sync"), ephemeral=True)
 

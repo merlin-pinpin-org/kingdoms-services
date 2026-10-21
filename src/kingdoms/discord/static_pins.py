@@ -192,7 +192,8 @@ async def ensure_static_pin(bot: discord.Client, spec: StaticPinnedView, guild_i
                 logger.info("%s superseded cleanup skipped — best-effort", spec.key, exc_info=True)
 
     layout = await spec.build_layout(guild_id)
-    message = await channel.send(view=layout)
+    # silent: a bulk ensure pins many views in a row — no notification storm
+    message = await channel.send(view=layout, silent=True)
     await message.pin(reason=f"kingdoms: pinned {spec.key}")
     await spec.register_message_id(guild_id, str(channel_id), str(message.id))
     return True

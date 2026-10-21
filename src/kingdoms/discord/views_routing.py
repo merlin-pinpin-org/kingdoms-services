@@ -270,16 +270,7 @@ class LanguageModal(discord.ui.Modal):
             rendered = catalog.render("admin_replies.language_changed", value)
         await interaction.response.send_message(rendered, ephemeral=True)
         if self.guild_scoped and interaction.guild_id:
-            from kingdoms.discord.pinned_views import refresh_registered_pins
-
-            try:
-                await refresh_registered_pins(str(interaction.guild_id))
-            except Exception:
-                import logging
-
-                logging.getLogger("kingdoms.views").warning(
-                    "pin refresh after language change failed — best-effort", exc_info=True
-                )
+            await _rerender_guild_surfaces(interaction)
 
 
 __all__ = [
@@ -296,6 +287,59 @@ __all__ = [
     "wired_actions",
     "wired_views",
 ]
+
+
+
+
+async def _rerender_guild_surfaces(interaction: discord.Interaction) -> None:
+    """Re-render the guild's pins and forums after a language change.
+
+    The pins re-read their labels and the posts their per-locale
+    content — best-effort, the answer already landed.
+    """
+    import logging
+
+    from kingdoms.discord.pinned_views import refresh_registered_pins
+
+    guild_id = str(interaction.guild_id)
+    try:
+        await refresh_registered_pins(guild_id)
+    except Exception:
+        logging.getLogger("kingdoms.views").warning(
+            "pin refresh after language change failed — best-effort", exc_info=True
+        )
+    try:
+        from kingdoms.discord.scope_surfaces import run_scope_syncs
+
+        await run_scope_syncs(guild_id, interaction.client, "games")
+    except Exception:
+        logging.getLogger("kingdoms.views").warning(
+            "forum re-render after language change failed — best-effort", exc_info=True
+        )
+
+async def _stored_locale(bot: Any, guild_id: str) -> str:
+    """Resolve the guild's stored language (the picker's value)."""
+    logs = getattr(bot, "logs_service", None)
+    if logs is not None and guild_id:
+        try:
+            stored = str(await logs.get_locale(guild_id) or "")
+            if stored in ("en", "fr"):
+                return LOCALE_LABELS.get(stored, stored)
+        except Exception:
+            return "?"
+    from kingdoms.discord.locales import guild_locale_by_id
+
+    return LOCALE_LABELS.get(guild_locale_by_id(bot, guild_id), "?")
+
+
+def _tr_line(catalog: Any, key: str, locale: str, current: str) -> str:
+    """Render the current-language line (en fallback, raw fallback)."""
+    rendered = str(catalog.render(key, locale, current=current))
+    if rendered == key:
+        rendered = str(catalog.render(key, "en", current=current))
+    if rendered == key:
+        rendered = f"**Language:** {current}"
+    return rendered
 
 
 def menu_buttons(decl: Any, catalog: Any, locale: str) -> list[discord.ui.Button[Any]]:
@@ -381,6 +425,15 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         blocks: list[Any] = [discord.ui.TextDisplay(header)]
         if description:
             blocks.append(discord.ui.TextDisplay(description))
+        # the admin menus state the current language: the operator sees
+        # what the guild (or their DM) renders in before switching it
+        if decl.admin_surface:
+            current = await _stored_locale(bot, guild_id)
+            blocks.append(
+                discord.ui.TextDisplay(
+                    _tr_line(catalog, f"ui.views.{view_id.replace(':', '.')}.current_language", locale, current)
+                )
+            )
         # the pin scope is the channel ("games/general" or "games/aoe2/admin");
         # the tree scope is the folder ("games", "games/aoe2") — every menu
         # carries its scope's notice (the homes AND the admin surfaces)

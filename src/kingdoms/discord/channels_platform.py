@@ -204,9 +204,12 @@ class DiscordChannelsPlatform:
         # message that sends both a view and a content string (50035).
         content_kwarg: dict[str, Any] = {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
         await _pace_post_creation()
+        # silent: a bulk sync creates dozens of posts in a row — a
+        # notification storm on every guild member is hostile
         thread, _ = await forum.create_thread(
             name=name,
             reason=f"kingdoms: map post {name}",
+            silent=True,
             **content_kwarg,
             **kwargs,
         )

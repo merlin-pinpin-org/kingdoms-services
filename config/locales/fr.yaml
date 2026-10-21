@@ -290,9 +290,11 @@ fr:
     menu_status: 🌍 {servers} serveur(s)
     menu_btn_requests: Demandes
     menu_btn_servers: Serveurs
-    menu_btn_sync: Sync AoE2
-    sync_title: Sync des données AoE2
-    sync_subtitle: Rafraîchit les civilisations et maps depuis le dataset aoe2techtree.
+    menu_btn_sync: Synchroniser
+    sync_title: Synchronisation cross-guild
+    sync_subtitle: 'Les actions de synchronisation au niveau du bot : chaque bouton met à jour les données partagées par tous les serveurs.'
+    btn_refresh_aoe2_civs: Refresh aoe2 civs
+    menu_current_language: '🌐 Langue : {current}'
     access_btn_manage: Gérer les accès
     menu_btn_language: Langue
     servers_title: 🖥 Serveurs
@@ -465,18 +467,22 @@ fr:
       menu.admin:
         title: 🛠️ Admin
         description: 'L''exploitation du bot : statut, jeux, mods, et la synchronisation des salons et rôles.'
+        current_language: '**Langue du serveur** : {current}'
+
       menu.games.home:
         title: 🎮 Jeux
         description: Les jeux disponibles sur ce serveur.
       menu.games.admin:
         title: 🎮 Jeux
         description: Gérer les jeux du serveur.
+        current_language: '**Langue du serveur** : {current}'
       menu.games.aoe2:
         title: ⚔️ Age of Empires II
         description: 'Les ressources du jeu : salons, rôles, live, joueurs.'
       menu.game.aoe2.admin:
         title: ⚔️ Age of Empires II
         description: 'Gérer les données du jeu : maps, map pools, synchronisation.'
+        current_language: '**Langue du serveur** : {current}'
       menu.mods.home:
         title: 🧩 Mods
         description: Les mods disponibles sur ce serveur.
