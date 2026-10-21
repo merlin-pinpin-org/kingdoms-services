@@ -186,3 +186,12 @@ async def test_open_declared_view_answers_an_unwired_menu() -> None:
     unknown = _Inter()
     await open_declared_view(unknown, "menu:not:declared")  # type: ignore[arg-type]
     assert unknown.response.sent_message, "an undeclared id answers unknown_view"
+
+
+def test_admin_menus_carry_a_scope_notice() -> None:
+    """The admin surfaces resolve a tree scope (their channels/roles notice)."""
+    for view_id in ("menu:admin", "menu:games:admin", "menu:game:aoe2:admin", "menu:mods:admin"):
+        decl = get_view(view_id)
+        assert decl is not None
+        tree_scope = decl.scope.split("/general")[0].split("/admin")[0]
+        assert tree_scope, f"{view_id}: an admin surface renders its scope's notice"

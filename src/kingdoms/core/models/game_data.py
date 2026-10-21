@@ -127,6 +127,7 @@ class MapPoolModel(BaseModel):
     ever_activated: bool = False
     state: str = "draft"
     mod_link: str = ""
+    forum_thread_id: str | None = None
     archived_at: int | None = None
 
     def to_mongo(self) -> dict[str, Any]:

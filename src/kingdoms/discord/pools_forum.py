@@ -196,19 +196,33 @@ async def _sync_game_pools(
     if forum is None:
         return 0  # the provisioning owns creation; nothing stored yet
     pools = await service.list_map_pools(game_key, guild_id=guild_id)
-    wanted: dict[str, Any] = {pool.name: pool for pool in pools if pool.archived_at is None}
+    wanted: dict[str, Any] = {pool.id: pool for pool in pools if pool.archived_at is None}
     existing = {t.name: t for t in forum.threads}
+    by_thread_id = {str(t.id): t for t in forum.threads}
     actions = 0
-    for name, pool in wanted.items():
+    for pool_id, pool in wanted.items():
         maps = await _pool_maps(service, pool, guild_id)
         editable = pool.edition_mode and pool.owner_guild_id == guild_id
-        if name not in existing:
-            await _create_pool_post(platform, guild_id, forum, pool, maps, editable)
+        # the stored pool->thread link wins (rename-proof); the name is
+        # the legacy fallback for posts created before the link existed
+        thread = by_thread_id.get(str(getattr(pool, "forum_thread_id", "") or ""))
+        legacy = existing.get(pool.name)
+        if thread is None and legacy is not None:
+            thread = legacy
+            try:
+                await service.set_pool_forum_thread(pool_id, str(thread.id))
+            except Exception:
+                logger.debug("pools forum: thread link store skipped (%s)", pool_id, exc_info=True)
+        if thread is None:
+            await _create_pool_post(platform, guild_id, forum, service, pool, maps, editable)
             actions += 1
         else:
-            await _refresh_pool_post(guild, guild_id, existing[name], pool, maps, editable)
+            await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable)
     for name, thread in existing.items():
-        if name not in wanted:
+        linked = any(
+            str(getattr(p, "forum_thread_id", "") or "") == str(thread.id) for p in wanted.values()
+        )
+        if name not in wanted and not linked:
             await thread.delete(reason=f"kingdoms: pool {name} no longer visible")
             actions += 1
     return actions
@@ -218,17 +232,22 @@ async def _create_pool_post(
     platform: Any,
     guild_id: str,
     forum: Any,
+    service: Any,
     pool: Any,
     maps: list[dict[str, Any]],
     editable: bool = False,
 ) -> None:
-    await platform.create_map_post(
+    thread_id = await platform.create_map_post(
         guild_id,
         str(forum.id),
         pool.name[:1].upper() + pool.name[1:],
         _pool_post_content(pool, maps),
         view=_pool_post_layout(pool, maps, editable),
     )
+    try:
+        await service.set_pool_forum_thread(pool.id, str(thread_id))
+    except Exception:
+        logger.debug("pools forum: thread link store skipped (%s)", pool.id, exc_info=True)
 
 
 async def _refresh_pool_post(
@@ -255,11 +274,17 @@ async def _refresh_pool_post(
         return
     content = _pool_post_content(pool, maps)
     fingerprint = _content_fingerprint(content)
+    # the name and the state live in the layout (thread title + badge),
+    # not in the plain-content fallback — they ride the fingerprint too
+    # so a rename or a transition re-edits the post
+    fingerprint = _content_fingerprint(f"{getattr(pool, 'name', '')}\n{getattr(pool, 'state', '')}\n{fingerprint}")
     try:
         starter = await thread.fetch_message(thread.id)
         if _last_layout_render(str(thread.id)) == fingerprint:
             return
         _remember_layout_render(str(thread.id), fingerprint)
+        if thread.name != pool.name:
+            await thread.edit(name=pool.name[:100], reason="kingdoms: pool renamed")
         await starter.edit(view=_pool_post_layout(pool, maps, editable))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:

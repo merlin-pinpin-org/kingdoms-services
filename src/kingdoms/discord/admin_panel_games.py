@@ -1447,7 +1447,7 @@ class GamesPoolToDraftButton(
         self.pool_id = pool_id
         super().__init__(
             discord.ui.Button(
-                label="Repasser en \u00e9dition",
+                label="\u00c9diter",
                 emoji="\u270f",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:pools:todraft:{pool_id}"[:100],

@@ -504,6 +504,13 @@ class GameDataService:
         await self._db.upsert_entry(MAPS_COLLECTION, updated.to_mongo())
         return updated
 
+    async def set_pool_forum_thread(self, entry_id: str, forum_thread_id: str) -> MapPoolModel:
+        """Record the pool's forum post id (the pool-thread link)."""
+        pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        updated = pool.model_copy(update={"forum_thread_id": forum_thread_id})
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
+        return updated
+
     async def duplicate_map_pool(self, entry_id: str, new_name: str, owner_guild_id: str | None = None) -> MapPoolModel:
         """Duplicate a pool under a new name (a new stable id).
 

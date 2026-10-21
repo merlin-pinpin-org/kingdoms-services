@@ -381,9 +381,10 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         blocks: list[Any] = [discord.ui.TextDisplay(header)]
         if description:
             blocks.append(discord.ui.TextDisplay(description))
-        # the pin scope is the channel ("games/general"); the tree scope is
-        # the folder ("games") — the notice resolves the declared tree scope
-        tree_scope = decl.scope.split("/general")[0] if decl.scope else ""
+        # the pin scope is the channel ("games/general" or "games/aoe2/admin");
+        # the tree scope is the folder ("games", "games/aoe2") — every menu
+        # carries its scope's notice (the homes AND the admin surfaces)
+        tree_scope = decl.scope.split("/general")[0].split("/admin")[0] if decl.scope else ""
         notice = await _tree_notice(guild_id, tree_scope, catalog, locale, bot=bot) if tree_scope else ""
         if notice:
             blocks.append(discord.ui.TextDisplay(notice))

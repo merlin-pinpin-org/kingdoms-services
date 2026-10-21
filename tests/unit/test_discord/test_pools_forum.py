@@ -135,3 +135,19 @@ def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
     from kingdoms.discord.entity_admin_menu import EntityAdminButton
 
     assert any(isinstance(b, EntityAdminButton) for b in buttons)  # the single admin entry point
+
+
+def test_to_draft_button_label_is_short() -> None:
+    """The back-to-edition button fits a row (the shorter 'Éditer' label)."""
+    from kingdoms.discord.admin_panel_games import GamesPoolToDraftButton
+
+    button = GamesPoolToDraftButton("pool-1")
+    assert button.item.label == "Éditer"
+
+
+def test_pool_state_label_maps_all_states() -> None:
+    """The badge renders the label of the pool's state."""
+    from kingdoms.core.services.game_data import POOL_STATE_LABELS
+
+    assert POOL_STATE_LABELS.get("draft") == "édition"
+    assert POOL_STATE_LABELS.get("published") not in (None, "published")
