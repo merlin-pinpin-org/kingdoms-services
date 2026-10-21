@@ -136,3 +136,18 @@ A session writing a doc, a comment or a commit in French is a bug.
   CLI (a module per domain, `main(argv) -> int`), not in ad-hoc
   commands; sessions use `uv run kingdoms ...` and teach it to
   designers instead of improvising shell commands.
+
+## Discord UI rules (the skill's memory)
+
+- **An ephemeral view never sends a copy of itself** — a click inside it
+  updates THAT message (`interaction.response.edit_message`), it never
+  answers with a second ephemeral message rendering the same or a
+  successor view. One interaction, one ephemeral message, N updates.
+- **An ephemeral view is never swapped for another view**: the update
+  re-renders the same logical view with fresh data.
+- **Ack before the slow work**: `defer()` or the in-place edit always
+  lands inside the 3-second interaction window; forum syncs and
+  provider fetches run after.
+- **A modal's `TextInput` labels are capped at 45 characters**; selects
+  ARE valid modal children — a 50035 on `send_modal` is almost always
+  an over-cap label, not the selects.
