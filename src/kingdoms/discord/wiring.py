@@ -147,30 +147,6 @@ async def guild_category(guild: discord.Guild, name: str, *, create_reason: str 
     return category
 
 
-_PROVIDER_MAPPING_SERVICE: Any | None = None
-_PROVIDER_MAPPING_READY = False
-
-
-def build_provider_mapping_service() -> Any | None:
-    """Build (and memoize) the ProviderMappingService; None without Mongo."""
-    global _PROVIDER_MAPPING_SERVICE, _PROVIDER_MAPPING_READY
-    if _PROVIDER_MAPPING_READY:
-        return _PROVIDER_MAPPING_SERVICE
-    _PROVIDER_MAPPING_READY = True
-    if not os.environ.get("MONGO_URI"):
-        return None
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.provider_mapping import ProviderMappingService
-        from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
-
-        _PROVIDER_MAPPING_SERVICE = ProviderMappingService(MongoProviderMappingDatabase(get_async_database()))
-    except Exception:
-        logger.warning("PROVIDER MAPPING wiring build failed", exc_info=True)
-        return None
-    return _PROVIDER_MAPPING_SERVICE
-
-
 async def granted_game_keys(guild_id: str, catalog_keys: tuple[str, ...] = ()) -> tuple[str, ...]:
     """List the game keys a guild may provision (access-first).
 

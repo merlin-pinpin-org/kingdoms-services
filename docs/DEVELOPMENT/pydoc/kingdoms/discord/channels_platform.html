@@ -71,13 +71,6 @@ guild,&nbsp;the&nbsp;thread&nbsp;or&nbsp;the&nbsp;message&nbsp;is&nbsp;gone&nbsp
 
 <dl><dt>async <a name="DiscordChannelsPlatform-ensure_forum"><strong>ensure_forum</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Find&nbsp;or&nbsp;create&nbsp;a&nbsp;read-only&nbsp;forum&nbsp;under&nbsp;a&nbsp;category;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordChannelsPlatform-ensure_forum_post_view"><strong>ensure_forum_post_view</strong></a>(self, guild_id: 'str', thread_id: 'str', view: 'discord.ui.View', marker_custom_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Attach&nbsp;``view``&nbsp;to&nbsp;a&nbsp;forum&nbsp;post's&nbsp;starter&nbsp;message&nbsp;when&nbsp;absent.<br>
-&nbsp;<br>
-Migration&nbsp;path&nbsp;for&nbsp;posts&nbsp;created&nbsp;before&nbsp;their&nbsp;flow&nbsp;existed:&nbsp;when<br>
-the&nbsp;starter&nbsp;message&nbsp;carries&nbsp;no&nbsp;component&nbsp;matching&nbsp;``marker_custom_id``<br>
-(prefix&nbsp;match),&nbsp;edit&nbsp;it&nbsp;to&nbsp;attach&nbsp;the&nbsp;view.&nbsp;True&nbsp;when&nbsp;the&nbsp;post&nbsp;now<br>
-carries&nbsp;it&nbsp;(already&nbsp;present&nbsp;or&nbsp;just&nbsp;attached).</span></dd></dl>
-
 <dl><dt>async <a name="DiscordChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-forum_thread_exists"><strong>forum_thread_exists</strong></a>(self, guild_id: 'str', thread_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;forum&nbsp;thread&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>

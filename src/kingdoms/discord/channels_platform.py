@@ -212,30 +212,6 @@ class DiscordChannelsPlatform:
         )
         return str(thread.id)
 
-    async def ensure_forum_post_view(
-        self, guild_id: str, thread_id: str, view: discord.ui.View, marker_custom_id: str
-    ) -> bool:
-        """Attach ``view`` to a forum post's starter message when absent.
-
-        Migration path for posts created before their flow existed: when
-        the starter message carries no component matching ``marker_custom_id``
-        (prefix match), edit it to attach the view. True when the post now
-        carries it (already present or just attached).
-        """
-        guild = await self._guild(guild_id)
-        if guild is None or not thread_id.isdigit():
-            return False
-        thread = guild.get_channel_or_thread(int(thread_id))
-        if not isinstance(thread, discord.Thread):
-            return False
-        message = await thread.fetch_message(thread.id)
-        for component in message.components:
-            for child in getattr(component, "children", ()):
-                if getattr(child, "custom_id", "").startswith(marker_custom_id):
-                    return True
-        await message.edit(view=view)
-        return True
-
     async def edit_forum_post(self, guild_id: str, thread_id: str, content: str, view: discord.ui.View | None) -> bool:
         """Edit a forum post's starter message content and components.
 
