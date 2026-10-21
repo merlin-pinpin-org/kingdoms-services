@@ -114,7 +114,12 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-register_entity_forum_sync"><strong>register_entity_forum_sync</strong></a>(spec: 'EntityForumSpec') -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;one&nbsp;entity&nbsp;forum's&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-forget_layout_renders"><strong>forget_layout_renders</strong></a>() -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;every&nbsp;remembered&nbsp;fingerprint&nbsp;(a&nbsp;locale&nbsp;change&nbsp;re-renders).<br>
+&nbsp;<br>
+The&nbsp;fingerprints&nbsp;are&nbsp;process-memory&nbsp;change&nbsp;detection;&nbsp;after&nbsp;a&nbsp;guild<br>
+language&nbsp;change&nbsp;the&nbsp;recomputed&nbsp;(translated)&nbsp;content&nbsp;must&nbsp;push&nbsp;even<br>
+when&nbsp;the&nbsp;pre-change&nbsp;pass&nbsp;remembers&nbsp;the&nbsp;same&nbsp;thread.</span></dd></dl>
+ <dl><dt><a name="-register_entity_forum_sync"><strong>register_entity_forum_sync</strong></a>(spec: 'EntityForumSpec') -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;one&nbsp;entity&nbsp;forum's&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
  <dl><dt>async <a name="-sync_entity_forum"><strong>sync_entity_forum</strong></a>(guild_id: 'str', bot: 'Any', spec: 'EntityForumSpec') -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;entity&nbsp;(idempotent,&nbsp;self-healing).<br>
 &nbsp;<br>
 Posts&nbsp;are&nbsp;matched&nbsp;by&nbsp;thread&nbsp;name&nbsp;(the&nbsp;entity's&nbsp;display&nbsp;name);&nbsp;the<br>

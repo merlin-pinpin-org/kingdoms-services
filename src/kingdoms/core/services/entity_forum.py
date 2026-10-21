@@ -68,6 +68,16 @@ def _remember_layout_render(thread_id: str, fingerprint: str) -> None:
     _LAST_LAYOUT_RENDER[thread_id] = fingerprint
 
 
+def forget_layout_renders() -> None:
+    """Drop every remembered fingerprint (a locale change re-renders).
+
+    The fingerprints are process-memory change detection; after a guild
+    language change the recomputed (translated) content must push even
+    when the pre-change pass remembers the same thread.
+    """
+    _LAST_LAYOUT_RENDER.clear()
+
+
 @dataclass(frozen=True)
 class EntityForumSpec:
     """Declarative description of one entity-post forum.

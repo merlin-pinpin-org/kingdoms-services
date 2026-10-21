@@ -179,7 +179,13 @@ was&nbsp;last&nbsp;seen&nbsp;speaking.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation&nbsp;(admin-only).</span></dd></dl>
+<dl><dt>async <a name="LogService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;MongoDB,&nbsp;nothing&nbsp;else.<br>
+&nbsp;<br>
+The&nbsp;tree&nbsp;owns&nbsp;the&nbsp;channel&nbsp;(``bot/logs``)&nbsp;and&nbsp;routes&nbsp;it&nbsp;through<br>
+``set_channel``;&nbsp;this&nbsp;service&nbsp;never&nbsp;adopts&nbsp;a&nbsp;channel&nbsp;by&nbsp;name<br>
+and&nbsp;never&nbsp;creates&nbsp;one&nbsp;—&nbsp;the&nbsp;legacy&nbsp;``🤖-bot-logs``<br>
+channel&nbsp;stays&nbsp;dead,&nbsp;nothing&nbsp;writes&nbsp;into&nbsp;it&nbsp;anymore.&nbsp;None&nbsp;when<br>
+the&nbsp;tree&nbsp;has&nbsp;not&nbsp;routed&nbsp;a&nbsp;channel&nbsp;yet&nbsp;(the&nbsp;events&nbsp;drop).</span></dd></dl>
 
 <dl><dt>async <a name="LogService-set_channel"><strong>set_channel</strong></a>(self, guild_id: 'str', channel_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;the&nbsp;bot&nbsp;logs&nbsp;to&nbsp;an&nbsp;existing&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.<br>
 &nbsp;<br>
@@ -295,7 +301,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#LogsPlatform">LogsPlatform</a>(*args,&nbsp;**kwargs)<br>
 &nbsp;<br>
-Narrow&nbsp;platform&nbsp;seam:&nbsp;creation,&nbsp;permissions,&nbsp;sending.<br>&nbsp;</span></td></tr>
+Narrow&nbsp;platform&nbsp;seam:&nbsp;routing,&nbsp;permissions,&nbsp;sending.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.services.logs.html#LogsPlatform">LogsPlatform</a></dd>
@@ -312,10 +318,6 @@ Methods defined here:<br>
 <dl><dt>async <a name="LogsPlatform-apply_public_policy"><strong>apply_public_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;channel&nbsp;to&nbsp;everyone&nbsp;(public&nbsp;visibility).</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
-
-<dl><dt>async <a name="LogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
-
-<dl><dt>async <a name="LogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;logs&nbsp;channel&nbsp;by&nbsp;name;&nbsp;None&nbsp;when&nbsp;there&nbsp;is&nbsp;none.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
@@ -349,7 +351,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'create_logs_channel', 'find_logs_channel', 'grant_role_view', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'grant_role_view', 'list_pinned_log_messages', 'list_text_channels', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

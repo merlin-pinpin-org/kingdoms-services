@@ -94,15 +94,7 @@ class LogsDatabase(Protocol):
 
 
 class LogsPlatform(Protocol):
-    """Narrow platform seam: creation, permissions, sending."""
-
-    async def find_logs_channel(self, guild_id: str) -> str | None:
-        """Find an existing logs channel by name; None when there is none."""
-        ...
-
-    async def create_logs_channel(self, guild_id: str) -> str:
-        """Create the logs channel; return its id."""
-        ...
+    """Narrow platform seam: routing, permissions, sending."""
 
     async def apply_default_policy(self, guild_id: str, channel_id: str) -> None:
         """Apply the admin-only default permission overwrites."""
@@ -208,7 +200,14 @@ class LogService:
         return self._catalog.render(key, locale, **kwargs)
 
     async def resolve_channel(self, guild_id: str) -> str | None:
-        """Cache-aside resolution: Redis → MongoDB → creation (admin-only)."""
+        """Cache-aside resolution: Redis → MongoDB, nothing else.
+
+        The tree owns the channel (``bot/logs``) and routes it through
+        ``set_channel``; this service never adopts a channel by name
+        and never creates one — the legacy ``🤖-bot-logs``
+        channel stays dead, nothing writes into it anymore. None when
+        the tree has not routed a channel yet (the events drop).
+        """
         cache_key = self._cache_key(guild_id)
         cached = await self._safe(self._state.get_state("channels", cache_key))
         if cached and cached.get("channel_id"):
@@ -221,42 +220,7 @@ class LogService:
                 await self._cache(guild_id, stored.channel_id)
                 return stored.channel_id
             await self._db.delete_channel(guild_id, BOT_LOGS_CATEGORY)
-        adopted = await self._safe_find_channel(guild_id)
-        if adopted is not None:
-            await self._db.upsert_channel(
-                ChannelModel(
-                    _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
-                    guild_id=guild_id,
-                    platform="discord",
-                    category=BOT_LOGS_CATEGORY,
-                    channel_id=adopted,
-                    name=BOT_LOGS_CHANNEL_NAME,
-                )
-            )
-            # Private by default, adopted channels included: an existing
-            # channel may carry public overwrites — the default policy
-            # (admin-only) is re-applied best-effort, adoption never
-            # inherits looser permissions than a fresh creation.
-            await self._safe(self._platform.apply_default_policy(guild_id, adopted))
-            if await self._safe(self._db.get_policy(guild_id, BOT_LOGS_CATEGORY)) is None:
-                await self._safe(self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy()))
-            await self._cache(guild_id, adopted)
-            return adopted
-        channel_id = await self._platform.create_logs_channel(guild_id)
-        await self._platform.apply_default_policy(guild_id, channel_id)
-        await self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy())
-        await self._db.upsert_channel(
-            ChannelModel(
-                _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
-                guild_id=guild_id,
-                platform="discord",
-                category=BOT_LOGS_CATEGORY,
-                channel_id=channel_id,
-                name=BOT_LOGS_CHANNEL_NAME,
-            )
-        )
-        await self._cache(guild_id, channel_id)
-        return channel_id
+        return None
 
     async def log_event(self, guild_id: str, event: LifecycleEvent, *, pin: bool = False) -> None:
         """Deliver one lifecycle event to the guild's logs channel (best-effort).
@@ -551,13 +515,6 @@ class LogService:
                 "channels", self._cache_key(guild_id), {"channel_id": channel_id}, ttl=CACHE_TTL_SECONDS
             )
         )
-
-    async def _safe_find_channel(self, guild_id: str) -> str | None:
-        """Find an existing logs channel by name, degrading to None on failure."""
-        try:
-            return await self._platform.find_logs_channel(guild_id)
-        except Exception:
-            return None
 
     async def _drop_caches(self, guild_id: str) -> None:
         await self._safe(self._state.delete_state("channels", self._cache_key(guild_id)))

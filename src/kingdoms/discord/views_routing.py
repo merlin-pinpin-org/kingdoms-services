@@ -309,8 +309,10 @@ async def _rerender_guild_surfaces(interaction: discord.Interaction) -> None:
             "pin refresh after language change failed — best-effort", exc_info=True
         )
     try:
+        from kingdoms.core.services.entity_forum import forget_layout_renders
         from kingdoms.discord.scope_surfaces import run_scope_syncs
 
+        forget_layout_renders()
         await run_scope_syncs(guild_id, interaction.client, "games")
     except Exception:
         logging.getLogger("kingdoms.views").warning(
@@ -366,6 +368,10 @@ def menu_buttons(decl: Any, catalog: Any, locale: str) -> list[discord.ui.Button
             # never the pin channel — the pin scope ends with "/admin" or
             # "/general", which the tree does not declare
             scope = decl.scope.rsplit("/", 1)[0] if decl.scope and "/" in decl.scope else (decl.scope or "bot")
+            # the bot menu also owns the guild's root channels (general,
+            # discussions): no other scope covers them
+            if decl.id == "menu:admin":
+                scope = f"{scope},root"
             item = TreeEnsureButton(
                 scope, _label(catalog, button.label_key, locale) or "Sync now"
             )

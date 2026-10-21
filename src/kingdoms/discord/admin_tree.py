@@ -72,10 +72,11 @@ async def _ensure_scope_pins(bot: Any, guild_id: str, scope: str) -> int:
 
 
 async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
-    """Re-provision one scope's declared channels, best-effort.
+    """Re-provision the scopes' declared channels, best-effort.
 
-    Returns a human outcome: the scope's channels, listed like the
-    home notices (one bullet per channel, its link and access band).
+    ``scope`` carries a comma-separated list (the button's contract):
+    every scope provisions in order, then the pins and the declared
+    forum syncs of the whole list run. Returns a human outcome.
     """
     from kingdoms.core.services.i18n import DEFAULT_LOCALE
     from kingdoms.discord.ui.panels import registered_scopes
@@ -84,8 +85,9 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
     guild = getattr(bot, "get_guild", lambda _gid: None)(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return "Guilde introuvable — impossible de re-provisionner."
-    spec = next((s for s in registered_scopes() if s.scope == scope), None)
-    if spec is None:
+    scopes = [part for part in scope.split(",") if part]
+    specs = [s for s in registered_scopes() if s.scope in scopes]
+    if not specs:
         return f"Périmètre inconnu : `{scope}`."
     catalog = getattr(bot, "messages", None)
 
@@ -102,22 +104,25 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
             locale = str(await logs.get_locale(guild_id) or DEFAULT_LOCALE)
         except Exception:
             locale = DEFAULT_LOCALE
-    try:
-        resolved = await provision_scope(guild, spec, locale, _translate)
-        await persist_resolutions(guild_id, scope, resolved)
-    except Exception:
-        logger.warning("ADMIN TREE: ensure failed (scope %s, guild %s)", scope, guild_id, exc_info=True)
-        return "La création des salons a échoué — voir les logs du bot."
-    pins_ok = await _ensure_scope_pins(bot, guild_id, scope)
+    lines: list[str] = []
+    pins_ok = 0
+    for spec in specs:
+        try:
+            resolved = await provision_scope(guild, spec, locale, _translate)
+            await persist_resolutions(guild_id, spec.scope, resolved)
+        except Exception:
+            logger.warning("ADMIN TREE: ensure failed (scope %s, guild %s)", spec.scope, guild_id, exc_info=True)
+            return "La création des salons a échoué — voir les logs du bot."
+        lines.append(f"\U0001F527 **{spec.scope}** \u2014 salons v\u00e9rifi\u00e9s/cr\u00e9\u00e9s :")
+        for decl in spec.channels:
+            channel_id = resolved.get(decl.key, "")
+            lock = "\U0001F512" if decl.access == "admin" else ""
+            where = f"<#{channel_id}>{lock}" if channel_id else f"**{decl.key}** (absent)"
+            lines.append(f"\u2022 {where}")
+        pins_ok += await _ensure_scope_pins(bot, guild_id, spec.scope)
     from kingdoms.discord.scope_surfaces import run_scope_syncs
 
-    synced_posts = await run_scope_syncs(guild_id, bot, scope)
-    lines: list[str] = [f"\U0001F527 **{scope}** \u2014 salons v\u00e9rifi\u00e9s/cr\u00e9\u00e9s :"]
-    for decl in spec.channels:
-        channel_id = resolved.get(decl.key, "")
-        lock = "\U0001F512" if decl.access == "admin" else ""
-        where = f"<#{channel_id}>{lock}" if channel_id else f"**{decl.key}** (absent)"
-        lines.append(f"\u2022 {where}")
+    synced_posts = await run_scope_syncs(guild_id, bot, ",".join(scopes))
     lines.append(f"\n\U0001f4cc Vues \u00e9pingl\u00e9es v\u00e9rifi\u00e9es/recr\u00e9\u00e9es : {pins_ok}")
     lines.append(f"\U0001f4dc Posts de forum v\u00e9rifi\u00e9s/recr\u00e9\u00e9s : {synced_posts}")
     return "\n".join(lines)
@@ -194,9 +199,15 @@ class TreeOpenButton(
 
 class TreeEnsureButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:ensure:(?P<scope>[a-z0-9_/]+)",
+    template=rf"{_NS}:ensure:(?P<scope>[a-z0-9_/,]+)",
 ):
-    """Re-provision one scope's channels (and mod/game roles), on demand."""
+    """Re-provision scopes' channels (and mod/game roles), on demand.
+
+    The custom id carries a comma-separated scope list: the sync of an
+    admin menu heals its own scope plus anything it owns (the bot menu
+    also carries ``root`` — the guild's root channels belong to no
+    sub-scope).
+    """
 
     def __init__(self, scope: str, label: str = "Sync now", emoji: str = "\U0001F527") -> None:
         self.scope = scope

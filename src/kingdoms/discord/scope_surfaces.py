@@ -40,14 +40,21 @@ def _descendant_prefixes(scope: str) -> tuple[str, ...]:
 
 
 async def run_scope_syncs(guild_id: str, bot: Any, scope: str) -> int:
-    """Run every registered sync of the scope and its descendants."""
+    """Run every registered sync of the scopes and their descendants.
+
+    ``scope`` carries a comma-separated list (the sync button's
+    contract): each scope contributes its own prefixes.
+    """
     actions = 0
-    for prefix in _descendant_prefixes(scope):
-        for sync in _REGISTRY.get(prefix, ()):
-            try:
-                actions += await sync(guild_id, bot)
-            except Exception:
-                logger.warning("scope sync failed (%s, guild %s) — best-effort", prefix, guild_id, exc_info=True)
+    for item in scope.split(","):
+        for prefix in _descendant_prefixes(item):
+            for sync in _REGISTRY.get(prefix, ()):
+                try:
+                    actions += await sync(guild_id, bot)
+                except Exception:
+                    logger.warning(
+                        "scope sync failed (%s, guild %s) — best-effort", prefix, guild_id, exc_info=True
+                    )
     return actions
 
 
