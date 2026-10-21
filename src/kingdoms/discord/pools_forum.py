@@ -44,6 +44,17 @@ def _pool_state_badge(state: str) -> str:
     return pool_state_badge(state)
 
 
+
+def _pool_thread_title(pool: Any) -> str:
+    """Build the pool's thread title: the state emoji rides the name."""
+    from kingdoms.core.services.game_data import POOL_STATE_EMOJIS
+
+    name = pool.name[:1].upper() + pool.name[1:]
+    emoji = POOL_STATE_EMOJIS.get(getattr(pool, "state", ""), "")
+    title = f"{emoji} {name}" if emoji else name
+    return title[:100]
+
+
 def _pool_post_layout(
     pool: Any,
     maps: list[dict[str, Any]],
@@ -237,7 +248,7 @@ async def _create_pool_post(
     thread_id = await platform.create_map_post(
         guild_id,
         str(forum.id),
-        pool.name[:1].upper() + pool.name[1:],
+        _pool_thread_title(pool),
         _pool_post_content(pool, maps),
         view=_pool_post_layout(pool, maps, editable),
     )
@@ -281,8 +292,7 @@ async def _refresh_pool_post(
             return
         _remember_layout_render(str(thread.id), fingerprint)
         if thread.name != pool.name:
-            title = pool.name[:1].upper() + pool.name[1:]
-            await thread.edit(name=title[:100], reason="kingdoms: pool renamed")
+            await thread.edit(name=_pool_thread_title(pool), reason="kingdoms: pool renamed")
         await starter.edit(view=_pool_post_layout(pool, maps, editable))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:

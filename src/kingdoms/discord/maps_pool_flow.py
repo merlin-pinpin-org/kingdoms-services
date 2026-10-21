@@ -109,19 +109,22 @@ class MapAddToPoolButton(
 
 
 class MapAddToPoolModal(discord.ui.Modal):
-    """The map's add-to-pool form: the pools in edition, or the new branch."""
+    """The map's add-to-pool form: the pools in edition, or the new branch.
+
+    A select rides a modal wrapped in a Label (the components-v2 form
+    contract, the same shape as the profile's add-account form).
+    """
 
     def __init__(self, map_id: str, options: list[discord.SelectOption]) -> None:
-        super().__init__(title="Ajouter à un map pool", timeout=300)
+        super().__init__(title="Ajouter \u00e0 un map pool", timeout=300)
         self.map_id = map_id
-        select: discord.ui.Select[Any] = discord.ui.Select(
-            options=options or [discord.SelectOption(label="Aucun pool en édition", value="none")],
-            placeholder="Pools en édition uniquement...",
+        self.pools: discord.ui.Select[Any] = discord.ui.Select(
+            options=options or [discord.SelectOption(label="Aucun pool en \u00e9dition", value="none")],
+            placeholder="Pools en \u00e9dition uniquement...",
         )
-        select.callback = self._on_pick  # type: ignore[method-assign]
-        self.add_item(select)
+        self.add_item(discord.ui.Label(text="Map pool", component=self.pools))
 
-    async def _on_pick(self, interaction: discord.Interaction) -> None:
+    async def on_submit(self, interaction: discord.Interaction) -> None:
         """Delegate to the picker's shared add step."""
         picker = MapPoolPickerSelect(self.map_id, [])
         await picker.callback(interaction)
@@ -189,15 +192,15 @@ class MapPoolPickerSelect(
         """Add the map to the chosen pool (or open the create branch)."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message(
-                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.wiring_unavailable")
             )
             return
         chosen = (self.item.values or [""])[0]
         entry = await service.get_map(self.map_id)
         if entry is None:
-            await interaction.response.send_message(
-                await reply(interaction, "replies_shared.map_not_found"), ephemeral=True
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.map_not_found")
             )
             return
         if chosen == "__new__":
@@ -205,16 +208,17 @@ class MapPoolPickerSelect(
             return
         pool = await service.get_map_pool(chosen)
         if pool is None:
-            await interaction.response.send_message(
-                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.pool_not_found")
             )
             return
         if not pool.edition_mode:
-            await interaction.response.send_message(
-                f"**{pool.name}** n'est pas en édition — une map ne peut être ajoutée "
-                "qu'à un pool en édition (publié, utilisé ou archivé : la "
-                "composition ne change plus).",
-                ephemeral=True,
+            await interaction.response.edit_message(
+                content=(
+                    f"**{pool.name}** n'est pas en édition — une map ne peut être ajoutée "
+                    "qu'à un pool en édition (publié, utilisé ou archivé : la "
+                    "composition ne change plus)."
+                )
             )
             return
         if self.map_id in pool.map_ids:
@@ -227,11 +231,13 @@ class MapPoolPickerSelect(
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, self.map_id))
         except Exception:
             logger.warning("POOL FLOW: add to existing pool failed", exc_info=True)
-            await interaction.response.send_message(
-                await reply(interaction, "replies_shared.action_failed"), ephemeral=True
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.action_failed")
             )
             return
-        await interaction.response.send_message(f"**{entry.name}** ajoutée à **{pool.name}**.", ephemeral=True)
+        await interaction.response.edit_message(
+            content=f"**{entry.name}** ajoutée à **{pool.name}**.", view=None
+        )
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum
 
@@ -361,15 +367,16 @@ async def _build_compose_modal(
 
 
 class PoolComposeModal(discord.ui.Modal):
-    """The pool's composition editor: one form, both selections.
+    """The pool's composition form: both selections, one submit.
 
-    Two multi-selects: the add select carries the guild's available
-    maps (not in the pool, 25-option cap), the remove select the
-    pool's own maps (at most 20 \u2014 the pool cap, always select-fit).
-    Over 25 available maps the form adds the parsed text block (the
-    Liquipedia import contract: one map per line, id or name). The
-    rails run at submit: only available maps in, only members out,
-    the 20-map cap enforced with a clear answer.
+    Two multi-selects, each wrapped in a Label (the components-v2
+    form contract \u2014 a bare select in a modal is rejected by the
+    API; the Label-wrapped one is the working shape, the same as the
+    profile's forms). The add select carries the guild's available
+    maps (not in the pool, 25-option cap); the remove select the
+    pool's own maps (at most 20 \u2014 the pool cap). Over 25
+    available maps the form adds the parsed text block (the Liquipedia
+    import contract: one map per line, id or name).
     """
 
     def __init__(self, pool: Any, available: list[Any], members: list[Any]) -> None:
@@ -379,20 +386,18 @@ class PoolComposeModal(discord.ui.Modal):
         self.members = members
         if available:
             add_select: discord.ui.Select[Any] = discord.ui.Select(
-                placeholder="Maps \u00e0 ajouter",
                 options=[discord.SelectOption(label=m.name, value=m.id) for m in available[:25]],
                 min_values=1,
                 max_values=min(len(available), 25),
             )
-            self.add_item(add_select)
+            self.add_item(discord.ui.Label(text="Maps \u00e0 ajouter", component=add_select))
         if members:
             remove_select: discord.ui.Select[Any] = discord.ui.Select(
-                placeholder="Maps \u00e0 retirer",
                 options=[discord.SelectOption(label=m.name, value=m.id) for m in members[:25]],
                 min_values=1,
                 max_values=len(members[:25]),
             )
-            self.add_item(remove_select)
+            self.add_item(discord.ui.Label(text="Maps \u00e0 retirer", component=remove_select))
         if available and len(available) > 25:
             # Discord caps a TextInput label at 45 chars
             block: discord.ui.TextInput[Any] = discord.ui.TextInput(
@@ -409,15 +414,16 @@ class PoolComposeModal(discord.ui.Modal):
         add_ids: list[str] = []
         remove_ids: list[str] = []
         for child in self.children:
-            if isinstance(child, discord.ui.Select):
-                if "ajouter" in (child.placeholder or ""):
-                    add_ids.extend(child.values or [])
+            inner = getattr(child, "component", None) or child
+            if isinstance(inner, discord.ui.Select):
+                if "ajouter" in (getattr(child, "text", "") or ""):
+                    add_ids.extend(inner.values or [])
                 else:
-                    remove_ids.extend(child.values or [])
-            elif isinstance(child, discord.ui.TextInput):
+                    remove_ids.extend(inner.values or [])
+            elif isinstance(inner, discord.ui.TextInput):
                 from kingdoms.mapsdata.bulk_import import parse_import_line
 
-                for line in str(child.value or "").splitlines():
+                for line in str(inner.value or "").splitlines():
                     parsed = parse_import_line(line.strip())
                     if parsed.raw and not parsed.error:
                         add_ids.append(parsed.raw)

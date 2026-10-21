@@ -52,7 +52,7 @@ def _tr(catalog: Any, key: str, locale: str, fallback: str = "") -> str:
     """Render one key; the fallback when unknown."""
     if catalog is None:
         return fallback or key
-    rendered = catalog.render(key, locale)
+    rendered = str(catalog.render(key, locale))
     return rendered if rendered != key else (fallback or key)
 
 
@@ -76,7 +76,9 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
     spec = next((sp for sp in registered_scopes() if sp.scope == scope), None)
     if spec is None:
         return ""
-    lines: list[str] = ["**Salons** (g\u00e9n\u00e9r\u00e9s par le bot) :"]
+    lines: list[str] = [
+        _tr(catalog, "ui.tree.channels_heading", locale, "**Salons** (g\u00e9n\u00e9r\u00e9s par le bot) :")
+    ]
     raw_channels = _declared_channel_meta(scope)
     for decl in spec.channels:
         meta = raw_channels.get(decl.key, {})
@@ -95,24 +97,41 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
             base = f"**{label}**{lock} (\u00e0 cr\u00e9er)"
             where = f"{base} \u2014 {description}" if description else base
         lines.append(f"\u2022 {where}")
-    role_lines = _scope_role_lines(guild_id, scope, bot)
+    role_lines = _scope_role_lines(guild_id, scope, bot, catalog=catalog, locale=locale)
     if role_lines:
         lines.append("")
-        lines.append("**R\u00f4les** (g\u00e9n\u00e9r\u00e9s par le bot) :")
+        lines.append(
+            _tr(catalog, "ui.tree.roles_heading", locale, "**R\u00f4les** (g\u00e9n\u00e9r\u00e9s par le bot) :")
+        )
         lines.extend(role_lines)
     return "\n".join(lines)
 
 
-def _scope_role_lines(guild_id: str, scope: str, bot: Any = None) -> list[str]:
+def _scope_role_lines(
+    guild_id: str, scope: str, bot: Any = None, catalog: Any = None, locale: str = "en"
+) -> list[str]:
     """Return the scope's roles: one bullet each, a mention and its use.
 
     The platform declares the bot-admins role per guild; a mod's roles
     ride its own declaration and join the same notice.
     """
+    def _t(key: str, fallback: str) -> str:
+        if catalog is None:
+            return fallback
+        rendered = str(catalog.render(key, locale))
+        return rendered if rendered != key else fallback
+
+    use = _t("ui.tree.bot_admins_role", "les op\u00e9rateurs du bot : administrent la plateforme")
     return [
-        f"\u2022 <@&{role_id}> \u2014 les op\u00e9rateurs du bot : administrent la plateforme"
+        f"\u2022 <@&{role_id}> \u2014 {use}"
         for role_id in _bot_admins_role_ids(guild_id, bot)
-    ] or ["\u2022 **bot-admins** \u2014 les op\u00e9rateurs du bot (le r\u00f4le est cr\u00e9\u00e9 au premier sync)"]
+    ] or [
+        "\u2022 **bot-admins** \u2014 "
+        + _t(
+            "ui.tree.bot_admins_role_pending",
+            "les op\u00e9rateurs du bot (le r\u00f4le est cr\u00e9\u00e9 au premier sync)",
+        )
+    ]
 
 
 def _bot_admins_role_ids(guild_id: str, bot: Any = None) -> list[str]:

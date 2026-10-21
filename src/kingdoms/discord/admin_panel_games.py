@@ -364,9 +364,16 @@ class GamesPoolCreateModal(discord.ui.Modal):
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         try:
+            # the guild's pools carry its id in theirs — 'public' is the
+            # bot-admin-only scope, never a guild creation's default
             pool = await service.create_map_pool(
-                self.game_key, str(self.name.value).strip(), map_ids=()
+                self.game_key,
+                str(self.name.value).strip(),
+                map_ids=(),
+                owner_guild_id=guild_id or None,
+                is_public=False,
             )
         except Exception:
             logger.exception("GAMES ADMIN: pool creation failed")
@@ -473,7 +480,7 @@ class GamesPoolRenameButton(
             discord.ui.Button(
                 label="Renommer",
                 emoji="\u270f",
-                style=discord.ButtonStyle.primary,
+                style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:pools:rename:{pool_id}"[:100],
             )
         )

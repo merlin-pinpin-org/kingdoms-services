@@ -279,6 +279,37 @@ async def _report_profile_error(
             await dm_admins(bot, admins, content)
 
 
+async def _dm_profile_notice(interaction: discord.Interaction, key: str, **kwargs: Any) -> None:
+    """DM the user the account-change notice in their own stored language.
+
+    The ephemeral view answers the click (the guild's context); the DM
+    is the user's personal record and speaks THEIR language \u2014 the
+    stored DM choice, then the observed client locale, then English.
+    Best-effort: a closed DM is skipped quietly.
+    """
+    client = interaction.client
+    catalog = getattr(client, "messages", None)
+    if catalog is None:
+        return
+    logs = getattr(client, "logs_service", None)
+    locale = "en"
+    user_id = str(interaction.user.id)
+    if logs is not None:
+        try:
+            locale = str(await logs.get_user_locale(user_id) or "en")
+        except Exception:
+            locale = "en"
+    rendered = str(catalog.render(f"profile_dm.{key}", locale, **kwargs))
+    if rendered == f"profile_dm.{key}":
+        rendered = str(catalog.render(f"profile_dm.{key}", "en", **kwargs))
+    if rendered == f"profile_dm.{key}":
+        return
+    try:
+        await interaction.user.send(rendered)
+    except Exception:
+        logger.info("PROFILE DM skipped (user %s \u2014 DMs closed?)", user_id)
+
+
 class ProfileAddAccountButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"home:profile:add",
@@ -392,6 +423,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
+        await _dm_profile_notice(interaction, "account_added", game=str(chosen))
         await _profile_followup(
             interaction,
             banner=await reply(interaction, "profile.add_success"),
@@ -495,6 +527,7 @@ class ProfileRenameModal(discord.ui.Modal):
             logger.warning("PROFILE RENAME failed", exc_info=True)
             await interaction.followup.send(await reply(interaction, "profile.rename_failed"), ephemeral=True)
             return
+        await _dm_profile_notice(interaction, "pseudo_updated", name=self.name.value)
         await _profile_followup(
             interaction,
             banner=await reply(interaction, "profile.rename_success", name=self.name.value),
@@ -618,6 +651,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
                 ephemeral=True,
             )
         if removed:
+            await _dm_profile_notice(interaction, "accounts_removed", listed=listed)
             await _profile_followup(interaction, origin=self.origin)
 
 

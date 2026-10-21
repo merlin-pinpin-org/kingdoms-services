@@ -212,7 +212,10 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#MapAddToPoolModal">MapAddToPoolModal</a>(map_id:&nbsp;'str',&nbsp;options:&nbsp;'list[discord.SelectOption]')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;map's&nbsp;add-to-pool&nbsp;form:&nbsp;the&nbsp;pools&nbsp;in&nbsp;edition,&nbsp;or&nbsp;the&nbsp;new&nbsp;branch.<br>&nbsp;</span></td></tr>
+The&nbsp;map's&nbsp;add-to-pool&nbsp;form:&nbsp;the&nbsp;pools&nbsp;in&nbsp;edition,&nbsp;or&nbsp;the&nbsp;new&nbsp;branch.<br>
+&nbsp;<br>
+A&nbsp;select&nbsp;rides&nbsp;a&nbsp;modal&nbsp;wrapped&nbsp;in&nbsp;a&nbsp;Label&nbsp;(the&nbsp;components-v2&nbsp;form<br>
+contract,&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;the&nbsp;profile's&nbsp;add-account&nbsp;form).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.maps_pool_flow.html#MapAddToPoolModal">MapAddToPoolModal</a></dd>
@@ -223,6 +226,8 @@ The&nbsp;map's&nbsp;add-to-pool&nbsp;form:&nbsp;the&nbsp;pools&nbsp;in&nbsp;edit
 <hr>
 Methods defined here:<br>
 <dl><dt><a name="MapAddToPoolModal-__init__"><strong>__init__</strong></a>(self, map_id: 'str', options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="MapAddToPoolModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Delegate&nbsp;to&nbsp;the&nbsp;picker's&nbsp;shared&nbsp;add&nbsp;step.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -264,15 +269,6 @@ interaction:&nbsp;:class:`~discord.Interaction`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
 error:&nbsp;:class:`Exception`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.</span></dd></dl>
-
-<dl><dt>async <a name="MapAddToPoolModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
-&nbsp;<br>
-Called&nbsp;when&nbsp;the&nbsp;modal&nbsp;is&nbsp;submitted.<br>
-&nbsp;<br>
-Parameters<br>
------------<br>
-interaction:&nbsp;:class:`.Interaction`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;submitted&nbsp;this&nbsp;modal.</span></dd></dl>
 
 <dl><dt><a name="MapAddToPoolModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
 
@@ -2087,15 +2083,16 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#PoolComposeModal">PoolComposeModal</a>(pool:&nbsp;'Any',&nbsp;available:&nbsp;'list[Any]',&nbsp;members:&nbsp;'list[Any]')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;pool's&nbsp;composition&nbsp;editor:&nbsp;one&nbsp;form,&nbsp;both&nbsp;selections.<br>
+The&nbsp;pool's&nbsp;composition&nbsp;form:&nbsp;both&nbsp;selections,&nbsp;one&nbsp;submit.<br>
 &nbsp;<br>
-Two&nbsp;multi-selects:&nbsp;the&nbsp;add&nbsp;select&nbsp;carries&nbsp;the&nbsp;guild's&nbsp;available<br>
-maps&nbsp;(not&nbsp;in&nbsp;the&nbsp;pool,&nbsp;25-option&nbsp;cap),&nbsp;the&nbsp;remove&nbsp;select&nbsp;the<br>
-pool's&nbsp;own&nbsp;maps&nbsp;(at&nbsp;most&nbsp;20&nbsp;—&nbsp;the&nbsp;pool&nbsp;cap,&nbsp;always&nbsp;select-fit).<br>
-Over&nbsp;25&nbsp;available&nbsp;maps&nbsp;the&nbsp;form&nbsp;adds&nbsp;the&nbsp;parsed&nbsp;text&nbsp;block&nbsp;(the<br>
-Liquipedia&nbsp;import&nbsp;contract:&nbsp;one&nbsp;map&nbsp;per&nbsp;line,&nbsp;id&nbsp;or&nbsp;name).&nbsp;The<br>
-rails&nbsp;run&nbsp;at&nbsp;submit:&nbsp;only&nbsp;available&nbsp;maps&nbsp;in,&nbsp;only&nbsp;members&nbsp;out,<br>
-the&nbsp;20-map&nbsp;cap&nbsp;enforced&nbsp;with&nbsp;a&nbsp;clear&nbsp;answer.<br>&nbsp;</span></td></tr>
+Two&nbsp;multi-selects,&nbsp;each&nbsp;wrapped&nbsp;in&nbsp;a&nbsp;Label&nbsp;(the&nbsp;components-v2<br>
+form&nbsp;contract&nbsp;—&nbsp;a&nbsp;bare&nbsp;select&nbsp;in&nbsp;a&nbsp;modal&nbsp;is&nbsp;rejected&nbsp;by&nbsp;the<br>
+API;&nbsp;the&nbsp;Label-wrapped&nbsp;one&nbsp;is&nbsp;the&nbsp;working&nbsp;shape,&nbsp;the&nbsp;same&nbsp;as&nbsp;the<br>
+profile's&nbsp;forms).&nbsp;The&nbsp;add&nbsp;select&nbsp;carries&nbsp;the&nbsp;guild's&nbsp;available<br>
+maps&nbsp;(not&nbsp;in&nbsp;the&nbsp;pool,&nbsp;25-option&nbsp;cap);&nbsp;the&nbsp;remove&nbsp;select&nbsp;the<br>
+pool's&nbsp;own&nbsp;maps&nbsp;(at&nbsp;most&nbsp;20&nbsp;—&nbsp;the&nbsp;pool&nbsp;cap).&nbsp;Over&nbsp;25<br>
+available&nbsp;maps&nbsp;the&nbsp;form&nbsp;adds&nbsp;the&nbsp;parsed&nbsp;text&nbsp;block&nbsp;(the&nbsp;Liquipedia<br>
+import&nbsp;contract:&nbsp;one&nbsp;map&nbsp;per&nbsp;line,&nbsp;id&nbsp;or&nbsp;name).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.maps_pool_flow.html#PoolComposeModal">PoolComposeModal</a></dd>

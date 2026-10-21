@@ -1,4 +1,8 @@
 fr:
+  profile_dm:
+    account_added: "✅ Compte {game} lié — ton profil est à jour."
+    accounts_removed: "✅ Comptes retirés : {listed}."
+    pseudo_updated: "✅ Pseudo mis à jour : {name}"
   common:
     greeting: Bienvenue sur Kingdoms !
     error: Une erreur est survenue. Veuillez réessayer.
@@ -328,6 +332,11 @@ fr:
     name_required: Le nom est obligatoire.
     selection_invalid: Sélection invalide.
   ui:
+    tree:
+      channels_heading: '**Salons** (générés par le bot) :'
+      roles_heading: '**Rôles** (générés par le bot) :'
+      bot_admins_role: "les opérateurs du bot : administrent la plateforme"
+      bot_admins_role_pending: "les opérateurs du bot (le rôle est créé au premier sync)"
     games:
       no_game: Aucun jeu
       no_game_granted: Aucun jeu autorise

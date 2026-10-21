@@ -46,6 +46,12 @@ The&nbsp;clicker's&nbsp;own&nbsp;client&nbsp;language&nbsp;wins&nbsp;—&nbsp;Di
 commands&nbsp;the&nbsp;same&nbsp;way&nbsp;—&nbsp;then&nbsp;the&nbsp;server's&nbsp;language&nbsp;when&nbsp;the&nbsp;client<br>
 speaks&nbsp;a&nbsp;language&nbsp;the&nbsp;catalog&nbsp;does&nbsp;not&nbsp;carry,&nbsp;then&nbsp;English.</span></dd></dl>
  <dl><dt><a name="-normalize"><strong>normalize</strong></a>(raw: 'object') -&gt; 'str'</dt><dd><span class="code">Map&nbsp;one&nbsp;raw&nbsp;Discord&nbsp;locale&nbsp;onto&nbsp;the&nbsp;catalog&nbsp;(en/fr,&nbsp;en&nbsp;fallback).</span></dd></dl>
+ <dl><dt>async <a name="-stored_guild_locale"><strong>stored_guild_locale</strong></a>(bot: 'object', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;guild's&nbsp;effective&nbsp;locale:&nbsp;the&nbsp;STORED&nbsp;choice&nbsp;first.<br>
+&nbsp;<br>
+The&nbsp;language&nbsp;picker's&nbsp;value&nbsp;is&nbsp;the&nbsp;guild's&nbsp;explicit&nbsp;choice&nbsp;—&nbsp;it<br>
+wins&nbsp;over&nbsp;the&nbsp;Discord&nbsp;Server&nbsp;Settings&nbsp;signal;&nbsp;the&nbsp;native&nbsp;locale<br>
+only&nbsp;seeds&nbsp;the&nbsp;guilds&nbsp;that&nbsp;never&nbsp;picked.&nbsp;The&nbsp;content&nbsp;surfaces<br>
+(the&nbsp;posts,&nbsp;the&nbsp;per-locale&nbsp;reads)&nbsp;resolve&nbsp;through&nbsp;this&nbsp;seam.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -53,5 +59,5 @@ speaks&nbsp;a&nbsp;language&nbsp;the&nbsp;catalog&nbsp;does&nbsp;not&nbsp;carry,
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>SUPPORTED</strong> = ('en', 'fr')<br>
-<strong>__all__</strong> = ['SUPPORTED', 'guild_locale', 'guild_locale_by_id', 'interaction_locale', 'normalize']</td></tr></table>
+<strong>__all__</strong> = ['SUPPORTED', 'guild_locale', 'guild_locale_by_id', 'interaction_locale', 'normalize', 'stored_guild_locale']</td></tr></table>
 </body></html>

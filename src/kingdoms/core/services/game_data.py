@@ -66,7 +66,8 @@ def pool_state_badge(state: str) -> str:
     """Render a pool's state as a prominent badge line (emoji + bold)."""
     from kingdoms.core.services.game_data import POOL_STATE_EMOJIS, POOL_STATE_LABELS
 
-    return f"**État** : {POOL_STATE_EMOJIS.get(state, "")} **{POOL_STATE_LABELS.get(state, state)}**"
+    label = POOL_STATE_LABELS.get(state, state)
+    return f"**État** : {POOL_STATE_EMOJIS.get(state, "")} **{label[:1].upper()}{label[1:]}**"
 # Allowed transitions: the next state(s) a pool may move to.
 # Pool search rules (the designers' contract):
 # - using a pool (a tournament, a ladder) searches the PUBLISHED pools;

@@ -49,9 +49,9 @@ def content_service() -> Any | None:
 
 async def guild_locale(guild_id: str, bot: Any) -> str:
     """Resolve the guild's native Discord locale (Server Settings language)."""
-    from kingdoms.discord.locales import guild_locale_by_id
+    from kingdoms.discord.locales import stored_guild_locale
 
-    return guild_locale_by_id(bot, str(guild_id))
+    return await stored_guild_locale(bot, str(guild_id))
 
 
 async def entity_post_content(entity_id: str, fallback_name: str, guild_id: str, bot: Any) -> tuple[str, str, str, str]:

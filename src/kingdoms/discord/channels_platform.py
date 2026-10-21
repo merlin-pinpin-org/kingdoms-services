@@ -19,7 +19,7 @@ logger = logging.getLogger("kingdoms.channels.discord")
 # fires dozens of create_thread calls in a row eats the quota and the
 # posts start failing with 429s. The pacer keeps consecutive creations
 # apart, process-wide.
-POST_PACING_S = 1.5
+POST_PACING_S = 2.5
 _last_post_at = 0.0
 
 

@@ -148,6 +148,8 @@ A session writing a doc, a comment or a commit in French is a bug.
 - **Ack before the slow work**: `defer()` or the in-place edit always
   lands inside the 3-second interaction window; forum syncs and
   provider fetches run after.
-- **A modal's `TextInput` labels are capped at 45 characters**; selects
-  ARE valid modal children — a 50035 on `send_modal` is almost always
-  an over-cap label, not the selects.
+- **A select rides a modal WRAPPED IN a Label** (`discord.ui.Label(text=...,
+  component=select)`) — never bare: the API rejects a bare select in a
+  modal (50035 `type must be one of (4,)`), the Label-wrapped one works
+  (the same shape as the profile's add-account form). TextInput labels
+  are capped at 45 characters.

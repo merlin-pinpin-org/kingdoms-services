@@ -60,10 +60,30 @@ def guild_locale_by_id(bot: object, guild_id: str) -> str:
     return guild_locale(guild)
 
 
+async def stored_guild_locale(bot: object, guild_id: str) -> str:
+    """Resolve a guild's effective locale: the STORED choice first.
+
+    The language picker's value is the guild's explicit choice — it
+    wins over the Discord Server Settings signal; the native locale
+    only seeds the guilds that never picked. The content surfaces
+    (the posts, the per-locale reads) resolve through this seam.
+    """
+    logs = getattr(bot, "logs_service", None)
+    if logs is not None and guild_id:
+        try:
+            stored = str(await logs.get_locale(guild_id) or "")
+            if stored in SUPPORTED:
+                return stored
+        except Exception:  # noqa: S110 - degrade to the native signal
+            pass
+    return guild_locale_by_id(bot, guild_id)
+
+
 __all__ = [
     "SUPPORTED",
     "guild_locale",
     "guild_locale_by_id",
     "interaction_locale",
     "normalize",
+    "stored_guild_locale",
 ]
