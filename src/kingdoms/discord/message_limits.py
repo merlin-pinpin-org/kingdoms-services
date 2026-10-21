@@ -96,9 +96,13 @@ def paginate(body: str, limit: int = MAX_MESSAGE) -> list[str]:
 class _MessageSink(Protocol):
     """The subset of a Discord channel/thread used by the registry."""
 
-    async def send(self, content: str, **kwargs: Any) -> Any: ...
+    async def send(self, content: str, **kwargs: Any) -> Any:
+        """Send one message to the channel/thread."""
+        ...
 
-    async def fetch_message(self, message_id: int) -> Any: ...
+    async def fetch_message(self, message_id: int) -> Any:
+        """Fetch a previously sent message by id."""
+        ...
 
 
 class MultiMessageRegistry:

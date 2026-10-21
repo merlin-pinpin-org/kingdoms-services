@@ -43,6 +43,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
     """Build the factions forum spec wired onto the games service."""
 
     async def list_factions(guild_id: str) -> list[Any]:
+        """List the factions of every game active in the guild."""
         from kingdoms.discord.wiring import guild_has_game
 
         service = _game_data(bot)
@@ -56,6 +57,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         return factions
 
     async def build_post(faction: Any, guild_id: str) -> tuple[str, Any | None]:
+        """Build the forum post content and layout for one faction."""
         from kingdoms.core.ids import footer
         from kingdoms.discord.content_posts import entity_post_content
 
@@ -76,6 +78,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         return content, view
 
     def forum_name_for(faction: Any) -> str:
+        """Return the per-game forum channel name for a faction."""
         return factions_forum_name(str(getattr(faction, "game_key", "")))
 
     return EntityForumSpec(
