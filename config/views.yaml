@@ -37,6 +37,7 @@ views:
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
+    admin_surface: true
   panel:status:
     kind: panel
   menu:games:home:
@@ -59,6 +60,7 @@ views:
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
+    admin_surface: true
   menu:games:aoe2:
     kind: menu
     scope: games/aoe2/general
@@ -88,6 +90,7 @@ views:
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
+    admin_surface: true
   panel:game:aoe2:live:
     kind: panel
   panel:game:aoe2:players:
@@ -118,15 +121,19 @@ views:
     - target: menu:mod:ladder:admin
       label: ui.mods.homes.ladder
       disabled: true
+      emoji: 🏆
     - target: menu:mod:tournament:admin
       label: ui.mods.homes.tournament
       disabled: true
+      emoji: 🎯
     - target: menu:mod:kingdom:admin
       label: ui.mods.homes.kingdom
       disabled: true
+      emoji: 👑
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
+    admin_surface: true
   menu:mod:ladder:
     kind: menu
   menu:mod:tournament:

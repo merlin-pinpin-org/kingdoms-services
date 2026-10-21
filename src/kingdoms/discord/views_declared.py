@@ -83,6 +83,7 @@ def declare_views_from_config(config_dir: Path | str | None = None) -> None:
                 kind=kind,
                 scope=str(raw.get("scope", "") or ""),
                 title_emoji=str(raw.get("title_emoji", "") or ""),
+                admin_surface=bool(raw.get("admin_surface", False)),
                 buttons=buttons,
             )
         )

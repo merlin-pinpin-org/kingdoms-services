@@ -469,19 +469,19 @@ fr:
         title: 🎮 Jeux
         description: Les jeux disponibles sur ce serveur.
       menu.games.admin:
-        title: 🎮 Jeux — admin
+        title: 🎮 Jeux
         description: Gérer les jeux du serveur.
       menu.games.aoe2:
         title: ⚔️ Age of Empires II
         description: 'Les ressources du jeu : salons, rôles, live, joueurs.'
       menu.game.aoe2.admin:
-        title: ⚔️ Age of Empires II — admin
+        title: ⚔️ Age of Empires II
         description: 'Gérer les données du jeu : maps, map pools, synchronisation.'
       menu.mods.home:
         title: 🧩 Mods
         description: Les mods disponibles sur ce serveur.
       menu.mods.admin:
-        title: 🧩 Mods — admin
+        title: 🧩 Mods
         description: Gérer les mods du serveur.
     mods:
       homes:

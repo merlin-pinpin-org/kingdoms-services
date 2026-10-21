@@ -376,10 +376,12 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         # the pin scope is the channel ("games/general"); the tree scope is
         # the folder ("games") — the notice resolves the declared tree scope
         tree_scope = decl.scope.split("/general")[0] if decl.scope else ""
-        notice = await _tree_notice(guild_id, tree_scope, catalog, locale) if tree_scope else ""
+        notice = await _tree_notice(guild_id, tree_scope, catalog, locale, bot=bot) if tree_scope else ""
         if notice:
             blocks.append(discord.ui.TextDisplay(notice))
-        view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        # an admin surface reads red: one glance tells the operator where they stand
+        accent = discord.Colour(0xE74C3C) if getattr(decl, "admin_surface", False) else discord.Colour(0x5865F2)
+        view.add_item(discord.ui.Container(*blocks, accent_colour=accent))
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         for button in menu_buttons(decl, catalog, locale):
             row.add_item(button)

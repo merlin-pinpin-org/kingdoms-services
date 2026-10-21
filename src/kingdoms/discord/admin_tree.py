@@ -91,14 +91,12 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
     from kingdoms.discord.pinned_views import refresh_registered_pins
 
     await refresh_registered_pins(guild_id)
-    from kingdoms.discord.scope_pins import _ACCESS_LABELS
-
-    lines: list[str] = [f"\U0001f527 **{scope}** — salons vérifiés/créés :"]
+    lines: list[str] = [f"\U0001F527 **{scope}** \u2014 salons v\u00e9rifi\u00e9s/cr\u00e9\u00e9s :"]
     for decl in spec.channels:
         channel_id = resolved.get(decl.key, "")
-        where = f"<#{channel_id}>" if channel_id else "❌ absent"
-        access = _ACCESS_LABELS.get(decl.access, decl.access)
-        lines.append(f"• {where} — {access}")
+        lock = "\U0001F512" if decl.access == "admin" else ""
+        where = f"<#{channel_id}>{lock}" if channel_id else f"**{decl.key}** (absent)"
+        lines.append(f"\u2022 {where}")
     return "\n".join(lines)
 
 

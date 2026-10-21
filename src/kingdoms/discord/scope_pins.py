@@ -64,7 +64,7 @@ _LOCK = "\U0001F512"  # the admin/read-only marker; the live permissions
 # what the channel holds
 
 
-async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: str = "en") -> str:
+async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: str = "en", bot: Any = None) -> str:
     """One contextual line: the scope's channels (linked) and access.
 
     The homes explain what the bot provisions instead of offering a
@@ -95,7 +95,7 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
             base = f"**{label}**{lock} (\u00e0 cr\u00e9er)"
             where = f"{base} \u2014 {description}" if description else base
         lines.append(f"\u2022 {where}")
-    role_lines = _scope_role_lines(guild_id, scope)
+    role_lines = _scope_role_lines(guild_id, scope, bot)
     if role_lines:
         lines.append("")
         lines.append("**R\u00f4les** (g\u00e9n\u00e9r\u00e9s par le bot) :")
@@ -103,16 +103,24 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
     return "\n".join(lines)
 
 
-def _scope_role_lines(guild_id: str, scope: str) -> list[str]:
-    """Return the scope's roles: one bullet each, its use.
+def _scope_role_lines(guild_id: str, scope: str, bot: Any = None) -> list[str]:
+    """Return the scope's roles: one bullet each, a mention and its use.
 
     The platform declares the bot-admins role per guild; a mod's roles
     ride its own declaration and join the same notice.
     """
-    roles_platform = [
-        ("bot-admins", "les op\u00e9rateurs du bot : administrent la plateforme"),
-    ]
-    return [f"\u2022 **{key}** \u2014 {desc}" for key, desc in roles_platform]
+    return [
+        f"\u2022 <@&{role_id}> \u2014 les op\u00e9rateurs du bot : administrent la plateforme"
+        for role_id in _bot_admins_role_ids(guild_id, bot)
+    ] or ["\u2022 **bot-admins** \u2014 les op\u00e9rateurs du bot (le r\u00f4le est cr\u00e9\u00e9 au premier sync)"]
+
+
+def _bot_admins_role_ids(guild_id: str, bot: Any = None) -> list[str]:
+    """Resolve the guild's bot-admins role ids (by name, live guild)."""
+    guild = getattr(bot, "get_guild", lambda _g: None)(int(guild_id)) if bot and guild_id.isdigit() else None
+    if guild is None:
+        return []
+    return [str(r.id) for r in getattr(guild, "roles", ()) if r.name == "bot-admins"]
 
 
 def _declared_channel_meta(scope: str) -> dict[str, dict[str, Any]]:

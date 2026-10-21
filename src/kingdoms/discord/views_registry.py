@@ -70,6 +70,7 @@ class ViewDecl:
     kind: str
     scope: str = ""
     title_emoji: str = ""
+    admin_surface: bool = False
     buttons: tuple[ButtonDecl, ...] = field(default_factory=tuple)
 
 
