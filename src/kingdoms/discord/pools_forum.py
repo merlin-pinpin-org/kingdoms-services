@@ -39,10 +39,9 @@ def _build_service() -> Any:
 
 def _pool_state_badge(state: str) -> str:
     """Render the pool's state as a labeled badge line."""
-    from kingdoms.core.services.game_data import POOL_STATE_LABELS
+    from kingdoms.core.services.game_data import pool_state_badge
 
-    label = POOL_STATE_LABELS.get(state, state)
-    return f"**État** : {label}"
+    return pool_state_badge(state)
 
 
 def _pool_post_layout(

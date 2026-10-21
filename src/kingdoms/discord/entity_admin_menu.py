@@ -80,9 +80,9 @@ async def build_entity_admin_menu(
     from kingdoms.core.services.game_data import (
         MAX_POOL_MAPS,
         POOL_STATE_DRAFT,
-        POOL_STATE_LABELS,
         POOL_STATE_PUBLISHED,
         POOL_TRANSITIONS,
+        pool_state_badge,
     )
     from kingdoms.discord.maps_pool_flow import (
         MapAddToPoolButton,
@@ -123,7 +123,7 @@ async def build_entity_admin_menu(
         menu = build_menu(
             MenuSpec(
                 title="\u2699\ufe0f Gestion du map pool",
-                description=f"`{entity_id}` \u2014 {POOL_STATE_LABELS.get(state, state)}",
+                description=f"`{entity_id}`\n{pool_state_badge(state)}",
                 view_id=f"panel:game:{game_key}:pool",
                 sections=(),
             )

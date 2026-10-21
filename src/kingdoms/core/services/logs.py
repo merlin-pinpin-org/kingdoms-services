@@ -347,6 +347,11 @@ class LogService:
             await self._platform.apply_default_policy(guild_id, channel_id)
         for role_id in policy.get("roles_with_view", []):
             await self._platform.grant_role_view(guild_id, channel_id, str(role_id))
+        # the boot routing is internal bookkeeping, not an admin action:
+        # no audit event (the "<@channel-tree>" mention was noise); a
+        # human reroute keeps its audit line
+        if not str(by).isdigit():
+            return
         previous_note = f" (was <#{previous.channel_id}>)" if previous is not None else ""
         locale = await self.get_locale(guild_id)
         await self.log_event(
