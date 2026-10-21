@@ -3,20 +3,19 @@
 The maps forum (``<game>-maps``) and the pools forum
 (``<game>-map-pools``) follow the same pattern: ensure a forum in the
 ``games`` category, then ensure exactly one post per visible entity,
-self-healing (a deleted post is recreated, a vanished entity's post is
+on demand (a deleted post is recreated, a vanished entity's post is
 deleted). That pattern is engine-grade: any mod can declare a forum of
 entity posts without re-implementing the sync loop.
 
 An ``EntityForumSpec`` names the forum (no magic words — the name is
 data), the category, and how to list the entities and build each
-post. ``sync_entity_forum`` is idempotent; ``start_entity_forum_sync``
-runs it periodically. Matched posts are refreshed when their layout
+post. ``sync_entity_forum`` is idempotent; ``register_entity_forum_sync``
+declares it to the scope-surfaces registry (the sync button runs it). Matched posts are refreshed when their layout
 builder changes over time.
 """
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
 from collections.abc import Awaitable, Callable
@@ -30,7 +29,6 @@ from kingdoms.discord.message_limits import truncate_body
 logger = logging.getLogger("kingdoms.core.entity_forum")
 
 GAMES_CATEGORY_NAME = "games"
-SYNC_INTERVAL_S = 3600
 EDIT_BACKOFF_S = 23 * 3600
 _STALE_EDITS: dict[str, float] = {}
 
@@ -99,7 +97,7 @@ async def sync_entity_forum(guild_id: str, bot: Any, spec: EntityForumSpec) -> i
     spec's ``build_post`` returns ``(content, view)`` for each entity.
     Returns the number of forum actions taken. The pass holds the
     guild's forum-sync lock when the platform provides it (the
-    delete-heal and the hourly tick never double-create).
+    concurrent syncs never double-create).
     """
     lock = None
     try:
@@ -213,29 +211,11 @@ async def _refresh_post(thread: Any, content: str, view: Any | None) -> None:
         logger.debug("entity forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
 
 
-def start_entity_forum_sync(
-    bot: Any,
-    spec: EntityForumSpec,
-    *,
-    interval_s: int = SYNC_INTERVAL_S,
-    startup_delay_s: int = 10,
-) -> asyncio.Task[None]:
-    """Sync the forum in every guild periodically, forever, quietly."""
+def register_entity_forum_sync(spec: EntityForumSpec) -> None:
+    """Declare one entity forum's mirror sync (the sync button runs it)."""
+    from kingdoms.discord.scope_surfaces import register_scope_sync
 
-    async def _loop() -> None:
-        await asyncio.sleep(startup_delay_s)
-        while True:
-            for guild in list(bot.guilds):
-                try:
-                    actions = await sync_entity_forum(str(guild.id), bot, spec)
-                    if actions:
-                        logger.info("entity forum: %d changes (guild %s)", actions, guild.id)
-                except Exception:
-                    logger.warning(
-                        "entity forum sync failed (guild %s) — best-effort",
-                        guild.id,
-                        exc_info=True,
-                    )
-            await asyncio.sleep(interval_s)
+    async def _sync(guild_id: str, bot: Any) -> int:
+        return await sync_entity_forum(guild_id, bot, spec)
 
-    return asyncio.create_task(_loop())
+    register_scope_sync("games", _sync)

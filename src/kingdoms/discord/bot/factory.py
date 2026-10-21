@@ -52,7 +52,6 @@ logger = logging.getLogger("kingdoms.bot")
 
 READY_LOG_LINE = "KINGDOMS_BOT_READY"
 
-PINNED_MENU_CHECK_INTERVAL = 3600
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,12 +154,7 @@ class KingdomsBot(discord.Client):
         self.permission_service: PermissionService | None = None
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
-        self._pin_task: asyncio.Task[None] | None = None
-        self._heal_locks: dict[str, asyncio.Lock] = {}
         self._live_dashboard_task: asyncio.Future[None] | None = None
-        self._maps_forum_task: asyncio.Task[None] | None = None
-        self._pools_forum_task: asyncio.Task[None] | None = None
-        self._factions_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.role_grants_service: Any | None = None
         self.registration_engine: WorkflowEngine | None = None
@@ -273,16 +267,15 @@ class KingdomsBot(discord.Client):
         register_pin_refreshers(self)
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
-            self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
-            from kingdoms.core.services.entity_forum import start_entity_forum_sync
+            from kingdoms.core.services.entity_forum import register_entity_forum_sync
             from kingdoms.discord.factions_forum import factions_forum_spec
-            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
-            from kingdoms.discord.pools_forum import start_pools_forum_sync
+            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, register_maps_forum_sync
+            from kingdoms.discord.pools_forum import register_pools_forum_sync
 
             if maps_forum_wiring_ready():
-                self._maps_forum_task = start_maps_forum_sync(self)
-                self._pools_forum_task = start_pools_forum_sync(self)
-                self._factions_forum_task = start_entity_forum_sync(self, factions_forum_spec(self), startup_delay_s=20)
+                register_maps_forum_sync()
+                register_pools_forum_sync()
+                register_entity_forum_sync(factions_forum_spec(self))
             from kingdoms.core.services.mod_entrypoint import run_mod_hook
 
             if self.registry is not None:
@@ -373,32 +366,6 @@ class KingdomsBot(discord.Client):
             return
         await self._sync_tree_surfaces(guild_id, guild)
 
-    async def _heal_channel_tree(self, guild_id: str, guild: discord.Guild) -> None:
-        """Re-provision the tree after a channel delete, then re-pin.
-
-        The provisioning is idempotent and stored-id-first: a deleted
-        channel is simply re-created (its stored id is stale, the name
-        resolution adopts or creates), the resolution re-persists, and
-        every pin follows through the shared ensure. Best-effort.
-
-        One heal at a time per guild: a deleted forum fires many
-        delete events (the channel, its threads) and each would run a
-        full provisioning pass — the lock keeps the heal a no-op for
-        the events that follow the first.
-        """
-        lock = self._heal_locks.setdefault(guild_id, asyncio.Lock())
-        if lock.locked():
-            return  # a heal is already running; its pass covers this event
-        async with lock:
-            try:
-                await self._provision_channel_tree(guild_id, guild)
-            except Exception:
-                logger.warning(
-                    "CHANNEL TREE heal failed (guild %s) — best-effort",
-                    guild_id,
-                    exc_info=True,
-                )
-
     async def _route_managed_channels(self, guild_id: str) -> None:
         """Route the managed services onto the tree's stored channel ids.
 
@@ -434,8 +401,7 @@ class KingdomsBot(discord.Client):
 
         The provisioning owns the channels; this pass owns the content:
         the forum syncs (maps, pools, civs) and the section pins run
-        right after the tree exists — no waiting for the hourly loops
-        on a virgin guild. Best-effort throughout.
+        right after the tree exists, on a virgin guild. Best-effort throughout.
         """
         del guild
         try:
@@ -509,49 +475,6 @@ class KingdomsBot(discord.Client):
 
         return await stored_channel_id(guild_id, "bot", "admin")
 
-    async def _maintain_pinned_menus(self) -> None:
-        """Keep the pinned admin menu alive in every guild (self-healing).
-
-        The admin channel hosts a permanent pinned menu: the same
-        panel as /admin, guarded at click time. The periodic check
-        re-creates it when it disappears (unpinned, deleted, channel
-        re-provisioned) — the surface never depends on an admin
-        remembering to type the command.
-        """
-
-        async def _build_admin_panel(guild_id: str) -> Any:
-            """Build the admin panel layout for the static-pin registry."""
-            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
-
-            if self.logs_service is None:
-                return discord.ui.LayoutView(timeout=None)
-
-            from kingdoms.discord.locales import guild_locale_by_id
-
-            return await build_pin_main_menu(
-                self.logs_service,
-                guild_id,
-                self.messages,
-                guild_locale_by_id(self, str(guild_id)),
-                self.admin_channel_service,
-                client=self,
-            )
-
-        await self._register_pinned_menus()
-
-        await asyncio.sleep(5)
-        logger.info("PINNED ADMIN MENU sweep started (guilds=%d)", len(self.guilds))
-        while True:
-            for guild in list(self.guilds):
-                if self.logs_service is None:
-                    logger.warning("PINNED ADMIN MENU sweep skipped: no logs service")
-                    break
-                try:
-                    await self._ensure_pinned_menus(str(guild.id))
-                except Exception:
-                    logger.warning("PINNED ADMIN MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
-            await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
-
     async def _register_pinned_menus(self: KingdomsBot) -> None:
         """Declare every pinned menu once at boot.
 
@@ -566,8 +489,8 @@ class KingdomsBot(discord.Client):
         One pinned post per forum — civs, maps, map pools — each
         carrying its section's own buttons (the same views the admin
         panel renders inline). The pins follow the view:<game>-<section>
-        registry keys; a deleted forum is recreated by the forum syncs
-        and the pin follows on the next sweep.
+        registry keys; a deleted forum is recreated by the sync button
+        and the pin follows in the same pass.
         """
         from kingdoms.discord.static_pins import StaticPinnedView
 
@@ -611,6 +534,7 @@ class KingdomsBot(discord.Client):
                 resolve_channel=_resolve_forum("civs"),
                 build_layout=_build_civs,
                 registry=getattr(self, "message_registry", None),
+                scope=f"games/{game_key}",
             ),
             StaticPinnedView(
                 key=f"view:{game_key}:maps",
@@ -618,6 +542,7 @@ class KingdomsBot(discord.Client):
                 resolve_channel=_resolve_forum("maps"),
                 build_layout=_build_maps,
                 registry=getattr(self, "message_registry", None),
+                scope=f"games/{game_key}",
             ),
             StaticPinnedView(
                 key=f"view:{game_key}:pools",
@@ -625,6 +550,7 @@ class KingdomsBot(discord.Client):
                 resolve_channel=_resolve_forum("map-pools"),
                 build_layout=_build_pools,
                 registry=getattr(self, "message_registry", None),
+                scope=f"games/{game_key}",
             ),
         ]
 
@@ -735,41 +661,10 @@ class KingdomsBot(discord.Client):
             members = guild.members
         return any(str(m.id) in allowed for m in members)
 
-    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
-        """Recreate a deleted managed channel immediately (self-healing).
-
-        The managed-channel resolution is existence-checked (Redis ->
-        Mongo -> adoption -> creation), so re-resolving after a delete
-        recreates the channel now instead of waiting for the hourly
-        sweep. The pinned menus follow: their next ensure finds the
-        fresh channel. Only the bot's own channels react; anything
-        else is ignored.
-        """
-        guild = getattr(channel, "guild", None)
-        guild_id = str(guild.id) if guild is not None else ""
-        if not guild_id or guild is None:
-            return
-        await self._heal_channel_tree(guild_id, guild)
-        await self._route_managed_channels(guild_id)
-        try:
-            from kingdoms.discord.static_pins import heal_static_pins
-
-            healed = await heal_static_pins(self, guild_id)
-            if healed:
-                logger.info(
-                    "STATIC PINS healed after channel delete (guild %s, %d recreated)", guild_id, healed
-                )
-        except Exception:
-            logger.warning("STATIC PIN heal failed (guild %s) — best-effort", guild_id, exc_info=True)
-
-    async def on_thread_delete(self, thread: discord.Thread) -> None:
-        """Let the entity-forum syncs heal a deleted post (no-op here).
-
-        Forum posts are matched by name on the hourly syncs; reacting
-        per-delete would race the syncs' fingerprint bookkeeping. The
-        hourly pass recreates the missing post with its full layout.
-        """
-        return
+    # Real-time watching of channels/posts/pins is gone: the sync
+    # buttons own the healing (on demand, one click). Deleted channels,
+    # posts and pinned views come back on the next "Synchroniser" of
+    # their scope — no background sweep, nothing in a loop.
 
     def _wire_declared_views(self) -> None:
         """Wire the declared views and actions (the router's targets).
@@ -949,9 +844,6 @@ class KingdomsBot(discord.Client):
                 run_mod_hook(self, mod_name, "close")
         for task in (
             self._live_dashboard_task,
-            self._maps_forum_task,
-            self._pools_forum_task,
-            self._factions_forum_task,
         ):
             if task is not None:
                 task.cancel()

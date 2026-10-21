@@ -8,7 +8,7 @@ member map** (map name linked to its ``<game>-maps`` forum post, the
 map's image when it has one, and a **Remove** accessory button,
 admin-guarded at click time), and an **Add map** button that opens
 the pool picker. Every member map gets its section even without an
-image. The sync is idempotent and self-healing — a deleted post is
+image. The sync is idempotent, on demand (the sync button) — a deleted post is
 recreated, a disbanded pool's post is deleted, a deleted forum is
 recreated, and every refresh re-attaches the current components.
 Legacy per-pool forums (``map-pools-<slug>``) are deleted on sight.
@@ -18,7 +18,6 @@ concept; this surface just mirrors them.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -27,7 +26,6 @@ import discord
 logger = logging.getLogger("kingdoms.games.pools_forum")
 
 GAMES_CATEGORY_NAME = "games"
-SYNC_INTERVAL_S = 3600
 MAX_SECTIONS = 10
 MAX_TEXT_CHUNKS = 4
 TEXT_CHUNK_MAPS = 20
@@ -147,7 +145,7 @@ async def sync_pools_forum(guild_id: str, bot: Any, service: Any = None) -> int:
     """Ensure every game's pools forum and one post per pool (idempotent).
 
     The pass holds the guild's forum-sync lock (shared with the maps
-    and civs syncs): the delete-heal and the hourly tick never create
+    and civs syncs): two concurrent syncs never create
     the same post twice.
     """
     from kingdoms.discord.maps_forum import _sync_lock
@@ -295,22 +293,11 @@ async def _refresh_pool_post(
         logger.debug("pools forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
 
 
-def start_pools_forum_sync(bot: Any) -> asyncio.Task[None]:
-    """Sync every guild's pools forums periodically, forever, quietly."""
+def register_pools_forum_sync() -> None:
+    """Declare the pools forums' mirror sync (the sync button runs it)."""
+    from kingdoms.discord.scope_surfaces import register_scope_sync
 
-    async def _loop() -> None:
-        await asyncio.sleep(15)
-        while True:
-            for guild in list(bot.guilds):
-                try:
-                    actions = await sync_pools_forum(str(guild.id), bot)
-                    if actions:
-                        logger.info("pools forum: %d changes (guild %s)", actions, guild.id)
-                    from kingdoms.discord.maps_forum import _ensure_section_pins_after_sync
+    async def _sync(guild_id: str, bot: Any) -> int:
+        return await sync_pools_forum(guild_id, bot)
 
-                    await _ensure_section_pins_after_sync(bot, str(guild.id))
-                except Exception:
-                    logger.warning("pools forum sync failed (guild %s) — best-effort", guild.id, exc_info=True)
-            await asyncio.sleep(SYNC_INTERVAL_S)
-
-    return asyncio.create_task(_loop())
+    register_scope_sync("games", _sync)

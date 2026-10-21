@@ -195,3 +195,42 @@ def test_admin_menus_carry_a_scope_notice() -> None:
         assert decl is not None
         tree_scope = decl.scope.split("/general")[0].split("/admin")[0]
         assert tree_scope, f"{view_id}: an admin surface renders its scope's notice"
+
+
+def test_scope_surfaces_registry_runs_the_scope_and_its_descendants() -> None:
+    """The sync button discovers the registered syncs by scope prefix."""
+    import asyncio
+
+    from kingdoms.discord.scope_surfaces import (
+        clear_scope_syncs,
+        register_scope_sync,
+        run_scope_syncs,
+    )
+
+    clear_scope_syncs()
+    ran: list[str] = []
+
+    async def _games(guild_id: str, bot: object) -> int:
+        ran.append("games")
+        return 1
+
+    async def _aoe2(guild_id: str, bot: object) -> int:
+        ran.append("aoe2")
+        return 2
+
+    async def _mods(guild_id: str, bot: object) -> int:
+        ran.append("mods")
+        return 4
+
+    register_scope_sync("games", _games)
+    register_scope_sync("games/aoe2", _aoe2)
+    register_scope_sync("mods", _mods)
+
+    total = asyncio.run(run_scope_syncs("1", None, "games/aoe2"))
+    assert sorted(ran) == ["aoe2", "games"]
+    assert total == 3
+
+    ran.clear()
+    total = asyncio.run(run_scope_syncs("1", None, "mods"))
+    assert ran == ["mods"]
+    clear_scope_syncs()

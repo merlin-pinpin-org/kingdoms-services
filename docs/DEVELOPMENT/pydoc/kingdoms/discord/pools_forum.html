@@ -19,7 +19,7 @@ member&nbsp;map**&nbsp;(map&nbsp;name&nbsp;linked&nbsp;to&nbsp;its&nbsp;``&lt;ga
 map's&nbsp;image&nbsp;when&nbsp;it&nbsp;has&nbsp;one,&nbsp;and&nbsp;a&nbsp;**Remove**&nbsp;accessory&nbsp;button,<br>
 admin-guarded&nbsp;at&nbsp;click&nbsp;time),&nbsp;and&nbsp;an&nbsp;**Add&nbsp;map**&nbsp;button&nbsp;that&nbsp;opens<br>
 the&nbsp;pool&nbsp;picker.&nbsp;Every&nbsp;member&nbsp;map&nbsp;gets&nbsp;its&nbsp;section&nbsp;even&nbsp;without&nbsp;an<br>
-image.&nbsp;The&nbsp;sync&nbsp;is&nbsp;idempotent&nbsp;and&nbsp;self-healing&nbsp;—&nbsp;a&nbsp;deleted&nbsp;post&nbsp;is<br>
+image.&nbsp;The&nbsp;sync&nbsp;is&nbsp;idempotent,&nbsp;on&nbsp;demand&nbsp;(the&nbsp;sync&nbsp;button)&nbsp;—&nbsp;a&nbsp;deleted&nbsp;post&nbsp;is<br>
 recreated,&nbsp;a&nbsp;disbanded&nbsp;pool's&nbsp;post&nbsp;is&nbsp;deleted,&nbsp;a&nbsp;deleted&nbsp;forum&nbsp;is<br>
 recreated,&nbsp;and&nbsp;every&nbsp;refresh&nbsp;re-attaches&nbsp;the&nbsp;current&nbsp;components.<br>
 Legacy&nbsp;per-pool&nbsp;forums&nbsp;(``map-pools-&lt;slug&gt;``)&nbsp;are&nbsp;deleted&nbsp;on&nbsp;sight.<br>
@@ -31,20 +31,19 @@ concept;&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirrors&nbsp;them.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
-</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
 </td><td class="multicolumn"><a href="logging.html">logging</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-start_pools_forum_sync"><strong>start_pools_forum_sync</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;every&nbsp;guild's&nbsp;pools&nbsp;forums&nbsp;periodically,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-register_pools_forum_sync"><strong>register_pools_forum_sync</strong></a>() -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;the&nbsp;pools&nbsp;forums'&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
  <dl><dt>async <a name="-sync_pools_forum"><strong>sync_pools_forum</strong></a>(guild_id: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;game's&nbsp;pools&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;pool&nbsp;(idempotent).<br>
 &nbsp;<br>
 The&nbsp;pass&nbsp;holds&nbsp;the&nbsp;guild's&nbsp;forum-sync&nbsp;lock&nbsp;(shared&nbsp;with&nbsp;the&nbsp;maps<br>
-and&nbsp;civs&nbsp;syncs):&nbsp;the&nbsp;delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;create<br>
+and&nbsp;civs&nbsp;syncs):&nbsp;two&nbsp;concurrent&nbsp;syncs&nbsp;never&nbsp;create<br>
 the&nbsp;same&nbsp;post&nbsp;twice.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -55,7 +54,6 @@ the&nbsp;same&nbsp;post&nbsp;twice.</span></dd></dl>
 <td class="singlecolumn"><strong>GAMES_CATEGORY_NAME</strong> = 'games'<br>
 <strong>MAX_SECTIONS</strong> = 10<br>
 <strong>MAX_TEXT_CHUNKS</strong> = 4<br>
-<strong>SYNC_INTERVAL_S</strong> = 3600<br>
 <strong>TEXT_CHUNK_MAPS</strong> = 20<br>
 <strong>logger</strong> = &lt;Logger kingdoms.games.pools_forum (WARNING)&gt;</td></tr></table>
 </body></html>

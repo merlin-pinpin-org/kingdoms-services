@@ -5,7 +5,7 @@ Every game known to the catalog gets, in the ``games`` category, a
 must have exactly one post in its game's forum — the post is the
 map's public surface and the pool builder's picker source. The map
 document stores the post's ``forum_message_id`` (the map-message
-link); the sync is idempotent and runs periodically (self-healing):
+link); the sync is idempotent and on demand (the sync button):
 a deleted post is recreated, a new map gets its post, a new game
 gets its forum. Nothing is hardcoded per game: the loop lists the
 game keys from the catalog, so seeding cs2 maps creates and
@@ -34,7 +34,6 @@ def liquipedia_map_url(name: str) -> str:
     return LIQUIPEDIA_MAP_URL + name.strip().replace(" ", "_")
 
 
-SYNC_INTERVAL_S = 3600
 
 
 def maps_forum_wiring_ready() -> bool:
@@ -62,7 +61,7 @@ _SYNC_LOCKS: dict[str, asyncio.Lock] = {}
 
 
 def _sync_lock(guild_id: str) -> asyncio.Lock:
-    """One forum-sync at a time per guild (heal vs hourly tick)."""
+    """One forum-sync at a time per guild (concurrent clicks)."""
     return _SYNC_LOCKS.setdefault(guild_id, asyncio.Lock())
 
 
@@ -72,7 +71,7 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
     Existing posts are kept (matched by the stored ``forum_message_id``),
     missing posts are created, dead links are recreated. Returns the
     number of posts created. The whole pass holds the guild's sync
-    lock: the delete-heal and the hourly tick never create the same
+    lock: two concurrent syncs never create the same
     post twice.
     """
     async with _sync_lock(guild_id):
@@ -299,46 +298,23 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
         logger.debug("maps forum: post refresh skipped (thread %s)", thread_id, exc_info=True)
 
 
-def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:
-    """Sync every game's maps forum periodically, forever, quietly."""
+def register_maps_forum_sync() -> None:
+    """Declare the maps forums' mirror sync (the sync button runs it)."""
+    from kingdoms.discord.scope_surfaces import register_scope_sync
 
-    async def _loop() -> None:
-        await asyncio.sleep(10)
-        while True:
-            for guild in list(bot.guilds):
-                try:
-                    from kingdoms.discord.wiring import granted_game_keys, guild_has_game
+    async def _sync(guild_id: str, bot: Any) -> int:
+        actions = 0
+        service = _build_service()
+        from kingdoms.discord.wiring import granted_game_keys, guild_has_game
 
-                    service = _build_service()
-                    for game_key in await granted_game_keys(str(guild.id), tuple(await service.list_game_keys())):
-                        if not await guild_has_game(str(guild.id), game_key):
-                            continue
-                        created = await sync_maps_forum(str(guild.id), game_key, bot, service)
-                        if created:
-                            logger.info("maps forum: %d posts created (guild %s, game %s)", created, guild.id, game_key)
-                        await _ensure_section_pins_after_sync(bot, str(guild.id))
-                except Exception:
-                    logger.warning("maps forum sync failed (guild %s) — best-effort", guild.id, exc_info=True)
-            await asyncio.sleep(SYNC_INTERVAL_S)
+        for game_key in await granted_game_keys(guild_id, tuple(await service.list_game_keys())):
+            if not await guild_has_game(guild_id, game_key):
+                continue
+            actions += await sync_maps_forum(guild_id, game_key, bot, service)
+        return actions
 
-    return asyncio.create_task(_loop())
+    register_scope_sync("games", _sync)
 
-async def _ensure_section_pins_after_sync(bot: Any, guild_id: str) -> None:
-    """Ensure the game-section pins after the forum sync (best-effort).
-
-    The section pins resolve their forums; at boot the sweep races
-    the forum provisioning (the forums are created by this very sync
-    loop), so the pins get their chance right after the forums exist
-    — no waiting for the hourly pinned-menu sweep.
-    """
-    try:
-        from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
-
-        for spec in registered_static_pins():
-            if spec.key.startswith("view:aoe2:"):
-                await ensure_static_pin(bot, spec, guild_id)
-    except Exception:
-        logger.warning("section pins ensure after forum sync failed — best-effort", exc_info=True)
 
 async def _map_content_full(
     entity_id: str, guild_id: str, bot: Any
@@ -364,7 +340,7 @@ async def _map_content_full(
                 break
     if doc is None:
         return "", "", "", "", "", "", "", ""
-    if doc.get("icon_url") and doc.get("walls") is not None:
+    if doc.get("split_keys") or (doc.get("icon_url") and doc.get("walls") is not None):
         return (
             str(doc.get("name") or ""),
             str(doc.get("summary") or ""),
@@ -417,6 +393,9 @@ async def _migrate_stale_map_doc(
             "nomad": seed.nomad,
             "tc": seed.tc,
             "image_url": seed.image_url or doc.get("image_url") or "",
+            # the one-shot marker: a map without an icon would otherwise
+            # never satisfy the freshness check and re-fetch forever
+            "split_keys": True,
         }
     )
     try:

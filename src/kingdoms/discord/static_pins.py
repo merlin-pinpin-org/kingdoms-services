@@ -50,6 +50,7 @@ class StaticPinnedView:
     registry: Any = None
     delete_when_superseded: bool = True
     legacy_key: str = ""
+    scope: str = ""
 
     async def resolve_message_id(self, guild_id: str) -> str | None:
         """Resolve the registered pin id (registry first, memory fallback)."""
@@ -209,14 +210,3 @@ async def _collect_superseded(channel: Any, current_id: str | None) -> list[Any]
         return []
     return [m for m in pinned if str(m.id) != str(current_id or "")]
 
-
-async def heal_static_pins(bot: discord.Client, guild_id: str) -> int:
-    """Re-ensure every registered static pin (channel-delete heal)."""
-    healed = 0
-    for spec in registered_static_pins():
-        try:
-            if await ensure_static_pin(bot, spec, guild_id):
-                healed += 1
-        except Exception:
-            logger.warning("%s heal failed — best-effort", spec.key, exc_info=True)
-    return healed

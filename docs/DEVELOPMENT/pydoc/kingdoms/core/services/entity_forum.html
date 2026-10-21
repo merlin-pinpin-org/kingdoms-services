@@ -14,14 +14,14 @@
 The&nbsp;maps&nbsp;forum&nbsp;(``&lt;game&gt;-maps``)&nbsp;and&nbsp;the&nbsp;pools&nbsp;forum<br>
 (``&lt;game&gt;-map-pools``)&nbsp;follow&nbsp;the&nbsp;same&nbsp;pattern:&nbsp;ensure&nbsp;a&nbsp;forum&nbsp;in&nbsp;the<br>
 ``games``&nbsp;category,&nbsp;then&nbsp;ensure&nbsp;exactly&nbsp;one&nbsp;post&nbsp;per&nbsp;visible&nbsp;entity,<br>
-self-healing&nbsp;(a&nbsp;deleted&nbsp;post&nbsp;is&nbsp;recreated,&nbsp;a&nbsp;vanished&nbsp;entity's&nbsp;post&nbsp;is<br>
+on&nbsp;demand&nbsp;(a&nbsp;deleted&nbsp;post&nbsp;is&nbsp;recreated,&nbsp;a&nbsp;vanished&nbsp;entity's&nbsp;post&nbsp;is<br>
 deleted).&nbsp;That&nbsp;pattern&nbsp;is&nbsp;engine-grade:&nbsp;any&nbsp;mod&nbsp;can&nbsp;declare&nbsp;a&nbsp;forum&nbsp;of<br>
 entity&nbsp;posts&nbsp;without&nbsp;re-implementing&nbsp;the&nbsp;sync&nbsp;loop.<br>
 &nbsp;<br>
 An&nbsp;``<a href="#EntityForumSpec">EntityForumSpec</a>``&nbsp;names&nbsp;the&nbsp;forum&nbsp;(no&nbsp;magic&nbsp;words&nbsp;—&nbsp;the&nbsp;name&nbsp;is<br>
 data),&nbsp;the&nbsp;category,&nbsp;and&nbsp;how&nbsp;to&nbsp;list&nbsp;the&nbsp;entities&nbsp;and&nbsp;build&nbsp;each<br>
-post.&nbsp;``sync_entity_forum``&nbsp;is&nbsp;idempotent;&nbsp;``start_entity_forum_sync``<br>
-runs&nbsp;it&nbsp;periodically.&nbsp;Matched&nbsp;posts&nbsp;are&nbsp;refreshed&nbsp;when&nbsp;their&nbsp;layout<br>
+post.&nbsp;``sync_entity_forum``&nbsp;is&nbsp;idempotent;&nbsp;``register_entity_forum_sync``<br>
+declares&nbsp;it&nbsp;to&nbsp;the&nbsp;scope-surfaces&nbsp;registry&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).&nbsp;Matched&nbsp;posts&nbsp;are&nbsp;refreshed&nbsp;when&nbsp;their&nbsp;layout<br>
 builder&nbsp;changes&nbsp;over&nbsp;time.</span></p>
 <p>
 <table class="section">
@@ -29,11 +29,10 @@ builder&nbsp;changes&nbsp;over&nbsp;time.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
-</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
 </td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
 </td><td class="multicolumn"><a href="logging.html">logging</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -115,14 +114,14 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-start_entity_forum_sync"><strong>start_entity_forum_sync</strong></a>(bot: 'Any', spec: 'EntityForumSpec', *, interval_s: 'int' = 3600, startup_delay_s: 'int' = 10) -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;the&nbsp;forum&nbsp;in&nbsp;every&nbsp;guild&nbsp;periodically,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-register_entity_forum_sync"><strong>register_entity_forum_sync</strong></a>(spec: 'EntityForumSpec') -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;one&nbsp;entity&nbsp;forum's&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
  <dl><dt>async <a name="-sync_entity_forum"><strong>sync_entity_forum</strong></a>(guild_id: 'str', bot: 'Any', spec: 'EntityForumSpec') -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;entity&nbsp;(idempotent,&nbsp;self-healing).<br>
 &nbsp;<br>
 Posts&nbsp;are&nbsp;matched&nbsp;by&nbsp;thread&nbsp;name&nbsp;(the&nbsp;entity's&nbsp;display&nbsp;name);&nbsp;the<br>
 spec's&nbsp;``build_post``&nbsp;returns&nbsp;``(content,&nbsp;view)``&nbsp;for&nbsp;each&nbsp;entity.<br>
 Returns&nbsp;the&nbsp;number&nbsp;of&nbsp;forum&nbsp;actions&nbsp;taken.&nbsp;The&nbsp;pass&nbsp;holds&nbsp;the<br>
 guild's&nbsp;forum-sync&nbsp;lock&nbsp;when&nbsp;the&nbsp;platform&nbsp;provides&nbsp;it&nbsp;(the<br>
-delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;double-create).</span></dd></dl>
+concurrent&nbsp;syncs&nbsp;never&nbsp;double-create).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -131,7 +130,6 @@ delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;double-creat
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>EDIT_BACKOFF_S</strong> = 82800<br>
 <strong>GAMES_CATEGORY_NAME</strong> = 'games'<br>
-<strong>SYNC_INTERVAL_S</strong> = 3600<br>
 <strong>__annotations__</strong> = {'_LAST_LAYOUT_RENDER': 'dict[str, str]', '_STALE_EDITS': 'dict[str, float]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.core.entity_forum (WARNING)&gt;</td></tr></table>
 </body></html>

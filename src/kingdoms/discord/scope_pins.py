@@ -379,6 +379,7 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
                         resolve_channel=_scope_channel(scope, "general"),
                         build_layout=builder,
                         registry=registry,
+                        scope=scope,
                     )
                 )
             )
@@ -398,6 +399,7 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
                         legacy_key=pins.get("legacy", ""),
                         resolve_channel=_scope_channel(scope, "admin"),
                         build_layout=builder,
+                        scope=scope,
                         registry=registry,
                     )
                 )

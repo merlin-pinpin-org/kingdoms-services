@@ -51,26 +51,24 @@ async def _guard(interaction: discord.Interaction) -> bool:
     return await require_admin(interaction, admins, roles)
 
 
-async def _sync_scope_forums(bot: Any, guild_id: str, scope: str) -> int:
-    """Sync the scope's data-mirror forums (maps, pools, civs), best-effort.
+async def _ensure_scope_pins(bot: Any, guild_id: str, scope: str) -> int:
+    """Ensure every pinned view registered for the scope (and its sub-scopes).
 
-    A deleted post is recreated from the database right away instead
-    of waiting for the hourly tick — the post is only a mirror.
+    A deleted pin is recreated: the pin is only a mirror of its view.
+    Best-effort per pin; returns how many pins were (re-)created.
     """
-    del scope
-    actions = 0
-    try:
-        from kingdoms.core.services.entity_forum import sync_entity_forum
-        from kingdoms.discord.factions_forum import factions_forum_spec
-        from kingdoms.discord.maps_forum import sync_maps_forum
-        from kingdoms.discord.pools_forum import sync_pools_forum
+    from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
 
-        await sync_maps_forum(guild_id, "aoe2", bot)
-        actions += await sync_pools_forum(guild_id, bot)
-        actions += await sync_entity_forum(guild_id, bot, factions_forum_spec(bot))
-    except Exception:
-        logger.warning("ADMIN TREE: forum sync after ensure failed \u2014 best-effort", exc_info=True)
-    return actions
+    ensured = 0
+    for pin in registered_static_pins():
+        if not pin.scope or not (pin.scope == scope or pin.scope.startswith(scope + "/")):
+            continue
+        try:
+            if await ensure_static_pin(bot, pin, guild_id):
+                ensured += 1
+        except Exception:
+            logger.warning("pin ensure failed (%s) \u2014 best-effort", pin.key, exc_info=True)
+    return ensured
 
 
 async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
@@ -110,18 +108,18 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
     except Exception:
         logger.warning("ADMIN TREE: ensure failed (scope %s, guild %s)", scope, guild_id, exc_info=True)
         return "La création des salons a échoué — voir les logs du bot."
-    from kingdoms.discord.pinned_views import refresh_registered_pins
+    pins_ok = await _ensure_scope_pins(bot, guild_id, scope)
+    from kingdoms.discord.scope_surfaces import run_scope_syncs
 
-    await refresh_registered_pins(guild_id)
-    synced_posts = await _sync_scope_forums(bot, guild_id, scope) if scope.startswith("games") else 0
+    synced_posts = await run_scope_syncs(guild_id, bot, scope)
     lines: list[str] = [f"\U0001F527 **{scope}** \u2014 salons v\u00e9rifi\u00e9s/cr\u00e9\u00e9s :"]
     for decl in spec.channels:
         channel_id = resolved.get(decl.key, "")
         lock = "\U0001F512" if decl.access == "admin" else ""
         where = f"<#{channel_id}>{lock}" if channel_id else f"**{decl.key}** (absent)"
         lines.append(f"\u2022 {where}")
-    if scope.startswith("games"):
-        lines.append(f"\n\U0001f4dc Posts de forum v\u00e9rifi\u00e9s/recr\u00e9\u00e9s : {synced_posts}")
+    lines.append(f"\n\U0001f4cc Vues \u00e9pingl\u00e9es v\u00e9rifi\u00e9es/recr\u00e9\u00e9es : {pins_ok}")
+    lines.append(f"\U0001f4dc Posts de forum v\u00e9rifi\u00e9s/recr\u00e9\u00e9s : {synced_posts}")
     return "\n".join(lines)
 
 
