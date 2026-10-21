@@ -1661,9 +1661,11 @@ class PoolHardDeleteModal(discord.ui.Modal):
 
     def __init__(self, pool: Any) -> None:
         self.pool = pool
-        super().__init__(title="Suppression d\u00e9finitive", timeout=300)
+        # the modal title carries the pool id; the label stays under
+        # Discord's 45-char cap
+        super().__init__(title=f"Supprimer {pool.id[:24]}", timeout=300)
         self.confirm: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label=f"Tape l'id exact pour confirmer ({pool.id[:40]})",
+            label="Tape l'id exact du pool",
             max_length=100,
             required=True,
         )
