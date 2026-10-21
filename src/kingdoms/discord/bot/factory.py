@@ -266,7 +266,7 @@ class KingdomsBot(discord.Client):
 
         register_pin_refreshers(self)
         if announce_enabled:
-            self._provision_task = asyncio.create_task(self._provision_default_channels())
+            self._provision_task = asyncio.create_task(self._boot_route_channels())
             from kingdoms.core.services.entity_forum import register_entity_forum_sync
             from kingdoms.discord.factions_forum import factions_forum_spec
             from kingdoms.discord.maps_forum import maps_forum_wiring_ready, register_maps_forum_sync
@@ -302,69 +302,26 @@ class KingdomsBot(discord.Client):
         guild_id = self.config.sync_guild_id.strip()
         return f"guild {guild_id}" if guild_id.isdigit() else "global"
 
-    async def _provision_default_channels(self) -> None:
-        """Create the default channels (🛰-bot-logs, 🛡-bot-admins) where missing.
+    async def _boot_route_channels(self) -> None:
+        """Route the managed services onto the tree's stored ids (no creation).
 
-        Both resolutions are idempotent (cache-aside: Redis → MongoDB →
-        adoption → creation), so a guild already provisioned costs one
-        cache read. The transparency contract rides along on the admin
-        channel (role provisioned, BOT_ADMINS synced in). Silenced by
-        KINGDOMS_ANNOUNCE_ENABLED=0: the CI/CD smoke bot boots against
-        the shared guilds and must never touch their channels.
+        The boot never creates or recreates a channel: a guild member
+        who deletes a salon owns that decision. The stored resolutions
+        route the services; a deleted salon simply degrades (its id is
+        stale) until an admin runs the scope's Synchroniser — the only
+        provisioning entry point.
         """
         if self._provisioned:
             return
-        if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
-            logger.info("DEFAULT CHANNEL provisioning skipped: announcements disabled (CI/CD smoke bot?)")
-            self._provisioned = True
-            return
         self._provisioned = True
-        try:
-            from kingdoms.discord.catalog_purge import purge_polluted_catalog
-
-            await purge_polluted_catalog()
-        except Exception:
-            logger.warning("CATALOG PURGE wiring failed — best-effort", exc_info=True)
+        if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
+            logger.info("BOOT ROUTING skipped: announcements disabled (CI/CD smoke bot?)")
+            return
         for guild in list(self.guilds):
             guild_id = str(guild.id)
-            await self._provision_channel_tree(guild_id, guild)
             await self._route_managed_channels(guild_id)
-            if self.channel_service is not None and self.mod_roles_service is not None and self.registry is not None:
-                await self._provision_mods(
-                    guild_id,
-                    channel_service=self.channel_service,
-                    mod_roles_service=self.mod_roles_service,
-                    registry=self.registry,
-                )
-            logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
-            await self._audit_channel_drift(guild_id)
-
-    async def _provision_channel_tree(self, guild_id: str, guild: discord.Guild) -> None:
-        """Provision the declared channel-tree scopes (best-effort, idempotent).
-
-        The Panels SDK owns the tree rules: the scope folders are
-        created in the guild's locale, the canonical order applied,
-        and every resolution persisted (the stored channel ids the
-        syncs resolve by).
-        """
-        if self.messages is None or self.logs_service is None:
-            return
-        try:
-            from kingdoms.discord.ui.panels_provisioning import provision_all
-            from kingdoms.discord.ui.panels_scopes import register_platform_scopes
-
-            register_platform_scopes()
-            from kingdoms.discord.locales import guild_locale
-
-            await provision_all(guild, guild_locale(guild), self._translate_panel_label)
-        except Exception:
-            logger.warning(
-                "CHANNEL TREE provisioning failed (guild %s) — best-effort",
-                guild_id,
-                exc_info=True,
-            )
-            return
-        await self._sync_tree_surfaces(guild_id, guild)
+            await self._sync_tree_surfaces(guild_id, guild)
+            logger.info("BOOT ROUTING done (guild %s) — nothing created", guild_id)
 
     async def _route_managed_channels(self, guild_id: str) -> None:
         """Route the managed services onto the tree's stored channel ids.
@@ -602,52 +559,6 @@ class KingdomsBot(discord.Client):
                         guild_id,
                         exc_info=True,
                     )
-
-    async def _provision_mods(
-        self,
-        guild_id: str,
-        channel_service: ChannelService,
-        mod_roles_service: ModRolesService,
-        registry: ModRegistry,
-    ) -> None:
-        """Provision channels and roles for the guild's mods (best-effort, idempotent).
-
-        Every mod is active by default; the access service only ever
-        restricts (the future private-mod seam).
-        """
-        from kingdoms.discord.wiring import build_guild_access_service
-
-        access = build_guild_access_service()
-        if access is not None:
-            try:
-                granted = await access.enabled_mods(guild_id)
-            except Exception:
-                logger.warning("GUILD ACCESS read failed (guild %s) — best-effort", guild_id, exc_info=True)
-                return
-
-        guild = self.get_guild(int(guild_id)) if guild_id.isdigit() else None
-        for mod_name, definition in registry.enabled().items():
-            if access is not None and mod_name not in granted:
-                continue
-            if definition.is_private() and not await self._mod_privacy_satisfied(definition, guild):
-                logger.info(
-                    "MOD %s SKIPPED (guild %s) — private mod, no owner or bot-admin in the guild",
-                    mod_name,
-                    guild_id,
-                )
-                continue
-            try:
-                await channel_service.setup_mod_channels(guild_id, mod_name)
-                await mod_roles_service.setup_mod_roles(guild_id, mod_name)
-                logger.info(
-                    "MOD %s provisioned (guild %s, %d channels, %d roles)",
-                    mod_name,
-                    guild_id,
-                    len(definition.channel_categories),
-                    len(definition.roles),
-                )
-            except Exception:
-                logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
 
     async def _mod_privacy_satisfied(self, definition: Any, guild: discord.Guild | None) -> bool:
         """Place a private mod only where an owner or a bot admin is a member."""

@@ -59,7 +59,7 @@ POOL_TRANSITIONS: dict[str, tuple[str, ...]] = {
     POOL_STATE_DRAFT: (POOL_STATE_PUBLISHED,),
     POOL_STATE_PUBLISHED: (POOL_STATE_DRAFT, POOL_STATE_USED),
     POOL_STATE_USED: (POOL_STATE_CLOSED,),
-    POOL_STATE_CLOSED: (),
+    POOL_STATE_CLOSED: (POOL_STATE_DRAFT,),
 }
 
 
@@ -108,6 +108,10 @@ class GameDataDatabase(Protocol):
         Scoped: the guild's own pools plus the public ones (owned by other
         guilds but shared); unscoped: every pool of the game.
         """
+        ...
+
+    async def find_all_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List EVERY map pool (archived included) — the forums mirror all."""
         ...
 
     async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
@@ -253,6 +257,15 @@ class GameDataService:
         guilds but shared with everyone); unscoped: every pool of the game.
         """
         docs = await self._db.find_active_map_pools(game_key, guild_id=guild_id)
+        return [MapPoolModel.from_mongo(d) for d in docs]
+
+    async def list_all_map_pools(self, game_key: str, guild_id: str | None = None) -> list[MapPoolModel]:
+        """List every pool of the game, archived included (the forum mirror).
+
+        An archived pool is unusable on a ladder but stays visible: its
+        post and badge live until a hard delete frees the id.
+        """
+        docs = await self._db.find_all_map_pools(game_key, guild_id=guild_id)
         return [MapPoolModel.from_mongo(d) for d in docs]
 
     async def update_map(
@@ -519,15 +532,19 @@ class GameDataService:
         return updated
 
     async def hard_delete_map_pool(self, entry_id: str) -> bool:
-        """Hard-delete a pool — only a draft pool never used on a ladder.
+        """Hard-delete a pool — the definitive, id-freeing delete.
 
-        The normal lifecycle is archival; a real delete exists for the
-        creation flow's cleanup (a draft that must disappear entirely).
-        Refuses anything not a never-activated draft.
+        The designer confirms with the pool's exact id; the only
+        refusal is a pool still active on a ladder (deactivate it
+        first). Everything else goes: the record, the reserved id.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        if pool.state != POOL_STATE_DRAFT or pool.ever_activated:
-            raise ValueError(f"map pool {entry_id!r} is not a never-used draft")
+        for doc in await self._db.find_open_activations(entry_id):
+            activation = MapPoolActivationModel.from_mongo(doc)
+            raise ActivePoolArchiveError(
+                f"map pool {entry_id!r} is active on ladder {activation.ladder_id!r} — "
+                "deactivate it first"
+            )
         await self._db.delete_entry(MAP_POOLS_COLLECTION, entry_id)
         await self._audit_record("map_pool.hard_delete", {"entry_id": entry_id})
         return True
@@ -666,9 +683,10 @@ class GameDataService:
             raise ValueError(f"unknown pool state {new_state!r}")
         if new_state == pool.state:
             return pool
+        updates_unarchive: dict[str, Any] = {"archived_at": None} if pool.archived_at is not None else {}
         if new_state not in POOL_TRANSITIONS.get(pool.state, ()):
             raise InvalidPoolStateError(f"map pool {entry_id!r} cannot move from {pool.state!r} to {new_state!r}")
-        updates: dict[str, Any] = {"state": new_state}
+        updates: dict[str, Any] = {"state": new_state, **updates_unarchive}
         if new_state == POOL_STATE_USED:
             updates["edition_mode"] = False
             updates["ever_activated"] = True

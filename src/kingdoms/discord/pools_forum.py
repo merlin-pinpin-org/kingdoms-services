@@ -193,8 +193,8 @@ async def _sync_game_pools(
         forum = channel if channel is not None and channel.type == discord.ChannelType.forum else None
     if forum is None:
         return 0  # the provisioning owns creation; nothing stored yet
-    pools = await service.list_map_pools(game_key, guild_id=guild_id)
-    wanted: dict[str, Any] = {pool.id: pool for pool in pools if pool.archived_at is None}
+    pools = await service.list_all_map_pools(game_key, guild_id=guild_id)
+    wanted: dict[str, Any] = {pool.id: pool for pool in pools}
     existing = {t.name: t for t in forum.threads}
     by_thread_id = {str(t.id): t for t in forum.threads}
     actions = 0

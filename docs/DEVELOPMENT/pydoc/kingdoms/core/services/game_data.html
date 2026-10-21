@@ -282,6 +282,8 @@ guilds&nbsp;but&nbsp;shared);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;t
 Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;maps&nbsp;plus&nbsp;the&nbsp;global&nbsp;ones;&nbsp;unscoped:<br>
 every&nbsp;map&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
+<dl><dt>async <a name="GameDataDatabase-find_all_map_pools"><strong>find_all_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;EVERY&nbsp;map&nbsp;pool&nbsp;(archived&nbsp;included)&nbsp;—&nbsp;the&nbsp;forums&nbsp;mirror&nbsp;all.</span></dd></dl>
+
 <dl><dt>async <a name="GameDataDatabase-find_by_name"><strong>find_by_name</strong></a>(self, collection: 'str', game_key: 'str', name: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;non-archived&nbsp;entry&nbsp;for&nbsp;``(game_key,&nbsp;name)``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
@@ -314,7 +316,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_entry', 'find_active_factions', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_entry', 'find_active_factions', 'find_active_map_pools', 'find_active_maps', 'find_all_map_pools', 'find_by_name', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -411,11 +413,16 @@ duplicating&nbsp;guild&nbsp;owns&nbsp;it,&nbsp;whatever&nbsp;the&nbsp;source's&n
 
 <dl><dt>async <a name="GameDataService-get_rule"><strong>get_rule</strong></a>(self, entry_id: 'str') -&gt; 'RuleModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;rule;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-hard_delete_map_pool"><strong>hard_delete_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Hard-delete&nbsp;a&nbsp;pool&nbsp;—&nbsp;only&nbsp;a&nbsp;draft&nbsp;pool&nbsp;never&nbsp;used&nbsp;on&nbsp;a&nbsp;ladder.<br>
+<dl><dt>async <a name="GameDataService-hard_delete_map_pool"><strong>hard_delete_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Hard-delete&nbsp;a&nbsp;pool&nbsp;—&nbsp;the&nbsp;definitive,&nbsp;id-freeing&nbsp;delete.<br>
 &nbsp;<br>
-The&nbsp;normal&nbsp;lifecycle&nbsp;is&nbsp;archival;&nbsp;a&nbsp;real&nbsp;delete&nbsp;exists&nbsp;for&nbsp;the<br>
-creation&nbsp;flow's&nbsp;cleanup&nbsp;(a&nbsp;draft&nbsp;that&nbsp;must&nbsp;disappear&nbsp;entirely).<br>
-Refuses&nbsp;anything&nbsp;not&nbsp;a&nbsp;never-activated&nbsp;draft.</span></dd></dl>
+The&nbsp;designer&nbsp;confirms&nbsp;with&nbsp;the&nbsp;pool's&nbsp;exact&nbsp;id;&nbsp;the&nbsp;only<br>
+refusal&nbsp;is&nbsp;a&nbsp;pool&nbsp;still&nbsp;active&nbsp;on&nbsp;a&nbsp;ladder&nbsp;(deactivate&nbsp;it<br>
+first).&nbsp;Everything&nbsp;else&nbsp;goes:&nbsp;the&nbsp;record,&nbsp;the&nbsp;reserved&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-list_all_map_pools"><strong>list_all_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapPoolModel]'</dt><dd><span class="code">List&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game,&nbsp;archived&nbsp;included&nbsp;(the&nbsp;forum&nbsp;mirror).<br>
+&nbsp;<br>
+An&nbsp;archived&nbsp;pool&nbsp;is&nbsp;unusable&nbsp;on&nbsp;a&nbsp;ladder&nbsp;but&nbsp;stays&nbsp;visible:&nbsp;its<br>
+post&nbsp;and&nbsp;badge&nbsp;live&nbsp;until&nbsp;a&nbsp;hard&nbsp;delete&nbsp;frees&nbsp;the&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-list_factions"><strong>list_factions</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[FactionModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;of&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
 &nbsp;<br>
@@ -695,7 +702,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>POOL_STATE_LABELS</strong> = {'closed': 'supprimé', 'draft': 'édition', 'published': 'publié', 'used': 'publié'}<br>
 <strong>POOL_STATE_PUBLISHED</strong> = 'published'<br>
 <strong>POOL_STATE_USED</strong> = 'used'<br>
-<strong>POOL_TRANSITIONS</strong> = {'closed': (), 'draft': ('published',), 'published': ('draft', 'used'), 'used': ('closed',)}<br>
+<strong>POOL_TRANSITIONS</strong> = {'closed': ('draft',), 'draft': ('published',), 'published': ('draft', 'used'), 'used': ('closed',)}<br>
 <strong>RULES_COLLECTION</strong> = 'rules'<br>
 <strong>T</strong> = ~T<br>
 <strong>__annotations__</strong> = {'POOL_TRANSITIONS': 'dict[str, tuple[str, ...]]'}<br>

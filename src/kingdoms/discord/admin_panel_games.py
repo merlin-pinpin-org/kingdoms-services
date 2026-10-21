@@ -1627,44 +1627,74 @@ class GamesPoolHardDeleteButton(
         return cls(match.group("pool_id"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Delete the never-used draft pool, then return to the list."""
+        """Open the exact-id confirmation modal (the definitive delete)."""
         from kingdoms.discord.maps_pool_flow import _guard_admin
 
         if not await _guard_admin(interaction):
             return
         service = _games_wiring()
-        pool = await service.get_map_pool(self.pool_id) if service is not None else None
-        if pool is None:
-            await interaction.response.send_message(
-                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
-            )
-            return
-        if pool.state != "draft" or pool.ever_activated:
-            await interaction.response.send_message(
-                "Seul un pool en \u00e9dition jamais utilis\u00e9 peut \u00eatre supprim\u00e9 totalement \u2014 "
-                "archive-le (r\u00e9versible) pour les autres cas.",
-                ephemeral=True,
-            )
-            return
         if service is None:
             await interaction.response.send_message(
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
-        try:
-            await service.hard_delete_map_pool(pool.id)
-        except Exception:
-            logger.exception("GAMES ADMIN: pool hard delete failed")
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
             await interaction.response.send_message(
-                await reply(interaction, "replies_shared.action_failed"), ephemeral=True
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
+            return
+        await interaction.response.send_modal(PoolHardDeleteModal(pool))
+
+
+class PoolHardDeleteModal(discord.ui.Modal):
+    """The definitive delete: type the pool's exact id to confirm.
+
+    A mismatch refuses; a match hard-deletes \u2014 the record, the post
+    (at the next sync) and the reserved id all go away.
+    """
+
+    def __init__(self, pool: Any) -> None:
+        self.pool = pool
+        super().__init__(title="Suppression d\u00e9finitive", timeout=300)
+        self.confirm: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=f"Tape l'id exact pour confirmer ({pool.id[:40]})",
+            max_length=100,
+            required=True,
+        )
+        self.add_item(self.confirm)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Refuse on mismatch; hard-delete on the exact id."""
+        typed = str(self.confirm.value or "").strip()
+        if typed != self.pool.id:
+            await interaction.response.send_message(
+                f"Refus\u00e9 \u2014 l'id ne correspond pas (`{typed}` \u2260 `{self.pool.id}`). "
+                "Aucune suppression effectu\u00e9e.",
+                ephemeral=True,
             )
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
-        # the post is a mirror: the sync deletes the gone pool's thread
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
-        await interaction.followup.send(view=await pools_admin_view(pool.game_key), ephemeral=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
+            return
+        try:
+            await service.hard_delete_map_pool(self.pool.id)
+        except Exception:
+            logger.exception("GAMES ADMIN: pool hard delete failed")
+            await interaction.followup.send(
+                await reply(interaction, "replies_shared.action_failed"), ephemeral=True
+            )
+            return
+        # the post is a mirror: the sync removes the gone pool's thread
+        await _finish_pool_transition(interaction, self.pool, answer_menu=False)
+        await interaction.followup.send(view=await pools_admin_view(self.pool.game_key), ephemeral=True)
         await interaction.followup.send(
-            f"Pool **{pool.name}** supprim\u00e9 totalement (aucune r\u00e9f\u00e9rence ne pointait dessus).",
+            f"Pool **{self.pool.name}** supprim\u00e9 d\u00e9finitivement \u2014 l'id "
+            f"`{self.pool.id}` redevient utilisable.",
             ephemeral=True,
         )
         await _refresh_pins_after_mutation(interaction)

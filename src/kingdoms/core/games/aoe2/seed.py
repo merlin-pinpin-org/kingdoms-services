@@ -98,6 +98,14 @@ class MongoAoE2Database:
         cursor = self._database[collection_name("map_pools")].find(query)
         return [doc async for doc in cursor]
 
+    async def find_all_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List EVERY map pool (archived included) — the forums mirror all."""
+        query: dict[str, Any] = {"game_key": game_key}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}, {"is_public": True}]
+        cursor = self._database[collection_name("map_pools")].find(query)
+        return [doc async for doc in cursor]
+
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
         """List the pool activation history of a ladder (ascending)."""
         cursor = (

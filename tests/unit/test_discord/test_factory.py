@@ -101,14 +101,14 @@ class _FakeAdminChannelService:
 
 
 @pytest.mark.asyncio
-async def test_provision_default_channels_resolves_both_services(config_dir: str) -> None:
+async def test_boot_route_channels_resolves_both_services(config_dir: str) -> None:
     bot = create_bot(BotConfig(config_dir=config_dir))
     logs = _FakeLogsService()
     admin = _FakeAdminChannelService()
     bot.logs_service = logs  # type: ignore[assignment]
     bot.admin_channel_service = admin  # type: ignore[assignment]
     bot._connection._guilds[42] = SimpleNamespace(id=42)
-    await bot._provision_default_channels()
+    await bot._boot_route_channels()
     # the tree owns the channels: the managed services are routed onto
     # the tree's stored ids (nothing stored here — Mongo unwired in tests),
     # never resolved by name at boot.
@@ -117,30 +117,30 @@ async def test_provision_default_channels_resolves_both_services(config_dir: str
 
 
 @pytest.mark.asyncio
-async def test_provision_default_channels_gated_by_announce_enabled(config_dir: str) -> None:
+async def test_boot_route_channels_gated_by_announce_enabled(config_dir: str) -> None:
     """The CI/CD smoke bot (KINGDOMS_ANNOUNCE_ENABLED=0) never provisions channels."""
     bot = create_bot(BotConfig(config_dir=config_dir, announce_enabled="0"))
     logs = _FakeLogsService()
     bot.logs_service = logs  # type: ignore[assignment]
     bot._connection._guilds[42] = SimpleNamespace(id=42)
-    await bot._provision_default_channels()
+    await bot._boot_route_channels()
     assert logs.resolved == []
 
 
 @pytest.mark.asyncio
-async def test_provision_default_channels_runs_once_across_reconnects(config_dir: str) -> None:
+async def test_boot_route_channels_runs_once_across_reconnects(config_dir: str) -> None:
     bot = create_bot(BotConfig(config_dir=config_dir))
     logs = _FakeLogsService()
     bot.logs_service = logs  # type: ignore[assignment]
     bot._connection._guilds[42] = SimpleNamespace(id=42)
-    await bot._provision_default_channels()
-    await bot._provision_default_channels()
+    await bot._boot_route_channels()
+    await bot._boot_route_channels()
     # idempotent boot: the managed services are routed (not name-resolved)
     assert logs.resolved == []
 
 
 @pytest.mark.asyncio
-async def test_provision_default_channels_survives_one_guild_failure(config_dir: str) -> None:
+async def test_boot_route_channels_survives_one_guild_failure(config_dir: str) -> None:
     bot = create_bot(BotConfig(config_dir=config_dir))
     logs = _FakeLogsService()
     admin = _FakeAdminChannelService()
@@ -152,7 +152,7 @@ async def test_provision_default_channels_survives_one_guild_failure(config_dir:
         raise RuntimeError("routing exploded")
 
     bot.logs_service.set_channel = _boom  # type: ignore[method-assign]
-    await bot._provision_default_channels()
+    await bot._boot_route_channels()
     # best-effort boot: one service's routing failure never blocks the rest
     assert admin.resolved == []
 

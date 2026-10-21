@@ -89,8 +89,7 @@ async def build_entity_admin_menu(
         MapAddToPoolButton,
         MapDeleteButton,
         MapEditButton,
-        PoolAddMapButton,
-        PoolRemoveMapsButton,
+        PoolMapsButton,
     )
     from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
 
@@ -130,13 +129,12 @@ async def build_entity_admin_menu(
                 sections=(),
             )
         )
-        # line 1: composition (add capped at the pool budget, remove, rename)
+        # line 1: composition (the single Maps editor, rename)
         composition: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        add_button = PoolAddMapButton(entity_id)
+        maps_button = PoolMapsButton(entity_id)
         if pool is not None and len(getattr(pool, "map_ids", ()) or ()) >= MAX_POOL_MAPS:
-            add_button.item.disabled = True
-        composition.add_item(add_button)
-        composition.add_item(PoolRemoveMapsButton(entity_id))
+            maps_button.item.disabled = True
+        composition.add_item(maps_button)
         composition.add_item(GamesPoolRenameButton(entity_id))
         menu.add_item(composition)
         # line 2: lifecycle (publish/archive/delete, disabled when the
