@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 import discord
 
@@ -176,7 +176,7 @@ class DmOpenButton(
 
     SECTIONS = ("language", "servers", "sync")
 
-    EMOJIS = {
+    EMOJIS: ClassVar[dict[str, str]] = {
         "language": "\U0001F310",
         "servers": "\U0001F30D",
         "sync": "\U0001F527",
