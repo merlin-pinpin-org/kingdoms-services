@@ -50,15 +50,26 @@ async def _deny(interaction: discord.Interaction) -> None:
 async def _dm_locale(source: Any) -> str:
     """Resolve the invoking admin's DM locale.
 
-    Precedence: the stored DM setting, then the invoking Discord
-    client's own locale (``interaction.locale`` — a French client gets
-    French DMs even without a stored setting), then English.
+    Precedence: the STORED DM choice (the language picker's value),
+    then the invoking Discord client's own locale, then English. The
+    stored choice wins \u2014 the picker is the operator's explicit DM
+    language, the client locale only seeds the first-run default.
     """
+    client = source if isinstance(source, discord.Client) else getattr(source, "client", None)
+    user = getattr(source, "user", None)
+    user_id = str(getattr(user, "id", "") or "") if user is not None else ""
+    logs = getattr(client, "logs_service", None)
+    if logs is not None and user_id:
+        try:
+            stored = str(await logs.get_user_locale(user_id) or "")
+            if stored in ("en", "fr"):
+                return stored
+        except Exception:
+            logger.debug("DM stored locale read failed (user %s)", user_id, exc_info=True)
     from kingdoms.discord.locales import interaction_locale
 
     if isinstance(source, discord.Interaction):
         return interaction_locale(source)
-    user = getattr(source, "user", None)
     raw = str(getattr(user, "locale", "") or getattr(source, "locale", "") or "")
     code = raw.split("-")[0]
     return code if code in ("en", "fr") else "en"
@@ -165,11 +176,18 @@ class DmOpenButton(
 
     SECTIONS = ("language", "servers", "sync")
 
+    EMOJIS = {
+        "language": "\U0001F310",
+        "servers": "\U0001F30D",
+        "sync": "\U0001F527",
+    }
+
     def __init__(self, section: str, label: str, disabled: bool = False) -> None:
         self.section = section
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
+                emoji=self.EMOJIS.get(section),
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:open:{section}",
                 disabled=disabled,

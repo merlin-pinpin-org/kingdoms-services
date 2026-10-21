@@ -258,9 +258,17 @@ class LanguageModal(discord.ui.Modal):
         # and an exception inside it must never eat the modal's answer
         # (the 2026-10-20 Unknown interaction: the refresh crashed on a
         # category channel, the ack never landed).
-        await interaction.response.send_message(
-            (await reply(interaction, "admin_replies.language_changed")), ephemeral=True
-        )
+        # the confirmation renders in the NEWLY CHOSEN language (a DM
+        # user switching to English must read "Language updated.", not
+        # the previous locale's wording)
+        from kingdoms.core.services.i18n import MessageCatalog
+
+        catalog = getattr(interaction.client, "messages", None) or MessageCatalog("config")
+        key = "replies.admin_replies.language_changed"
+        rendered = catalog.render(key, value)
+        if rendered == key:
+            rendered = catalog.render("admin_replies.language_changed", value)
+        await interaction.response.send_message(rendered, ephemeral=True)
         if self.guild_scoped and interaction.guild_id:
             from kingdoms.discord.pinned_views import refresh_registered_pins
 
