@@ -49,7 +49,7 @@ async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
-        return add_view_footer(view, "panel:games:pools:manage")
+        return add_view_footer(view, f"panel:game:{game_key}:pools:manage")
     pools = await service.list_map_pools(game_key)
     if not pools:
         blocks.append(discord.ui.TextDisplay("_Aucun map pool._"))
@@ -65,8 +65,10 @@ async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.
     action_row.add_item(GamesPoolCreateButton(game_key))
     view.add_item(action_row)
     if not from_pin:
-        view.add_item(GamesPoolsBackButton(game_key))
-    return view
+        back_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        back_row.add_item(GamesPoolsBackButton(game_key))
+        view.add_item(back_row)
+    return add_view_footer(view, f"panel:game:{game_key}:pools:manage")
 
 
 def _back_row() -> discord.ui.ActionRow[discord.ui.LayoutView]:
@@ -192,7 +194,7 @@ async def civs_section_layout(game_key: str, guild_id: str) -> discord.ui.Layout
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return add_view_footer(view, "panel:games:civs")
+        return add_view_footer(view, f"panel:game:{game_key}:civs")
     factions = await service.list_factions(game_key)
     blocks.append(discord.ui.TextDisplay(f"{len(factions)} civs"))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -211,7 +213,7 @@ async def maps_section_layout(game_key: str, guild_id: str) -> discord.ui.Layout
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return add_view_footer(view, "panel:games:maps")
+        return add_view_footer(view, f"panel:game:{game_key}:maps")
     maps = await service.list_maps(game_key)
     active = [m for m in maps if m.archived_at is None]
     blocks.append(discord.ui.TextDisplay(f"{len(active)} maps actives"))
@@ -236,7 +238,7 @@ async def pools_section_layout(game_key: str, guild_id: str) -> discord.ui.Layou
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return add_view_footer(view, "panel:games:pools")
+        return add_view_footer(view, f"panel:game:{game_key}:pools")
     pools = await service.list_map_pools(game_key)
     blocks.append(discord.ui.TextDisplay(f"{len(pools)} map pools"))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -315,7 +317,7 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
         view.add_item(discord.ui.Container(*blocks))
         if not from_pin:
             view.add_item(_back_row())
-        return add_view_footer(view, "panel:games:menu")
+        return add_view_footer(view, f"panel:game:{game_key}:menu")
     maps = await service.list_maps(game_key)
     pools = await service.list_map_pools(game_key)
     factions = await service.list_factions(game_key)
@@ -439,7 +441,7 @@ async def civs_section_view(game_key: str) -> discord.ui.LayoutView:
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
-        return add_view_footer(view, "panel:games:civs:manage")
+        return add_view_footer(view, f"panel:game:{game_key}:civs:manage")
     factions = await service.list_factions(game_key)
     blocks.append(discord.ui.TextDisplay(f"{len(factions)} civs"))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -824,7 +826,7 @@ async def maps_admin_view(game_key: str, from_pin: bool = False, guild_id: str =
         blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
-        return add_view_footer(view, "panel:games:maps:manage")
+        return add_view_footer(view, f"panel:game:{game_key}:maps:manage")
     maps = await service.list_maps(game_key)
     if not maps:
         blocks.append(discord.ui.TextDisplay("_No map — seed the catalog._"))
@@ -1315,6 +1317,30 @@ class GamesPoolAddByIdButton(
         await interaction.response.send_modal(PoolAddMapByIdModal(self.pool_id))
 
 
+async def _finish_pool_transition(
+    interaction: discord.Interaction, pool: Any, *, answer_menu: bool = True
+) -> None:
+    """After a pool mutation: re-render the forum post, then the menu.
+
+    The post is only a mirror of the database record: the pools forum
+    sync re-edits it (state badge, title) right away, and the admin
+    menu re-renders with the pool's new state and buttons.
+    """
+    if interaction.guild_id is not None:
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("pool transition: pools forum sync failed — best-effort", exc_info=True)
+    if answer_menu:
+        view = await _pool_admin_menu(pool.id, pool.game_key)
+        if interaction.response.is_done():
+            await interaction.followup.send(view=view, ephemeral=True)
+        else:
+            await interaction.response.edit_message(view=view)
+
+
 class GamesPoolRenameButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:pools:rename:(?P<pool_id>.+)",
@@ -1375,9 +1401,8 @@ class GamesPoolRenameModal(discord.ui.Modal):
             logger.exception("GAMES ADMIN: pool rename failed")
             await interaction.response.send_message("Renommage echoue (voir les logs).", ephemeral=True)
             return
-        await interaction.response.edit_message(
-            view=await _pool_admin_menu(pool.id, pool.game_key)
-        )
+        fresh = await service.get_map_pool(pool.id)
+        await _finish_pool_transition(interaction, fresh if fresh is not None else pool)
         if interaction.guild_id is not None:
             try:
                 from kingdoms.discord.pools_forum import sync_pools_forum
@@ -1419,6 +1444,10 @@ class GamesPoolArchiveButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Archive the pool, then return to the pools list."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
         service = _games_wiring()
         if service is None or not self.pool_id:
             await interaction.response.send_message(
@@ -1431,13 +1460,18 @@ class GamesPoolArchiveButton(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
-            await service.archive_map_pool(self.pool_id)
+            pool = await service.archive_map_pool(self.pool_id)
         except Exception:
             logger.exception("GAMES ADMIN: pool archive failed")
-            await interaction.response.send_message("Archivage echoue (pool actif ? voir les logs).", ephemeral=True)
+            await interaction.followup.send(
+                "Archivage \u00e9chou\u00e9 (pool actif ? voir les logs).", ephemeral=True
+            )
             return
-        await interaction.response.edit_message(view=await pools_admin_view(pool.game_key))
+        # the post is a mirror: the sync removes the archived pool's thread
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await interaction.followup.send(view=await pools_admin_view(pool.game_key), ephemeral=True)
         await interaction.followup.send("Pool archiv\u00e9.", ephemeral=True)
         await _refresh_pins_after_mutation(interaction)
 
@@ -1494,9 +1528,7 @@ class GamesPoolToDraftButton(
                 await reply(interaction, "replies_shared.transition_failed"), ephemeral=True
             )
             return
-        await interaction.followup.send(
-            view=await _pool_admin_menu(pool.id, pool.game_key), ephemeral=True
-        )
+        await _finish_pool_transition(interaction, pool)
 
 
 class GamesPoolPublishButton(
@@ -1620,16 +1652,17 @@ class GamesPoolHardDeleteButton(
             )
             return
         try:
-            from kingdoms.core.services.game_data import MAP_POOLS_COLLECTION
-
-            await service.delete_entry(MAP_POOLS_COLLECTION, pool.id)
+            await service.hard_delete_map_pool(pool.id)
         except Exception:
             logger.exception("GAMES ADMIN: pool hard delete failed")
             await interaction.response.send_message(
                 await reply(interaction, "replies_shared.action_failed"), ephemeral=True
             )
             return
-        await interaction.response.edit_message(view=await pools_admin_view(pool.game_key))
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        # the post is a mirror: the sync deletes the gone pool's thread
+        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await interaction.followup.send(view=await pools_admin_view(pool.game_key), ephemeral=True)
         await interaction.followup.send(
             f"Pool **{pool.name}** supprim\u00e9 totalement (aucune r\u00e9f\u00e9rence ne pointait dessus).",
             ephemeral=True,

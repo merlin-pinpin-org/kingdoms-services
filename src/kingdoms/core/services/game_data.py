@@ -50,9 +50,9 @@ POOL_STATE_CLOSED = "closed"
 POOL_STATES = (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED, POOL_STATE_USED, POOL_STATE_CLOSED)
 POOL_STATE_LABELS = {
     POOL_STATE_DRAFT: "édition",
-    POOL_STATE_PUBLISHED: "publiée",
-    POOL_STATE_USED: "publiée",
-    POOL_STATE_CLOSED: "supprimée",
+    POOL_STATE_PUBLISHED: "publié",
+    POOL_STATE_USED: "publié",
+    POOL_STATE_CLOSED: "supprimé",
 }
 # Allowed transitions: the next state(s) a pool may move to.
 POOL_TRANSITIONS: dict[str, tuple[str, ...]] = {
@@ -517,6 +517,20 @@ class GameDataService:
         updated = pool.model_copy(update={"forum_thread_id": forum_thread_id})
         await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
         return updated
+
+    async def hard_delete_map_pool(self, entry_id: str) -> bool:
+        """Hard-delete a pool — only a draft pool never used on a ladder.
+
+        The normal lifecycle is archival; a real delete exists for the
+        creation flow's cleanup (a draft that must disappear entirely).
+        Refuses anything not a never-activated draft.
+        """
+        pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        if pool.state != POOL_STATE_DRAFT or pool.ever_activated:
+            raise ValueError(f"map pool {entry_id!r} is not a never-used draft")
+        await self._db.delete_entry(MAP_POOLS_COLLECTION, entry_id)
+        await self._audit_record("map_pool.hard_delete", {"entry_id": entry_id})
+        return True
 
     async def duplicate_map_pool(self, entry_id: str, new_name: str, owner_guild_id: str | None = None) -> MapPoolModel:
         """Duplicate a pool under a new name (a new stable id).
