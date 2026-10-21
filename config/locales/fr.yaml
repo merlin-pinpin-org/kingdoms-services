@@ -370,6 +370,7 @@ fr:
       rename_pool_title: Renommer le pool
       edit_map_title: Modifier la map
       edit_map: Modifier la map
+      add_to_pool: Ajouter à un map pool
       new_pool_option: + Nouveau pool...
       public_yes_no: Public ? (oui / non)
       liquipedia_url: URL de la fiche (liquipedia)
@@ -403,14 +404,23 @@ fr:
     panels:
       channels:
         general: 🗺️ général
+        general_description: "l'accueil : le menu du serveur, chaque bouton ouvre une vue"
         discussions: 💬 discussions
+        discussions_description: "les discussions libres du serveur"
         decisions: ⚖️ décisions
+        decisions_description: "les décisions d'exploitation du serveur"
         logs: 📜 logs
+        logs_description: "le journal du bot : démarrages, déploiements, erreurs"
         admin: 🛠️ admin
+        admin_description: "le poste de pilotage : le menu d'administration épinglé"
         live: 📡 live
+        live_description: "qui joue en direct, rafraîchi en continu"
         civs: 🏛️ civilisations
+        civs_description: "une fiche par civilisation : bonus, unités, arbres technologiques"
         maps: 🌍 maps
+        maps_description: "une fiche par carte : image, description, pools"
         map_pools: 🧱 map pools
+        map_pools_description: "une fiche par map pool : composition et état"
       categories:
         bot: 🤖 bot
         games: 🎮 games

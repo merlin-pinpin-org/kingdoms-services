@@ -197,9 +197,8 @@ class KingdomsBot(discord.Client):
         self.add_dynamic_items(ProfileAddAccountButton)
         self.add_dynamic_items(ProfileRemoveAccountButton)
         self.add_dynamic_items(ProfileRenameButton)
-        from kingdoms.discord.admin_panel_games import register_games_admin_items, register_games_admin_section
+        from kingdoms.discord.admin_panel_games import register_games_admin_items
 
-        register_games_admin_section()
         register_games_admin_items(self)
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
         from kingdoms.discord.admin_tree import register_admin_tree_items

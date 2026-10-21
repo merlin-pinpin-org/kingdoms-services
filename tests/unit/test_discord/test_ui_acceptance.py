@@ -75,16 +75,30 @@ def test_registered_views_fit_discord_limits() -> None:
     from typing import Any
 
     from kingdoms.discord.admin_panel_games import (
-        maps_admin_view,
-        pools_admin_view,
+        civs_section_layout,
+        maps_section_layout,
+        pools_section_layout,
     )
+    from kingdoms.discord.entity_admin_menu import build_entity_admin_menu
 
     offenders: list[str] = []
     import asyncio
 
+    class _Pool:
+        id = "pool:aoe2:public:x"
+        game_key = "aoe2"
+        state = "draft"
+        archived_at = None
+        ever_activated = False
+        edition_mode = True
+        map_ids = ()
+        name = "X"
+
     async def build() -> None:
-        offenders.extend(walk(await maps_admin_view("aoe2"), "maps_admin_view"))
-        offenders.extend(walk(await pools_admin_view("aoe2"), "pools_admin_view"))
+        offenders.extend(walk(await civs_section_layout("aoe2", "1"), "civs_section_layout"))
+        offenders.extend(walk(await maps_section_layout("aoe2", "1"), "maps_section_layout"))
+        offenders.extend(walk(await pools_section_layout("aoe2", "1"), "pools_section_layout"))
+        offenders.extend(walk(await build_entity_admin_menu("pool", _Pool.id, "aoe2", True), "pool_admin_menu"))
 
     asyncio.run(build())
     assert not offenders, "Discord-shape violations:\n" + "\n".join(offenders)

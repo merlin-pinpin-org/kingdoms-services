@@ -214,21 +214,22 @@ class TreeOpenButton(
         """Open the section's view (guarded at click time)."""
         if not await _guard(interaction):
             return
-        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         await interaction.response.defer(ephemeral=True, thinking=True)
         if self.section in ("games", "mods"):
-            from kingdoms.discord.scope_pins import _admin_builder
+            # the declared menus own the navigation: the scope's admin
+            # menu renders from the views registry
+            from kingdoms.discord.views_routing import open_declared_view
 
-            builder = _admin_builder(interaction.client, self.section)
+            view_id = f"menu:{self.section}:admin"
             try:
-                scope_view = await builder(guild_id)
+                await open_declared_view(interaction, view_id)
             except Exception:
                 logger.warning("ADMIN TREE: scope admin view failed (%s)", self.section, exc_info=True)
                 await interaction.followup.send(
                     await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True
                 )
                 return
-            await interaction.followup.send(view=scope_view, ephemeral=True)
+            return
 
 
 class TreeEnsureButton(

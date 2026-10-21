@@ -58,12 +58,13 @@ class MapAddToPoolButton(
 ):
     """The map post's entry point: add this map to a pool (admins)."""
 
-    def __init__(self, map_id: str, label: str = "Add to map pool") -> None:
+    def __init__(self, map_id: str, label: str = "Ajouter à un map pool") -> None:
         self.map_id = map_id
         super().__init__(
             discord.ui.Button(
                 label=label,
                 emoji="\u2795",
+                style=discord.ButtonStyle.success,
                 custom_id=f"{_ADD_NS}:{map_id}"[:100],
             )
         )
@@ -104,12 +105,26 @@ class MapAddToPoolButton(
                 value="__new__",
             )
         )
-        view = discord.ui.LayoutView(timeout=None)
-        view.add_item(discord.ui.Container(discord.ui.TextDisplay("## Ajouter à quel map pool ?")))
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        row.add_item(MapPoolPickerSelect(self.map_id, options))
-        view.add_item(row)
-        await interaction.response.send_message(view=view, ephemeral=True)
+        await interaction.response.send_modal(MapAddToPoolModal(self.map_id, options))
+
+
+class MapAddToPoolModal(discord.ui.Modal):
+    """The map's add-to-pool form: the pools in edition, or the new branch."""
+
+    def __init__(self, map_id: str, options: list[discord.SelectOption]) -> None:
+        super().__init__(title="Ajouter à un map pool", timeout=300)
+        self.map_id = map_id
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            options=options or [discord.SelectOption(label="Aucun pool en édition", value="none")],
+            placeholder="Pools en édition uniquement...",
+        )
+        select.callback = self._on_pick  # type: ignore[method-assign]
+        self.add_item(select)
+
+    async def _on_pick(self, interaction: discord.Interaction) -> None:
+        """Delegate to the picker's shared add step."""
+        picker = MapPoolPickerSelect(self.map_id, [])
+        await picker.callback(interaction)
 
 
 class MapPoolPickerSelect(

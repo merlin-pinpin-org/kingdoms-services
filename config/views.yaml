@@ -153,12 +153,12 @@ scopes:
       label: ui.panels.channels.general
       kind: text
       access: readonly
-      description: 'l''accueil : le menu du serveur, chaque bouton ouvre une vue'
+      description: ui.panels.channels.general.description
     - key: discussions
       label: ui.panels.channels.discussions
       kind: text
       access: public
-      description: les discussions libres du serveur
+      description: ui.panels.channels.discussions.description
   bot:
     category: ui.panels.categories.bot
     channels:
@@ -166,17 +166,17 @@ scopes:
       label: ui.panels.channels.logs
       kind: text
       access: admin
-      description: 'le journal du bot : démarrages, déploiements, erreurs'
+      description: ui.panels.channels.logs.description
     - key: admin
       label: ui.panels.channels.admin
       kind: text
       access: admin
-      description: 'le poste de pilotage : le menu d''administration épinglé'
+      description: ui.panels.channels.admin.description
     - key: decisions
       label: ui.panels.channels.decisions
       kind: text
       access: admin
-      description: les décisions d'exploitation du serveur
+      description: ui.panels.channels.decisions.description
   games:
     category: ui.panels.categories.games
     channels:
@@ -184,12 +184,12 @@ scopes:
       label: ui.panels.channels.general
       kind: text
       access: readonly
-      description: 'l''accueil des jeux : le menu et les nouvelles'
+      description: ui.panels.channels.general.description
     - key: admin
       label: ui.panels.channels.admin
       kind: text
       access: admin
-      description: l'administration des jeux du serveur
+      description: ui.panels.channels.admin.description
   games/aoe2:
     category: ui.panels.categories.games_aoe2
     channels:
@@ -197,32 +197,32 @@ scopes:
       label: ui.panels.channels.general
       kind: text
       access: readonly
-      description: 'l''accueil d''Age of Empires II : le menu du jeu'
+      description: ui.panels.channels.general.description
     - key: live
       label: ui.panels.channels.live
       kind: text
       access: readonly
-      description: qui joue en direct, rafraîchi en continu
+      description: ui.panels.channels.live.description
     - key: civs
       label: ui.panels.channels.civs
       kind: forum
       access: readonly
-      description: 'une fiche par civilisation : bonus, unités, arbres technologiques'
+      description: ui.panels.channels.civs.description
     - key: maps
       label: ui.panels.channels.maps
       kind: forum
       access: readonly
-      description: 'une fiche par carte : image, description, pools'
+      description: ui.panels.channels.maps.description
     - key: map-pools
       label: ui.panels.channels.map_pools
       kind: forum
       access: readonly
-      description: 'une fiche par map pool : composition et état'
+      description: ui.panels.channels.map-pools.description
     - key: admin
       label: ui.panels.channels.admin
       kind: text
       access: admin
-      description: 'l''administration d''Age of Empires II : maps, pools, sync'
+      description: ui.panels.channels.admin.description
   mods:
     category: ui.panels.categories.mods
     channels:
@@ -230,9 +230,9 @@ scopes:
       label: ui.panels.channels.general
       kind: text
       access: readonly
-      description: 'l''accueil des mods : le menu et les mods disponibles'
+      description: ui.panels.channels.general.description
     - key: admin
       label: ui.panels.channels.admin
       kind: text
       access: admin
-      description: l'administration des mods du serveur
+      description: ui.panels.channels.admin.description
