@@ -460,11 +460,6 @@ created&nbsp;with&nbsp;``edition_mode=False``.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-set_map_forum_message"><strong>set_map_forum_message</strong></a>(self, entry_id: 'str', forum_message_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;map's&nbsp;forum&nbsp;post&nbsp;id&nbsp;(the&nbsp;map-message&nbsp;link).</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-set_map_pool_public"><strong>set_map_pool_public</strong></a>(self, entry_id: 'str', is_public: 'bool', owner_guild_id: 'str | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Share&nbsp;a&nbsp;pool&nbsp;with&nbsp;every&nbsp;guild&nbsp;(or&nbsp;make&nbsp;it&nbsp;private&nbsp;again).<br>
-&nbsp;<br>
-The&nbsp;pool&nbsp;keeps&nbsp;its&nbsp;owner;&nbsp;making&nbsp;it&nbsp;public&nbsp;shares&nbsp;it&nbsp;with&nbsp;every<br>
-guild's&nbsp;pool&nbsp;pickers&nbsp;and&nbsp;forums&nbsp;(#04fcb94c).</span></dd></dl>
-
 <dl><dt>async <a name="GameDataService-set_pool_forum_thread"><strong>set_pool_forum_thread</strong></a>(self, entry_id: 'str', forum_thread_id: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;pool's&nbsp;forum&nbsp;post&nbsp;id&nbsp;(the&nbsp;pool-thread&nbsp;link).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-transition_map_pool"><strong>transition_map_pool</strong></a>(self, entry_id: 'str', new_state: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Move&nbsp;a&nbsp;pool&nbsp;along&nbsp;its&nbsp;lifecycle&nbsp;(draft-&gt;published-&gt;used-&gt;closed).<br>

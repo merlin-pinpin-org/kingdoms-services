@@ -650,24 +650,6 @@ class GameDataService:
         await self._db.upsert_entry(MAP_POOLS_COLLECTION, entry.to_mongo())
         await self._audit_record("map_pool.archive", {"entry_id": entry_id})
         return entry
-
-    async def set_map_pool_public(
-        self, entry_id: str, is_public: bool, owner_guild_id: str | None = None
-    ) -> MapPoolModel:
-        """Share a pool with every guild (or make it private again).
-
-        The pool keeps its owner; making it public shares it with every
-        guild's pool pickers and forums (#04fcb94c).
-        """
-        entry = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        updates: dict[str, Any] = {"is_public": is_public}
-        if owner_guild_id is not None:
-            updates["owner_guild_id"] = owner_guild_id
-        updated = entry.model_copy(update=updates)
-        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
-        await self._audit_record("map_pool.visibility", {"entry_id": entry_id, "is_public": is_public})
-        return updated
-
     async def send_map_pool_to_guild(self, entry_id: str, target_guild_id: str, new_name: str) -> MapPoolModel:
         """Send one pool to another guild: the received copy is locked.
 

@@ -248,7 +248,7 @@ class MapPoolPickerSelect(
 
 
 class MapNewPoolModal(discord.ui.Modal):
-    """The create-pool-and-add form: name + public toggle."""
+    """The create-pool-and-add form: the guild owns what it creates."""
 
     def __init__(self, map_id: str, game_key: str) -> None:
         self.map_id = map_id
