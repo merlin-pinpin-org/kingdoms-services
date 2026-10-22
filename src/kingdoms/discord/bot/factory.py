@@ -896,6 +896,9 @@ def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
     async def _run() -> None:
         await start_live_dashboard_refresh(bot, LiveClient(core_uri), registry)
 
+    from kingdoms.discord.player_status import start_player_status_stream
+
+    start_player_status_stream(bot)
     return asyncio.create_task(_run())
 
 

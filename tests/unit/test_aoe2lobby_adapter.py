@@ -143,10 +143,10 @@ def test_lobby_to_game_same_profile_supersedes() -> None:
     assert adapter._player_status["123"] == ("game", "222")
 
 
-def test_reset_state_keeps_statuses_for_snapshot_diff() -> None:
+def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
     adapter = Aoe2LobbyAdapter()
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
-    adapter._reset_state()
+    adapter._reset_matches()
     assert adapter._matches == {"lobby": {}, "spectate": {}}
     assert adapter._player_status == {"123": ("lobby", "111")}
     reseen = _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
@@ -159,8 +159,104 @@ def test_reset_state_keeps_statuses_for_snapshot_diff() -> None:
 def test_snapshot_diff_emits_join_transition_after_reconnect() -> None:
     adapter = Aoe2LobbyAdapter()
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
-    adapter._reset_state()
+    adapter._reset_matches()
     adapter._matches = {"lobby": {}, "spectate": {}}
     join = _frame(adapter, {"lobby_match_all": {"222": _lobby("222", [123])}})
     assert [e["type"] for e in join] == ["lobby_opened"]
     assert join[0]["match_ref"] == "222"
+
+
+async def test_set_subscribed_profiles_reconciles_in_place() -> None:
+    """The players subscription is reconciled on the live session, no reopen."""
+    adapter = Aoe2LobbyAdapter()
+    sent: list[dict] = []
+
+    class _FakeWs:
+        async def send(self, payload: str) -> None:
+            sent.append(dict(json.loads(payload)))
+
+    adapter._ws = _FakeWs()
+    await adapter.set_subscribed_profiles(["10", "20"])
+    assert sent == [
+        {"action": "subscribe", "type": "players", "context": c, "ids": ["10", "20"]}
+        for c in ("lobby", "spectate")
+    ]
+    await adapter.set_subscribed_profiles(["20", "30"])
+    assert {m["action"] for m in sent} >= {"subscribe", "unsubscribe"}
+    assert (sent[-2]["action"] == "subscribe" and sent[-2]["ids"] == ["30"]) or sent[-1]["ids"] == ["30"]
+    assert adapter._subscribed_ids == {"20", "30"}
+
+
+async def test_set_subscribed_profiles_without_session_queues() -> None:
+    """Without a live session the list is kept for the next connect."""
+    adapter = Aoe2LobbyAdapter()
+    assert await adapter.set_subscribed_profiles(["10"]) is False
+    assert adapter._subscribed_ids == {"10"}
+
+
+async def test_set_subscribed_profiles_idempotent_no_traffic() -> None:
+    """Reconciling the same list sends nothing."""
+    adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["10"])
+    adapter._ws = None
+    adapter._subscribed_ids = {"10"}
+    sent: list[str] = []
+
+    class _FakeWs:
+        async def send(self, payload: str) -> None:
+            sent.append(payload)
+
+    adapter._ws = _FakeWs()
+    assert await adapter.set_subscribed_profiles(["10"]) is True
+    assert sent == []
+
+
+async def test_matches_reducer_filters_to_subscribed_profiles() -> None:
+    """Match deltas only yield transitions for the subscribed profiles."""
+    adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
+    events = _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123, 456])}})
+    assert [e["profile_ids"] for e in events] == [["123"]]
+
+
+async def test_player_status_push_yields_transition() -> None:
+    """A player_status push for a subscribed profile yields the transition."""
+    adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
+    events = _frame(
+        adapter,
+        {"player_status": {"123": {"status": "lobby", "matchid": "111", "steam_lobbyid": "x"}}},
+    )
+    assert [e["type"] for e in events] == ["lobby_opened"]
+    assert events[0]["match_ref"] == "111"
+    playing = _frame(
+        adapter,
+        {"player_status": {"123": {"status": "playing", "matchid": "111"}}},
+    )
+    assert [e["type"] for e in playing] == ["game_started"]
+
+
+async def test_player_status_ignored_for_unsubscribed_profile() -> None:
+    """player_status pushes for non-subscribed profiles are ignored."""
+    adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
+    events = _frame(
+        adapter,
+        {"player_status": {"999": {"status": "lobby", "matchid": "111"}}},
+    )
+    assert events == []
+
+
+async def test_player_status_null_status_schedules_graced_close() -> None:
+    """A null status parks the close behind the grace period."""
+    adapter = Aoe2LobbyAdapter(grace_s=15)
+    await adapter.set_subscribed_profiles(["123"])
+    _frame(adapter, {"player_status": {"123": {"status": "lobby", "matchid": "111"}}})
+    gone = _frame(adapter, {"player_status": {"123": {"status": None, "matchid": None}}})
+    assert gone == []
+    assert "123" in adapter._pending_closes
+    assert adapter._sweep_pending_closes() == []
+    closed_at = adapter._pending_closes["123"][1]
+    adapter._pending_closes["123"] = (adapter._pending_closes["123"][0], closed_at - 16_000)
+    closed = adapter._sweep_pending_closes()
+    assert [e["type"] for e in closed] == ["lobby_closed"]

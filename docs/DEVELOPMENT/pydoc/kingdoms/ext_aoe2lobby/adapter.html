@@ -12,17 +12,29 @@
     <p><span class="code">ext-aoe2lobby&nbsp;live&nbsp;adapter:&nbsp;WebSocket&nbsp;client&nbsp;(aoe2lobby.com).<br>
 &nbsp;<br>
 Real&nbsp;protocol&nbsp;(validated&nbsp;on&nbsp;a&nbsp;live&nbsp;integration):&nbsp;the&nbsp;server&nbsp;pushes&nbsp;global<br>
-state&nbsp;deltas&nbsp;over&nbsp;``wss://data.aoe2lobby.com/ws/``&nbsp;—&nbsp;subscription&nbsp;is<br>
-global&nbsp;(no&nbsp;per-profile&nbsp;filter),&nbsp;so&nbsp;this&nbsp;adapter&nbsp;is&nbsp;the&nbsp;client-side<br>
-reducer:&nbsp;it&nbsp;rebuilds&nbsp;the&nbsp;lobby/spectate&nbsp;state&nbsp;from&nbsp;``*_match_all``<br>
-snapshots&nbsp;and&nbsp;``*_match_update``/``*_match_remove``&nbsp;deltas,&nbsp;derives&nbsp;the<br>
-per-profile&nbsp;status&nbsp;transitions,&nbsp;and&nbsp;yields&nbsp;them&nbsp;as&nbsp;normalized&nbsp;events&nbsp;in<br>
-the&nbsp;wire&nbsp;``MatchEvent``&nbsp;shape.<br>
+state&nbsp;deltas&nbsp;over&nbsp;``wss://data.aoe2lobby.com/ws/``.&nbsp;Two&nbsp;subscription<br>
+channels&nbsp;coexist&nbsp;on&nbsp;one&nbsp;single&nbsp;session:<br>
+&nbsp;<br>
+-&nbsp;``matches``&nbsp;(contexts&nbsp;lobby&nbsp;+&nbsp;spectate):&nbsp;global&nbsp;snapshots<br>
+&nbsp;&nbsp;(``*_match_all``)&nbsp;and&nbsp;deltas&nbsp;(``*_match_update``/``*_match_remove``)<br>
+&nbsp;&nbsp;for&nbsp;every&nbsp;observable&nbsp;lobby/game&nbsp;—&nbsp;the&nbsp;reducer&nbsp;filters&nbsp;them<br>
+&nbsp;&nbsp;client-side&nbsp;against&nbsp;the&nbsp;subscribed&nbsp;profile&nbsp;ids;<br>
+-&nbsp;``players``:&nbsp;per-profile&nbsp;``player_status``&nbsp;pushes&nbsp;for&nbsp;exactly&nbsp;the<br>
+&nbsp;&nbsp;subscribed&nbsp;profile&nbsp;ids,&nbsp;updated&nbsp;**in&nbsp;place**&nbsp;(subscribe/unsubscribe<br>
+&nbsp;&nbsp;deltas,&nbsp;no&nbsp;session&nbsp;teardown&nbsp;—&nbsp;the&nbsp;site's&nbsp;own&nbsp;frontend&nbsp;does&nbsp;the&nbsp;same).<br>
+&nbsp;<br>
+The&nbsp;adapter&nbsp;owns&nbsp;exactly&nbsp;one&nbsp;WebSocket&nbsp;session&nbsp;at&nbsp;a&nbsp;time:&nbsp;every<br>
+disconnection&nbsp;path&nbsp;(transport&nbsp;error,&nbsp;server&nbsp;error,&nbsp;heartbeat&nbsp;timeout,<br>
+unexpected&nbsp;exception)&nbsp;falls&nbsp;into&nbsp;the&nbsp;same&nbsp;reconnect&nbsp;loop,&nbsp;which<br>
+re-subscribes&nbsp;both&nbsp;channels&nbsp;with&nbsp;the&nbsp;last&nbsp;known&nbsp;profile&nbsp;ids&nbsp;before<br>
+resuming&nbsp;the&nbsp;stream.&nbsp;Snapshots&nbsp;after&nbsp;a&nbsp;reconnect&nbsp;rebuild&nbsp;the&nbsp;state;&nbsp;the<br>
+derived&nbsp;player&nbsp;statuses&nbsp;survive&nbsp;so&nbsp;the&nbsp;snapshot&nbsp;diff&nbsp;yields&nbsp;exactly&nbsp;the<br>
+real&nbsp;transitions.<br>
 &nbsp;<br>
 Known&nbsp;traps&nbsp;covered&nbsp;here&nbsp;(aoe2lobby&nbsp;reference&nbsp;§4/§7):&nbsp;a&nbsp;~15&nbsp;s&nbsp;gap<br>
 separates&nbsp;``lobby_match_remove``&nbsp;from&nbsp;the&nbsp;matching&nbsp;``spectate_match_*``<br>
-when&nbsp;a&nbsp;game&nbsp;launches&nbsp;—&nbsp;a&nbsp;lobby&nbsp;removal&nbsp;is&nbsp;never&nbsp;downgraded&nbsp;before&nbsp;the<br>
-grace&nbsp;period&nbsp;elapses;&nbsp;``*_player_remove``&nbsp;lists&nbsp;profile&nbsp;ids&nbsp;while<br>
+when&nbsp;a&nbsp;game&nbsp;launches&nbsp;—&nbsp;a&nbsp;removal&nbsp;is&nbsp;never&nbsp;downgraded&nbsp;before&nbsp;the&nbsp;grace<br>
+period&nbsp;elapses;&nbsp;``*_player_remove``&nbsp;lists&nbsp;profile&nbsp;ids&nbsp;while<br>
 ``*_match_remove``&nbsp;lists&nbsp;match&nbsp;ids;&nbsp;profile&nbsp;ids&nbsp;compare&nbsp;as&nbsp;``str``;<br>
 frames&nbsp;can&nbsp;exceed&nbsp;1&nbsp;MB&nbsp;(max_size&nbsp;raised);&nbsp;``*_all``&nbsp;payloads&nbsp;can&nbsp;be<br>
 ``null``.</span></p>
@@ -59,7 +71,7 @@ frames&nbsp;can&nbsp;exceed&nbsp;1&nbsp;MB&nbsp;(max_size&nbsp;raised);&nbsp;``*
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#Aoe2LobbyAdapter">Aoe2LobbyAdapter</a>(ws_url:&nbsp;'str'&nbsp;=&nbsp;'wss://data.aoe2lobby.com/ws/',&nbsp;reconnect_delay_s:&nbsp;'float'&nbsp;=&nbsp;5.0,&nbsp;grace_s:&nbsp;'float'&nbsp;=&nbsp;15,&nbsp;heartbeat_s:&nbsp;'float'&nbsp;=&nbsp;90.0,&nbsp;max_size:&nbsp;'int'&nbsp;=&nbsp;10485760,&nbsp;refresh_s:&nbsp;'float'&nbsp;=&nbsp;60.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-WebSocket&nbsp;client&nbsp;reducing&nbsp;aoe2lobby&nbsp;deltas&nbsp;to&nbsp;player&nbsp;transitions.<br>&nbsp;</span></td></tr>
+One-session&nbsp;WebSocket&nbsp;client&nbsp;reducing&nbsp;aoe2lobby&nbsp;deltas&nbsp;to&nbsp;transitions.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="Aoe2LobbyAdapter-__init__"><strong>__init__</strong></a>(self, ws_url: 'str' = 'wss://data.aoe2lobby.com/ws/', reconnect_delay_s: 'float' = 5.0, grace_s: 'float' = 15, heartbeat_s: 'float' = 90.0, max_size: 'int' = 10485760, refresh_s: 'float' = 60.0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
@@ -69,15 +81,25 @@ WebSocket&nbsp;client&nbsp;reducing&nbsp;aoe2lobby&nbsp;deltas&nbsp;to&nbsp;play
 Unknown&nbsp;top-level&nbsp;keys&nbsp;are&nbsp;ignored&nbsp;cleanly&nbsp;(the&nbsp;schema&nbsp;may<br>
 evolve);&nbsp;undecodable&nbsp;frames&nbsp;are&nbsp;skipped&nbsp;with&nbsp;a&nbsp;warning.</span></dd></dl>
 
+<dl><dt>async <a name="Aoe2LobbyAdapter-set_subscribed_profiles"><strong>set_subscribed_profiles</strong></a>(self, profile_ids: 'list[str] | tuple[str, ...]') -&gt; 'bool'</dt><dd><span class="code">Reconcile&nbsp;the&nbsp;players&nbsp;subscription&nbsp;in&nbsp;place&nbsp;(no&nbsp;session&nbsp;teardown).<br>
+&nbsp;<br>
+Diffs&nbsp;the&nbsp;requested&nbsp;list&nbsp;against&nbsp;the&nbsp;current&nbsp;subscription&nbsp;and<br>
+sends&nbsp;the&nbsp;subscribe/unsubscribe&nbsp;deltas&nbsp;on&nbsp;the&nbsp;live&nbsp;session;<br>
+the&nbsp;full&nbsp;list&nbsp;is&nbsp;re-sent&nbsp;on&nbsp;the&nbsp;next&nbsp;(re)connect.&nbsp;Returns&nbsp;True<br>
+when&nbsp;applied&nbsp;on&nbsp;a&nbsp;live&nbsp;session,&nbsp;False&nbsp;when&nbsp;queued&nbsp;for&nbsp;the&nbsp;next<br>
+connect&nbsp;(the&nbsp;adapter&nbsp;never&nbsp;opens&nbsp;a&nbsp;second&nbsp;session).</span></dd></dl>
+
 <dl><dt>async <a name="Aoe2LobbyAdapter-stream_events"><strong>stream_events</strong></a>(self) -&gt; 'AsyncIterator[dict[str, Any]]'</dt><dd><span class="code">Yield&nbsp;normalized&nbsp;event&nbsp;dicts&nbsp;from&nbsp;the&nbsp;WebSocket,&nbsp;forever.<br>
 &nbsp;<br>
-Reconnects&nbsp;with&nbsp;a&nbsp;fixed&nbsp;backoff&nbsp;on&nbsp;transport&nbsp;errors&nbsp;or&nbsp;heartbeat<br>
-timeouts&nbsp;and&nbsp;yields&nbsp;nothing&nbsp;while&nbsp;disconnected&nbsp;—&nbsp;the&nbsp;stream<br>
-stays&nbsp;alive,&nbsp;the&nbsp;consumer&nbsp;sees&nbsp;silence,&nbsp;not&nbsp;failures.&nbsp;After&nbsp;a<br>
-reconnect&nbsp;the&nbsp;server&nbsp;pushes&nbsp;a&nbsp;fresh&nbsp;``match_all``&nbsp;snapshot&nbsp;and<br>
-the&nbsp;reducer&nbsp;rebuilds&nbsp;its&nbsp;state&nbsp;from&nbsp;it:&nbsp;the&nbsp;state&nbsp;is&nbsp;kept<br>
-across&nbsp;reconnects&nbsp;so&nbsp;the&nbsp;diff&nbsp;between&nbsp;snapshots&nbsp;yields&nbsp;the<br>
-missing&nbsp;transitions&nbsp;(deltas&nbsp;may&nbsp;be&nbsp;sparse&nbsp;server-side).</span></dd></dl>
+Exactly&nbsp;one&nbsp;session&nbsp;is&nbsp;open&nbsp;at&nbsp;any&nbsp;time.&nbsp;Every&nbsp;failure&nbsp;path&nbsp;—<br>
+transport&nbsp;error,&nbsp;server-side&nbsp;close,&nbsp;heartbeat&nbsp;timeout,<br>
+unexpected&nbsp;exception&nbsp;—&nbsp;falls&nbsp;into&nbsp;the&nbsp;same&nbsp;reconnect&nbsp;loop:<br>
+fixed&nbsp;backoff,&nbsp;re-subscribe&nbsp;both&nbsp;channels&nbsp;with&nbsp;the&nbsp;last&nbsp;known<br>
+profile&nbsp;ids,&nbsp;then&nbsp;resume.&nbsp;Yields&nbsp;nothing&nbsp;while&nbsp;disconnected:<br>
+the&nbsp;stream&nbsp;stays&nbsp;alive,&nbsp;the&nbsp;consumer&nbsp;sees&nbsp;silence,&nbsp;not<br>
+failures.&nbsp;The&nbsp;state&nbsp;is&nbsp;kept&nbsp;across&nbsp;reconnects&nbsp;so&nbsp;the&nbsp;snapshot<br>
+diff&nbsp;yields&nbsp;exactly&nbsp;the&nbsp;real&nbsp;transitions&nbsp;(deltas&nbsp;may&nbsp;be&nbsp;sparse<br>
+server-side).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -100,7 +122,14 @@ Data descriptors defined here:<br>
 <strong>DEFAULT_RECONNECT_DELAY_S</strong> = 5.0<br>
 <strong>DEFAULT_REFRESH_S</strong> = 60.0<br>
 <strong>DEFAULT_WS_URL</strong> = 'wss://data.aoe2lobby.com/ws/'<br>
+<strong>EVENT_GAME_ENDED</strong> = 'game_ended'<br>
+<strong>EVENT_GAME_STARTED</strong> = 'game_started'<br>
+<strong>EVENT_LOBBY_CLOSED</strong> = 'lobby_closed'<br>
+<strong>EVENT_LOBBY_OPENED</strong> = 'lobby_opened'<br>
 <strong>GRACE_PERIOD_S</strong> = 15<br>
+<strong>MATCHID_FIELD</strong> = 'matchid'<br>
+<strong>PLAYER_STATUS_FIELD</strong> = 'player_status'<br>
+<strong>STATUS_FIELD</strong> = 'status'<br>
 <strong>STATUS_GAME</strong> = 'game'<br>
 <strong>STATUS_LOBBY</strong> = 'lobby'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.ext_aoe2lobby.adapter (WARNING)&gt;</td></tr></table>

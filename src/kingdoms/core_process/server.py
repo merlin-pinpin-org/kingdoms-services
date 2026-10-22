@@ -45,6 +45,7 @@ async def _serve(port: str) -> None:
     aggregator = LiveAggregator(_CoreBindingsDatabase())
     add_live_servicer(server, LiveServicer(aggregator))
     consumer = asyncio.ensure_future(_consume_provider_events(aggregator))
+    subscriptions = asyncio.ensure_future(_sync_provider_subscriptions(aggregator))
     bind = f"[::]:{port}"
     server.add_insecure_port(bind)
     await server.start()
@@ -53,6 +54,54 @@ async def _serve(port: str) -> None:
         await server.wait_for_termination()
     finally:
         consumer.cancel()
+        subscriptions.cancel()
+
+
+async def _sync_provider_subscriptions(aggregator: LiveAggregator) -> None:
+    """Keep the realtime provider subscribed to the enrolled players.
+
+    Reloads the profile bindings periodically and pushes the profile id
+    list to the realtime provider (``UpdateSubscriptions``): the
+    provider reconciles its upstream players subscription in place —
+    adds and removals propagate without any session teardown. A push
+    that cannot be applied (provider offline) is retried on the next
+    tick; the provider also re-syncs the full list on its reconnect.
+    """
+    import asyncio
+
+    from kingdoms.core.rpc.game_client import GameProviderClient
+
+    interval_s = float(os.environ.get("PROVIDER_SUBSCRIPTIONS_INTERVAL_S", "30"))
+    uri = os.environ.get("EXT_AOE2LOBBY_URI", "")
+    client: GameProviderClient | None = None
+    last_ids: list[str] | None = None
+    while True:
+        try:
+            await aggregator.refresh_bindings()
+            profile_ids = sorted(aggregator.profile_ids())
+            if profile_ids != last_ids and uri:
+                if client is None:
+                    client = GameProviderClient(uri, "ext-aoe2lobby", "aoe2")
+                applied = await client.update_subscriptions(profile_ids)
+                if applied:
+                    last_ids = profile_ids
+                    logger.info("provider subscriptions synced: %d profiles", len(profile_ids))
+            elif last_ids is not None and not await _provider_alive(client):
+                last_ids = None
+        except Exception:
+            logger.warning("provider subscription sync failed — retrying next tick", exc_info=True)
+        await asyncio.sleep(interval_s)
+
+
+async def _provider_alive(client: Any | None) -> bool:
+    """Probe the provider so a resurrection re-syncs the subscriptions."""
+    if client is None:
+        return False
+    try:
+        await client.get_capabilities()
+        return True
+    except Exception:
+        return False
 
 
 async def _consume_provider_events(aggregator: LiveAggregator) -> None:

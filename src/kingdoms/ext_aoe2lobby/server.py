@@ -36,11 +36,16 @@ def main() -> None:
                 metadata=tuple(sorted(frame["metadata"].items())),
             )
 
+    async def update_subscriptions(profile_ids: list[str]) -> bool:
+        """Reconcile the upstream players subscription in place (one session)."""
+        return await adapter.set_subscribed_profiles(profile_ids)
+
     asyncio.run(
         serve_game_provider(
             DECLARED_CAPABILITIES,
             PROVIDER_ID,
             match_events=match_events,
+            update_subscriptions=update_subscriptions,
         )
     )
 

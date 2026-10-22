@@ -99,29 +99,40 @@ def test_render_dashboard_degraded_and_empty() -> None:
     assert "No linked players" in degraded
     populated = render_dashboard(
         {
-            "players": [{"user_id": "10", "profile_id": "A", "state": STATE_IN_GAME, "match_ref": "m1", "since": 1000}],
+            "players": [
+                {"user_id": "10", "profile_id": "A", "state": STATE_IN_GAME, "match_ref": "m1", "since": 1000}
+            ],
             "generated_at": 1,
             "degraded": False,
         }
     )
     assert "🟢 <@10>" in populated
+    assert "m1" in populated
 
 
-def test_snapshot_fingerprint_ignores_generated_at() -> None:
-    """An unchanged roster never triggers an edit: generated_at is excluded."""
-    from kingdoms.discord.live import _snapshot_fingerprint
+async def test_transitions_queued_for_the_event_stream() -> None:
+    bindings = [{**b, "profile_id": p} for b, p in zip(_bindings()._bindings[:2], ["A", "B"], strict=False)]
+    agg = LiveAggregator(FakeBindings(bindings))
+    await agg.refresh_bindings()
+    await agg.apply_event(FakeEvent(EVENT_LOBBY_OPENED, ("A",), 1_000, "match-1"))
+    transition = await agg.next_transition()
+    assert transition["profile_id"] == "A"
+    assert transition["user_id"] == "10"
+    assert transition["old_status"] == "offline"
+    assert transition["new_status"] == "in_lobby"
+    assert transition["match_ref"] == "match-1"
 
-    base = {"players": [{"profile_id": "A", "state": "in_lobby"}], "degraded": False}
-    first = _snapshot_fingerprint(base)
-    second = _snapshot_fingerprint({**base, "generated_at": 12345})
-    third = _snapshot_fingerprint({**base, "generated_at": 99999})
-    assert first == second == third
+
+async def test_no_transition_on_stateless_event() -> None:
+    agg = LiveAggregator(_bindings())
+    await agg.apply_event(FakeEvent("unknown_type", ("A",), 1_000))
+    assert agg.pending_transitions() == 0
 
 
-def test_snapshot_fingerprint_tracks_state_changes() -> None:
-    """A real state change produces a different fingerprint."""
-    from kingdoms.discord.live import _snapshot_fingerprint
-
-    idle = {"players": [{"profile_id": "A", "state": "offline"}], "degraded": False}
-    in_game = {"players": [{"profile_id": "A", "state": "in_game"}], "degraded": False}
-    assert _snapshot_fingerprint(idle) != _snapshot_fingerprint(in_game)
+async def test_profile_ids_lists_bound_profiles_sorted() -> None:
+    agg = LiveAggregator(FakeBindings([
+        {"user_id": "10", "game_key": "aoe2", "profile_id": "B"},
+        {"user_id": "20", "game_key": "aoe2", "profile_id": "A"},
+    ]))
+    await agg.refresh_bindings()
+    assert agg.profile_ids() == ("A", "B")
