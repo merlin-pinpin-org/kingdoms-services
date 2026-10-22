@@ -405,6 +405,25 @@ defender&nbsp;never&nbsp;does.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-mark_room_cleaned"><strong>mark_room_cleaned</strong></a>(self, attack_id: 'str') -&gt; 'None'</dt><dd><span class="code">Flag&nbsp;the&nbsp;battle&nbsp;room&nbsp;(channel&nbsp;+&nbsp;role)&nbsp;as&nbsp;cleaned&nbsp;up.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-next_phase_deadline"><strong>next_phase_deadline</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'datetime | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;nearest&nbsp;upcoming&nbsp;player-facing&nbsp;phase&nbsp;deadline&nbsp;(attack-phases-tick-v1).<br>
+&nbsp;<br>
+Drasah&nbsp;22/10:&nbsp;the&nbsp;phases&nbsp;are&nbsp;driven&nbsp;by&nbsp;the&nbsp;scheduler&nbsp;tick&nbsp;(5<br>
+minutes&nbsp;stock)&nbsp;—&nbsp;a&nbsp;T-15&nbsp;reveal,&nbsp;the&nbsp;meeting-time&nbsp;AI&nbsp;flip&nbsp;or&nbsp;the<br>
+AI's&nbsp;30-90&nbsp;s&nbsp;«&nbsp;confirmation&nbsp;»&nbsp;could&nbsp;each&nbsp;land&nbsp;up&nbsp;to&nbsp;5&nbsp;minutes<br>
+late.&nbsp;The&nbsp;loop&nbsp;asks&nbsp;this&nbsp;probe&nbsp;for&nbsp;the&nbsp;NEXT&nbsp;deadline&nbsp;it&nbsp;must<br>
+wake&nbsp;up&nbsp;for,&nbsp;then&nbsp;sleeps&nbsp;exactly&nbsp;that&nbsp;long&nbsp;(bounded&nbsp;by&nbsp;its&nbsp;stock<br>
+cadence):&nbsp;the&nbsp;timers&nbsp;are&nbsp;respected&nbsp;to&nbsp;the&nbsp;second&nbsp;instead&nbsp;of&nbsp;the<br>
+tick's&nbsp;granularity.<br>
+&nbsp;<br>
+The&nbsp;deadlines&nbsp;tracked&nbsp;are&nbsp;the&nbsp;player-facing&nbsp;ones&nbsp;—&nbsp;the&nbsp;reveal<br>
+cutoff&nbsp;(T-15),&nbsp;the&nbsp;meeting&nbsp;time&nbsp;T&nbsp;(the&nbsp;AI&nbsp;flip&nbsp;/&nbsp;the<br>
+anti-blocking&nbsp;default),&nbsp;the&nbsp;AI's&nbsp;``ai_validate_at``&nbsp;and<br>
+``ai_ready_at``&nbsp;(30-90&nbsp;s&nbsp;think-time)&nbsp;and&nbsp;the&nbsp;T+5&nbsp;no-show&nbsp;line<br>
+(``_phase_deadlines``).&nbsp;The&nbsp;hour-scale&nbsp;deadlines&nbsp;(score&nbsp;reminder<br>
+3h,&nbsp;dispute&nbsp;15h)&nbsp;stay&nbsp;on&nbsp;the&nbsp;stock&nbsp;cadence&nbsp;—&nbsp;5&nbsp;minutes&nbsp;of<br>
+granularity&nbsp;costs&nbsp;nothing&nbsp;there.&nbsp;``None``&nbsp;when&nbsp;no&nbsp;live&nbsp;attack<br>
+carries&nbsp;an&nbsp;upcoming&nbsp;deadline.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-open_meeting_now"><strong>open_meeting_now</strong></a>(self, attack_id: 'str') -&gt; 'AttackModel | None'</dt><dd><span class="code">Open&nbsp;the&nbsp;meeting&nbsp;early&nbsp;once&nbsp;both&nbsp;camps&nbsp;settled&nbsp;the&nbsp;sabotage.<br>
 &nbsp;<br>
 Drasah&nbsp;18/10&nbsp;v4:&nbsp;the&nbsp;vocal&nbsp;is&nbsp;wanted&nbsp;as&nbsp;soon&nbsp;as&nbsp;BOTH&nbsp;players<br>
@@ -2351,5 +2370,6 @@ Drasah&nbsp;18/10:&nbsp;a&nbsp;DECLARED&nbsp;attack&nbsp;keeps&nbsp;``siege``&nb
 <strong>TRAQUENARD_LOCK_HOURS</strong> = 2<br>
 <strong>TRAQUENARD_WINDOW_HOURS</strong> = 6<br>
 <strong>TYPE_CHECKING</strong> = False<br>
+<strong>UTC</strong> = datetime.timezone.utc<br>
 <strong>logger</strong> = &lt;Logger kingdoms.attacks (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -29,6 +29,12 @@ logger = logging.getLogger("kingdoms.events_loop")
 
 _TICK_SECONDS = 300
 
+# attack-phases-tick-v1 (Drasah 22/10): the loop wakes AT the next
+# attack deadline — the epsilon makes the tick land just past it, the
+# floor bounds the churn when a deadline is at the door.
+_ATTACK_TICK_EPSILON_SECONDS = 2.0
+_ATTACK_TICK_FLOOR_SECONDS = 5.0
+
 _EVENT_SCHEDULER_TASK: asyncio.Task[None] | None = None
 
 _ANNOUNCE_STRINGS: dict[str, dict[str, str]] = {
@@ -723,10 +729,45 @@ async def _beta_tick_seconds(bot: Any, default_seconds: int) -> int:
     return default_seconds
 
 
+async def _loop_sleep_seconds(bot: Any, default_seconds: int) -> int:
+    """Return the loop sleep for this iteration (attack-phases-tick-v1).
+
+    Drasah 22/10: « fais ce qu'il faut pour respecter les timers » —
+    the stock heartbeat (300 s, 60 s under an armed beta) let every
+    attack phase land up to 5 minutes late: the T-15 reveal, the
+    meeting-time AI flip, the attacker's draft DM, the AI's 30-90 s
+    draft/Prêt « think time » and the vocal opening each waited for the
+    next tick. The loop now asks the attacks service for the NEAREST
+    upcoming deadline and sleeps exactly that long (plus an epsilon, so
+    the tick lands just past the deadline) — bounded by the stock
+    cadence: an idle board sleeps as long as before, a deadline at the
+    door wakes the loop within seconds. Best effort: any probe failure
+    keeps the stock (or beta) cadence.
+    """
+    base = await _beta_tick_seconds(bot, default_seconds)
+    attacks_service = getattr(bot, "kingdoms_attacks_service", None)
+    if attacks_service is None:
+        return base
+    try:
+        now = game_now()
+        deadline = await attacks_service.next_phase_deadline(now=now)
+        if deadline is None:
+            return base
+        delta = (deadline - now).total_seconds()
+        if delta <= 0:
+            # A deadline already due: run the tick's work now.
+            return 1
+        seconds = max(_ATTACK_TICK_FLOOR_SECONDS, delta + _ATTACK_TICK_EPSILON_SECONDS)
+        return min(base, int(seconds))
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: attack deadline probe failed", exc_info=True)
+    return base
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
-        await asyncio.sleep(await _beta_tick_seconds(bot, tick_seconds))
+        await asyncio.sleep(await _loop_sleep_seconds(bot, tick_seconds))
         # machine-temps-v2: re-sync the game-clock offset cache from
         # the persisted season every tick — a restarted (or wiped)
         # process converges back to the test offset within one tick.

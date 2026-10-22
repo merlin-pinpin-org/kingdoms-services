@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms import chronicle
@@ -371,6 +371,45 @@ def phase_label(attack: AttackModel) -> str:
     if getattr(attack, "revealed", False) and attack.state is not AttackState.DECLARED:
         return "draft"
     return "siege"
+
+
+def _phase_deadlines(attack: AttackModel, config: KingdomsSeasonConfig) -> list[datetime]:
+    """Return the upcoming player-facing deadlines of ONE live attack (tick-v1).
+
+    The reveal cutoff (T-15) tracks the pending reveal of every state;
+    DECLARED then tracks the meeting time T (the AI flip at T); DEFENDED
+    tracks the draft outcome — the room opening at T once resolved, the
+    anti-blocking default otherwise (T for a human defense, T + the AI
+    draft grace vs the bot AI) — plus the AI's ``ai_validate_at``
+    think time; MEETING tracks the AI's ``ai_ready_at`` and the T+5
+    no-show line. Past deadlines stay in the list — the caller filters
+    them against ``now`` (a single comparison for the whole board).
+    """
+    deadlines: list[datetime] = []
+    if not attack.revealed:
+        deadlines.append(attack.expires_at - timedelta(minutes=config.attacks.defense_cutoff_minutes))
+    pickban = dict(attack.pickban)
+    score = dict(attack.score)
+    if attack.state is AttackState.DECLARED:
+        deadlines.append(attack.expires_at)
+    elif attack.state is AttackState.DEFENDED:
+        if pickban.get("resolved_pickban"):
+            # The room opens at T on the next score tick.
+            deadlines.append(attack.expires_at)
+        else:
+            # The anti-blocking default: T for a human defense, T +
+            # the AI draft grace vs the bot AI.
+            grace = config.attacks.ai_draft_grace_minutes if attack.ai_defender else 0
+            deadlines.append(attack.expires_at + timedelta(minutes=grace))
+        if attack.ai_defender and pickban.get("sent") and pickban.get("ai_validate_at"):
+            deadlines.append(datetime.fromtimestamp(float(pickban["ai_validate_at"]), tz=UTC))
+    elif attack.state is AttackState.MEETING:
+        if score.get("ai_ready_at"):
+            deadlines.append(datetime.fromtimestamp(float(score["ai_ready_at"]), tz=UTC))
+        ready_deadline = int(score.get("ready_deadline") or 0)
+        if ready_deadline:
+            deadlines.append(datetime.fromtimestamp(ready_deadline, tz=UTC))
+    return deadlines
 
 
 class AttackService:
@@ -1538,6 +1577,38 @@ class AttackService:
                 attack.map_key,
             )
         return due
+
+    async def next_phase_deadline(self, *, now: datetime | None = None) -> datetime | None:
+        """Return the nearest upcoming player-facing phase deadline (attack-phases-tick-v1).
+
+        Drasah 22/10: the phases are driven by the scheduler tick (5
+        minutes stock) — a T-15 reveal, the meeting-time AI flip or the
+        AI's 30-90 s « confirmation » could each land up to 5 minutes
+        late. The loop asks this probe for the NEXT deadline it must
+        wake up for, then sleeps exactly that long (bounded by its stock
+        cadence): the timers are respected to the second instead of the
+        tick's granularity.
+
+        The deadlines tracked are the player-facing ones — the reveal
+        cutoff (T-15), the meeting time T (the AI flip / the
+        anti-blocking default), the AI's ``ai_validate_at`` and
+        ``ai_ready_at`` (30-90 s think-time) and the T+5 no-show line
+        (``_phase_deadlines``). The hour-scale deadlines (score reminder
+        3h, dispute 15h) stay on the stock cadence — 5 minutes of
+        granularity costs nothing there. ``None`` when no live attack
+        carries an upcoming deadline.
+        """
+        timestamp = now or _now()
+        nearest: datetime | None = None
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.is_over:
+                continue
+            for candidate in _phase_deadlines(attack, self._config):
+                if candidate <= timestamp:
+                    continue
+                if nearest is None or candidate < nearest:
+                    nearest = candidate
+        return nearest
 
     async def _require_sabotage_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:
         """Fetch the attack and enforce the sabotage-phase window (v4)."""
