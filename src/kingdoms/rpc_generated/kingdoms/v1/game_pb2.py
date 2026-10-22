@@ -4,87 +4,82 @@
 # source: kingdoms/v1/game.proto
 # Protobuf Python Version: 7.35.1
 """Generated protocol buffer code."""
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-_runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    7,
-    35,
-    1,
-    '',
-    'kingdoms/v1/game.proto'
-)
+
+_runtime_version.ValidateProtobufRuntimeVersion(_runtime_version.Domain.PUBLIC, 7, 35, 1, "", "kingdoms/v1/game.proto")
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16kingdoms/v1/game.proto\x12\x0bkingdoms.v1\"\x15\n\x13\x43\x61pabilitiesRequest\"\x8a\x01\n\x0c\x43\x61pabilities\x12\x13\n\x0bprovider_id\x18\x01 \x01(\t\x12\x10\n\x08game_key\x18\x02 \x01(\t\x12\x10\n\x08realtime\x18\x03 \x01(\x08\x12\x18\n\x10reliable_results\x18\x04 \x01(\x08\x12\x11\n\tcheck_map\x18\x05 \x01(\x08\x12\x14\n\x0cplayer_stats\x18\x06 \x01(\x08\"+\n\x15ResolveProfileRequest\x12\x12\n\nprofile_id\x18\x01 \x01(\t\":\n\x16ResolveProfileResponse\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61liases\x18\x02 \x03(\t\")\n\x18StreamMatchEventsRequest\x12\r\n\x05since\x18\x01 \x01(\x03\"\xc1\x01\n\nMatchEvent\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x13\n\x0boccurred_at\x18\x03 \x01(\x03\x12\x13\n\x0bprofile_ids\x18\x04 \x03(\t\x12\x37\n\x08metadata\x18\x05 \x03(\x0b\x32%.kingdoms.v1.MatchEvent.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"*\n\x15GetMatchResultRequest\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\"\xf6\x01\n\x0bMatchResult\x12\x19\n\x11winner_profile_id\x18\x01 \x01(\t\x12\x19\n\x11loser_profile_ids\x18\x02 \x03(\t\x12\x10\n\x08map_name\x18\x03 \x01(\t\x12\x13\n\x0b\x64uration_ms\x18\x04 \x01(\x03\x12\x10\n\x08\x65nded_at\x18\x05 \x01(\x03\x12\x38\n\x08\x66\x61\x63tions\x18\x06 \x03(\x0b\x32&.kingdoms.v1.MatchResult.FactionsEntry\x12\r\n\x05\x66ound\x18\x07 \x01(\x08\x1a/\n\rFactionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"+\n\x15GetPlayerStatsRequest\x12\x12\n\nprofile_id\x18\x01 \x01(\t\"6\n\x0bPlayerStats\x12\'\n\x06\x62locks\x18\x01 \x03(\x0b\x32\x17.kingdoms.v1.StatsBlock\"D\n\nStatsBlock\x12\x0c\n\x04name\x18\x01 \x01(\t\x12(\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x17.kingdoms.v1.StatsEntry\"(\n\nStatsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\")\n\x14GetMatchLinksRequest\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\"2\n\nMatchLinks\x12$\n\x05links\x18\x01 \x03(\x0b\x32\x15.kingdoms.v1.GameLink\":\n\x08GameLink\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0b\n\x03url\x18\x02 \x01(\t\x12\x12\n\nscheme_url\x18\x03 \x01(\t\"+\n\x16GetMatchDetailsRequest\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\"t\n\x04Slot\x12\x12\n\nslot_index\x18\x01 \x01(\x05\x12\x12\n\nprofile_id\x18\x02 \x01(\t\x12\x13\n\x0b\x66\x61\x63tion_key\x18\x03 \x01(\t\x12\x0c\n\x04team\x18\x04 \x01(\x05\x12\x0e\n\x06\x66illed\x18\x05 \x01(\x08\x12\x11\n\tslot_kind\x18\x06 \x01(\t\"\xe6\x01\n\x0cMatchDetails\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\x12\x10\n\x08map_name\x18\x02 \x01(\t\x12 \n\x05slots\x18\x03 \x03(\x0b\x32\x11.kingdoms.v1.Slot\x12\x37\n\x07options\x18\x04 \x03(\x0b\x32&.kingdoms.v1.MatchDetails.OptionsEntry\x12\x12\n\nstarted_at\x18\x05 \x01(\x03\x12\x12\n\nmatch_kind\x18\x06 \x01(\t\x1a.\n\x0cOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x11\n\x0fListMapsRequest\".\n\x08GameMaps\x12\"\n\x04maps\x18\x01 \x03(\x0b\x32\x14.kingdoms.v1.GameMap\"P\n\x07GameMap\x12\x0f\n\x07map_key\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08map_type\x18\x03 \x01(\t\x12\x14\n\x0cresource_url\x18\x04 \x01(\t2\x89\x05\n\x04Game\x12N\n\x0fGetCapabilities\x12 .kingdoms.v1.CapabilitiesRequest\x1a\x19.kingdoms.v1.Capabilities\x12Y\n\x0eResolveProfile\x12\".kingdoms.v1.ResolveProfileRequest\x1a#.kingdoms.v1.ResolveProfileResponse\x12U\n\x11StreamMatchEvents\x12%.kingdoms.v1.StreamMatchEventsRequest\x1a\x17.kingdoms.v1.MatchEvent0\x01\x12N\n\x0eGetMatchResult\x12\".kingdoms.v1.GetMatchResultRequest\x1a\x18.kingdoms.v1.MatchResult\x12N\n\x0eGetPlayerStats\x12\".kingdoms.v1.GetPlayerStatsRequest\x1a\x18.kingdoms.v1.PlayerStats\x12K\n\rGetMatchLinks\x12!.kingdoms.v1.GetMatchLinksRequest\x1a\x17.kingdoms.v1.MatchLinks\x12Q\n\x0fGetMatchDetails\x12#.kingdoms.v1.GetMatchDetailsRequest\x1a\x19.kingdoms.v1.MatchDetails\x12?\n\x08ListMaps\x12\x1c.kingdoms.v1.ListMapsRequest\x1a\x15.kingdoms.v1.GameMapsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x16kingdoms/v1/game.proto\x12\x0bkingdoms.v1"\x15\n\x13\x43\x61pabilitiesRequest"\x8a\x01\n\x0c\x43\x61pabilities\x12\x13\n\x0bprovider_id\x18\x01 \x01(\t\x12\x10\n\x08game_key\x18\x02 \x01(\t\x12\x10\n\x08realtime\x18\x03 \x01(\x08\x12\x18\n\x10reliable_results\x18\x04 \x01(\x08\x12\x11\n\tcheck_map\x18\x05 \x01(\x08\x12\x14\n\x0cplayer_stats\x18\x06 \x01(\x08"+\n\x15ResolveProfileRequest\x12\x12\n\nprofile_id\x18\x01 \x01(\t":\n\x16ResolveProfileResponse\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61liases\x18\x02 \x03(\t")\n\x18StreamMatchEventsRequest\x12\r\n\x05since\x18\x01 \x01(\x03"\xc1\x01\n\nMatchEvent\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x13\n\x0boccurred_at\x18\x03 \x01(\x03\x12\x13\n\x0bprofile_ids\x18\x04 \x03(\t\x12\x37\n\x08metadata\x18\x05 \x03(\x0b\x32%.kingdoms.v1.MatchEvent.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"*\n\x15GetMatchResultRequest\x12\x11\n\tmatch_ref\x18\x01 \x01(\t"\xf6\x01\n\x0bMatchResult\x12\x19\n\x11winner_profile_id\x18\x01 \x01(\t\x12\x19\n\x11loser_profile_ids\x18\x02 \x03(\t\x12\x10\n\x08map_name\x18\x03 \x01(\t\x12\x13\n\x0b\x64uration_ms\x18\x04 \x01(\x03\x12\x10\n\x08\x65nded_at\x18\x05 \x01(\x03\x12\x38\n\x08\x66\x61\x63tions\x18\x06 \x03(\x0b\x32&.kingdoms.v1.MatchResult.FactionsEntry\x12\r\n\x05\x66ound\x18\x07 \x01(\x08\x1a/\n\rFactionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"+\n\x15GetPlayerStatsRequest\x12\x12\n\nprofile_id\x18\x01 \x01(\t"6\n\x0bPlayerStats\x12\'\n\x06\x62locks\x18\x01 \x03(\x0b\x32\x17.kingdoms.v1.StatsBlock"D\n\nStatsBlock\x12\x0c\n\x04name\x18\x01 \x01(\t\x12(\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x17.kingdoms.v1.StatsEntry"(\n\nStatsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t")\n\x14GetMatchLinksRequest\x12\x11\n\tmatch_ref\x18\x01 \x01(\t"2\n\nMatchLinks\x12$\n\x05links\x18\x01 \x03(\x0b\x32\x15.kingdoms.v1.GameLink":\n\x08GameLink\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0b\n\x03url\x18\x02 \x01(\t\x12\x12\n\nscheme_url\x18\x03 \x01(\t"+\n\x16GetMatchDetailsRequest\x12\x11\n\tmatch_ref\x18\x01 \x01(\t"t\n\x04Slot\x12\x12\n\nslot_index\x18\x01 \x01(\x05\x12\x12\n\nprofile_id\x18\x02 \x01(\t\x12\x13\n\x0b\x66\x61\x63tion_key\x18\x03 \x01(\t\x12\x0c\n\x04team\x18\x04 \x01(\x05\x12\x0e\n\x06\x66illed\x18\x05 \x01(\x08\x12\x11\n\tslot_kind\x18\x06 \x01(\t"\xe6\x01\n\x0cMatchDetails\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\x12\x10\n\x08map_name\x18\x02 \x01(\t\x12 \n\x05slots\x18\x03 \x03(\x0b\x32\x11.kingdoms.v1.Slot\x12\x37\n\x07options\x18\x04 \x03(\x0b\x32&.kingdoms.v1.MatchDetails.OptionsEntry\x12\x12\n\nstarted_at\x18\x05 \x01(\x03\x12\x12\n\nmatch_kind\x18\x06 \x01(\t\x1a.\n\x0cOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"\x11\n\x0fListMapsRequest".\n\x08GameMaps\x12"\n\x04maps\x18\x01 \x03(\x0b\x32\x14.kingdoms.v1.GameMap"P\n\x07GameMap\x12\x0f\n\x07map_key\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08map_type\x18\x03 \x01(\t\x12\x14\n\x0cresource_url\x18\x04 \x01(\t2\x89\x05\n\x04Game\x12N\n\x0fGetCapabilities\x12 .kingdoms.v1.CapabilitiesRequest\x1a\x19.kingdoms.v1.Capabilities\x12Y\n\x0eResolveProfile\x12".kingdoms.v1.ResolveProfileRequest\x1a#.kingdoms.v1.ResolveProfileResponse\x12U\n\x11StreamMatchEvents\x12%.kingdoms.v1.StreamMatchEventsRequest\x1a\x17.kingdoms.v1.MatchEvent0\x01\x12N\n\x0eGetMatchResult\x12".kingdoms.v1.GetMatchResultRequest\x1a\x18.kingdoms.v1.MatchResult\x12N\n\x0eGetPlayerStats\x12".kingdoms.v1.GetPlayerStatsRequest\x1a\x18.kingdoms.v1.PlayerStats\x12K\n\rGetMatchLinks\x12!.kingdoms.v1.GetMatchLinksRequest\x1a\x17.kingdoms.v1.MatchLinks\x12Q\n\x0fGetMatchDetails\x12#.kingdoms.v1.GetMatchDetailsRequest\x1a\x19.kingdoms.v1.MatchDetails\x12?\n\x08ListMaps\x12\x1c.kingdoms.v1.ListMapsRequest\x1a\x15.kingdoms.v1.GameMapsb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kingdoms.v1.game_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "kingdoms.v1.game_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_MATCHEVENT_METADATAENTRY']._loaded_options = None
-  _globals['_MATCHEVENT_METADATAENTRY']._serialized_options = b'8\001'
-  _globals['_MATCHRESULT_FACTIONSENTRY']._loaded_options = None
-  _globals['_MATCHRESULT_FACTIONSENTRY']._serialized_options = b'8\001'
-  _globals['_MATCHDETAILS_OPTIONSENTRY']._loaded_options = None
-  _globals['_MATCHDETAILS_OPTIONSENTRY']._serialized_options = b'8\001'
-  _globals['_CAPABILITIESREQUEST']._serialized_start=39
-  _globals['_CAPABILITIESREQUEST']._serialized_end=60
-  _globals['_CAPABILITIES']._serialized_start=63
-  _globals['_CAPABILITIES']._serialized_end=201
-  _globals['_RESOLVEPROFILEREQUEST']._serialized_start=203
-  _globals['_RESOLVEPROFILEREQUEST']._serialized_end=246
-  _globals['_RESOLVEPROFILERESPONSE']._serialized_start=248
-  _globals['_RESOLVEPROFILERESPONSE']._serialized_end=306
-  _globals['_STREAMMATCHEVENTSREQUEST']._serialized_start=308
-  _globals['_STREAMMATCHEVENTSREQUEST']._serialized_end=349
-  _globals['_MATCHEVENT']._serialized_start=352
-  _globals['_MATCHEVENT']._serialized_end=545
-  _globals['_MATCHEVENT_METADATAENTRY']._serialized_start=498
-  _globals['_MATCHEVENT_METADATAENTRY']._serialized_end=545
-  _globals['_GETMATCHRESULTREQUEST']._serialized_start=547
-  _globals['_GETMATCHRESULTREQUEST']._serialized_end=589
-  _globals['_MATCHRESULT']._serialized_start=592
-  _globals['_MATCHRESULT']._serialized_end=838
-  _globals['_MATCHRESULT_FACTIONSENTRY']._serialized_start=791
-  _globals['_MATCHRESULT_FACTIONSENTRY']._serialized_end=838
-  _globals['_GETPLAYERSTATSREQUEST']._serialized_start=840
-  _globals['_GETPLAYERSTATSREQUEST']._serialized_end=883
-  _globals['_PLAYERSTATS']._serialized_start=885
-  _globals['_PLAYERSTATS']._serialized_end=939
-  _globals['_STATSBLOCK']._serialized_start=941
-  _globals['_STATSBLOCK']._serialized_end=1009
-  _globals['_STATSENTRY']._serialized_start=1011
-  _globals['_STATSENTRY']._serialized_end=1051
-  _globals['_GETMATCHLINKSREQUEST']._serialized_start=1053
-  _globals['_GETMATCHLINKSREQUEST']._serialized_end=1094
-  _globals['_MATCHLINKS']._serialized_start=1096
-  _globals['_MATCHLINKS']._serialized_end=1146
-  _globals['_GAMELINK']._serialized_start=1148
-  _globals['_GAMELINK']._serialized_end=1206
-  _globals['_GETMATCHDETAILSREQUEST']._serialized_start=1208
-  _globals['_GETMATCHDETAILSREQUEST']._serialized_end=1251
-  _globals['_SLOT']._serialized_start=1253
-  _globals['_SLOT']._serialized_end=1369
-  _globals['_MATCHDETAILS']._serialized_start=1372
-  _globals['_MATCHDETAILS']._serialized_end=1602
-  _globals['_MATCHDETAILS_OPTIONSENTRY']._serialized_start=1556
-  _globals['_MATCHDETAILS_OPTIONSENTRY']._serialized_end=1602
-  _globals['_LISTMAPSREQUEST']._serialized_start=1604
-  _globals['_LISTMAPSREQUEST']._serialized_end=1621
-  _globals['_GAMEMAPS']._serialized_start=1623
-  _globals['_GAMEMAPS']._serialized_end=1669
-  _globals['_GAMEMAP']._serialized_start=1671
-  _globals['_GAMEMAP']._serialized_end=1751
-  _globals['_GAME']._serialized_start=1754
-  _globals['_GAME']._serialized_end=2403
+    DESCRIPTOR._loaded_options = None
+    _globals["_MATCHEVENT_METADATAENTRY"]._loaded_options = None
+    _globals["_MATCHEVENT_METADATAENTRY"]._serialized_options = b"8\001"
+    _globals["_MATCHRESULT_FACTIONSENTRY"]._loaded_options = None
+    _globals["_MATCHRESULT_FACTIONSENTRY"]._serialized_options = b"8\001"
+    _globals["_MATCHDETAILS_OPTIONSENTRY"]._loaded_options = None
+    _globals["_MATCHDETAILS_OPTIONSENTRY"]._serialized_options = b"8\001"
+    _globals["_CAPABILITIESREQUEST"]._serialized_start = 39
+    _globals["_CAPABILITIESREQUEST"]._serialized_end = 60
+    _globals["_CAPABILITIES"]._serialized_start = 63
+    _globals["_CAPABILITIES"]._serialized_end = 201
+    _globals["_RESOLVEPROFILEREQUEST"]._serialized_start = 203
+    _globals["_RESOLVEPROFILEREQUEST"]._serialized_end = 246
+    _globals["_RESOLVEPROFILERESPONSE"]._serialized_start = 248
+    _globals["_RESOLVEPROFILERESPONSE"]._serialized_end = 306
+    _globals["_STREAMMATCHEVENTSREQUEST"]._serialized_start = 308
+    _globals["_STREAMMATCHEVENTSREQUEST"]._serialized_end = 349
+    _globals["_MATCHEVENT"]._serialized_start = 352
+    _globals["_MATCHEVENT"]._serialized_end = 545
+    _globals["_MATCHEVENT_METADATAENTRY"]._serialized_start = 498
+    _globals["_MATCHEVENT_METADATAENTRY"]._serialized_end = 545
+    _globals["_GETMATCHRESULTREQUEST"]._serialized_start = 547
+    _globals["_GETMATCHRESULTREQUEST"]._serialized_end = 589
+    _globals["_MATCHRESULT"]._serialized_start = 592
+    _globals["_MATCHRESULT"]._serialized_end = 838
+    _globals["_MATCHRESULT_FACTIONSENTRY"]._serialized_start = 791
+    _globals["_MATCHRESULT_FACTIONSENTRY"]._serialized_end = 838
+    _globals["_GETPLAYERSTATSREQUEST"]._serialized_start = 840
+    _globals["_GETPLAYERSTATSREQUEST"]._serialized_end = 883
+    _globals["_PLAYERSTATS"]._serialized_start = 885
+    _globals["_PLAYERSTATS"]._serialized_end = 939
+    _globals["_STATSBLOCK"]._serialized_start = 941
+    _globals["_STATSBLOCK"]._serialized_end = 1009
+    _globals["_STATSENTRY"]._serialized_start = 1011
+    _globals["_STATSENTRY"]._serialized_end = 1051
+    _globals["_GETMATCHLINKSREQUEST"]._serialized_start = 1053
+    _globals["_GETMATCHLINKSREQUEST"]._serialized_end = 1094
+    _globals["_MATCHLINKS"]._serialized_start = 1096
+    _globals["_MATCHLINKS"]._serialized_end = 1146
+    _globals["_GAMELINK"]._serialized_start = 1148
+    _globals["_GAMELINK"]._serialized_end = 1206
+    _globals["_GETMATCHDETAILSREQUEST"]._serialized_start = 1208
+    _globals["_GETMATCHDETAILSREQUEST"]._serialized_end = 1251
+    _globals["_SLOT"]._serialized_start = 1253
+    _globals["_SLOT"]._serialized_end = 1369
+    _globals["_MATCHDETAILS"]._serialized_start = 1372
+    _globals["_MATCHDETAILS"]._serialized_end = 1602
+    _globals["_MATCHDETAILS_OPTIONSENTRY"]._serialized_start = 1556
+    _globals["_MATCHDETAILS_OPTIONSENTRY"]._serialized_end = 1602
+    _globals["_LISTMAPSREQUEST"]._serialized_start = 1604
+    _globals["_LISTMAPSREQUEST"]._serialized_end = 1621
+    _globals["_GAMEMAPS"]._serialized_start = 1623
+    _globals["_GAMEMAPS"]._serialized_end = 1669
+    _globals["_GAMEMAP"]._serialized_start = 1671
+    _globals["_GAMEMAP"]._serialized_end = 1751
+    _globals["_GAME"]._serialized_start = 1754
+    _globals["_GAME"]._serialized_end = 2403
 # @@protoc_insertion_point(module_scope)

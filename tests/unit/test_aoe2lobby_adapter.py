@@ -13,8 +13,7 @@ def test_normalize_known_event() -> None:
     """A lobby_created frame maps to the normalized lobby_opened shape."""
     adapter = Aoe2LobbyAdapter()
     frame = adapter._normalize(
-        '{"type": "lobby_created", "lobby_id": 42, "timestamp": 1700000000,'
-        ' "players": [123, 456], "map": "Arabia"}'
+        '{"type": "lobby_created", "lobby_id": 42, "timestamp": 1700000000, "players": [123, 456], "map": "Arabia"}'
     )
     assert frame == {
         "match_ref": "42",
@@ -57,8 +56,9 @@ def test_track_grace_feeds_the_window() -> None:
     from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S
 
     adapter = Aoe2LobbyAdapter()
-    adapter._track_grace({"match_ref": "m1", "type": "lobby_closed", "occurred_at": 0,
-                          "profile_ids": [], "metadata": {}})
+    adapter._track_grace(
+        {"match_ref": "m1", "type": "lobby_closed", "occurred_at": 0, "profile_ids": [], "metadata": {}}
+    )
     closed_at = adapter._grace._closed_at["m1"]
     assert adapter._grace.should_downgrade("m1", now=closed_at + GRACE_PERIOD_S - 1) is False
     assert adapter._grace.should_downgrade("m1", now=closed_at + GRACE_PERIOD_S) is True
@@ -67,20 +67,22 @@ def test_track_grace_feeds_the_window() -> None:
 def test_track_grace_game_started_cancels_downgrade() -> None:
     """A game_started inside the window cancels the pending downgrade."""
     adapter = Aoe2LobbyAdapter()
-    adapter._track_grace({"match_ref": "m1", "type": "lobby_closed", "occurred_at": 0,
-                          "profile_ids": [], "metadata": {}})
-    adapter._track_grace({"match_ref": "m1", "type": "game_started", "occurred_at": 1,
-                          "profile_ids": [], "metadata": {}})
+    adapter._track_grace(
+        {"match_ref": "m1", "type": "lobby_closed", "occurred_at": 0, "profile_ids": [], "metadata": {}}
+    )
+    adapter._track_grace(
+        {"match_ref": "m1", "type": "game_started", "occurred_at": 1, "profile_ids": [], "metadata": {}}
+    )
     assert adapter._grace.should_downgrade("m1", now=1e9) is False
 
 
 def test_track_grace_game_ended_forgets() -> None:
     """A game_ended drops the tracking entirely (terminal state)."""
     adapter = Aoe2LobbyAdapter()
-    adapter._track_grace({"match_ref": "m1", "type": "lobby_closed", "occurred_at": 0,
-                          "profile_ids": [], "metadata": {}})
-    adapter._track_grace({"match_ref": "m1", "type": "game_ended", "occurred_at": 1,
-                          "profile_ids": [], "metadata": {}})
+    adapter._track_grace(
+        {"match_ref": "m1", "type": "lobby_closed", "occurred_at": 0, "profile_ids": [], "metadata": {}}
+    )
+    adapter._track_grace({"match_ref": "m1", "type": "game_ended", "occurred_at": 1, "profile_ids": [], "metadata": {}})
     assert "m1" not in adapter._grace._closed_at
 
 

@@ -8,12 +8,14 @@ the services, never direct DB edits, and remains safe to re-run.
 
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from kingdoms.core.ids import map_entry_id, pool_entry_id
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.game_keys import validate_game_key
 
@@ -62,9 +64,19 @@ class MongoAoE2Database:
         return [doc async for doc in cursor]
 
     async def find_game_keys(self) -> list[str]:
-        """List the distinct game keys present in the maps catalog."""
-        keys = await self._database[collection_name("maps")].distinct("game_key")
-        return [str(k) for k in keys if k]
+        """List the distinct game keys across the content collections.
+
+        Factions (civs) and maps each carry the game key: a game whose
+        civs were synced (no map yet) is as known as one with maps.
+        """
+        keys: list[str] = []
+        for kind in ("maps", "factions"):
+            try:
+                found = await self._database[collection_name(kind)].distinct("game_key")
+                keys.extend(str(k) for k in found if k)
+            except Exception:
+                logging.getLogger(__name__).debug("game keys scan failed for %s", kind, exc_info=True)
+        return sorted(set(keys))
 
     async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         """List the non-archived civs for a game, scoped like the maps."""
@@ -81,6 +93,14 @@ class MongoAoE2Database:
         guilds but shared); unscoped: every pool of the game.
         """
         query: dict[str, Any] = {"game_key": game_key, "archived_at": None}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}, {"is_public": True}]
+        cursor = self._database[collection_name("map_pools")].find(query)
+        return [doc async for doc in cursor]
+
+    async def find_all_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List EVERY map pool (archived included) — the forums mirror all."""
+        query: dict[str, Any] = {"game_key": game_key}
         if guild_id is not None:
             query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}, {"is_public": True}]
         cursor = self._database[collection_name("map_pools")].find(query)
@@ -230,9 +250,9 @@ async def seed_aoe2(
     result["factions"] = counts["factions"]
     result["rules"] = counts.get("rules", 0)
     for spec in data.get("map_pools", []) or []:
-        pool_id = f"map_pool:{game_key}:{spec['name']}"
+        pool_id = pool_entry_id(game_key, spec["name"], None)
         if await game_data.get_map_pool(pool_id) is None:
-            map_ids = tuple(f"map:{game_key}:{m}" for m in spec.get("maps", []))
+            map_ids = tuple(map_entry_id(game_key, m, None) for m in spec.get("maps", []))
             await game_data.create_map_pool(
                 game_key,
                 spec["name"],
@@ -240,6 +260,36 @@ async def seed_aoe2(
                 description=spec.get("description", ""),
             )
             result["map_pools"] += 1
+    await _seed_provider_mappings(database, data)
+
     if ladder_seeder is not None:
         await ladder_seeder(adapter, data, game_key, now_ms, result)
     return result
+
+
+async def _seed_provider_mappings(database: Any, data: dict[str, Any]) -> int:
+    """Idempotently seed the provider mapping tables from the YAML document.
+
+    The optional ``provider_mappings`` section lists providers, each
+    with per-kind tables (``factions``, ``maps``) mapping catalog names
+    to the provider's own ids. Seeding replaces each provider's tables
+    wholesale — the YAML is the source of truth for seeded mappings.
+    """
+    specs = data.get("provider_mappings", []) or []
+    if not specs:
+        return 0
+    from kingdoms.core.services.provider_mapping import ProviderMappingService
+    from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
+
+    service = ProviderMappingService(MongoProviderMappingDatabase(database))
+    seeded = 0
+    for spec in specs:
+        provider = str(spec.get("provider", "")).strip()
+        if not provider:
+            continue
+        for kind in ("factions", "maps"):
+            table = spec.get(kind) or {}
+            if table:
+                await service.update_kind(provider, kind, {str(k): str(v) for k, v in table.items()})
+        seeded += 1
+    return seeded

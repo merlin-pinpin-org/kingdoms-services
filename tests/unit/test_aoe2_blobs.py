@@ -41,9 +41,7 @@ def _options(pairs: list[tuple[str, str]]) -> str:
     the double-base64 format confirmed against the real payloads.
     """
     records = [f"{k}:{v}" for k, v in pairs]
-    stream = bytes([len(records)]) + b"".join(
-        struct.pack("<I", len(r.encode())) + r.encode() for r in records
-    )
+    stream = bytes([len(records)]) + b"".join(struct.pack("<I", len(r.encode())) + r.encode() for r in records)
     return _encode(base64.b64encode(stream))
 
 

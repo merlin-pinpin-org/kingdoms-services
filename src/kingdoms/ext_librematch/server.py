@@ -22,6 +22,10 @@ def main() -> None:
     from kingdoms.ext_librematch import DECLARED_CAPABILITIES, PROVIDER_ID
     from kingdoms.ext_librematch.adapter import LibrematchAdapter
 
+    # The community leaderboard endpoint is PUBLIC — no API key gates
+    # player_stats (the 2026-10-16 lesson: the key gate rejected every
+    # profile while GetPersonalStat answers anyone). The declared
+    # capabilities stand as-is.
     redis_uri = os.environ.get("REDIS_URI", "")
     rate_limiter = None
     if redis_uri:
@@ -34,7 +38,6 @@ def main() -> None:
 
     adapter = LibrematchAdapter(
         base_url=os.environ.get("LIBREMATCH_API_URL", "https://aoe-api.worldsedgelink.com"),
-        api_key=os.environ.get("LIBREMATCH_API_KEY", ""),
         rate_limiter=rate_limiter,
     )
 
@@ -47,7 +50,7 @@ def main() -> None:
         return await adapter.list_maps()
 
     async def player_stats(profile_id: str) -> PlayerStats | None:
-        """Fetch a profile's leaderboard blocks (None: degraded, no key)."""
+        """Fetch a profile's leaderboard blocks (None: degraded transport)."""
         return await adapter.player_stats(profile_id)
 
     asyncio.run(
