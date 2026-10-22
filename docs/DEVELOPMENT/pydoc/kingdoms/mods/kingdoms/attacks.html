@@ -422,7 +422,15 @@ anti-blocking&nbsp;default),&nbsp;the&nbsp;AI's&nbsp;``ai_validate_at``&nbsp;and
 (``_phase_deadlines``).&nbsp;The&nbsp;hour-scale&nbsp;deadlines&nbsp;(score&nbsp;reminder<br>
 3h,&nbsp;dispute&nbsp;15h)&nbsp;stay&nbsp;on&nbsp;the&nbsp;stock&nbsp;cadence&nbsp;—&nbsp;5&nbsp;minutes&nbsp;of<br>
 granularity&nbsp;costs&nbsp;nothing&nbsp;there.&nbsp;``None``&nbsp;when&nbsp;no&nbsp;live&nbsp;attack<br>
-carries&nbsp;an&nbsp;upcoming&nbsp;deadline.</span></dd></dl>
+carries&nbsp;an&nbsp;upcoming&nbsp;deadline.<br>
+&nbsp;<br>
+attack-phases-tick-v2&nbsp;(Drasah&nbsp;22/10,&nbsp;live&nbsp;beta&nbsp;report):&nbsp;the<br>
+ACTION-triggered&nbsp;steps&nbsp;(the&nbsp;T&nbsp;flip&nbsp;arming&nbsp;the&nbsp;draft,&nbsp;the<br>
+attacker's&nbsp;validation,&nbsp;a&nbsp;resolution&nbsp;past&nbsp;T)&nbsp;carry&nbsp;no&nbsp;clock&nbsp;—<br>
+``_phase_advance_due``&nbsp;flags&nbsp;them&nbsp;and&nbsp;the&nbsp;probe&nbsp;returns&nbsp;``now``<br>
+so&nbsp;the&nbsp;loop&nbsp;runs&nbsp;its&nbsp;work&nbsp;within&nbsp;the&nbsp;second&nbsp;instead&nbsp;of&nbsp;waiting<br>
+the&nbsp;base&nbsp;tick.&nbsp;Every&nbsp;urgent&nbsp;step&nbsp;is&nbsp;a&nbsp;service-side&nbsp;state&nbsp;flip,<br>
+so&nbsp;one&nbsp;pass&nbsp;clears&nbsp;it&nbsp;—&nbsp;the&nbsp;loop&nbsp;never&nbsp;spins.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-open_meeting_now"><strong>open_meeting_now</strong></a>(self, attack_id: 'str') -&gt; 'AttackModel | None'</dt><dd><span class="code">Open&nbsp;the&nbsp;meeting&nbsp;early&nbsp;once&nbsp;both&nbsp;camps&nbsp;settled&nbsp;the&nbsp;sabotage.<br>
 &nbsp;<br>

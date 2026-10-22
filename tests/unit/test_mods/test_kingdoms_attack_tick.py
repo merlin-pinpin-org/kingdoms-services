@@ -200,3 +200,84 @@ async def test_a_deadline_at_the_door_runs_now_and_the_floor_bounds_the_sleep() 
 async def test_a_probe_failure_keeps_the_stock_cadence() -> None:
     bot = _FakeBot(_FakeAttacks(_in(30), error=True))
     assert await _loop_sleep_seconds(bot, 300) == 300
+
+
+# ---------------------------------------------------------------------------
+# attack-phases-tick-v2 — the ACTION-triggered steps are urgent
+# ---------------------------------------------------------------------------
+
+
+async def test_the_meeting_time_flip_is_urgent_the_draft_dm_leaves_now() -> None:
+    """v2: at T the AI flip leaves the DEFENDED+unsent draft DUE NOW —
+    the probe returns ``now`` so the DM leaves within the second
+    instead of waiting the base tick (the live beta report)."""
+    bundle = _PhaseBundle()
+    await _launch(bundle)
+    await bundle.declared()
+    # Nobody defended: the AI flip at T reveals the attack — the draft
+    # DM is now due and carries no clock of its own.
+    await bundle.attacks.expire_stale(now=_T)
+    assert await bundle.attacks.next_phase_deadline(now=_T) == _T
+    # One tick clears it: the DMs are sent, the AI's validate takes over.
+    await bundle.attacks.pick_ban_due(now=_T)
+    probe = _T + timedelta(seconds=5)
+    assert await bundle.attacks.next_phase_deadline(now=probe) != probe
+
+
+async def test_the_attacker_validation_is_urgent_the_reveal_resolves_now() -> None:
+    """v2: once BOTH sides validated (the AI first, the attacker after)
+    the unresolved pick & ban is DUE NOW — the resolution and the
+    reveal DMs leave within the second."""
+    bundle = _PhaseBundle()
+    await _launch(bundle)
+    attack = await bundle.declared()
+    await bundle.attacks.expire_stale(now=_T)
+    await bundle.attacks.pick_ban_due(now=_T)
+    # The AI validates its 3 random picks at ``ai_validate_at``.
+    flipped = (await bundle.attacks.ai_draft_due(now=_T + timedelta(minutes=2)))[0]
+    assert flipped.pickban.get("defender_validated")
+    assert not flipped.pickban.get("resolved_pickban")
+    # Not urgent while the attacker has not ranked his civs: the probe
+    # keeps tracking the T+grace anti-blocking default.
+    grace = _T + timedelta(minutes=15)
+    assert await bundle.attacks.next_phase_deadline(now=_T + timedelta(minutes=2)) == grace
+    # The attacker validates — the resolution is now due NOW.
+    validated = await bundle.attacks.validate_pickban(attack.id, "king-a")
+    assert validated.pickban.get("resolved_pickban")
+    # The resolution itself flipped ``resolved_pickban`` — the room is
+    # the next urgent step (past T).
+    assert await bundle.attacks.next_phase_deadline(now=_T + timedelta(minutes=2)) == _T + timedelta(minutes=2)
+
+
+async def test_a_resolved_draft_past_t_is_urgent_the_room_opens_now() -> None:
+    """v2: a pick & ban resolved past T with the room still closed is
+    DUE NOW — the vocal opens within the second."""
+    bundle = _PhaseBundle()
+    await _launch(bundle)
+    attack = await bundle.declared()
+    stored = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    stored.state = AttackState.DEFENDED
+    stored.revealed = True
+    stored.pickban = {
+        "sent": True,
+        "attacker_validated": True,
+        "defender_validated": True,
+        "resolved_pickban": True,
+    }
+    await bundle.store.upsert_attack(stored.to_mongo())
+    past_t = _T + timedelta(minutes=1)
+    assert await bundle.attacks.next_phase_deadline(now=past_t) == past_t
+    # Pre-T the same attack is NOT urgent — the room opens at T.
+    assert await bundle.attacks.next_phase_deadline(now=_T - timedelta(minutes=1)) == _T
+
+
+async def test_a_pre_reveal_human_defense_is_never_urgent() -> None:
+    """v2: a DEFENDED human attack before the reveal keeps its cutoff
+    deadline — its draft DMs leave at the reveal, not now."""
+    bundle = _PhaseBundle()
+    await _launch(bundle)
+    attack = await bundle.declared()
+    defended = await bundle.attacks.respond_defense(attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC))
+    assert defended.state is AttackState.DEFENDED
+    probe = datetime(2026, 10, 11, 13, 0, tzinfo=UTC)
+    assert await bundle.attacks.next_phase_deadline(now=probe) == _T - timedelta(minutes=15)

@@ -412,6 +412,40 @@ def _phase_deadlines(attack: AttackModel, config: KingdomsSeasonConfig) -> list[
     return deadlines
 
 
+def _phase_advance_due(attack: AttackModel, timestamp: datetime) -> bool:
+    """Whether the state machine can advance RIGHT NOW (attack-phases-tick-v2).
+
+    Drasah 22/10: after the live beta report the chain steps triggered
+    by an ACTION — the meeting-time AI flip arming the draft, the
+    attacker validating his draft, a resolution landing past T — waited
+    for the base tick (60 s under beta, 300 s stock) because they carry
+    no upcoming clock: each hop of the vs-AI chain felt late. These
+    steps are all SERVICE-SIDE state flips, so the loop clears them in
+    exactly one pass — a false positive never spins, and a Discord-side
+    failure never blocks the state (the send is best effort).
+
+    The three actionable moments: the reveal ran and the draft DMs are
+    still unsent; both sides validated and the pick & ban is still
+    unresolved; the pick & ban resolved past T and the room never
+    opened. A pre-reveal human defense is NEVER urgent — its DMs leave
+    at the cutoff.
+    """
+    pickban = dict(attack.pickban)
+    if attack.revealed and not pickban.get("sent"):
+        return True
+    if pickban.get("attacker_validated") and pickban.get("defender_validated") and not pickban.get("resolved_pickban"):
+        return True
+    score = dict(attack.score)
+    if (
+        pickban.get("resolved_pickban")
+        and not score.get("opened")
+        and attack.state is AttackState.DEFENDED
+        and timestamp >= attack.expires_at
+    ):
+        return True
+    return False
+
+
 class AttackService:
     """The attack/defense state machine and combat economy (§11-§13)."""
 
@@ -1597,12 +1631,27 @@ class AttackService:
         3h, dispute 15h) stay on the stock cadence — 5 minutes of
         granularity costs nothing there. ``None`` when no live attack
         carries an upcoming deadline.
+
+        attack-phases-tick-v2 (Drasah 22/10, live beta report): the
+        ACTION-triggered steps (the T flip arming the draft, the
+        attacker's validation, a resolution past T) carry no clock —
+        ``_phase_advance_due`` flags them and the probe returns ``now``
+        so the loop runs its work within the second instead of waiting
+        the base tick. Every urgent step is a service-side state flip,
+        so one pass clears it — the loop never spins.
         """
         timestamp = now or _now()
         nearest: datetime | None = None
         for attack in await self.attacks():
             if attack.kind is not AttackKind.PLAYER or attack.is_over:
                 continue
+            # attack-phases-tick-v2 (Drasah 22/10): an ACTION-triggered
+            # step (the T flip, the attacker's draft validation, a late
+            # resolution) carries no clock of its own — when the state
+            # machine can advance RIGHT NOW the deadline is NOW and the
+            # loop runs its work within the second.
+            if _phase_advance_due(attack, timestamp):
+                return timestamp
             for candidate in _phase_deadlines(attack, self._config):
                 if candidate <= timestamp:
                     continue
