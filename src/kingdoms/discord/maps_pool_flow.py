@@ -555,7 +555,17 @@ async def _apply_composition(
     chosen_add, skipped = _resolve_additions(catalog, pool, add_ids)
     chosen_remove = [mid for mid in remove_ids if mid in pool.map_ids]
     remaining = tuple(mid for mid in pool.map_ids if mid not in chosen_remove)
-    final = remaining + tuple(mid for mid in chosen_add if mid not in remaining)
+    # deduplicated, order-preserving: the historical add path could write
+    # the same map twice (a double click past the guards) — the compose
+    # heals the residue and the reported count reflects the reality
+    seen: set[str] = set()
+    final_list: list[str] = []
+    for mid in [*remaining, *chosen_add]:
+        if mid in seen:
+            continue
+        seen.add(mid)
+        final_list.append(mid)
+    final = tuple(final_list)
     if len(final) > MAX_POOL_MAPS:
         await interaction.followup.send(
             f"Un map pool tient au plus {MAX_POOL_MAPS} maps \u2014 "
