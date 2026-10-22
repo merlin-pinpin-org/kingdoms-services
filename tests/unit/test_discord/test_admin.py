@@ -216,33 +216,3 @@ class _RoutingFailureLogsService(_FakeAdminLogsService):
         raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")
 
 
-@pytest.mark.asyncio
-async def test_admin_command_shows_the_mods_select_when_sections_exist() -> None:
-    """With a registered mod section, /admin answers the new admin menu
-    (language/channels/roles) — the mod routing left the main panel."""
-    from kingdoms.discord.admin_panel_mods import (
-        AdminModSection,
-        mod_section_route_id,
-        register_admin_mod_section,
-        unregister_admin_mod_section,
-    )
-
-    async def _entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
-        return discord.ui.LayoutView(timeout=None)
-
-    register_admin_mod_section(AdminModSection(mod="testmod", label="Test", entry=_entry))
-    client = discord.Client(intents=discord.Intents.none())
-    try:
-        tree = discord.app_commands.CommandTree(client)
-        logs = _FakeAdminLogsService(channel_id="555")
-        register_admin_command(tree, bot_admins=("111111111",), logs_service=logs)
-        command = next(c for c in tree.get_commands() if c.name == "admin")
-        interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
-        interaction.guild_id = 42
-        await command._callback(interaction)  # type: ignore[union-attr]
-        assert interaction.followup.messages, "the panel arrives through the followup"
-        customs = _custom_ids(interaction.followup.messages[-1].layout)
-        assert mod_section_route_id("mods") not in customs, "the mods select left the main panel"
-    finally:
-        unregister_admin_mod_section("testmod")
-        await client.close()

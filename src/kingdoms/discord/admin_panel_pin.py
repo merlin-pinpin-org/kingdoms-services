@@ -83,9 +83,7 @@ async def ensure_pinned_admin_menu(
             admin_channel_service,
         )
 
-    from kingdoms.discord.admin_panel_mods import mod_section_route_id, registered_admin_mod_sections
-
-    required_ids = (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
+    required_ids: tuple[str, ...] = ()  # no mod sections until mods return
     delivery = _AdminPinDelivery(admin_channel_service, admin_ids, guild_id)
 
     async def _registered_menu_id(guild: str) -> str | None:

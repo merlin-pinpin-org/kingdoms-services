@@ -340,12 +340,8 @@ def set_panel_client(client: discord.Client) -> None:
 
 
 def spec_registry_resolver() -> dict[str, Any]:
-    """Resolve the registered mod specs from the running client."""
-    from kingdoms.discord.mod_admin_channels import spec_registry
-
-    if not _CLIENT_REF:
-        return {}
-    return spec_registry(_CLIENT_REF[0])
+    """Resolve the registered mod specs (none until mods return)."""
+    return {}
 
 
 async def build_pin_main_menu(

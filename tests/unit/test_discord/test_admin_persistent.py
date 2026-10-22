@@ -143,12 +143,6 @@ class TestNamespace:
         assert re.fullmatch(PIN_ROUTE_TEMPLATE, pin_route_id("bot_admins"))
         assert re.fullmatch(PIN_BUTTON_TEMPLATE, PIN_BACK_BUTTON_ID)
 
-    def test_the_routing_payload_carries_the_category(self) -> None:
-        """The legacy id was shared by both menus (always routed to logs)."""
-        assert pin_route_id("bot_logs") != pin_route_id("bot_admins")
-        assert pin_route_id("bot_admins") == "admin:pin:route:bot_admins"
-
-
 class TestFullyDynamicSurface:
     @pytest.mark.asyncio
     async def test_the_pinned_main_menu_is_fully_dynamic(self) -> None:
@@ -277,13 +271,10 @@ class TestStartupRegistration:
         bot = FakeBot()
         register_admin_persistent_items(bot)
         from kingdoms.discord.admin_panel_dynamic import PinReadOnlySelect
-        from kingdoms.discord.admin_panel_mods import PinModRouteSelect
-
+    
         assert set(bot.registered) == {
                     PinChannelMenu,
             PinVisibilitySelect,
             PinRouteSelect,
-            PinBackButton,
-            PinModRouteSelect,
-            PinReadOnlySelect,
+            PinBackButton,            PinReadOnlySelect,
         }

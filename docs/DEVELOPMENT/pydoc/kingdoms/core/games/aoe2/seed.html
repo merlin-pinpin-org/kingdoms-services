@@ -83,8 +83,6 @@ bot&nbsp;admins);&nbsp;unscoped:&nbsp;every&nbsp;map&nbsp;of&nbsp;the&nbsp;game.
 Factions&nbsp;(civs)&nbsp;and&nbsp;maps&nbsp;each&nbsp;carry&nbsp;the&nbsp;game&nbsp;key:&nbsp;a&nbsp;game&nbsp;whose<br>
 civs&nbsp;were&nbsp;synced&nbsp;(no&nbsp;map&nbsp;yet)&nbsp;is&nbsp;as&nbsp;known&nbsp;as&nbsp;one&nbsp;with&nbsp;maps.</span></dd></dl>
 
-<dl><dt>async <a name="MongoAoE2Database-find_ladder_activations"><strong>find_ladder_activations</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;pool&nbsp;activation&nbsp;history&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending).</span></dd></dl>
-
 <dl><dt>async <a name="MongoAoE2Database-find_ladder_by_owner"><strong>find_ladder_by_owner</strong></a>(self, owner_ref: 'str', game_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;ladder&nbsp;of&nbsp;one&nbsp;owner&nbsp;for&nbsp;a&nbsp;game;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_ladder_matches"><strong>find_ladder_matches</strong></a>(self, ladder_id: 'str', statuses: 'list[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;ladder's&nbsp;matches&nbsp;in&nbsp;any&nbsp;of&nbsp;the&nbsp;given&nbsp;statuses.</span></dd></dl>

@@ -166,8 +166,6 @@ class KingdomsBot(discord.Client):
         self.mod_home_builders: dict[str, Any] = {}
         self.mod_profile_enrichers: dict[str, Any] = {}
         self.mod_tasks: dict[str, list[asyncio.Task[None]]] = {}
-        self.season_roles_service: Any | None = None
-        self.season_service: Any | None = None
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
         self.live_client: Any = None
@@ -275,11 +273,6 @@ class KingdomsBot(discord.Client):
                 register_maps_forum_sync()
                 register_pools_forum_sync()
                 register_entity_forum_sync(factions_forum_spec(self))
-            from kingdoms.core.services.mod_entrypoint import run_mod_hook
-
-            if self.registry is not None:
-                for mod_name in self.registry.enabled():
-                    run_mod_hook(self, mod_name, "setup_hook")
         self._live_dashboard_task = _start_live_dashboard(self)
         if self._synced:
             return
@@ -755,11 +748,6 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
-        from kingdoms.core.services.mod_entrypoint import run_mod_hook
-
-        if self.registry is not None:
-            for mod_name in self.registry.enabled():
-                run_mod_hook(self, mod_name, "close")
         for task in (
             self._live_dashboard_task,
         ):
@@ -884,7 +872,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         admin_channel_service=admin_channel_service,
         error_reporter=bot.crash_report,
     )
-    from kingdoms.core.services.mod_entrypoint import register_mod
     from kingdoms.discord.wiring import set_guild_access_platform
 
     set_guild_access_platform(
@@ -892,8 +879,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         tuple(registry.enabled()),
         tuple((name, definition.required_games) for name, definition in registry.enabled().items()),
     )
-    for mod_name in registry.enabled():
-        register_mod(bot, resolved, mod_name)
     return bot
 
 

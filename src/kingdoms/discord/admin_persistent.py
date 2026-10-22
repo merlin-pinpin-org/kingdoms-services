@@ -384,7 +384,6 @@ def register_admin_persistent_items(bot: discord.Client) -> None:
         PinVisibilitySelect,
         set_panel_client,
     )
-    from kingdoms.discord.admin_panel_mods import PinModRouteSelect
 
     set_panel_client(bot)
     bot.add_dynamic_items(
@@ -393,5 +392,5 @@ def register_admin_persistent_items(bot: discord.Client) -> None:
         PinRouteSelect,
         PinBackButton,
         PinReadOnlySelect,
-        PinModRouteSelect,
+
     )
