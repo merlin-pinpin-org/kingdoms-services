@@ -42,9 +42,7 @@ _ROOM_UNLOCK_TASKS: set[asyncio.Task[None]] = set()
 _ROOM_EPHEMERAL_TIMERS: dict[tuple[str, str], asyncio.Task[None]] = {}
 
 
-def _arm_ephemeral_timer(
-    key: tuple[str, str], interaction: Any, seconds: float
-) -> None:
+def _arm_ephemeral_timer(key: tuple[str, str], interaction: Any, seconds: float) -> None:
     """(Re)arm the auto-destruction of one ephemeral response (v2).
 
     Drasah 22/10 (battle-room-id-v2): every ephemeral bubble of the
@@ -77,9 +75,7 @@ def _arm_ephemeral_timer(
 _DECLARE_NOTE_TASKS: dict[str, asyncio.Task[None]] = {}
 
 
-def _arm_declared_note_timer(
-    attack_id: str, interaction: Any, message_id: int, expires_at: Any
-) -> None:
+def _arm_declared_note_timer(attack_id: str, interaction: Any, message_id: int, expires_at: Any) -> None:
     """Arm the declared-note deletion at the meeting time (best effort).
 
     Drasah 22/10 (battle-ai-rdv-v1): « ⚔️ Attaque déclarée … RDV … »
@@ -88,9 +84,7 @@ def _arm_declared_note_timer(
     own message takes over the visibility).
     """
     try:
-        when = expires_at if isinstance(expires_at, datetime) else datetime.fromtimestamp(
-            float(expires_at), tz=UTC
-        )
+        when = expires_at if isinstance(expires_at, datetime) else datetime.fromtimestamp(float(expires_at), tz=UTC)
         delay = (when - game_now()).total_seconds()
     except Exception:
         return
@@ -110,6 +104,62 @@ def _arm_declared_note_timer(
             _DECLARE_NOTE_TASKS.pop(attack_id, None)
 
     _DECLARE_NOTE_TASKS[attack_id] = asyncio.create_task(_delete_later())
+
+
+# sabotage-ux-v1 (Drasah 22/10): the sabotage phase lives on ONE
+# ephemeral PANEL per (attack, player) — every action edits it in
+# place (no more stacking bubbles). The dict holds the interaction
+# that carries the panel; its webhook token dies after 15 minutes,
+# so the timer re-arms at each edit and deletes at 900 s max.
+_SABOTAGE_PANELS: dict[tuple[str, str], dict[str, Any]] = {}
+_SABOTAGE_PANEL_SECONDS = 900.0
+_SABOTAGE_PANEL_SWEEP_SECONDS = 30.0
+
+
+def _arm_sabotage_panel_timer(key: tuple[str, str], seconds: float | None = None) -> None:
+    """(Re)arm the auto-destruction of one sabotage panel (sabotage-ux-v1).
+
+    The panel deletes itself at the 15-minute webhook token limit —
+    each edit RE-ARMS the timer so the panel lives exactly as long as
+    the player works with it. A short ``seconds`` (no action left)
+    sweeps the closed panel quickly.
+    """
+    panel = _SABOTAGE_PANELS.get(key)
+    if panel is None:
+        return
+    existing = panel.get("task")
+    if existing is not None:
+        existing.cancel()
+    interaction = panel["interaction"]
+
+    async def _delete_later() -> None:
+        try:
+            await asyncio.sleep(seconds if seconds is not None else _SABOTAGE_PANEL_SECONDS)
+            await interaction.delete_original_response()
+        except Exception:
+            logger.debug("kingdoms: sabotage panel auto-delete skipped", exc_info=True)
+        finally:
+            current = asyncio.current_task()
+            if panel.get("task") is current:
+                panel.pop("task", None)
+            if _SABOTAGE_PANELS.get(key) is panel and "task" not in panel:
+                _SABOTAGE_PANELS.pop(key, None)
+
+    panel["task"] = asyncio.create_task(_delete_later())
+
+
+async def _delete_sabotage_panel(key: tuple[str, str]) -> None:
+    """Delete one player's sabotage panel NOW (best effort) and unarm it."""
+    panel = _SABOTAGE_PANELS.pop(key, None)
+    if panel is None:
+        return
+    task = panel.get("task")
+    if task is not None:
+        task.cancel()
+    try:
+        await panel["interaction"].delete_original_response()
+    except Exception:
+        logger.debug("kingdoms: sabotage panel delete skipped", exc_info=True)
 
 
 def _room_channel_name(guild: Any, prefix: str, *parts: str) -> str:
@@ -138,6 +188,7 @@ def _room_channel_name(guild: Any, prefix: str, *parts: str) -> str:
     while f"{base}-{suffix}" in names:
         suffix += 1
     return f"{base}-{suffix}"
+
 
 ATTACK_PANEL_MARKER = "<!-- kingdoms-attack -->"
 _PARIS = ZoneInfo("Europe/Paris")
@@ -323,6 +374,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "sab_over": "🕊️ La phase de sabotage est terminée.",
         "sab_empty": "🕊️ Aucune civilisation adverse disponible.",
         "sab_not_player": "❌ Seuls les deux joueurs du match peuvent agir ici.",
+        "sab_stock_line": (
+            "🗡️ Sabotage : {sabotage} · 🦅 Faucon : {faucon}\n"
+            "Un camp ne peut subir que 2 civilisations sabotées maximum."
+        ),
+        "sab_faucon_ready": "dispo",
+        "sab_faucon_flying": "en vol jusqu'à {time}",
+        "sab_faucon_absent": "absent",
+        "sab_panel_title": "🪶 **Sabotage** — {used}/2 civilisations retirées sur cette attaque",
+        "sab_panel_used": "Retirées : {list}",
+        "sab_panel_none": "Aucune civilisation retirée pour l'instant.",
+        "sab_panel_done": "🪶 **{civ}** retirée du camp adverse — {used}/2.",
+        "room_ping_winner": "🏆 Vainqueur : **{winner}**",
         "ready_button": "✅ Prêt — confirme ta présence",
         "ready_done": "✅ Présence confirmée — rejoins le salon de la bataille à l'heure du RDV.",
         "room_role": "Bataille {map}",
@@ -347,20 +410,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_id_pending_button": "⏳ Saisie de l'ID en cours…",
         "room_ready_attacker_button": "⚔️ Prêt — {player}",
         "room_ready_defender_button": "Prêt 🛡️ — {player}",
-        "room_not_your_side": (
-            "⛔ Ce bouton Prêt est réservé à votre adversaire."
-        ),
-        "room_scoreboard_footer": (
-            "🎮 Les deux joueurs sont prêts — bonne game !"
-            " Déclarez le vainqueur avec 🏆."
-        ),
-        "room_ping_message": (
-            "⚔️ {attacker} {defender} — la salle de bataille est ouverte,"
-            " à vos armes !"
-        ),
-        "room_ping_attacker_only": (
-            "⚔️ {attacker} — la salle de bataille est ouverte, à vos armes !"
-        ),
+        "room_not_your_side": ("⛔ Ce bouton Prêt est réservé à votre adversaire."),
+        "room_scoreboard_footer": ("🎮 Les deux joueurs sont prêts — bonne game ! Déclarez le vainqueur avec 🏆."),
+        "room_ping_message": ("⚔️ {attacker} {defender} — la salle de bataille est ouverte, à vos armes !"),
+        "room_ping_attacker_only": ("⚔️ {attacker} — la salle de bataille est ouverte, à vos armes !"),
         "room_dm": (
             "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
             "Rejoins ton adversaire : {room} — le déroulé (ID de la partie, ✅ Prêt,"
@@ -396,8 +449,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "room_ready_button": "✅ Prêt",
         "room_start": (
-            "🎮 **La partie commence — {map}** !\n"
-            "{mentions} — retrouvez-vous dans le salon vocal et bonne game ! 🍀"
+            "🎮 **La partie commence — {map}** !\n{mentions} — retrouvez-vous dans le salon vocal et bonne game ! 🍀"
         ),
         "room_event_name": "⚔️ {map} — {attacker} 🆚 {defender}",
         "room_event_description": (
@@ -405,13 +457,9 @@ _STRINGS: dict[str, dict[str, str]] = {
             "Civilisations et boutons de jeu : dans le salon vocal de la bataille."
         ),
         "room_ready_needs_url": (
-            "🔗 Renseigne d'abord l'ID de la partie (bouton 🔗) — le"
-            " bouton ✅ Prêt n'apparaît qu'après."
+            "🔗 Renseigne d'abord l'ID de la partie (bouton 🔗) — le bouton ✅ Prêt n'apparaît qu'après."
         ),
-        "result_not_ready": (
-            "⏳ Le bouton Déclarer le vainqueur apparaît une fois que"
-            " les deux joueurs sont Prêts."
-        ),
+        "result_not_ready": ("⏳ Le bouton Déclarer le vainqueur apparaît une fois que les deux joueurs sont Prêts."),
         "conquest_title": "⚔️ Le Royaume **{winner}** a conquis **{map}** !",
         "conquest_defense_title": "🛡️ Le Royaume **{winner}** a défendu **{map}** !",
         "conquest_thread": "Détail de la conquête",
@@ -426,10 +474,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "conquest_none": "aucune",
         "conquest_side_attacker": "attaquant",
         "conquest_side_defender": "défenseur",
-        "conquest_married_lost": (
-            "💔 **{player}** perd son lien sacré avec la civilisation"
-            " **{civ}**."
-        ),
+        "conquest_married_lost": ("💔 **{player}** perd son lien sacré avec la civilisation **{civ}**."),
         "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
         "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
         "score_disputed": (
@@ -611,8 +656,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             " then come back and confirm with ⚔️ Pass on the draft message."
         ),
         "sab_no_resources": (
-            "🕊️ **You have no sabotage nor a Faucon** — waiting for your"
-            " adversary. You can confirm with ⚔️ Pass."
+            "🕊️ **You have no sabotage nor a Faucon** — waiting for your adversary. You can confirm with ⚔️ Pass."
         ),
         "sab_faucon": "🦅 Faucon",
         "sab_techno": "🧪 Sabotage",
@@ -626,6 +670,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "sab_over": "🕊️ The sabotage phase is over.",
         "sab_empty": "🕊️ No enemy civilization available.",
         "sab_not_player": "❌ Only the two players of the match may act here.",
+        "sab_stock_line": (
+            "🗡️ Sabotage: {sabotage} · 🦅 Faucon: {faucon}\nOne side can suffer at most 2 sabotaged civilizations."
+        ),
+        "sab_faucon_ready": "ready",
+        "sab_faucon_flying": "flying until {time}",
+        "sab_faucon_absent": "absent",
+        "sab_panel_title": "🪶 **Sabotage** — {used}/2 civilizations removed in this attack",
+        "sab_panel_used": "Removed: {list}",
+        "sab_panel_none": "No civilization removed yet.",
+        "sab_panel_done": "🪶 **{civ}** removed from the enemy side — {used}/2.",
+        "room_ping_winner": "🏆 Winner: **{winner}**",
         "ready_button": "✅ Ready — confirm your presence",
         "ready_done": "✅ Presence confirmed — join the battle room at the meeting time.",
         "room_role": "Battle {map}",
@@ -650,19 +705,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_id_pending_button": "⏳ Game ID being entered…",
         "room_ready_attacker_button": "⚔️ Ready — {player}",
         "room_ready_defender_button": "Ready 🛡️ — {player}",
-        "room_not_your_side": (
-            "⛔ This Ready button belongs to your adversary."
-        ),
-        "room_scoreboard_footer": (
-            "🎮 Both players are ready — good luck!"
-            " Declare the winner with 🏆."
-        ),
-        "room_ping_message": (
-            "⚔️ {attacker} {defender} — the battle room is open, to arms!"
-        ),
-        "room_ping_attacker_only": (
-            "⚔️ {attacker} — the battle room is open, to arms!"
-        ),
+        "room_not_your_side": ("⛔ This Ready button belongs to your adversary."),
+        "room_scoreboard_footer": ("🎮 Both players are ready — good luck! Declare the winner with 🏆."),
+        "room_ping_message": ("⚔️ {attacker} {defender} — the battle room is open, to arms!"),
+        "room_ping_attacker_only": ("⚔️ {attacker} — the battle room is open, to arms!"),
         "room_dm": (
             "🏟️ **The battle room is open — {map}**\n"
             "Join your adversary: {room} — the rundown (game ID, ✅ Ready, result)"
@@ -697,23 +743,14 @@ _STRINGS: dict[str, dict[str, str]] = {
             " game result with the 🏆 button of the battle room!"
         ),
         "room_ready_button": "✅ Ready",
-        "room_start": (
-            "🎮 **The game starts — {map}**!\n"
-            "{mentions} — meet in the voice channel and good luck! 🍀"
-        ),
+        "room_start": ("🎮 **The game starts — {map}**!\n{mentions} — meet in the voice channel and good luck! 🍀"),
         "room_event_name": "⚔️ {map} — {attacker} 🆚 {defender}",
         "room_event_description": (
             "⚔️ Live Kingdoms battle — {attacker} 🆚 {defender}.\n"
             "Civilizations and game buttons: in the battle's voice channel."
         ),
-        "room_ready_needs_url": (
-            "🔗 Enter the game ID first (🔗 button) — the ✅ Ready"
-            " button appears afterwards."
-        ),
-        "result_not_ready": (
-            "⏳ The Declare-the-winner button appears once both players"
-            " are Ready."
-        ),
+        "room_ready_needs_url": ("🔗 Enter the game ID first (🔗 button) — the ✅ Ready button appears afterwards."),
+        "result_not_ready": ("⏳ The Declare-the-winner button appears once both players are Ready."),
         "conquest_title": "⚔️ Kingdom **{winner}** conquered **{map}**!",
         "conquest_defense_title": "🛡️ Kingdom **{winner}** defended **{map}**!",
         "conquest_thread": "Conquest details",
@@ -728,15 +765,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "conquest_none": "none",
         "conquest_side_attacker": "attacker",
         "conquest_side_defender": "defender",
-        "conquest_married_lost": (
-            "💔 **{player}** loses their sacred bond with civilization"
-            " **{civ}**."
-        ),
+        "conquest_married_lost": ("💔 **{player}** loses their sacred bond with civilization **{civ}**."),
         "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
         "score_already": "✅ This result was already recorded — nothing to do.",
         "score_disputed": (
-            "⚖️ Contradictory declarations — the admins arbitrate (game {game})."
-            "\nPlease get in touch with an admin."
+            "⚖️ Contradictory declarations — the admins arbitrate (game {game}).\nPlease get in touch with an admin."
         ),
         "noshow_side": ("🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."),
         "noshow_both": ("🏳️ **{map}** — double forfeit: no player at the meeting, the territory stays with its owner."),
@@ -816,11 +849,7 @@ def _battlefield_category(guild: Any) -> Any:
         return category
     wanted = {"champs-de-bataille", "battlefields"}
     return next(
-        (
-            item
-            for item in getattr(guild, "categories", [])
-            if _slug(str(getattr(item, "name", ""))) in wanted
-        ),
+        (item for item in getattr(guild, "categories", []) if _slug(str(getattr(item, "name", ""))) in wanted),
         None,
     )
 
@@ -1013,9 +1042,7 @@ async def _purge_declare_channel_safe(channel: Any, keep: Any) -> None:
         logger.warning("KINGDOM ATTACK: declare salon sweep failed", exc_info=True)
 
 
-async def _find_panel_message(
-    channel: discord.TextChannel, marker: str = ATTACK_PANEL_MARKER
-) -> Any | None:
+async def _find_panel_message(channel: discord.TextChannel, marker: str = ATTACK_PANEL_MARKER) -> Any | None:
     """Return the live panel message of the salon, pruning the duplicates.
 
     attaques-panel-spam: the scan reads deep (200) so a rate-limited
@@ -1239,9 +1266,7 @@ async def _kingdom_select_view(
         chosen = [str(v) for v in values.get("values", [])]
         if not chosen:
             return
-        content, view = await _territory_select_view(
-            wiring, own_kingdom_id, chosen[0], strings, origin
-        )
+        content, view = await _territory_select_view(wiring, own_kingdom_id, chosen[0], strings, origin)
         if view is None:
             await target.response.edit_message(content=strings["no_target"], view=None)
             return
@@ -1373,9 +1398,7 @@ async def _declare_player_attack(
         return
     await target.response.defer(ephemeral=True)
     try:
-        attack = await attacks.declare_attack(
-            str(target.user.id), map_key, "", cover_lord_id=cover_lord_id
-        )
+        attack = await attacks.declare_attack(str(target.user.id), map_key, "", cover_lord_id=cover_lord_id)
     except Exception as exc:
         message = getattr(exc, "message", None) or str(exc)
         await target.followup.send(strings["failed"].format(message=message), ephemeral=True)
@@ -1519,9 +1542,7 @@ async def _open_cover_step(
     # battle-ai-rdv-v1: the selector ephemeral is already gone (it
     # died at the map choice) — the cover question opens its OWN
     # ephemeral instead of editing the wizard message.
-    await interaction.response.send_message(
-        content=str(strings["cover_question"]), view=view, ephemeral=True
-    )
+    await interaction.response.send_message(content=str(strings["cover_question"]), view=view, ephemeral=True)
 
 
 def _attack_salon_overwrites(guild: Any) -> dict[Any, discord.PermissionOverwrite]:
@@ -1790,11 +1811,7 @@ class KingdomAttackDefendButton(
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
         try:
-            attack = next(
-                item
-                for item in await wiring.attacks_service.attacks()
-                if str(item.id) == self.attack_id
-            )
+            attack = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id)
         except Exception:
             await interaction.response.send_message(strings["gaia_gone"], ephemeral=True)
             return
@@ -1802,9 +1819,7 @@ class KingdomAttackDefendButton(
             await interaction.response.send_message(strings["gaia_gone"], ephemeral=True)
             return
         lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
-        if getattr(attack, "state", None) is not AttackState.DECLARED and not getattr(
-            attack, "ai_defender", False
-        ):
+        if getattr(attack, "state", None) is not AttackState.DECLARED and not getattr(attack, "ai_defender", False):
             # A defense is already in place — the kingdom is defended
             # (the defender's NAME stays hidden until the reveal).
             await interaction.response.send_message(strings["defend_already"], ephemeral=True)
@@ -1913,9 +1928,7 @@ class KingdomDefenseManagerButton(
                 and getattr(attack, "state", None) is AttackState.DEFENDED
                 and str(getattr(attack, "defender_lord_id", "") or "") == str(lord.id)
             ):
-                view.add_item(
-                    KingdomCancelDefenseButton(str(attack.id), strings["cancel_defense_button"])
-                )
+                view.add_item(KingdomCancelDefenseButton(str(attack.id), strings["cancel_defense_button"]))
         await interaction.response.send_message(
             strings["defense_manager_title"].format(kingdom=kingdom_name) + "\n" + body,
             view=view if list(view.children) else None,  # type: ignore[arg-type]
@@ -2056,9 +2069,7 @@ class KingdomAttackCancelButton(
             return
         await interaction.response.defer(ephemeral=True)
         try:
-            attack = await wiring.attacks_service.cancel_attack(
-                self.attack_id, str(interaction.user.id)
-            )
+            attack = await wiring.attacks_service.cancel_attack(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
@@ -2123,9 +2134,7 @@ class KingdomCancelDefenseButton(
             return
         await interaction.response.defer(ephemeral=True)
         try:
-            await wiring.attacks_service.cancel_defense(
-                self.attack_id, str(interaction.user.id)
-            )
+            await wiring.attacks_service.cancel_defense(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
@@ -2197,15 +2206,11 @@ def _history_page_view(
 
     view = discord.ui.View(timeout=600)
     if page > 0:
-        prev: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-            label="◀", style=discord.ButtonStyle.secondary
-        )
+        prev: discord.ui.Button[discord.ui.View] = discord.ui.Button(label="◀", style=discord.ButtonStyle.secondary)
         prev.callback = _on_prev  # type: ignore[method-assign,assignment]
         view.add_item(prev)
     if page < len(pages) - 1:
-        nxt: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-            label="▶", style=discord.ButtonStyle.secondary
-        )
+        nxt: discord.ui.Button[discord.ui.View] = discord.ui.Button(label="▶", style=discord.ButtonStyle.secondary)
         nxt.callback = _on_next  # type: ignore[method-assign,assignment]
         view.add_item(nxt)
     return view
@@ -2374,9 +2379,7 @@ class KingdomPickBanView(discord.ui.View):
         # Drasah 18/10 v4: the draft resolved — edit BOTH DMs into the
         # REVEAL (the adversary's shuffled civs) + the sabotage prompt
         # (anti-spam, no new DM): the phase happens HERE, before the RDV.
-        await _edit_pickban_dms_reveal(
-            interaction.client, attack, wiring.kingdoms_service, strings
-        )
+        await _edit_pickban_dms_reveal(interaction.client, attack, wiring.kingdoms_service, strings)
 
 
 def _ready_key(attack_id: str, player_id: str) -> str:
@@ -2398,12 +2401,8 @@ def _sabotage_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui
     """
     strings = _strings(locale)
     view = discord.ui.View(timeout=None)
-    view.add_item(
-        KingdomSabotageOpenButton(attack_id, player_id, strings["sab_open_button"])
-    )
-    view.add_item(
-        KingdomSabotagePassButton(attack_id, player_id, strings["sab_pass_button"])
-    )
+    view.add_item(KingdomSabotageOpenButton(attack_id, player_id, strings["sab_open_button"]))
+    view.add_item(KingdomSabotagePassButton(attack_id, player_id, strings["sab_pass_button"]))
     return view
 
 
@@ -2427,9 +2426,7 @@ async def _edit_dm_message_safe(
         return False
 
 
-async def _edit_pickban_dms_reveal(
-    bot: Any, attack: Any, kingdoms_service: Any, strings: dict[str, str]
-) -> None:
+async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> None:
     """Edit both draft DMs into the REVEAL + sabotage prompt (v4).
 
     Drasah 18/10 v4: as soon as both sides validated, each player
@@ -2439,6 +2436,13 @@ async def _edit_pickban_dms_reveal(
     (restart gap, expired message) falls back to a NEW DM.
     """
     pickban: dict[str, Any] = dict(attack.pickban or {})
+    wiring = None
+    try:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        wiring = _wiring()
+    except Exception:
+        wiring = None
     for side, player_id in (
         ("attacker", str(attack.attacker_lord_id)),
         ("defender", str(attack.defender_lord_id or "")),
@@ -2449,6 +2453,10 @@ async def _edit_pickban_dms_reveal(
         shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
         civs = ", ".join(shuffled) or "—"
         content = strings["pickban_reveal_dm"].format(map=attack.map_key, civs=civs)
+        # sabotage-ux-v1 (Drasah 22/10): the reveal keeps the stock
+        # line visible (the sabotage phase follows right after).
+        if wiring is not None:
+            content = f"{content}\n\n{await _sabotage_stock_line(wiring, attack, side, strings)}"
         view = _sabotage_dm_view(str(attack.id), player_id, "fr")
         # civ-crests-v1 (Drasah 20/10): the revealed civs wear their
         # blasons — the crest PNGs attach under the text, in the SAME
@@ -2480,9 +2488,7 @@ async def _edit_pickban_dms_phase_done(bot: Any, attack: Any, strings: dict[str,
             await _dm_user_safe(bot, player_id, content, None)
 
 
-async def _open_meeting_and_room_safe(
-    bot: Any, attack: Any, wiring: Any, strings: dict[str, str], locale: str
-) -> None:
+async def _open_meeting_and_room_safe(bot: Any, attack: Any, wiring: Any, strings: dict[str, str], locale: str) -> None:
     """Open the meeting + the battle room once both camps settled (v4).
 
     Drasah 18/10 v4: the vocal is created the moment the two players
@@ -2565,11 +2571,7 @@ class KingdomSabotageOpenButton(
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
         try:
-            attack = next(
-                item
-                for item in await wiring.attacks_service.attacks()
-                if str(item.id) == self.attack_id
-            )
+            attack = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id)
         except Exception:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
@@ -2586,7 +2588,16 @@ class KingdomSabotageOpenButton(
             # Drasah 18/10 v4: no techno bought and no usable Faucon.
             await interaction.response.send_message(strings["sab_no_resources"], ephemeral=True)
             return
-        await interaction.response.send_message(strings["sab_title"], view=view, ephemeral=True)
+        # sabotage-ux-v1 (Drasah 22/10): ONE ephemeral panel per player,
+        # edited in place at every action — the panel carries the X/2
+        # récap, the removed civs and the stock line, and self-destructs
+        # at the 15-minute webhook token limit.
+        content, _ = await _sabotage_panel_content(wiring, attack, side, strings)
+        await interaction.response.send_message(content, view=view, ephemeral=True)
+        key = (str(attack.id), user_id)
+        _SABOTAGE_PANELS.pop(key, None)
+        _SABOTAGE_PANELS[key] = {"interaction": interaction}
+        _arm_sabotage_panel_timer(key)
 
 
 class KingdomSabotagePassButton(
@@ -2641,20 +2652,18 @@ class KingdomSabotagePassButton(
             fresh = await wiring.attacks_service.sabotage_settle(self.attack_id, self.player_id)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
+        # sabotage-ux-v1 (Drasah 22/10): the Passer click closes the
+        # sabotage panel — the player is done with the phase, the panel
+        # goes away at once (best effort).
+        await _delete_sabotage_panel((self.attack_id, self.player_id))
         if (fresh.pickban or {}).get("sabotage_resolved"):
             await _edit_pickban_dms_phase_done(interaction.client, fresh, strings)
-            await interaction.response.send_message(
-                strings["sab_phase_done"].format(map=fresh.map_key), ephemeral=True
-            )
+            await interaction.response.send_message(strings["sab_phase_done"].format(map=fresh.map_key), ephemeral=True)
             # Drasah 18/10 v4: both camps answered — the vocal opens
             # at once, BEFORE T (the room carries URL/Prêt/result).
-            await _open_meeting_and_room_safe(
-                interaction.client, fresh, wiring, strings, _locale(interaction)
-            )
+            await _open_meeting_and_room_safe(interaction.client, fresh, wiring, strings, _locale(interaction))
             return
         await interaction.response.send_message(strings["sab_settled"], ephemeral=True)
 
@@ -2671,6 +2680,16 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
         hand,
         locale,
     )
+    # sabotage-ux-v1 (Drasah 22/10): the draft DM carries the stock
+    # line — Sabotage is NOT consumed by a use, the Faucon flies 48h.
+    wiring = None
+    try:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        wiring = _wiring()
+    except Exception:
+        wiring = None
+    stock_attacker = await _sabotage_stock_line(wiring, attack, "attacker", strings) if wiring else ""
     message = await _dm_user_safe(
         bot,
         str(attack.attacker_lord_id),
@@ -2679,7 +2698,8 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
             count=min(3, len(hand)) or 1,
             hand=", ".join(hand) or "—",
             theirs=", ".join(adversary) or "—",
-        ),
+        )
+        + (f"\n\n{stock_attacker}" if stock_attacker else ""),
         view,
     )
     if message is not None:
@@ -2692,6 +2712,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
             adversary,
             locale,
         )
+        stock_defender = await _sabotage_stock_line(wiring, attack, "defender", strings) if wiring else ""
         message = await _dm_user_safe(
             bot,
             str(attack.defender_lord_id),
@@ -2700,7 +2721,8 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
                 count=min(3, len(adversary)) or 1,
                 hand=", ".join(adversary) or "—",
                 theirs=", ".join(hand) or "—",
-            ),
+            )
+            + (f"\n\n{stock_defender}" if stock_defender else ""),
             view,
         )
         if message is not None:
@@ -2795,9 +2817,7 @@ async def run_attack_phases_safe(bot: Any) -> None:
         strings = _strings(locale)
         # restructuration-serveur-v1 b: every announcement routes to the
         # attack's OWN salon (no more central Attaques salon).
-        dirty = await _run_phases_announce_safe(
-            bot, guild, attacks_service, kingdoms_service, strings, locale
-        )
+        dirty = await _run_phases_announce_safe(bot, guild, attacks_service, kingdoms_service, strings, locale)
         # The resolved meetings free their battle room (channel +
         # role) AND their per-attack salon — whatever the resolution
         # (declared, forfeit, admin, cancelled).
@@ -2860,6 +2880,9 @@ async def _run_phases_announce_safe(
                     winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "—"
                 ),
             )
+            # sabotage-ux-v1 (Drasah 22/10): the room ping wears the
+            # winner too — the players see the outcome at a glance.
+            await _stamp_room_ping_winner_safe(bot, attack, winner, strings)
             await _announce_conquest_safe(bot, kingdoms_service, attack, locale)
         dirty += len(confirmed)
         # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
@@ -2875,7 +2898,7 @@ async def _run_phases_announce_safe(
             await _attack_salon_send_safe(guild, attack, strings["auto_dispute"].format(map=attack.map_key))
         dirty += len(disputes)
         dirty += await _run_forfeits_safe(guild, attacks_service, kingdoms_service, strings)
-        dirty += await _run_noshows_safe(guild, attacks_service, kingdoms_service, strings)
+        dirty += await _run_noshows_safe(bot, guild, attacks_service, kingdoms_service, strings)
     except Exception:
         logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
     return dirty
@@ -2907,9 +2930,7 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
         if attack.ai_defender:
             note = strings["reveal_no_defense"]
         elif getattr(attack, "state", None) is AttackState.DEFENDED:
-            note = strings["reveal_battle"].format(
-                defender=await _lord_name(kingdoms_service, attack.defender_lord_id)
-            )
+            note = strings["reveal_battle"].format(defender=await _lord_name(kingdoms_service, attack.defender_lord_id))
         else:
             note = strings["reveal_no_defense"]
         await _attack_salon_send_safe(guild, attack, note)
@@ -2952,7 +2973,6 @@ async def _run_forfeits_safe(guild: Any, attacks_service: Any, kingdoms_service:
                 strings["forfeit_side"].format(map=attack.map_key, side=strings[f"side_{side}"], kingdom=kingdom),
             )
     return played
-
 
 
 # ----------------------------------------------------------------------
@@ -3090,16 +3110,10 @@ async def _room_view(
             )
         )
     if id_pending:
-        view.add_item(
-            KingdomRoomUrlButton(
-                str(attack.id), strings["room_id_pending_button"], disabled=True
-            )
-        )
+        view.add_item(KingdomRoomUrlButton(str(attack.id), strings["room_id_pending_button"], disabled=True))
     else:
         label = strings["room_id_modify_button"] if url_set else strings["room_id_button"]
-        style = (
-            discord.ButtonStyle.danger if url_set else discord.ButtonStyle.secondary
-        )
+        style = discord.ButtonStyle.danger if url_set else discord.ButtonStyle.secondary
         view.add_item(KingdomRoomUrlButton(str(attack.id), label, style=style))
     if score.get("all_ready"):
         view.add_item(KingdomRoomResultButton(str(attack.id), strings["result_button"]))
@@ -3165,11 +3179,7 @@ async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str,
         defender_status = strings["room_side_ai"].format(level=level)
     else:
         defender_status = _status(attack.defender_lord_id)
-    id_line = (
-        strings["room_scoreboard_id"].format(id=url)
-        if url
-        else strings["room_scoreboard_id_missing"]
-    )
+    id_line = strings["room_scoreboard_id"].format(id=url) if url else strings["room_scoreboard_id_missing"]
     rows = [
         _score_center(strings["room_scoreboard_map"].format(map=attack.map_key)),
         _score_center(id_line),
@@ -3189,9 +3199,7 @@ async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str,
     return body
 
 
-async def _refresh_room_message_safe(
-    bot: Any, attack: Any, locale: str, *, id_pending: bool = False
-) -> None:
+async def _refresh_room_message_safe(bot: Any, attack: Any, locale: str, *, id_pending: bool = False) -> None:
     """Best-effort refresh of the room's single message (ID → Prêt → 🏆)."""
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
@@ -3211,11 +3219,7 @@ async def _refresh_room_message_safe(
         if channel is None:
             continue
         message = next(
-            (
-                item
-                for item in getattr(channel, "messages", [])
-                if int(getattr(item, "id", 0)) == message_id
-            ),
+            (item for item in getattr(channel, "messages", []) if int(getattr(item, "id", 0)) == message_id),
             None,
         )
         try:
@@ -3224,9 +3228,7 @@ async def _refresh_room_message_safe(
             if message is not None:
                 await message.edit(
                     content=await _room_body_text(attack, wiring.kingdoms_service, strings),
-                    view=await _room_view(
-                        attack, wiring.kingdoms_service, strings, id_pending=id_pending
-                    ),
+                    view=await _room_view(attack, wiring.kingdoms_service, strings, id_pending=id_pending),
                 )
         except Exception:
             logger.warning("KINGDOM ATTACK: battle room refresh failed", exc_info=True)
@@ -3270,9 +3272,7 @@ async def _announce_conquest_safe(bot: Any, kingdoms_service: Any, attack: Any, 
                 logger.warning("KINGDOM ATTACK: conquest detail post failed", exc_info=True)
 
 
-async def _conquest_detail(
-    kingdoms_service: Any, attack: Any, strings: dict[str, str], attacker_won: bool
-) -> str:
+async def _conquest_detail(kingdoms_service: Any, attack: Any, strings: dict[str, str], attacker_won: bool) -> str:
     """Build the conquest recap's detail body (the thread content)."""
     from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
 
@@ -3280,23 +3280,15 @@ async def _conquest_detail(
     attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
     attacker_kingdom = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
     defender_kingdom = await _kingdom_name(kingdoms_service, attack.defender_kingdom_id)
-    lines = [
-        strings["conquest_attacker_line"].format(player=attacker, kingdom=attacker_kingdom)
-    ]
+    lines = [strings["conquest_attacker_line"].format(player=attacker, kingdom=attacker_kingdom)]
     if getattr(attack, "ai_defender", False):
         level = int((attack.effects or {}).get("ai_level") or 1)
         defender = defender_kingdom
-        lines.append(
-            strings["conquest_ai_defense"].format(kingdom=defender_kingdom, level=level)
-        )
+        lines.append(strings["conquest_ai_defense"].format(kingdom=defender_kingdom, level=level))
     else:
         defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
-        lines.append(
-            strings["conquest_defense_line"].format(player=defender, kingdom=defender_kingdom)
-        )
-    lines.append(
-        strings["conquest_civ_line"].format(player=attacker, civ=_final_civ(pickban, "attacker"))
-    )
+        lines.append(strings["conquest_defense_line"].format(player=defender, kingdom=defender_kingdom))
+    lines.append(strings["conquest_civ_line"].format(player=attacker, civ=_final_civ(pickban, "attacker")))
     defender_civ = _final_civ(pickban, "defender")
     if defender_civ:
         lines.append(strings["conquest_civ_line"].format(player=defender, civ=defender_civ))
@@ -3351,9 +3343,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         # provisioned « Champs de Bataille » and created a duplicate).
         category = _battlefield_category(guild)
         if category is None:
-            logger.warning(
-                "KINGDOM ATTACK: battlefield category not found — battle room created at the guild root"
-            )
+            logger.warning("KINGDOM ATTACK: battlefield category not found — battle room created at the guild root")
         channel = await guild.create_voice_channel(
             _room_channel_name(guild, "⚔️", attacker, defender),
             category=category,
@@ -3398,18 +3388,20 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 # two players the moment the room opens — they cannot
                 # miss the scoreboard. Never the AI (no ping-able user).
                 if attack.defender_lord_id and not attack.ai_defender:
-                    await salon.send(
+                    ping = await salon.send(
                         strings["room_ping_message"].format(
                             attacker=f"<@{attack.attacker_lord_id}>",
                             defender=f"<@{attack.defender_lord_id}>",
                         )
                     )
                 else:
-                    await salon.send(
-                        strings["room_ping_attacker_only"].format(
-                            attacker=f"<@{attack.attacker_lord_id}>"
-                        )
+                    ping = await salon.send(
+                        strings["room_ping_attacker_only"].format(attacker=f"<@{attack.attacker_lord_id}>")
                     )
+                # sabotage-ux-v1 (Drasah 22/10): the ping is the message
+                # the players watch — record its ref so every resolution
+                # can stamp the 🏆 winner on it.
+                await _record_ping_message_safe(attack, int(salon.id), int(ping.id))
             except Exception:
                 logger.warning("KINGDOM ATTACK: meeting message post failed", exc_info=True)
         for player_id in _score_players(attack):
@@ -3448,11 +3440,57 @@ async def _record_meeting_message_safe(attack: Any, channel_id: int, message_id:
     if wiring.attacks_service is None:
         return
     try:
-        await wiring.attacks_service.record_meeting_message(
-            str(attack.id), int(channel_id), int(message_id)
-        )
+        await wiring.attacks_service.record_meeting_message(str(attack.id), int(channel_id), int(message_id))
     except Exception:
         logger.warning("KINGDOM ATTACK: meeting message ref not stored", exc_info=True)
+
+
+async def _record_ping_message_safe(attack: Any, channel_id: int, message_id: int) -> None:
+    """Store the room's PING message ref (sabotage-ux-v1, best effort)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    if wiring.attacks_service is None:
+        return
+    try:
+        await wiring.attacks_service.record_ping_message(str(attack.id), int(channel_id), int(message_id))
+    except Exception:
+        logger.warning("KINGDOM ATTACK: room ping ref not stored", exc_info=True)
+
+
+async def _stamp_room_ping_winner_safe(bot: Any, attack: Any, winner_name: str, strings: dict[str, str]) -> None:
+    """Stamp the 🏆 winner on the room's ping message (sabotage-ux-v1).
+
+    Drasah 22/10: every resolution (immediate declaration, confirmed
+    tick, no-show) edits the « ⚔️ … à vos armes ! » ping of the salon so
+    the players see the outcome at a glance. Best effort — the
+    resolution itself never depends on the stamp.
+    """
+    score = dict(attack.score or {})
+    channel_id = int(score.get("room_ping_channel_id") or 0)
+    message_id = int(score.get("room_ping_message_id") or 0)
+    if not channel_id or not message_id:
+        return
+    stamp = strings["room_ping_winner"].format(winner=winner_name)
+    for guild in list(getattr(bot, "guilds", [])):
+        channel = getattr(guild, "get_channel", lambda _id: None)(channel_id)
+        if channel is None:
+            continue
+        message = next(
+            (item for item in getattr(channel, "messages", []) if int(getattr(item, "id", 0)) == message_id),
+            None,
+        )
+        try:
+            if message is None and hasattr(channel, "get_partial_message"):
+                message = channel.get_partial_message(message_id)
+            if message is not None:
+                existing = str(getattr(message, "content", "") or "")
+                if stamp in existing:
+                    return
+                await message.edit(content=f"{existing}\n{stamp}")
+            return
+        except Exception:
+            logger.warning("KINGDOM ATTACK: room ping winner stamp failed", exc_info=True)
 
 
 async def _delete_battle_room_safe(bot: Any, channel_id: int, role_id: Any) -> None:
@@ -3511,9 +3549,7 @@ _BATTLE_ROLE_NAME_PREFIXES: tuple[str, ...] = ("Bataille ", "Battle ")
 """The room-role name prefixes (FR/EN) — the orphan sweep's filter."""
 
 
-async def _sweep_battle_room_leftovers_safe(
-    bot: Any, attacks_service: Any, attacks: list[Any]
-) -> int:
+async def _sweep_battle_room_leftovers_safe(bot: Any, attacks_service: Any, attacks: list[Any]) -> int:
     """Delete the battle-room leftovers a flagged cleanup never deleted.
 
     battle-role-sweep-v1 (Drasah 20/10, live lockout incident): the
@@ -3537,9 +3573,7 @@ async def _sweep_battle_room_leftovers_safe(
     return swept
 
 
-def _battle_room_sweep_due(
-    attacks: list[Any], delay_minutes: int, now: datetime
-) -> tuple[list[Any], set[int]]:
+def _battle_room_sweep_due(attacks: list[Any], delay_minutes: int, now: datetime) -> tuple[list[Any], set[int]]:
     """Return the overdue-resolved attacks and the live rooms' role ids.
 
     An attack is due when it is over and past its cleanup delay (a
@@ -3635,9 +3669,7 @@ async def _sweep_orphan_battle_roles_safe(bot: Any, keep_role_ids: set[int]) -> 
 
 async def _cleanup_one_battle_room(bot: Any, attacks_service: Any, attack: Any, score: dict[str, Any]) -> int:
     """Delete one resolved meeting's voice room (channel + role) and flag it."""
-    await _delete_battle_room_safe(
-        bot, int(score["room_channel_id"]), score.get("room_role_id")
-    )
+    await _delete_battle_room_safe(bot, int(score["room_channel_id"]), score.get("room_role_id"))
     try:
         await attacks_service.mark_room_cleaned(str(attack.id))
     except Exception:
@@ -3706,11 +3738,7 @@ class KingdomRoomUrlButton(
         wiring = _wiring()
         if wiring.attacks_service is not None and attack_id:
             try:
-                current = next(
-                    item_
-                    for item_ in await wiring.attacks_service.attacks()
-                    if str(item_.id) == attack_id
-                )
+                current = next(item_ for item_ in await wiring.attacks_service.attacks() if str(item_.id) == attack_id)
             except Exception:
                 current = None
             if current is not None and str(current.lobby_url or "").strip():
@@ -3737,37 +3765,23 @@ class KingdomRoomUrlButton(
         # restructuration-serveur-v1 b: the meeting message is public —
         # its buttons are reserved to the two players (clean refusal).
         try:
-            current = next(
-                item
-                for item in await wiring.attacks_service.attacks()
-                if str(item.id) == self.attack_id
-            )
+            current = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id)
         except Exception:
             current = None
         if current is None or _room_side_of(current, str(interaction.user.id)) == "":
             await interaction.response.send_message(strings["room_not_player"], ephemeral=True)
             return
         # Instant lock: the ID button disappears for the other player.
-        await _refresh_room_message_safe(
-            interaction.client, current, _locale(interaction), id_pending=True
-        )
+        await _refresh_room_message_safe(interaction.client, current, _locale(interaction), id_pending=True)
 
         async def _unlock_later() -> None:
             try:
                 await asyncio.sleep(300)
                 fresh = next(
-                    (
-                        item
-                        for item in await wiring.attacks_service.attacks()
-                        if str(item.id) == self.attack_id
-                    ),
+                    (item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id),
                     None,
                 )
-                if (
-                    fresh is not None
-                    and not fresh.is_over
-                    and not str(fresh.lobby_url or "").strip()
-                ):
+                if fresh is not None and not fresh.is_over and not str(fresh.lobby_url or "").strip():
                     await _refresh_room_message_safe(interaction.client, fresh, _locale(interaction))
             except Exception:
                 logger.debug("kingdoms: room ID unlock sweep skipped", exc_info=True)
@@ -3806,9 +3820,7 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             return
         url = str(self.url_input.value or "").strip()
         try:
-            attack = await wiring.attacks_service.set_lobby_url(
-                self.attack_id, self.player_id, url
-            )
+            attack = await wiring.attacks_service.set_lobby_url(self.attack_id, self.player_id, url)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
@@ -3871,11 +3883,7 @@ class KingdomRoomResultButton(
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
         try:
-            attack = next(
-                item
-                for item in await wiring.attacks_service.attacks()
-                if str(item.id) == self.attack_id
-            )
+            attack = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id)
         except Exception:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
@@ -3910,9 +3918,7 @@ class KingdomRoomResultButton(
         }
         if others:
             declarer, declaration = next(iter(others.items()))
-            await _send_room_review(
-                interaction, wiring, strings, attack, str(declarer), str(declaration["winner"])
-            )
+            await _send_room_review(interaction, wiring, strings, attack, str(declarer), str(declaration["winner"]))
             return
         await _send_room_select(interaction, wiring, strings, attack)
 
@@ -3969,9 +3975,7 @@ async def _send_room_select(
         if str(getattr(target.user, "id", "")) != str(interaction.user.id):
             await target.response.defer()
             return
-        winner_name = (
-            attacker_name if winner_kingdom_id == str(attack.attacker_kingdom_id) else defender_name
-        )
+        winner_name = attacker_name if winner_kingdom_id == str(attack.attacker_kingdom_id) else defender_name
         await _edit_room_confirm(target, wiring, strings, attack, winner_kingdom_id, winner_name)
 
     view = await _room_select_view(wiring, strings, attack, _on_choice)
@@ -4134,9 +4138,7 @@ async def _declare_room_score(
         await _respond(strings["no_service"])
         return
     try:
-        attack, outcome = await wiring.attacks_service.declare_score(
-            attack_id, player_id, winner_kingdom_id, game_id
-        )
+        attack, outcome = await wiring.attacks_service.declare_score(attack_id, player_id, winner_kingdom_id, game_id)
     except Exception as exc:
         message = getattr(exc, "message", None) or str(exc)
         await _respond(strings["failed"].format(message=message))
@@ -4154,14 +4156,10 @@ async def _declare_room_score(
         return
     if outcome == "resolved":
         winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
-        await _respond(
-            strings["score_resolved"].format(
-                winner=winner, map=attack.map_key, game=game_id or "—"
-            )
-        )
-        await _announce_conquest_safe(
-            interaction.client, wiring.kingdoms_service, attack, _locale(interaction)
-        )
+        await _respond(strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id or "—"))
+        # sabotage-ux-v1 (Drasah 22/10): the room ping wears the winner.
+        await _stamp_room_ping_winner_safe(interaction.client, attack, winner, strings)
+        await _announce_conquest_safe(interaction.client, wiring.kingdoms_service, attack, _locale(interaction))
         _arm_ephemeral_timer(key, interaction, _ROOM_RECEIPT_SECONDS)
         return
     minutes = 10
@@ -4192,11 +4190,7 @@ class KingdomRoomReadyButton(
 
     def __init__(self, attack_id: str, label: str, *, side: str | None = None) -> None:
         key = _room_key(attack_id)
-        custom_id = (
-            f"kingdoms:attack:room:ready:{key}"
-            if side is None
-            else f"kingdoms:attack:room:ready:{key}:{side}"
-        )
+        custom_id = f"kingdoms:attack:room:ready:{key}" if side is None else f"kingdoms:attack:room:ready:{key}:{side}"
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
@@ -4219,9 +4213,7 @@ class KingdomRoomReadyButton(
         strings = _strings(_locale(interaction))
         side = match["side"] if "side" in match.groupdict() else None
         if side:
-            label = strings[f"room_ready_{side}_button"].format(
-                player=strings[f"room_side_{side}"]
-            )
+            label = strings[f"room_ready_{side}_button"].format(player=strings[f"room_side_{side}"])
         else:
             label = strings["room_ready_button"]
         return cls(await _resolve_room_attack_id_async(match["key"]), label, side=side)
@@ -4242,11 +4234,7 @@ class KingdomRoomReadyButton(
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
         try:
-            current = next(
-                item
-                for item in await wiring.attacks_service.attacks()
-                if str(item.id) == self.attack_id
-            )
+            current = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id)
         except Exception:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
@@ -4260,9 +4248,7 @@ class KingdomRoomReadyButton(
             # battle-room-id-v1: each Prêt button belongs to ONE side.
             # battle-room-id-v2: the refusal self-destructs after 10 s
             # (no clutter in the player's ephemeral lane).
-            await interaction.response.send_message(
-                strings["room_not_your_side"], ephemeral=True
-            )
+            await interaction.response.send_message(strings["room_not_your_side"], ephemeral=True)
             _arm_ephemeral_timer(
                 ("ready-refusal", str(getattr(interaction, "id", "") or id(interaction))),
                 interaction,
@@ -4270,17 +4256,13 @@ class KingdomRoomReadyButton(
             )
             return
         if not str(current.lobby_url or "").strip():
-            await interaction.response.send_message(
-                strings["room_ready_needs_url"], ephemeral=True
-            )
+            await interaction.response.send_message(strings["room_ready_needs_url"], ephemeral=True)
             return
         try:
             attack = await wiring.attacks_service.mark_ready(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
         # battle-room-id-v1: the scoreboard refreshes in place — the
         # player's own half shows « ✅ Prêt », 🏆 appears once both are
@@ -4305,9 +4287,64 @@ def _room_side_of(attack: Any, user_id: str) -> str:
     return ""
 
 
-async def _sabotage_menu_view(
+async def _sabotage_stock_line(wiring: Any, attack: Any, side: str, strings: dict[str, str]) -> str:
+    """Build the « 🗡️ Sabotage : n · 🦅 Faucon : … » line (sabotage-ux-v1).
+
+    Drasah 22/10: the draft & ban DM tells the player what he owns —
+    the Sabotage techno is NOT consumed by a use (the stock stays),
+    while the Faucon is a volière slot + a 48h cooldown. Best effort:
+    a failing lookup never breaks the DM.
+    """
+    kingdom_id = str(
+        getattr(attack, "attacker_kingdom_id", "") if side == "attacker" else getattr(attack, "defender_kingdom_id", "")
+    )
+    if not kingdom_id:
+        return ""
+    sabotage = 0
+    faucon = strings["sab_faucon_absent"]
+    try:
+        state = await wiring.attacks_service.technology_state(kingdom_id)
+        sabotage = int(state.purchases.get("sabotage", 0))
+    except Exception:
+        sabotage = 0
+    try:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _kingdom_by_id_safe
+
+        kingdom = await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
+        if kingdom is not None and "faucon" in (kingdom.voliere_slots or []):
+            ready = int(kingdom.voliere_cooldowns.get("faucon", 0) or 0)
+            if ready > int(game_now().timestamp()):
+                faucon = strings["sab_faucon_flying"].format(time=_fmt_paris(datetime.fromtimestamp(ready, tz=UTC)))
+            else:
+                faucon = strings["sab_faucon_ready"]
+    except Exception:
+        faucon = strings["sab_faucon_absent"]
+    return strings["sab_stock_line"].format(sabotage=sabotage, faucon=faucon)
+
+
+async def _sabotage_panel_content(
     wiring: Any, attack: Any, side: str, strings: dict[str, str]
-) -> discord.ui.View | None:
+) -> tuple[str, discord.ui.View | None]:
+    """Build the sabotage PANEL content + its rebuilt menu (sabotage-ux-v1).
+
+    One panel, edited in place: the title carries the X/2 récap, the
+    removed-civs line, the stock line. The menu view is None when no
+    action is available anymore (the caller sweeps the panel).
+    """
+    pickban = dict(attack.pickban or {})
+    used = [str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])]
+    lines = [strings["sab_panel_title"].format(used=len(used))]
+    if used:
+        lines.append(strings["sab_panel_used"].format(list=", ".join(used)))
+    else:
+        lines.append(strings["sab_panel_none"])
+    lines.append("")
+    lines.append(await _sabotage_stock_line(wiring, attack, side, strings))
+    view = await _sabotage_menu_view(wiring, attack, side, strings)
+    return "\n".join(lines), view
+
+
+async def _sabotage_menu_view(wiring: Any, attack: Any, side: str, strings: dict[str, str]) -> discord.ui.View | None:
     """Build the ephemeral DM sabotage menu of one side (None when empty).
 
     Drasah 18/10 v4: the sabotage phase moved to the DMs, right after
@@ -4344,9 +4381,7 @@ async def _sabotage_action_button(
         if not kingdom_id:
             return None
     else:
-        kingdom_id = str(
-            attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
-        )
+        kingdom_id = str(attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id)
         bought = False
         try:
             state = await wiring.attacks_service.technology_state(kingdom_id)
@@ -4360,16 +4395,24 @@ async def _sabotage_action_button(
     )
 
     async def _on_action(target: discord.Interaction) -> None:
+        key = (str(attack.id), user_id)
         if str(getattr(target.user, "id", "")) != user_id:
             await target.response.defer()
             return
+        # sabotage-ux-v1 (Drasah 22/10): the menu CLICK edits the panel
+        # in place — no new bubble, the civ select replaces the buttons.
+        try:
+            fresh = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == str(attack.id))
+        except Exception:
+            fresh = attack
+        content, menu = await _sabotage_panel_content(wiring, fresh, side, strings)
         civ_view = await _sabotage_civ_select_view(wiring, str(attack.id), side, action, strings)
         if civ_view is None:
-            await target.response.send_message(strings["sab_empty"], ephemeral=True)
+            await target.response.edit_message(content=f"{content}\n\n{strings['sab_empty']}", view=menu)
+            _arm_sabotage_panel_timer(key)
             return
-        await target.response.send_message(
-            strings["sab_choose"], view=civ_view, ephemeral=True
-        )
+        await target.response.edit_message(content=f"{content}\n\n{strings['sab_choose']}", view=civ_view)
+        _arm_sabotage_panel_timer(key)
 
     button.callback = _on_action  # type: ignore[method-assign,assignment]
     return button
@@ -4382,18 +4425,14 @@ async def _sabotage_civ_select_view(
     from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
 
     try:
-        attack = next(
-            item for item in await wiring.attacks_service.attacks() if str(item.id) == attack_id
-        )
+        attack = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == attack_id)
     except Exception:
         return None
     user_id = str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
     pickban = dict(attack.pickban or {})
     enemy = "defender" if side == "attacker" else "attacker"
     already = [str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])]
-    options = [
-        civ for civ in _shuffled_civs(pickban.get(f"{enemy}_picks")) if civ not in already
-    ][:25]
+    options = [civ for civ in _shuffled_civs(pickban.get(f"{enemy}_picks")) if civ not in already][:25]
     if not options:
         return None
     view = discord.ui.View(timeout=300)
@@ -4413,29 +4452,40 @@ async def _sabotage_civ_select_view(
             if action == "faucon":
                 lord = await _lord_of(wiring.kingdoms_service, user_id)
                 kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
-                await wiring.voliere_service.faucon_sabotage(
-                    kingdom_id, attack_id, civ, now=datetime.now(UTC)
-                )
+                await wiring.voliere_service.faucon_sabotage(kingdom_id, attack_id, civ, now=datetime.now(UTC))
             else:
                 await wiring.attacks_service.sabotage_techno(attack_id, user_id, civ)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await target.response.send_message(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await target.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
-        await target.response.send_message(
-            strings["sab_done"].format(civ=civ), ephemeral=True
-        )
+        # sabotage-ux-v1 (Drasah 22/10): the pick edits the SAME panel —
+        # récap X/2 + the removed civ + the stock line, no new bubble.
+        try:
+            fresh = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == attack_id)
+        except Exception:
+            fresh = attack
+        content, menu = await _sabotage_panel_content(wiring, fresh, side, strings)
+        used = len([str(civ) for civ in ((fresh.pickban or {}).get(f"{side}_sabotages") or [])])
+        note = strings["sab_panel_done"].format(civ=civ, used=used)
+        key = (attack_id, user_id)
+        try:
+            await target.response.edit_message(content=f"{content}\n\n{note}", view=menu)
+        except Exception:
+            logger.warning("KINGDOM ATTACK: sabotage panel edit failed", exc_info=True)
+            await target.response.send_message(note, ephemeral=True)
+        if menu is None or not list(menu.children):
+            # No action left — sweep the closed panel quickly.
+            _arm_sabotage_panel_timer(key, seconds=_SABOTAGE_PANEL_SWEEP_SECONDS)
+        else:
+            _arm_sabotage_panel_timer(key)
 
     select.callback = _on_pick  # type: ignore[method-assign,assignment]
     view.add_item(select)
     return view
 
 
-async def _announce_room_start_safe(
-    interaction: discord.Interaction, attack: Any, strings: dict[str, str]
-) -> None:
+async def _announce_room_start_safe(interaction: discord.Interaction, attack: Any, strings: dict[str, str]) -> None:
     """Create the match scheduled event (best effort).
 
     Drasah 18/10 v5: both players clicked Prêt — the announcement
@@ -4447,9 +4497,7 @@ async def _announce_room_start_safe(
     await _create_room_event_safe(interaction.client, attack, strings, interaction.channel)
 
 
-async def _create_room_event_safe(
-    client: Any, attack: Any, strings: dict[str, str], channel: Any = None
-) -> None:
+async def _create_room_event_safe(client: Any, attack: Any, strings: dict[str, str], channel: Any = None) -> None:
     """Create the room's scheduled event from an interaction OR a tick.
 
     Drasah 22/10 battle-ai-rdv-v1: against the AI defender the ready
@@ -4477,9 +4525,7 @@ async def _create_room_event_safe(
     if guild is None:
         logger.warning("KINGDOM ATTACK: room match announce without a guild")
         return
-    if not isinstance(
-        channel, (discord.VoiceChannel, discord.StageChannel, discord.TextChannel, discord.Thread)
-    ):
+    if not isinstance(channel, (discord.VoiceChannel, discord.StageChannel, discord.TextChannel, discord.Thread)):
         logger.warning("KINGDOM ATTACK: room match announce outside a room channel")
         return
     score = dict(attack.score or {})
@@ -4487,12 +4533,10 @@ async def _create_room_event_safe(
     defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
     try:
         event = await guild.create_scheduled_event(
-            name=strings["room_event_name"].format(
-                map=attack.map_key, attacker=attacker_name, defender=defender_name
-            )[:100],
-            description=strings["room_event_description"].format(
-                attacker=attacker_name, defender=defender_name
-            ),
+            name=strings["room_event_name"].format(map=attack.map_key, attacker=attacker_name, defender=defender_name)[
+                :100
+            ],
+            description=strings["room_event_description"].format(attacker=attacker_name, defender=defender_name),
             start_time=datetime.now(UTC),
             entity_type=discord.EntityType.voice,
             privacy_level=discord.PrivacyLevel.guild_only,
@@ -4504,11 +4548,10 @@ async def _create_room_event_safe(
     if int(score.get("room_event_id") or 0) > 0:
         try:
             if wiring.attacks_service is not None:
-                await wiring.attacks_service.record_room_event(
-                    str(attack.id), int(score["room_event_id"])
-                )
+                await wiring.attacks_service.record_room_event(str(attack.id), int(score["room_event_id"]))
         except Exception:
             logger.warning("KINGDOM ATTACK: room event ref not stored", exc_info=True)
+
 
 async def _resolve_room_attack_id_async(key: str) -> str:
     """Resolve the room key back to an attack id (the async service scan)."""
@@ -4594,7 +4637,6 @@ async def _send_score_reminder_dm(bot: Any, attack: Any, locale: str) -> None:
         await _dm_user_safe(bot, player_id, content)
 
 
-
 async def _dm_admins_dispute_safe(bot: Any, wiring: Any, attack: Any, strings: dict[str, str]) -> None:
     """DM the bot-admins a disputed meeting with the arbitration buttons."""
     declarations = (attack.score or {}).get("declarations") or {}
@@ -4611,7 +4653,9 @@ async def _dm_admins_dispute_safe(bot: Any, wiring: Any, attack: Any, strings: d
         await _dm_user_safe(bot, str(admin_id), content, view)
 
 
-async def _run_noshows_safe(guild: Any, attacks_service: Any, kingdoms_service: Any, strings: dict[str, str]) -> int:
+async def _run_noshows_safe(
+    bot: Any, guild: Any, attacks_service: Any, kingdoms_service: Any, strings: dict[str, str]
+) -> int:
     """Announce the T+5 no-show resolutions of the meetings.
 
     Returns the number of meetings resolved (attaques-panel-spam: any
@@ -4632,4 +4676,6 @@ async def _run_noshows_safe(guild: Any, attacks_service: Any, kingdoms_service: 
             attack,
             strings["noshow_side"].format(map=attack.map_key, side=strings[f"side_{noshow}"], kingdom=kingdom),
         )
+        # sabotage-ux-v1 (Drasah 22/10): the room ping wears the winner.
+        await _stamp_room_ping_winner_safe(bot, attack, kingdom, strings)
     return played

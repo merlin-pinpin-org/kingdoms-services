@@ -658,9 +658,7 @@ class AttackService:
         await self._store.upsert_technology(state.to_mongo())
         return cover.id
 
-    async def respond_defense(
-        self, attack_id: str, player_id: str, *, now: datetime | None = None
-    ) -> AttackModel:
+    async def respond_defense(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
         """Answer an attack: any lord of the defending kingdom (D7).
 
         The defense window is [declaration, T-15] (Drasah 18/10 —
@@ -681,9 +679,7 @@ class AttackService:
         timestamp = now or _now()
         cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
         if timestamp >= cutoff and not bypass_guard("defense window closing (T-15)"):
-            raise DefenseCutoffError(
-                "la fenêtre de défense est fermée (T-15) — le reveal a verrouillé la partie"
-            )
+            raise DefenseCutoffError("la fenêtre de défense est fermée (T-15) — le reveal a verrouillé la partie")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
@@ -721,9 +717,7 @@ class AttackService:
         logger.info("kingdoms: %s defends the attack on %s", lord.id, attack.map_key)
         return attack
 
-    async def cancel_attack(
-        self, attack_id: str, player_id: str, *, now: datetime | None = None
-    ) -> AttackModel:
+    async def cancel_attack(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
         """Withdraw a declared attack (restructuration-serveur-v1 b, Drasah 19/10).
 
         The DECLARANT alone, inside the 10-minute window after the
@@ -747,18 +741,12 @@ class AttackService:
         timestamp = now or _now()
         deadline = attack.declared_at + timedelta(minutes=CANCEL_ATTACK_WINDOW_MINUTES)
         if timestamp > deadline and not bypass_guard("cancel window of the declaration"):
-            raise AttackStateError(
-                f"the {CANCEL_ATTACK_WINDOW_MINUTES}-minute cancellation window is closed"
-            )
+            raise AttackStateError(f"the {CANCEL_ATTACK_WINDOW_MINUTES}-minute cancellation window is closed")
         attacker = await self._require_lord(str(attack.attacker_lord_id))
         if not attack.embuscade and attacker.attack_used > 0:
             attacker.attack_used -= 1
             await self._store.upsert_lord(attacker.to_mongo())
-        if (
-            attack.state is AttackState.DEFENDED
-            and attack.defender_lord_id
-            and not attack.ai_defender
-        ):
+        if attack.state is AttackState.DEFENDED and attack.defender_lord_id and not attack.ai_defender:
             defender = await self._require_lord(str(attack.defender_lord_id))
             if defender.defense_used > 0:
                 defender.defense_used -= 1
@@ -769,9 +757,7 @@ class AttackService:
         logger.info("kingdoms: attack on %s cancelled by %s", attack.map_key, player_id)
         return attack
 
-    async def cancel_defense(
-        self, attack_id: str, player_id: str, *, now: datetime | None = None
-    ) -> AttackModel:
+    async def cancel_defense(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
         """Withdraw a recorded defense (restructuration-serveur-v1 b, Drasah 19/10).
 
         The DEFENDER alone, at any moment EXCEPT once the draft phase
@@ -791,11 +777,9 @@ class AttackService:
             raise AttackStateError("only the defender may withdraw the defense")
         timestamp = now or _now()
         draft_start = attack.expires_at - timedelta(minutes=self._config.attacks.pick_ban_lead_minutes)
-        if (
-            attack.revealed
-            or (attack.pickban or {}).get("sent")
-            or timestamp >= draft_start
-        ) and not bypass_guard("defense cancel after the draft start"):
+        if (attack.revealed or (attack.pickban or {}).get("sent") or timestamp >= draft_start) and not bypass_guard(
+            "defense cancel after the draft start"
+        ):
             raise AttackStateError("the draft phase started — the defense can no longer be withdrawn")
         defender = await self._require_lord(str(attack.defender_lord_id))
         if defender.defense_used > 0:
@@ -871,12 +855,8 @@ class AttackService:
                 # (it must survive the attacker's sabotage techno) and
                 # validates after a 30-90 s random delay — the draft
                 # feels like a human one, the timing never leaks the bot.
-                pickban["defender_picks"] = _random_picks(
-                    await self._side_hand(attack.defender_kingdom_id)
-                )
-                pickban["ai_validate_at"] = int(
-                    (timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp()
-                )
+                pickban["defender_picks"] = _random_picks(await self._side_hand(attack.defender_kingdom_id))
+                pickban["ai_validate_at"] = int((timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp())
             attack.pickban = pickban
             await self._store.upsert_attack(attack.to_mongo())
             due.append(attack)
@@ -983,9 +963,7 @@ class AttackService:
         logger.info("kingdoms: pick & ban validated by %s on %s", player_id, attack.map_key)
         return attack
 
-    async def record_pickban_dm(
-        self, attack_id: str, player_id: str, channel_id: int, message_id: int
-    ) -> None:
+    async def record_pickban_dm(self, attack_id: str, player_id: str, channel_id: int, message_id: int) -> None:
         """Store the DM message refs of a pick & ban (Drasah 18/10 v2).
 
         The resolution edits the SAME DM (anti-spam): the refs let the
@@ -1116,9 +1094,7 @@ class AttackService:
             # runs AT the meeting time — the anti-blocking default only
             # applies after ``ai_draft_grace_minutes`` (the same window
             # the human draft enjoys), never a forfeit.
-            deadline = attack.expires_at + timedelta(
-                minutes=self._config.attacks.ai_draft_grace_minutes
-            )
+            deadline = attack.expires_at + timedelta(minutes=self._config.attacks.ai_draft_grace_minutes)
             if timestamp < deadline:
                 return None
         pickban = dict(attack.pickban)
@@ -1147,11 +1123,7 @@ class AttackService:
             pickban["defender_sabotages"] = []
             if not attacker_ok and not pickban.get("attacker_picks"):
                 pickban["attacker_picks"] = _random_picks(await self._side_hand(attack.attacker_kingdom_id))
-            if (
-                not attack.ai_defender
-                and not defender_ok
-                and not pickban.get("defender_picks")
-            ):
+            if not attack.ai_defender and not defender_ok and not pickban.get("defender_picks"):
                 pickban["defender_picks"] = _random_picks(await self._side_hand(attack.defender_kingdom_id))
             pickban["attacker_validated"] = True
             pickban["defender_validated"] = True
@@ -1220,9 +1192,7 @@ class AttackService:
         logger.info("kingdoms: lobby url shared on %s by %s", attack.map_key, player_id)
         return attack
 
-    async def record_battle_room(
-        self, attack_id: str, channel_id: int, role_id: int | None = None
-    ) -> AttackModel:
+    async def record_battle_room(self, attack_id: str, channel_id: int, role_id: int | None = None) -> AttackModel:
         """Store the battle-room voice channel (and its role) refs.
 
         Drasah 18/10 v2: the scheduler opens a dedicated voice room at
@@ -1256,9 +1226,7 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
-    async def record_room_message(
-        self, attack_id: str, channel_id: int, message_id: int
-    ) -> AttackModel:
+    async def record_room_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
         """Store the battle-room single-message ref (Drasah 18/10 v5).
 
         The room lives on ONE edited message (ID → Prêt → Résultat) —
@@ -1341,9 +1309,7 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
-    async def record_meeting_message(
-        self, attack_id: str, channel_id: int, message_id: int
-    ) -> AttackModel:
+    async def record_meeting_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
         """Store the meeting's single-message ref (restructuration-serveur-v1 b).
 
         The centralized follow-up message (🔗 ID → ✅ Prêt → 🏆 Résultat)
@@ -1358,6 +1324,23 @@ class AttackService:
         score = dict(attack.score)
         score["meeting_channel_id"] = int(channel_id)
         score["meeting_message_id"] = int(message_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_ping_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
+        """Store the room's PING message ref (sabotage-ux-v1).
+
+        Drasah 22/10: the « ⚔️ … à vos armes ! » ping of the room gets
+        the 🏆 winner stamped at every resolution — the ref lives in
+        the score, separate from the meeting message refs.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_ping_channel_id"] = int(channel_id)
+        score["room_ping_message_id"] = int(message_id)
         attack.score = score
         await self._store.upsert_attack(attack.to_mongo())
         return attack
@@ -1412,8 +1395,7 @@ class AttackService:
             # forfeit for a room that opened past its own deadline.
             score["ready_deadline"] = int(
                 (
-                    max(timestamp, attack.expires_at)
-                    + timedelta(minutes=self._config.attacks.ready_grace_minutes)
+                    max(timestamp, attack.expires_at) + timedelta(minutes=self._config.attacks.ready_grace_minutes)
                 ).timestamp()
             )
             attack.score = score
@@ -1462,8 +1444,7 @@ class AttackService:
             if not opened_at:
                 continue
             deadline = opened_at + int(
-                (self._config.attacks.score_reminder_hours
-                 + self._config.attacks.score_dispute_after_reminder_hours)
+                (self._config.attacks.score_reminder_hours + self._config.attacks.score_dispute_after_reminder_hours)
                 * 3600
             )
             if timestamp.timestamp() < deadline:
@@ -1508,9 +1489,7 @@ class AttackService:
                 # PERSISTED: the tick replays it safely, a restart
                 # never loses it. Idempotent — a re-click never re-arms.
                 if not score.get("ai_ready_at"):
-                    score["ai_ready_at"] = int(
-                        (timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp()
-                    )
+                    score["ai_ready_at"] = int((timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp())
                     logger.info(
                         "kingdoms: %s is Prêt on %s — the AI confirms shortly",
                         player_id,
@@ -1600,9 +1579,7 @@ class AttackService:
         """
         attack = await self._require_sabotage_attack(attack_id, _now())
         side = await self._sabotage_side(attack, player_id)
-        kingdom_id = (
-            attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
-        )
+        kingdom_id = attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
         state = await self.technology_state(kingdom_id)
         if state.purchases.get("sabotage", 0) <= 0:
             raise AttackStateError("the kingdom has not bought the sabotage technology")
@@ -1693,8 +1670,7 @@ class AttackService:
         # on the ACTUAL open for a late opening (battle-ai-rdv-v1).
         score["ready_deadline"] = int(
             (
-                max(timestamp, attack.expires_at)
-                + timedelta(minutes=self._config.attacks.ready_grace_minutes)
+                max(timestamp, attack.expires_at) + timedelta(minutes=self._config.attacks.ready_grace_minutes)
             ).timestamp()
         )
         attack.score = score
@@ -1846,9 +1822,7 @@ class AttackService:
         if winner_kingdom_id not in allowed:
             raise AttackStateError("this kingdom took no part in the attack")
         if attack.is_over:
-            return await self._declare_after_resolution(
-                attack, player_id, winner_kingdom_id, game_id, timestamp
-            )
+            return await self._declare_after_resolution(attack, player_id, winner_kingdom_id, game_id, timestamp)
         if attack.state is not AttackState.MEETING:
             raise AttackStateError("the score phase is not open on this attack")
         self._require_score_player(attack, player_id)
@@ -1880,9 +1854,7 @@ class AttackService:
                 winner_kingdom_id,
             )
             return attack, "resolved"
-        return await self._resolve_two_humans_declaration(
-            attack, player_id, winner_kingdom_id, game_id, timestamp
-        )
+        return await self._resolve_two_humans_declaration(attack, player_id, winner_kingdom_id, game_id, timestamp)
 
     async def _declare_after_resolution(
         self,
@@ -1989,9 +1961,7 @@ class AttackService:
             declarations = dict(score.get("declarations") or {})
             if not declarations:
                 continue
-            if timestamp.timestamp() < pending_since + int(
-                self._config.attacks.score_confirm_minutes * 60
-            ):
+            if timestamp.timestamp() < pending_since + int(self._config.attacks.score_confirm_minutes * 60):
                 continue
             winner = next(iter(declarations.values()))["winner"]
             await self._resolve_score(attack, str(winner), timestamp)

@@ -4,6 +4,7 @@ The pinned Attaquer panel, the persistent declare/defend buttons, the
 declaration modal and the scheduler entry (reveal announcement, pick
 & ban DM dispatch, forfeit announcements) behind the in-memory store.
 """
+
 from __future__ import annotations
 
 import re
@@ -74,9 +75,7 @@ class _FakeChannel:
     def history(self, limit: int = 50) -> _History:
         return _History(list(self.history_list))
 
-    async def send(
-        self, content: str | None = None, *, view: Any = None, **kwargs: Any
-    ) -> Any:
+    async def send(self, content: str | None = None, *, view: Any = None, **kwargs: Any) -> Any:
         message = type("Sent", (), {"content": content, "view": view})()
         self.sent.append(message)
         return message
@@ -257,7 +256,10 @@ async def test_declaration_names_the_cover_not_the_attacker() -> None:
     target = (await bundle.owner_maps(bourgogne))[0]
     await bundle.stock(aquitaine, contre_espionnage=1)
     attack = await bundle.attacks.declare_attack(
-        "king-a", target, "", cover_lord_id="lord-a",
+        "king-a",
+        target,
+        "",
+        cover_lord_id="lord-a",
         now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC),
     )
     assert attack.cover_lord_id == "lord-a"
@@ -289,9 +291,7 @@ async def test_cancel_attack_button_refunds_and_purges_the_salon() -> None:
     await bundle.draw(24)
     attack = await bundle.fresh_attack()
     # A defense is already recorded — its budget is refunded too.
-    await bundle.attacks.respond_defense(
-        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
-    )
+    await bundle.attacks.respond_defense(attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC))
     attacker = next(lord for lord in await bundle.kingdoms.lords() if str(lord.id) == "king-a")
     defender = next(lord for lord in await bundle.kingdoms.lords() if str(lord.id) == "lord-b")
     assert attacker.attack_used == 1
@@ -356,32 +356,22 @@ async def test_cancel_defense_withdraws_and_refunds_before_the_draft() -> None:
     await bundle.launch_season()
     await bundle.draw(24)
     attack = await bundle.fresh_attack()
-    await bundle.attacks.respond_defense(
-        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
-    )
+    await bundle.attacks.respond_defense(attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC))
     # Only the defender may withdraw.
     with pytest.raises(AttackStateError):
         await bundle.attacks.cancel_defense(attack.id, "king-a", now=datetime(2026, 10, 11, 12, 35, tzinfo=UTC))
-    withdrawn = await bundle.attacks.cancel_defense(
-        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 35, tzinfo=UTC)
-    )
+    withdrawn = await bundle.attacks.cancel_defense(attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 35, tzinfo=UTC))
     assert str(withdrawn.state.value) == "declared"
     assert withdrawn.defender_lord_id is None
     defender = next(lord for lord in await bundle.kingdoms.lords() if str(lord.id) == "lord-b")
     assert defender.defense_used == 0
     # The defense may be retaken after a withdrawal.
-    retaken = await bundle.attacks.respond_defense(
-        attack.id, "lord-b", now=datetime(2026, 10, 11, 13, 0, tzinfo=UTC)
-    )
+    retaken = await bundle.attacks.respond_defense(attack.id, "lord-b", now=datetime(2026, 10, 11, 13, 0, tzinfo=UTC))
     assert str(retaken.state.value) == "defended"
     # Once the draft lead starts (T - pick_ban_lead_minutes), refused.
-    draft_start = attack.expires_at - timedelta(
-        minutes=bundle.attacks._config.attacks.pick_ban_lead_minutes
-    )
+    draft_start = attack.expires_at - timedelta(minutes=bundle.attacks._config.attacks.pick_ban_lead_minutes)
     with pytest.raises(AttackStateError):
-        await bundle.attacks.cancel_defense(
-            attack.id, "lord-b", now=draft_start + timedelta(minutes=1)
-        )
+        await bundle.attacks.cancel_defense(attack.id, "lord-b", now=draft_start + timedelta(minutes=1))
 
 
 async def test_defend_button_answers_the_surprise_cases() -> None:
@@ -491,18 +481,20 @@ async def test_declare_flow_declares_the_attack() -> None:
     assert kingdom_view is not None
     kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
     step = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [bourgogne]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
     )
     await kingdom_select.callback(step)  # type: ignore[arg-type]
     assert step.response.message is not None
     # Step 2 — the territory select of the chosen kingdom.
     territory_view = step.response.message.view
     assert territory_view is not None
-    territory_select = next(
-        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
-    )
+    territory_select = next(c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory")
     step2 = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
     )
     # Step 3 — no contre-espionnage stock: the attack declares
     # DIRECTLY (Drasah 18/10 — no modal: an empty modal is rejected
@@ -545,19 +537,19 @@ async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
     await button.callback(click)  # type: ignore[arg-type]
     kingdom_view = click.response.message and click.response.message.view
     assert kingdom_view is not None
-    kingdom_select = next(
-        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
-    )
+    kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
     step = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [bourgogne]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
     )
     await kingdom_select.callback(step)  # type: ignore[arg-type]
     territory_view = step.response.message and step.response.message.view
-    territory_select = next(
-        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
-    )
+    territory_select = next(c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory")
     step2 = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
     )
     await territory_select.callback(step2)  # type: ignore[arg-type]
     # The cover question (OUI/NON) replaces the territory select.
@@ -600,20 +592,20 @@ async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
     await button.callback(click)  # type: ignore[arg-type]
     kingdom_view = click.response.message and click.response.message.view
     assert kingdom_view is not None
-    kingdom_select = next(
-        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
-    )
+    kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
     step = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [bourgogne]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
     )
     await kingdom_select.callback(step)  # type: ignore[arg-type]
     territory_view = step.response.message and step.response.message.view
     assert territory_view is not None
-    territory_select = next(
-        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
-    )
+    territory_select = next(c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory")
     step2 = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
     )
     await territory_select.callback(step2)  # type: ignore[arg-type]
     # Solo: the attack declares DIRECTLY — no OUI/NON question…
@@ -654,24 +646,24 @@ async def test_declare_flow_attacks_gaia_through_the_free_for_all() -> None:
     # Step 1 — Gaïa appears in the kingdom select.
     kingdom_view = click.response.message and click.response.message.view
     assert kingdom_view is not None
-    kingdom_select = next(
-        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
-    )
+    kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
     values = [o.value for o in kingdom_select.options]
     assert gaia in values
     step = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [gaia]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [gaia]},
+        locale="fr",  # type: ignore[arg-type]
     )
     await kingdom_select.callback(step)  # type: ignore[arg-type]
     # Step 2 — the Gaïa territories show up.
     territory_view = step.response.message and step.response.message.view
     assert territory_view is not None
-    territory_select = next(
-        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
-    )
+    territory_select = next(c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory")
     assert gaia_map in [o.value for o in territory_select.options]
     step2 = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), data={"values": [gaia_map]}, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [gaia_map]},
+        locale="fr",  # type: ignore[arg-type]
     )
     # Step 3 — a Gaïa target skips the cover question: lobby straight away.
     await territory_select.callback(step2)  # type: ignore[arg-type]
@@ -762,7 +754,9 @@ async def test_gaia_declaration_opens_its_salon_and_is_never_cancellable() -> No
     # The join announce lands in the salon.
     button = KingdomAttackJoinButton(battle.id, _strings("fr")["gaia_join_button"])
     click = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-b"), guild=guild, locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-b"),
+        guild=guild,
+        locale="fr",  # type: ignore[arg-type]
     )
     await button.callback(click)  # type: ignore[arg-type]
     join_announces = [m for m in salon.messages if "rejoint la bataille" in (m.content or "")]
@@ -874,9 +868,7 @@ async def test_scheduler_reveals_then_the_ai_takes_over_at_the_meeting_time() ->
     assert fresh.pickban["sent"] is True  # the draft DM leaves at once
     assert not fresh.pickban.get("resolved_pickban")
     assert len(fresh.pickban["defender_picks"]) == 3
-    assert 30 <= fresh.pickban["ai_validate_at"] - int(
-        datetime(2026, 10, 11, 18, 2, tzinfo=UTC).timestamp()
-    ) <= 90
+    assert 30 <= fresh.pickban["ai_validate_at"] - int(datetime(2026, 10, 11, 18, 2, tzinfo=UTC).timestamp()) <= 90
     assert not [m for m in salon.messages if "Forfait" in (m.content or "")]
 
 
@@ -941,9 +933,7 @@ async def test_scheduler_reveal_names_the_defender_in_the_salon() -> None:
     await bundle2.launch_season()
     await bundle2.draw(25)
     attack2 = await bundle2.fresh_attack()
-    await bundle2.attacks.respond_defense(
-        attack2.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
-    )
+    await bundle2.attacks.respond_defense(attack2.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC))
     guild2 = await _salon_guild(bundle2, attack2)
     salon2 = next(c for c in guild2.text_channels if c.name != "Déclarer une attaque")
     bot2 = _GuildBot(bundle2, guild2)
@@ -966,23 +956,15 @@ async def test_pickban_view_selects_acknowledge_and_validate() -> None:
         ["francs", "bretons", "goths"],
         "fr",
     )
-    selects = [
-        c
-        for c in view.children
-        if getattr(c, "custom_id", "").startswith("kingdoms:attack:pickban:pick:")
-    ]
+    selects = [c for c in view.children if getattr(c, "custom_id", "").startswith("kingdoms:attack:pickban:pick:")]
     assert len(selects) == 3
     for select in selects:
         assert callable(select.callback)  # « the application did not respond » fix
-    validate = next(
-        c for c in view.children if getattr(c, "custom_id", "") == "kingdoms:attack:pickban:validate"
-    )
+    validate = next(c for c in view.children if getattr(c, "custom_id", "") == "kingdoms:attack:pickban:validate")
     assert callable(validate.callback)
     # Drasah 18/10 v2: no sabotage select anymore — the moves ride the
     # battle room, and the resolution is BLIND (no adversary hand here).
-    assert not [
-        c for c in view.children if "sabotage" in str(getattr(c, "custom_id", ""))
-    ]
+    assert not [c for c in view.children if "sabotage" in str(getattr(c, "custom_id", ""))]
     assert len(view.children) == 4  # 3 picks + validate
 
 
@@ -1018,9 +1000,10 @@ async def test_room_and_ready_custom_ids_fit_the_discord_limit() -> None:
     ]
     assert [str(item.custom_id) for item in twin] == ids
     # The key is a 16-hex digest — the raw attack id never rides the id.
-    assert all(re.fullmatch(r"[0-9a-f]{16}", part) for part in
-               (ready.custom_id.split(":")[-1], passer.custom_id.split(":")[-1],
-                url.custom_id.split(":")[-1]))
+    assert all(
+        re.fullmatch(r"[0-9a-f]{16}", part)
+        for part in (ready.custom_id.split(":")[-1], passer.custom_id.split(":")[-1], url.custom_id.split(":")[-1])
+    )
 
 
 async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
@@ -1084,7 +1067,7 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     assert len(salon.messages) == 2
     ping = str(salon.messages[1].content or "")
     assert "<@king-a>" in ping and "<@lord-b>" in ping
-    body = (salon.messages[0].content or "")
+    body = salon.messages[0].content or ""
     # Drasah 18/10 v4: the meeting shows the FINAL civ of each player only
     # (post-sabotage, first surviving pick) — the full hands stay in DM.
     assert "francs" in body
@@ -1267,9 +1250,7 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
 
     # battle-room-id-v1: the WRONG side is refused cleanly (each Prêt
     # button belongs to ONE side of the scoreboard).
-    wrong = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    wrong = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     # type: ignore[arg-type]
     await button.callback(wrong)  # type: ignore[arg-type]
     assert wrong.response.message is not None
@@ -1290,9 +1271,7 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
         return _E()
 
     guild.create_scheduled_event = _fake_create_scheduled_event  # type: ignore[method-assign]
-    first = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    first = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     # type: ignore[arg-type]
     await button.callback(first)  # type: ignore[arg-type]
     # battle-room-id-v1: NO ephemeral bubble — the interaction defers
@@ -1303,9 +1282,7 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     assert "✅ Prêt" in scoreboard
     assert "en attente du Prêt" in scoreboard
     assert not created
-    second = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    second = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     # type: ignore[arg-type]
     await other_side.callback(second)  # type: ignore[arg-type]
     # Both ready: the match event is created once, the ref is stored.
@@ -1321,9 +1298,7 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     assert "bonne game" in str(salon.messages[0].content or "")
     assert not any("La partie commence" in (m.content or "") for m in salon.messages)
     # A re-click by the same player never re-announces the match.
-    again = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    again = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     # type: ignore[arg-type]
     await other_side.callback(again)  # type: ignore[arg-type]
     assert len(created) == 1
@@ -1371,9 +1346,7 @@ async def test_room_url_button_locks_the_entry_then_a_changed_id_resets_the_read
     await bundle.attacks.mark_ready(ready.id, "lord-b")
     # The attacker asks for a modification — the shared view LOCKS.
     button = KingdomRoomUrlButton(attack.id, strings["room_id_modify_button"])
-    click = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    click = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await button.callback(click)  # type: ignore[arg-type]
     assert click.response.modal is not None
     assert isinstance(click.response.modal, KingdomRoomUrlModal)
@@ -1385,9 +1358,7 @@ async def test_room_url_button_locks_the_entry_then_a_changed_id_resets_the_read
     # A CHANGED ID through the modal resets both Prêts (ephemeral note).
     modal = click.response.modal
     modal.url_input._value = "aoe2de://lobby/2"  # type: ignore[attr-defined]
-    submit = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    submit = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await modal.on_submit(submit)  # type: ignore[arg-type]
     # battle-room-id-v2: the modal submit defers silently — the reset
     # of the Prêts reads directly on the scoreboard (no ephemeral note).
@@ -1495,9 +1466,7 @@ async def test_sabotage_dm_buttons_flow_and_no_resources_notice() -> None:
     assert strings["sab_pass_button"] not in labels  # Passer stays in the DM
 
     # The techno path: pick one enemy civ — it is removed.
-    techno = next(
-        c for c in menu.children if str(getattr(c, "label", "")) == strings["sab_techno"]
-    )
+    techno = next(c for c in menu.children if str(getattr(c, "label", "")) == strings["sab_techno"])
     step = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")  # type: ignore[arg-type]
     await techno.callback(step)  # type: ignore[arg-type]
     civ_view = step.response.message.view if step.response.message is not None else None
@@ -1728,17 +1697,13 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
     # Both Prêt — the attacker starts the two-stage declaration.
     await bundle.attacks.mark_ready(attack.id, "king-a")
     await bundle.attacks.mark_ready(attack.id, "lord-b")
-    click_a = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    click_a = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await button.callback(click_a)  # type: ignore[arg-type]
     # Stage 1: the ephemeral winner select.
     assert click_a.response.message is not None
     select = click_a.response.message.view.children[0]  # type: ignore[union-attr]
     select._values = [str(aquitaine)]  # type: ignore[attr-defined]
-    pick_a = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    pick_a = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await select.callback(pick_a)  # type: ignore[arg-type,union-attr,func-returns-value]
     # Stage 2: the explicit confirmation (anti-missclick — the ✏️
     # Modifier loops back to the select, never a silent declaration).
@@ -1748,22 +1713,16 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
     assert labels == [strings["result_confirm_button"], strings["result_edit_button"]]
     # The ✏️ Modifier loops back to the winner select via an edit.
     change = pick_a.response.message.view.children[1]  # type: ignore[union-attr]
-    redo = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    redo = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await change.callback(redo)  # type: ignore[arg-type,func-returns-value]
     assert "Qui remporte" in str(redo.response.message.content or "")
     # The attacker settles on Aquitaine again and CONFIRMS.
     select2 = redo.response.message.view.children[0]  # type: ignore[union-attr]
     select2._values = [str(aquitaine)]  # type: ignore[attr-defined]
-    pick_a2 = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    pick_a2 = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await select2.callback(pick_a2)  # type: ignore[arg-type,union-attr,func-returns-value]
     confirm = pick_a2.response.message.view.children[0]  # type: ignore[union-attr]
-    okay = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    okay = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await confirm.callback(okay)  # type: ignore[arg-type,func-returns-value]
     assert okay.response.message is not None
     assert "Résultat enregistré" in str(okay.response.message.content or "")
@@ -1772,9 +1731,7 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
     assert not fresh.is_over
     # The defender can no longer DECLARE a winner — the review view
     # only offers ✅ Confirmer le résultat / ⚖️ Contester.
-    click_b = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    click_b = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     await button.callback(click_b)  # type: ignore[arg-type]
     assert click_b.response.message is not None
     assert "a déclaré" in str(click_b.response.message.content or "")
@@ -1783,9 +1740,7 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
     assert review_labels == [strings["result_review_confirm_button"], strings["result_review_contest_button"]]
     # The defender CONFIRMS the same winner — the result applies now.
     confirm_b = review[0]
-    okay_b = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    okay_b = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     await confirm_b.callback(okay_b)  # type: ignore[arg-type,func-returns-value]
     assert okay_b.response.message is not None
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
@@ -1835,31 +1790,21 @@ async def test_result_contest_opens_a_dispute_kept_until_the_admins_arbitrate() 
     await bundle.attacks.mark_ready(attack.id, "lord-b")
     button = KingdomRoomResultButton(attack.id, strings["result_button"])
     # The attacker declares Aquitaine — select then confirm.
-    click_a = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    click_a = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await button.callback(click_a)  # type: ignore[arg-type]
     select = click_a.response.message.view.children[0]  # type: ignore[union-attr]
     select._values = [str(aquitaine)]  # type: ignore[attr-defined]
-    pick_a = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    pick_a = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await select.callback(pick_a)  # type: ignore[arg-type,union-attr,func-returns-value]
     confirm = pick_a.response.message.view.children[0]  # type: ignore[union-attr]
-    okay = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    okay = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await confirm.callback(okay)  # type: ignore[arg-type,func-returns-value]
     # The defender contests — the contrary declaration opens a dispute.
-    click_b = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    click_b = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     await button.callback(click_b)  # type: ignore[arg-type]
     contest = click_b.response.message.view.children[1]  # type: ignore[union-attr]
     assert str(contest.label) == strings["result_review_contest_button"]
-    contest_b = MockInteraction(
-        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    contest_b = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot)
     await contest.callback(contest_b)  # type: ignore[arg-type,func-returns-value]
     assert contest_b.response.message is not None
     content = str(contest_b.response.message.content or "")
@@ -1870,9 +1815,7 @@ async def test_result_contest_opens_a_dispute_kept_until_the_admins_arbitrate() 
     assert not fresh.is_over
     # The dispute freezes the flow: a new 🏆 click shows the SAME
     # dispute reminder (staying message), never a fresh select.
-    later = MockInteraction(
-        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
-    )
+    later = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot)
     await button.callback(later)  # type: ignore[arg-type]
     assert "contradictoire" in str(later.response.message.content or "")
     assert later.response.message.view is None or not later.response.message.view.children
@@ -2013,19 +1956,220 @@ async def test_declared_note_timer_deletes_the_note_at_the_meeting_time() -> Non
     )
 
     interaction = MockInteraction(  # type: ignore[arg-type]
-        user=MockUser(id="king-a"), locale="fr"  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        locale="fr",  # type: ignore[arg-type]
     )
     note = await interaction.followup.send("⚔️ Attaque déclarée", ephemeral=True)
     # A far meeting (> 15 min of followup-token life) — never armed.
-    _arm_declared_note_timer(
-        "attack-far", interaction, note.id, game_now() + timedelta(minutes=30)
-    )
+    _arm_declared_note_timer("attack-far", interaction, note.id, game_now() + timedelta(minutes=30))
     assert "attack-far" not in _DECLARE_NOTE_TASKS
     # A near meeting — the timer deletes the note at the deadline.
-    _arm_declared_note_timer(
-        "attack-x", interaction, note.id, game_now() + timedelta(seconds=0.05)
-    )
+    _arm_declared_note_timer("attack-x", interaction, note.id, game_now() + timedelta(seconds=0.05))
     assert "attack-x" in _DECLARE_NOTE_TASKS
     await asyncio.sleep(0.15)
     assert not [m for m in interaction.followup.messages if m.id == note.id]
     assert "attack-x" not in _DECLARE_NOTE_TASKS
+
+
+async def test_sabotage_stock_line_counts_and_faucon_state() -> None:
+    """sabotage-ux-v1: the draft & ban DM carries the stock line —
+    the Sabotage techno count (never consumed by a use) and the Faucon
+    state (ready / flying / absent)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _sabotage_stock_line, _strings
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _get_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=2)
+    _wiring(bundle)
+    wiring = _get_wiring()
+    strings = _strings("fr")
+
+    # No faucon slot — the line says absent, the sabotage count shows.
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    line = await _sabotage_stock_line(wiring, attack, "attacker", strings)
+    assert "🗡️ Sabotage : 2" in line
+    assert "🦅 Faucon : absent" in line
+    assert "2 civilisations sabotées maximum" in line
+
+    # A faucon landed (cooldown in the past) — it is ready.
+    kingdom.voliere_slots = ["faucon"]
+    kingdom.voliere_cooldowns = {"faucon": 0}
+    await bundle.store.upsert_kingdom(kingdom.to_mongo())
+    line = await _sabotage_stock_line(wiring, attack, "attacker", strings)
+    assert "🦅 Faucon : dispo" in line
+
+    # The faucon is flying (cooldown far in the future) — the line
+    # shows the Paris landing time.
+    kingdom.voliere_cooldowns = {"faucon": 1900000000}
+    await bundle.store.upsert_kingdom(kingdom.to_mongo())
+    line = await _sabotage_stock_line(wiring, attack, "attacker", strings)
+    assert "en vol jusqu'à" in line
+
+    # A kingdom without the purchase shows the zero count.
+    line = await _sabotage_stock_line(wiring, attack, "defender", strings)
+    assert "🗡️ Sabotage : 0" in line
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
+    """sabotage-ux-v1: the sabotage phase lives on ONE ephemeral panel
+    per player — the menu click and the civ pick EDIT it in place (no
+    stacking bubbles), the panel carries the X/2 récap + stock line,
+    and the ⚔️ Passer click deletes it at once."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _SABOTAGE_PANELS,
+        KingdomSabotageOpenButton,
+        KingdomSabotagePassButton,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=2)
+    _wiring(bundle)
+    guild = MockGuild()
+    strings = _strings("fr")
+
+    # The attacker opens the PANEL (title + stock line, one message).
+    open_btn = KingdomSabotageOpenButton(attack.id, "king-a", strings["sab_open_button"])
+    click = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    await open_btn.callback(click)  # type: ignore[arg-type]
+    assert click.response.message is not None
+    panel_content = str(click.response.message.content or "")
+    assert "0/2" in panel_content
+    assert "🗡️ Sabotage : 2" in panel_content
+    key = (str(attack.id), "king-a")
+    assert key in _SABOTAGE_PANELS
+    assert _SABOTAGE_PANELS[key]["interaction"] is click
+
+    # The techno click EDITS the panel — no new bubble, no followup.
+    menu = click.response.message.view
+    assert menu is not None
+    techno = next(c for c in menu.children if str(getattr(c, "label", "")) == strings["sab_techno"])
+    step = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    await techno.callback(step)  # type: ignore[arg-type]
+    assert step.followup.messages == []
+    step_content = str(step.response.message.content or "") if step.response.message else ""
+    assert "sab_title" not in step_content
+    assert "0/2" in step_content  # the panel header survives the edit
+    assert "Choisis la civilisation" in step_content
+
+    # The civ pick edits the SAME panel again — récap 1/2 + done note.
+    civ_view = step.response.message.view if step.response.message else None
+    assert civ_view is not None
+    select = next(c for c in civ_view.children if hasattr(c, "callback"))
+    select._values = ["huns"]  # type: ignore[attr-defined]
+    pick = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    await select.callback(pick)  # type: ignore[arg-type]
+    assert pick.followup.messages == []
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert (fresh.pickban or {}).get("attacker_sabotages") == ["huns"]
+    pick_content = str(pick.response.message.content or "") if pick.response.message else ""
+    assert "1/2" in pick_content
+    assert "huns" in pick_content
+
+    # The ⚔️ Passer click deletes the panel at once.
+    passer = KingdomSabotagePassButton(attack.id, "king-a", strings["sab_pass_button"])
+    settle = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    await passer.callback(settle)  # type: ignore[arg-type]
+    assert click.original_deleted is True
+    assert key not in _SABOTAGE_PANELS
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_sabotage_panel_timer_sweeps_the_closed_panel() -> None:
+    """sabotage-ux-v1: the panel timer deletes the panel when it fires
+    (the 15-minute token limit, or a short sweep when no action left)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _SABOTAGE_PANELS,
+        _arm_sabotage_panel_timer,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    click = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    key = (str(attack.id), "king-a")
+    _SABOTAGE_PANELS[key] = {"interaction": click}
+    _arm_sabotage_panel_timer(key, seconds=0)
+    await asyncio.sleep(0.05)
+    assert click.original_deleted is True
+    assert key not in _SABOTAGE_PANELS
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
+    """sabotage-ux-v1: the « ⚔️ … à vos armes ! » ping of the room is
+    recorded when the room opens and gets the 🏆 winner stamped at
+    the resolution — once, never duplicated."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _declare_room_score,
+        _open_battle_room,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _get_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    attack.ai_defender = True  # a solo declaration resolves at once
+    await bundle.store.upsert_attack(attack.to_mongo())
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+
+    # The ping refs are recorded — the stamp can find the message.
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    score = dict(fresh.score or {})
+    assert score.get("room_ping_channel_id") == salon.id
+    assert score.get("room_ping_message_id")
+    ping = next(m for m in salon.messages if "à vos armes" in str(m.content or ""))
+    assert "🏆" not in str(ping.content or "")
+
+    # The solo declaration resolves — the ping wears the winner.
+    wiring = _get_wiring()
+    strings = _strings("fr")
+    declare = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=salon, locale="fr", client=bot)
+    await _declare_room_score(declare, wiring, strings, str(attack.id), "king-a", aquitaine, game_id="aoe2de://lobby")  # type: ignore[arg-type]
+    assert "🏆 Vainqueur : **Aquitaine**" in str(ping.content or "")
+
+    # A second stamp never duplicates the line.
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _stamp_room_ping_winner_safe
+
+    await _stamp_room_ping_winner_safe(bot, fresh, "Aquitaine", strings)
+    assert str(ping.content or "").count("🏆 Vainqueur") == 1
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
