@@ -73,6 +73,41 @@ class EntityAdminButton(
         await interaction.edit_original_response(view=view)
 
 
+def _pool_lifecycle_row(entity_id: str, pool: Any, state: str) -> Any:
+    """Build the pool's lifecycle row per the designer's visibility matrix.
+
+    Each button shows ONLY on its status (hidden otherwise, never
+    greyed): edition -> publier, archiver; published -> editer,
+    archiver; archived -> editer, publier, supprimer (never used only).
+    """
+    from kingdoms.core.services.game_data import (
+        POOL_STATE_CLOSED,
+        POOL_STATE_DRAFT,
+        POOL_STATE_PUBLISHED,
+    )
+    from kingdoms.discord.admin_panel_games import (
+        GamesPoolArchiveButton,
+        GamesPoolHardDeleteButton,
+        GamesPoolPublishButton,
+        GamesPoolToDraftButton,
+    )
+
+    lifecycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    ever_used = pool is not None and bool(pool.ever_activated)
+    if state == POOL_STATE_PUBLISHED:
+        lifecycle.add_item(GamesPoolToDraftButton(entity_id))
+    if state == POOL_STATE_DRAFT:
+        lifecycle.add_item(GamesPoolPublishButton(entity_id))
+    if state in (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED):
+        lifecycle.add_item(GamesPoolArchiveButton(entity_id))
+    if state == POOL_STATE_CLOSED:
+        lifecycle.add_item(GamesPoolToDraftButton(entity_id))
+        lifecycle.add_item(GamesPoolPublishButton(entity_id))
+        if not ever_used:
+            lifecycle.add_item(GamesPoolHardDeleteButton(entity_id))
+    return lifecycle
+
+
 async def build_entity_admin_menu(
     kind: str, entity_id: str, game_key: str, owned: bool
 ) -> discord.ui.LayoutView:
@@ -80,8 +115,6 @@ async def build_entity_admin_menu(
     from kingdoms.core.services.game_data import (
         MAX_POOL_MAPS,
         POOL_STATE_DRAFT,
-        POOL_STATE_PUBLISHED,
-        POOL_TRANSITIONS,
         pool_state_badge,
     )
     from kingdoms.discord.maps_pool_flow import (
@@ -112,11 +145,7 @@ async def build_entity_admin_menu(
         pool = await _resolve_pool(entity_id)
         state = getattr(pool, "state", POOL_STATE_DRAFT)
         from kingdoms.discord.admin_panel_games import (
-            GamesPoolArchiveButton,
-            GamesPoolHardDeleteButton,
-            GamesPoolPublishButton,
             GamesPoolRenameButton,
-            GamesPoolToDraftButton,
         )
         from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
 
@@ -140,23 +169,7 @@ async def build_entity_admin_menu(
             composition.add_item(maps_button)
             composition.add_item(GamesPoolRenameButton(entity_id))
             menu.add_item(composition)
-        # line 2: lifecycle (publish/archive/delete, disabled when the
-        # transition is impossible from the pool's current state)
-        targets = POOL_TRANSITIONS.get(state, ())
-        lifecycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        to_draft = GamesPoolToDraftButton(entity_id)
-        to_draft.item.disabled = POOL_STATE_DRAFT not in targets
-        lifecycle.add_item(to_draft)
-        publish = GamesPoolPublishButton(entity_id)
-        publish.item.disabled = POOL_STATE_PUBLISHED not in targets
-        lifecycle.add_item(publish)
-        archive = GamesPoolArchiveButton(entity_id)
-        archive.item.disabled = pool is not None and pool.archived_at is not None
-        lifecycle.add_item(archive)
-        delete = GamesPoolHardDeleteButton(entity_id)
-        delete.item.disabled = pool is not None and bool(pool.ever_activated)
-        lifecycle.add_item(delete)
-        menu.add_item(lifecycle)
+        menu.add_item(_pool_lifecycle_row(entity_id, pool, state))
         return menu
 
     # civ (and any future kind): the cross-guild data is managed through

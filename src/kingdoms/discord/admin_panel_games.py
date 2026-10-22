@@ -21,6 +21,7 @@ from typing import Any
 
 import discord
 
+from kingdoms.core.services.game_data import InvalidPoolStateError
 from kingdoms.discord.commands_i18n import reply
 from kingdoms.discord.ui.view_footer import add_view_footer
 
@@ -664,6 +665,14 @@ class GamesPoolToDraftButton(
             return
         try:
             pool = await service.transition_map_pool(self.pool_id, "draft")
+        except InvalidPoolStateError as exc:
+            # the runtime transition check: the pool's state moved since
+            # the menu rendered — the answer names the live state
+            await interaction.response.send_message(
+                f"Impossible \u2014 {exc}. Rouvre le menu pour voir ses actions.",
+                ephemeral=True,
+            )
+            return
         except Exception:
             logger.exception("GAMES ADMIN: pool to-draft failed (%s)", self.pool_id)
             await interaction.response.send_message(
@@ -733,6 +742,14 @@ class GamesPoolPublishButton(
             return
         try:
             pool = await service.transition_map_pool(pool.id, "published")
+        except InvalidPoolStateError as exc:
+            # the runtime transition check: the pool's state moved since
+            # the menu rendered — the answer names the live state
+            await interaction.response.send_message(
+                f"Impossible \u2014 {exc}. Rouvre le menu pour voir ses actions.",
+                ephemeral=True,
+            )
+            return
         except Exception:
             logger.exception("GAMES ADMIN: pool publish failed")
             await interaction.response.send_message(
@@ -816,11 +833,28 @@ class PoolHardDeleteModal(discord.ui.Modal):
         self.add_item(self.confirm)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Refuse on mismatch; hard-delete on the exact id."""
-        typed = str(self.confirm.value or "").strip()
-        if typed != self.pool.id:
+        """Refuse on mismatch or a runtime state check; delete on the exact id."""
+        service = _games_wiring()
+        current = await service.get_map_pool(self.pool.id) if service is not None else None
+        if current is None:
             await interaction.response.send_message(
-                f"Refus\u00e9 \u2014 l'id ne correspond pas (`{typed}` \u2260 `{self.pool.id}`). "
+                "Ce pool n'existe plus \u2014 aucune suppression \u00e0 faire.", ephemeral=True
+            )
+            return
+        # the runtime transition check: the delete is an ARCHIVED pool's
+        # action only — the state may have moved since the button click
+        if current.state != "closed":
+            await interaction.response.send_message(
+                f"**{current.name}** n'est plus archiv\u00e9 (\u00e9tat : {current.state}) "
+                "\u2014 la suppression d\u00e9finitive est r\u00e9serv\u00e9e aux pools archiv\u00e9s. "
+                "Rouvre le menu pour voir ses actions.",
+                ephemeral=True,
+            )
+            return
+        typed = str(self.confirm.value or "").strip()
+        if typed != current.id:
+            await interaction.response.send_message(
+                f"Refus\u00e9 \u2014 l'id ne correspond pas (`{typed}` \u2260 `{current.id}`). "
                 "Aucune suppression effectu\u00e9e.",
                 ephemeral=True,
             )
@@ -840,13 +874,13 @@ class PoolHardDeleteModal(discord.ui.Modal):
                 await reply(interaction, "replies_shared.action_failed"), ephemeral=True
             )
             return
-        # the post is a mirror: the sync removes the gone pool's thread
-        await _finish_pool_transition(interaction, self.pool, answer_menu=False)
+        # confirm FIRST — the sync is best-effort and never eats the answer
         await interaction.followup.send(
             f"Pool **{self.pool.name}** supprim\u00e9 d\u00e9finitivement \u2014 l'id "
             f"`{self.pool.id}` redevient utilisable.",
             ephemeral=True,
         )
+        await _finish_pool_transition(interaction, self.pool, answer_menu=False)
         await _refresh_pins_after_mutation(interaction)
 
 
