@@ -19,7 +19,7 @@ logger = logging.getLogger("kingdoms.discord.providers_panel")
 
 GAME_KEY = "aoe2"
 
-_STATE_ICONS = {True: "🟢", False: "🔴"}
+_STATE_ICONS = {True: "🟢", False: "🟠"}
 
 
 async def view_providers(interaction: discord.Interaction) -> None:
@@ -60,7 +60,7 @@ def _render(results: dict[str, Any]) -> discord.Embed:
     from kingdoms.discord.ui.embeds import EmbedBuilder
 
     embed = EmbedBuilder.build(
-        title=f"🔌 Providers — {GAME_KEY}",
+        title=f"🛠️ Providers — {GAME_KEY}",
         description=(
             "Santé des providers du service game-aoe2 "
             "(ping de capacités, rafraîchi chaque minute)."

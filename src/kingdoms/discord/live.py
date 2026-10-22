@@ -189,7 +189,7 @@ def _match_links(match: dict[str, Any], state: str) -> list[str]:
         if match.get("deep_link"):
             links.append(f"[🎮 Join]({match['deep_link']})")
         if match.get("lobby_url"):
-            links.append(f"[🔍 Lobby]({match['lobby_url']})")
+            links.append(f"[🌐 Lobby]({match['lobby_url']})")
     return links
 
 

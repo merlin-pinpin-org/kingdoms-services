@@ -228,11 +228,10 @@ async def _profile_followup(
     if games:
         from kingdoms.core.services.profile_sites import profile_sites_registry
 
-        for game in games:
-            registry = profile_sites_registry()
-            sites = registry.sites_for(game)
-            if not sites:
-                continue
+        game = games[0]
+        registry = profile_sites_registry()
+        sites = registry.sites_for(game)
+        if sites:
             current = await _user_preferred_site(interaction, game)
             default = registry.default_site(game)
             options = [
