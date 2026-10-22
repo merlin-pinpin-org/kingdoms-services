@@ -49,13 +49,23 @@ class _FakeLogService:
         self.pinned = pin
 
 
+class _FakeHTTPResponse:
+    """Response stand-in carrying the two attributes discord.Forbidden reads."""
+
+    status = 403
+    reason = "Forbidden"
+
+
 class _Bot:
     """Client stand-in exposing the guilds, the latency and the DMs."""
 
-    def __init__(self, guild_ids: list[str], latency: float | None = None) -> None:
+    def __init__(
+        self, guild_ids: list[str], latency: float | None = None, refused_admins: set[str] = frozenset()
+    ) -> None:
         self.guilds = [type("G", (), {"id": int(gid)})() for gid in guild_ids]
         self.latency = latency
         self.dm_targets: list[str] = []
+        self.refused_admins = set(refused_admins)
 
         class _User:
             def __init__(self, user_id: str) -> None:
@@ -71,6 +81,8 @@ class _Bot:
         user.send_original = None
 
         async def _send(view: Any = None) -> None:
+            if str(user_id) in self.refused_admins:
+                raise discord.Forbidden(_FakeHTTPResponse(), {"code": 50278, "message": "no mutual guilds"})
             user.dm_views.append(view)
 
         user.send = _send
@@ -396,6 +408,26 @@ async def test_announce_dm_the_layout_to_every_bot_admin() -> None:
     await announce_startup(bot, status, config, logs_service=logs, deploy_env="test")  # type: ignore[arg-type]
     assert logs.events == {}, "the boot message never lands in a guild channel anymore"
     assert bot.dm_targets == ["10", "20"], "one DM per bot-admin"
+
+
+@pytest.mark.asyncio
+async def test_announce_dm_refusal_logs_one_clean_line_and_serves_the_other_admins(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A 403 on one bot-admin (no mutual guild / closed DMs) logs a
+    single actionnable warning line — no traceback — and never blocks
+    the remaining admins' DMs."""
+    status = _status_service(deploy_label="pr-42-x", bot_admins=BotAdmins(user_ids=("10", "20")))
+    logs = _FakeLogService()
+    bot = _Bot(["111"], refused_admins={"10"})
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    with caplog.at_level("WARNING", logger="kingdoms.bot.announce"):
+        await announce_startup(bot, status, config, logs_service=logs, deploy_env="test")  # type: ignore[arg-type]
+    assert bot.dm_targets == ["10", "20"], "both admins are tried, the refusal is best-effort"
+    refused = [r for r in caplog.records if "refused" in r.getMessage()]
+    assert len(refused) == 1, "the 403 surfaces as one warning line"
+    assert "10" in refused[0].getMessage(), "the warning names the unreachable admin"
+    assert not refused[0].exc_info, "no traceback for an expected 403"
 
 
 @pytest.mark.asyncio

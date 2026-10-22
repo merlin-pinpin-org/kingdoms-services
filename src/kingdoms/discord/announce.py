@@ -508,6 +508,13 @@ async def _announce_boot_to_admins(
             await user.send(view=per_admin_layout)
             logger.info("STARTUP ANNOUNCEMENT DM sent to bot-admin %s", admin_id)
             await _send_boot_admin_dm(bot, user)
+        except discord.Forbidden:
+            logger.warning(
+                "STARTUP ANNOUNCEMENT DM refused for bot-admin %s — the bot shares no "
+                "guild with this user (stale BOT_ADMINS entry?) or the user closed their "
+                "DMs; the guild announcement is the fallback",
+                admin_id,
+            )
         except Exception:
             logger.warning("STARTUP ANNOUNCEMENT DM failed (admin %s) — best-effort", admin_id, exc_info=True)
 
