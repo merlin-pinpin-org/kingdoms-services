@@ -595,13 +595,17 @@ class GamesPoolArchiveButton(
                 f"Archivage \u00e9chou\u00e9 \u2014 {exc}", ephemeral=True
             )
             return
-        # confirm FIRST \u2014 the sync is best-effort and never eats the answer
+        # the ephemeral contract: the ORIGINAL menu edits in place with
+        # the archived state's buttons \u2014 the confirm is a plain text
+        # followup, never a copy of the view
         await interaction.followup.send(
             f"Pool **{pool.name}** archiv\u00e9 \u2014 inutilisable mais toujours visible. "
             "Son id reste r\u00e9serv\u00e9 tant qu'il n'est pas supprim\u00e9 totalement.",
             ephemeral=True,
         )
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await _finish_pool_transition(
+            interaction, pool, answer_menu=True, origin=getattr(interaction, "message", None)
+        )
 
 
 

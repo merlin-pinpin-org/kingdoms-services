@@ -168,8 +168,8 @@ def _dm_report_allowed(exc: BaseException, context: str) -> bool:
 
     key = _dedupe_key(exc, context)
     now = _time.monotonic()
-    last = _RECENT_DM_REPORTS.get(key, 0.0)
-    if now - last < _DM_SPAM_WINDOW_SECONDS:
+    last = _RECENT_DM_REPORTS.get(key)
+    if last is not None and now - last < _DM_SPAM_WINDOW_SECONDS:
         return False
     _RECENT_DM_REPORTS[key] = now
     if len(_RECENT_DM_REPORTS) > 100:

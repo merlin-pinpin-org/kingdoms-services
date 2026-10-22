@@ -141,12 +141,14 @@ async def _sync_maps_forum_locked(guild_id: str, game_key: str, bot: Any, servic
 async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = None) -> list[str]:
     """Build the map's pool links: one line per pool containing the map.
 
-    Pool posts are matched by thread name (the pools sync's own
-    convention); a pool without a live post still lists as plain text,
-    so the map post never links into a dead thread.
+    Every pool lists, archived included \u2014 an archived pool is
+    immutable but stays visible (its id is reserved until a hard
+    delete). Pool posts are matched by thread id; a pool without a
+    live post still lists as plain text, so the map post never links
+    into a dead thread.
     """
     try:
-        pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
+        pools = await service.list_all_map_pools(entry.game_key, guild_id=guild_id)
     except Exception:
         return []
     lines = []
