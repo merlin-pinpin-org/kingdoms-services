@@ -141,7 +141,6 @@ async def maps_section_layout(game_key: str, guild_id: str) -> discord.ui.Layout
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     actions.add_item(GamesMapImportButton(game_key))
-    actions.add_item(GamesBulkImportButton(game_key))
     actions.add_item(GamesMapCreateButton(game_key))
     view.add_item(actions)
     return view
@@ -941,8 +940,8 @@ class GamesMapImportButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Importer une map",
-                emoji="\U0001f310",
+                label="Importer des maps",
+                emoji="\U0001f5fa\ufe0f",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:maps:import:guild:{game_key}"[:100],
             )
@@ -966,7 +965,7 @@ class GamesMapImportButton(
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.send_modal(GamesMapImportModal(self.game_key))
+        await interaction.response.send_modal(GamesBulkImportModal(self.game_key))
 
 
 def _map_summary_from_seed(seed: Any) -> str:
@@ -1231,44 +1230,6 @@ async def _finish_bulk_import(
     )
 
 
-class GamesBulkImportButton(
-    discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:maps:bulkimport:(?P<game_key>[a-z0-9_]+)",
-):
-    """Open the bulk map-import modal (id / slug / URL per line)."""
-
-    def __init__(self, game_key: str) -> None:
-        self.game_key = game_key
-        super().__init__(
-            discord.ui.Button(
-                label="Importer des maps (liste)",
-                emoji="\U0001f4da",
-                style=discord.ButtonStyle.secondary,
-                custom_id=f"{_NS}:maps:bulkimport:{game_key}"[:100],
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> GamesBulkImportButton:
-        """Rebuild from the wire (game key from the custom_id)."""
-        del interaction, item
-        return cls(match.group("game_key"))
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, then open the bulk import modal."""
-        from kingdoms.discord.maps_pool_flow import _guard_admin
-
-        if not await _guard_admin(interaction):
-            return
-        await interaction.response.send_modal(GamesBulkImportModal(self.game_key))
-
-
 class GamesBulkImportModal(discord.ui.Modal):
     """The bulk Liquipedia import: one map per line (id / slug / URL).
 
@@ -1453,7 +1414,6 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolAddByIdButton,
         GamesPoolDuplicateButton,
         GamesMapImportButton,
-        GamesBulkImportButton,
         GamesPoolCopyButton,
         GamesPoolPublishButton,
         GamesPoolHardDeleteButton,

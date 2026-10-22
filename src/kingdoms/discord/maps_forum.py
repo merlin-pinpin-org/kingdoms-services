@@ -341,12 +341,15 @@ async def _map_content_full(
     if doc is None:
         return "", "", "", "", "", "", "", ""
     if doc.get("split_keys") or (doc.get("icon_url") and doc.get("walls") is not None):
+        image_url = str(doc.get("image_url") or "")
+        # a page without a Gallery has no in-game icon — the main image
+        # becomes the thumbnail so every card keeps the same shape
         return (
             str(doc.get("name") or ""),
             str(doc.get("summary") or ""),
             str(doc.get("source_url") or ""),
-            str(doc.get("image_url") or ""),
-            str(doc.get("icon_url") or ""),
+            image_url,
+            str(doc.get("icon_url") or "") or image_url,
             str(doc.get("walls") or ""),
             str(doc.get("nomad") or ""),
             str(doc.get("tc") or ""),

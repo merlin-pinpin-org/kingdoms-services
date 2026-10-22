@@ -80,10 +80,7 @@ views:
     buttons:
     - label: ui.homes.btn_add_map
       action: import-map
-      emoji: 🌟
-    - label: ui.games.bulk_import_map
-      action: bulk-import-map
-      emoji: 📚
+      emoji: 🗺️
     - label: ui.homes.btn_create_pool
       action: create-pool
       emoji: 🧱
