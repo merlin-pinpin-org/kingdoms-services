@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.views_registry</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.views_registry</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/views_registry.py">SOURCE_ROOT/discord/views_registry.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;views&nbsp;registry:&nbsp;every&nbsp;menu&nbsp;and&nbsp;panel,&nbsp;declared&nbsp;once.<br>
+&nbsp;<br>
+Two&nbsp;kinds&nbsp;of&nbsp;views,&nbsp;one&nbsp;vocabulary:<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;**menu**&nbsp;navigates:&nbsp;buttons&nbsp;only,&nbsp;each&nbsp;opening&nbsp;another&nbsp;view<br>
+&nbsp;&nbsp;(``menu:home``&nbsp;→&nbsp;``menu:games:home``).&nbsp;No&nbsp;data,&nbsp;no&nbsp;actions;<br>
+-&nbsp;a&nbsp;**panel**&nbsp;informs&nbsp;or&nbsp;acts:&nbsp;data&nbsp;sections,&nbsp;action&nbsp;buttons,<br>
+&nbsp;&nbsp;live&nbsp;content&nbsp;(``panel:profile``,&nbsp;``panel:game:aoe2:live``).<br>
+&nbsp;<br>
+Every&nbsp;view&nbsp;carries&nbsp;a&nbsp;**view&nbsp;id**&nbsp;(``menu:games:aoe2``,<br>
+``panel:game:aoe2:players``)&nbsp;rendered&nbsp;as&nbsp;its&nbsp;footer&nbsp;—&nbsp;the&nbsp;anchor<br>
+every&nbsp;human&nbsp;feedback&nbsp;refers&nbsp;to.&nbsp;The&nbsp;registry&nbsp;loads&nbsp;from&nbsp;``config/views.yaml``&nbsp;(the&nbsp;single&nbsp;source<br>
+of&nbsp;truth):&nbsp;the&nbsp;runtime&nbsp;menu&nbsp;builder,&nbsp;the&nbsp;pin&nbsp;registrations&nbsp;and&nbsp;the<br>
+button&nbsp;router&nbsp;all&nbsp;render&nbsp;from&nbsp;it,&nbsp;and&nbsp;the&nbsp;kingdoms&nbsp;repo's<br>
+views-doc&nbsp;page&nbsp;renders&nbsp;it&nbsp;for&nbsp;humans.&nbsp;A&nbsp;view&nbsp;built&nbsp;but&nbsp;not&nbsp;declared<br>
+(or&nbsp;declared&nbsp;but&nbsp;never&nbsp;built)&nbsp;is&nbsp;a&nbsp;drift&nbsp;the&nbsp;tests&nbsp;catch.<br>
+&nbsp;<br>
+Constraints&nbsp;baked&nbsp;in:<br>
+&nbsp;<br>
+-&nbsp;every&nbsp;view&nbsp;declares&nbsp;its&nbsp;kind,&nbsp;its&nbsp;channel&nbsp;scope&nbsp;(where&nbsp;its&nbsp;pin<br>
+&nbsp;&nbsp;lives)&nbsp;and&nbsp;its&nbsp;buttons'&nbsp;targets&nbsp;—&nbsp;all&nbsp;registered&nbsp;ids,&nbsp;checked;<br>
+-&nbsp;an&nbsp;admin&nbsp;button&nbsp;renders&nbsp;with&nbsp;the&nbsp;padlock&nbsp;emoji&nbsp;🔒,&nbsp;as&nbsp;discreet&nbsp;as<br>
+&nbsp;&nbsp;Discord&nbsp;allows&nbsp;(secondary&nbsp;style,&nbsp;no&nbsp;label&nbsp;weight);<br>
+-&nbsp;a&nbsp;sync&nbsp;button&nbsp;(channels&nbsp;&amp;&nbsp;roles&nbsp;provisioning)&nbsp;renders&nbsp;with&nbsp;the&nbsp;gear&nbsp;emoji;<br>
+-&nbsp;the&nbsp;registry&nbsp;caps&nbsp;what&nbsp;the&nbsp;platform&nbsp;carries:&nbsp;20&nbsp;games,&nbsp;20&nbsp;mods.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.views_registry.html#ButtonDecl">ButtonDecl</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.views_registry.html#ViewDecl">ViewDecl</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ButtonDecl">class <strong>ButtonDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ButtonDecl">ButtonDecl</a>(target:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;label_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;admin:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;sync:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;action:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;button&nbsp;of&nbsp;a&nbsp;view:&nbsp;a&nbsp;navigation&nbsp;target&nbsp;or&nbsp;a&nbsp;wired&nbsp;action.<br>
+&nbsp;<br>
+Exactly&nbsp;one&nbsp;of&nbsp;``target``&nbsp;(opens&nbsp;the&nbsp;declared&nbsp;view),&nbsp;``sync``&nbsp;(the<br>
+channels&nbsp;&amp;&nbsp;roles&nbsp;ensure)&nbsp;or&nbsp;``action``&nbsp;(a&nbsp;behavior&nbsp;wired&nbsp;at&nbsp;boot<br>
+through&nbsp;``wire_action``)&nbsp;drives&nbsp;the&nbsp;click;&nbsp;a&nbsp;declared-but-unwired<br>
+action&nbsp;renders&nbsp;disabled&nbsp;—&nbsp;never&nbsp;a&nbsp;dead&nbsp;button.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ButtonDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__init__"><strong>__init__</strong></a>(self, target: 'str' = '', label_key: 'str' = '', emoji: 'str' = '', admin: 'bool' = False, sync: 'bool' = False, disabled: 'bool' = False, action: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ButtonDecl-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>action</strong></dt>
+</dl>
+<dl><dt><strong>admin</strong></dt>
+</dl>
+<dl><dt><strong>disabled</strong></dt>
+</dl>
+<dl><dt><strong>emoji</strong></dt>
+</dl>
+<dl><dt><strong>label_key</strong></dt>
+</dl>
+<dl><dt><strong>sync</strong></dt>
+</dl>
+<dl><dt><strong>target</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'action': 'str', 'admin': 'bool', 'disabled': 'bool', 'emoji': 'str', 'label_key': 'str', 'sync': 'bool', 'target': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'action': Field(name='action',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'admin': Field(name='admin',type='bool',default=False,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'disabled': Field(name='disabled',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'emoji': Field(name='emoji',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync': Field(name='sync',type='bool',default=False,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'target': Field(name='target',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('target', 'label_key', 'emoji', 'admin', 'sync', 'disabled', 'action')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ViewDecl">class <strong>ViewDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ViewDecl">ViewDecl</a>(id:&nbsp;'str',&nbsp;kind:&nbsp;'str',&nbsp;scope:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;title_emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;admin_surface:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;buttons:&nbsp;'tuple[<a href="#ButtonDecl">ButtonDecl</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;declared&nbsp;view:&nbsp;its&nbsp;id,&nbsp;kind,&nbsp;scope&nbsp;and&nbsp;buttons.<br>
+&nbsp;<br>
+``title_emoji``&nbsp;rides&nbsp;the&nbsp;menu&nbsp;header&nbsp;(an&nbsp;open&nbsp;padlock&nbsp;marks&nbsp;the<br>
+admin&nbsp;surfaces&nbsp;—&nbsp;the&nbsp;buttons&nbsp;stay&nbsp;clean,&nbsp;one&nbsp;padlock&nbsp;per&nbsp;view).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ViewDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__init__"><strong>__init__</strong></a>(self, id: 'str', kind: 'str', scope: 'str' = '', title_emoji: 'str' = '', admin_surface: 'bool' = False, buttons: 'tuple[ButtonDecl, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ViewDecl-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>admin_surface</strong></dt>
+</dl>
+<dl><dt><strong>buttons</strong></dt>
+</dl>
+<dl><dt><strong>id</strong></dt>
+</dl>
+<dl><dt><strong>kind</strong></dt>
+</dl>
+<dl><dt><strong>scope</strong></dt>
+</dl>
+<dl><dt><strong>title_emoji</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'admin_surface': 'bool', 'buttons': 'tuple[ButtonDecl, ...]', 'id': 'str', 'kind': 'str', 'scope': 'str', 'title_emoji': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'admin_surface': Field(name='admin_surface',type='bool',default=F...appingproxy({}),kw_only=False,_field_type=_FIELD), 'buttons': Field(name='buttons',type='tuple[ButtonDecl, ......appingproxy({}),kw_only=False,_field_type=_FIELD), 'id': Field(name='id',type='str',default=&lt;dataclasses....appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'scope': Field(name='scope',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'title_emoji': Field(name='title_emoji',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('id', 'kind', 'scope', 'title_emoji', 'admin_surface', 'buttons')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-clear_registry"><strong>clear_registry</strong></a>() -&gt; 'None'</dt><dd><span class="code">Empty&nbsp;the&nbsp;registry&nbsp;(tests&nbsp;only).</span></dd></dl>
+ <dl><dt><a name="-declared_targets"><strong>declared_targets</strong></a>(decl: 'ViewDecl') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;view&nbsp;ids&nbsp;a&nbsp;view's&nbsp;buttons&nbsp;open&nbsp;(empty&nbsp;for&nbsp;panels).</span></dd></dl>
+ <dl><dt><a name="-default_button_emoji"><strong>default_button_emoji</strong></a>(button: 'ButtonDecl') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;button's&nbsp;emoji:&nbsp;padlock&nbsp;for&nbsp;admin,&nbsp;update&nbsp;for&nbsp;sync.</span></dd></dl>
+ <dl><dt><a name="-get_view"><strong>get_view</strong></a>(view_id: 'str') -&gt; 'ViewDecl | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;declared&nbsp;view.</span></dd></dl>
+ <dl><dt><a name="-register_view"><strong>register_view</strong></a>(decl: 'ViewDecl') -&gt; 'ViewDecl'</dt><dd><span class="code">Declare&nbsp;one&nbsp;view&nbsp;(idempotent&nbsp;per&nbsp;id,&nbsp;last&nbsp;wins).</span></dd></dl>
+ <dl><dt><a name="-registered_views"><strong>registered_views</strong></a>() -&gt; 'tuple[ViewDecl, ...]'</dt><dd><span class="code">Return&nbsp;every&nbsp;declared&nbsp;view,&nbsp;in&nbsp;registration&nbsp;order.</span></dd></dl>
+ <dl><dt><a name="-validate_registry"><strong>validate_registry</strong></a>() -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;registry's&nbsp;drifts&nbsp;(unknown&nbsp;targets),&nbsp;empty&nbsp;when&nbsp;clean.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ADMIN_EMOJI</strong> = '🔒'<br>
+<strong>KIND_MENU</strong> = 'menu'<br>
+<strong>KIND_PANEL</strong> = 'panel'<br>
+<strong>MAX_GAMES</strong> = 20<br>
+<strong>MAX_MODS</strong> = 20<br>
+<strong>SYNC_EMOJI</strong> = '🔧'<br>
+<strong>__all__</strong> = ['ADMIN_EMOJI', 'KIND_MENU', 'KIND_PANEL', 'MAX_GAMES', 'MAX_MODS', 'SYNC_EMOJI', 'ButtonDecl', 'ViewDecl', 'clear_registry', 'declared_targets', 'default_button_emoji', 'get_view', 'register_view', 'registered_views', 'validate_registry']<br>
+<strong>__annotations__</strong> = {'_REGISTRY': 'dict[str, ViewDecl]'}</td></tr></table>
+</body></html>

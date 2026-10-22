@@ -18,6 +18,8 @@ commands. Mods must build ids and footers through this module only.
 
 from __future__ import annotations
 
+import re
+
 LADDER_PREFIX = "ladder"
 TERRITORY_PREFIX = "territory"
 
@@ -50,3 +52,68 @@ def footer(*ids: str) -> str:
     """Render the ids footer line for a panel (empty ids are dropped)."""
     parts = [part for part in ids if part]
     return "-# " + " · ".join(f"`{part}`" for part in parts) if parts else ""
+
+
+_NON_ALPHA_RE = re.compile(r"[^a-z0-9]+")
+
+
+def scope_view_key(scope: str, slug: str) -> str:
+    """Build a scope's view id: ``view:<short scope>:<slug>``.
+
+    The short scope is the scope's **last** segment — ``games/aoe2``
+    reads ``aoe2``, ``mods/ladder`` reads ``ladder`` — so view ids
+    stay flat and quotable: ``view:aoe2:home``, ``view:ladder:news``.
+    """
+    short = scope.rsplit("/", 1)[-1] if "/" in scope else scope
+    return f"view:{short}:{slug}"
+
+
+def view_key(scope: str, slug: str, legacy: str = "") -> tuple[str, str]:
+    """Return a persistent view's registry key pair: (current, legacy).
+
+    The convention is ``view:<scope>:<slug>`` — the scope is the
+    surface's perimeter (``home``, ``bot``, ``aoe2``, ``ladder``...),
+    the slug the surface itself: ``view:home``, ``view:bot:admin``,
+    ``view:aoe2:live``, ``view:ladder:news``. The id is displayed as
+    the panel's footer so designers can quote it. The legacy key is
+    what the view was registered under before the convention — empty
+    when there was none; callers resolve the current key first.
+    """
+    return f"view:{scope}:{slug}", legacy
+
+
+def map_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
+    """Return a map entry's stable id, game-scoped and ownership-scoped.
+
+    ``map:<game_key>:public:<slug>`` for the global catalog (config
+    seed, bot admins), ``map:<game_key>:<guild_id>:<slug>`` for a
+    guild's local maps. The game lives in the id itself — the same
+    map name across games never collides — and the visibility scope
+    is what every consumer (forums, pools, permissions) branches on.
+    ``<slug>`` keeps underscores (``slug_id``).
+    """
+    scope = owner_guild_id if owner_guild_id else "public"
+    return f"map:{game_key}:{scope}:{slug_id(name)}"
+
+
+def pool_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
+    """Return a map pool's stable id, game-scoped like the maps.
+
+    ``pool:<game_key>:<guild_id>:<name-slug>`` for a guild's pool,
+    ``pool:<game_key>:public:<name-slug>`` for a platform-wide one.
+    Same convention as ``map_entry_id`` — the id carries the game and
+    the visibility scope.
+    """
+    scope = owner_guild_id if owner_guild_id else "public"
+    return f"pool:{game_key}:{scope}:{slug_id(name)}"
+
+
+def slug_id(name: str) -> str:
+    """Normalize a human name into its stable slug (ids, everywhere).
+
+    Lowercase, every non-alphanumeric run collapsed to one underscore:
+    ``Fish n Fish`` -> ``fish_n_fish``, ``Coast to Mountain`` ->
+    ``coast_to_mountain``. Uniform across the catalog, the content
+    store and the Discord footers.
+    """
+    return _NON_ALPHA_RE.sub("_", name.strip().lower()).strip("_") or "_"

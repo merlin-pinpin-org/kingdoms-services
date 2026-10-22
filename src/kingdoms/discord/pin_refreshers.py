@@ -32,14 +32,12 @@ async def _refresh_admin_pin(bot: Any, guild_id: str) -> None:
         return
     from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
     from kingdoms.discord.admin_panel_pin import PINNED_MENU_CUSTOM_ID
+    from kingdoms.discord.locales import guild_locale_by_id
 
     async def _build(gid: str) -> discord.ui.LayoutView:
-        locale = "en"
-        try:
-            locale = await logs_service.get_locale(gid)
-        except Exception:
-            locale = "en"
-        return await build_pin_main_menu(logs_service, gid, catalog, locale, admin_channel_service)
+        return await build_pin_main_menu(
+            logs_service, gid, catalog, guild_locale_by_id(bot, gid), admin_channel_service, client=bot
+        )
 
     await pinned_views.refresh_pin_by_marker(bot, guild, PINNED_MENU_CUSTOM_ID, _build)
 
@@ -52,15 +50,19 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return
-    from kingdoms.discord.home import HOME_MESSAGE_KEY, HOME_MESSAGE_PLATFORM, build_home_menu_view
+    from kingdoms.discord.home import HOME_MESSAGE_KEY, HOME_MESSAGE_PLATFORM
+    from kingdoms.discord.views_routing import build_declared_menu
 
     try:
         registered = await registry.resolve(HOME_MESSAGE_PLATFORM, HOME_MESSAGE_KEY, guild_id)
         if registered is None:
             return
         channel = guild.get_channel(int(registered.channel_id))
+        if channel is None:
+            return  # the channel is gone; the static-pin sweep recreates the menu
         message = await channel.fetch_message(int(registered.message_id))
-        await message.edit(view=build_home_menu_view(bot, guild_id))
+        builder = build_declared_menu(bot, "menu:home")
+        await message.edit(view=await builder(guild_id))
     except Exception:
         logger.warning("home pin refresh failed — best-effort", exc_info=True)
 

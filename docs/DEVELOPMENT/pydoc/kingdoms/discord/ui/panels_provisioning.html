@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ui.panels_provisioning</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.panels_provisioning</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/panels_provisioning.py">SOURCE_ROOT/discord/ui/panels_provisioning.py</a></td></tr></table>
+    <p><span class="code">Panels&nbsp;provisioning:&nbsp;apply&nbsp;the&nbsp;channel-tree&nbsp;rules&nbsp;to&nbsp;a&nbsp;guild.<br>
+&nbsp;<br>
+The&nbsp;declarative&nbsp;counterpart&nbsp;of&nbsp;the&nbsp;SDK:&nbsp;the&nbsp;scopes&nbsp;registered&nbsp;at<br>
+boot&nbsp;(games,&nbsp;mods,&nbsp;their&nbsp;games/mods)&nbsp;are&nbsp;provisioned&nbsp;here&nbsp;—<br>
+categories&nbsp;with&nbsp;slash&nbsp;names,&nbsp;channels&nbsp;in&nbsp;the&nbsp;canonical&nbsp;order,<br>
+guild-locale&nbsp;naming,&nbsp;read-only&nbsp;menu&nbsp;channels,&nbsp;admin&nbsp;channels&nbsp;for<br>
+the&nbsp;bot-admins.&nbsp;Idempotent&nbsp;and&nbsp;heal-safe:&nbsp;the&nbsp;resolution&nbsp;matches<br>
+channels&nbsp;by&nbsp;their&nbsp;stable&nbsp;registry&nbsp;keys&nbsp;(never&nbsp;by&nbsp;the&nbsp;translated<br>
+displayed&nbsp;name),&nbsp;so&nbsp;a&nbsp;rename&nbsp;heals&nbsp;to&nbsp;the&nbsp;right&nbsp;channel.<br>
+&nbsp;<br>
+The&nbsp;heavy&nbsp;lifting&nbsp;(create,&nbsp;overwrites,&nbsp;position)&nbsp;reuses&nbsp;the<br>
+existing&nbsp;channels&nbsp;platform&nbsp;—&nbsp;this&nbsp;module&nbsp;only&nbsp;owns&nbsp;the&nbsp;tree&nbsp;rules.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-persist_resolutions"><strong>persist_resolutions</strong></a>(guild_id: 'str', scope: 'str', resolved: 'dict[str, str]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;one&nbsp;scope's&nbsp;resolved&nbsp;channel&nbsp;ids&nbsp;under&nbsp;their&nbsp;stable&nbsp;keys.<br>
+&nbsp;<br>
+``tree:&lt;scope&gt;:&lt;channel&nbsp;key&gt;``&nbsp;—&nbsp;the&nbsp;channels&nbsp;registry&nbsp;documents<br>
+them;&nbsp;the&nbsp;syncs&nbsp;and&nbsp;the&nbsp;pins&nbsp;resolve&nbsp;by&nbsp;these&nbsp;stored&nbsp;ids,&nbsp;never&nbsp;by<br>
+the&nbsp;translated&nbsp;name.&nbsp;Best-effort:&nbsp;a&nbsp;failed&nbsp;write&nbsp;logs&nbsp;and&nbsp;moves&nbsp;on<br>
+(the&nbsp;next&nbsp;boot&nbsp;re-resolves).</span></dd></dl>
+ <dl><dt>async <a name="-provision_all"><strong>provision_all</strong></a>(guild: 'discord.Guild', locale: 'str', translate: 'Callable[[str, str], str]') -&gt; 'None'</dt><dd><span class="code">Provision&nbsp;every&nbsp;registered&nbsp;scope&nbsp;folder&nbsp;(boot&nbsp;pass,&nbsp;best-effort).<br>
+&nbsp;<br>
+Every&nbsp;resolution&nbsp;is&nbsp;persisted&nbsp;under&nbsp;its&nbsp;stable&nbsp;key&nbsp;—&nbsp;the&nbsp;stored<br>
+channel&nbsp;ids&nbsp;the&nbsp;syncs&nbsp;resolve&nbsp;by&nbsp;(never&nbsp;by&nbsp;name).</span></dd></dl>
+ <dl><dt>async <a name="-provision_scope"><strong>provision_scope</strong></a>(guild: 'discord.Guild', spec: 'ScopeSpec', locale: 'str', translate: 'Callable[[str, str], str]') -&gt; 'dict[str, str]'</dt><dd><span class="code">Provision&nbsp;one&nbsp;scope&nbsp;folder;&nbsp;return&nbsp;key&nbsp;-&gt;&nbsp;channel&nbsp;id.<br>
+&nbsp;<br>
+``translate``&nbsp;renders&nbsp;a&nbsp;label&nbsp;key&nbsp;in&nbsp;the&nbsp;guild's&nbsp;locale<br>
+(``MessageCatalog.render``-shaped&nbsp;callable).</span></dd></dl>
+ <dl><dt>async <a name="-stored_channel_id"><strong>stored_channel_id</strong></a>(guild_id: 'str', scope: 'str', channel_key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;tree&nbsp;channel&nbsp;by&nbsp;its&nbsp;stored&nbsp;id&nbsp;(never&nbsp;by&nbsp;name).<br>
+&nbsp;<br>
+The&nbsp;syncs'&nbsp;resolution&nbsp;contract:&nbsp;the&nbsp;provisioning&nbsp;stored&nbsp;the&nbsp;id&nbsp;at<br>
+creation&nbsp;time;&nbsp;a&nbsp;miss&nbsp;(virgin&nbsp;guild,&nbsp;unwired&nbsp;Mongo)&nbsp;returns&nbsp;None<br>
+and&nbsp;the&nbsp;caller&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;provisioning.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['persist_resolutions', 'provision_all', 'provision_scope', 'stored_channel_id']</td></tr></table>
+</body></html>

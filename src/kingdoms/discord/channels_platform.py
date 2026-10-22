@@ -14,6 +14,28 @@ import discord
 logger = logging.getLogger("kingdoms.channels.discord")
 
 
+# Post-creation pacing: Discord rate-limits channel-thread creation
+# (roughly 2/s burst then a sustained 1 per 10s); a bulk sync that
+# fires dozens of create_thread calls in a row eats the quota and the
+# posts start failing with 429s. The pacer keeps consecutive creations
+# apart, process-wide.
+POST_PACING_S = 2.5
+_last_post_at = 0.0
+
+
+async def _pace_post_creation() -> None:
+    """Wait so consecutive post creations stay under the rate limit."""
+    import asyncio
+    import time
+
+    global _last_post_at
+    now = time.monotonic()
+    wait = _last_post_at + POST_PACING_S - now
+    if wait > 0:
+        await asyncio.sleep(wait)
+    _last_post_at = time.monotonic()
+
+
 class DiscordChannelsPlatform:
     """discord.py implementation of the channels platform seam."""
 
@@ -53,9 +75,7 @@ class DiscordChannelsPlatform:
             return False
         return guild.get_channel(int(channel_id)) is not None
 
-    async def apply_access_policy(
-        self, guild_id: str, channel_id: str, policy: dict[str, Any]
-    ) -> None:
+    async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, Any]) -> None:
         """Apply a category's declared access policy as overwrites (#57).
 
         The bot overwrite is set first so the bot can never lock itself
@@ -152,28 +172,6 @@ class DiscordChannelsPlatform:
             )
         return str(forum.id)
 
-    async def adopt_legacy_forum(
-        self, guild_id: str, legacy_name: str, name: str, category_id: str | None = None
-    ) -> str | None:
-        """Rename a legacy forum to ``name`` when the target is absent.
-
-        Migration helper: the first maps-forum iteration provisioned a
-        forum named ``maps``; the generic one expects ``<game>-maps``.
-        Returns the renamed forum id, or None when nothing to migrate.
-        """
-        guild = await self._guild(guild_id)
-        if guild is None:
-            raise RuntimeError(f"guild {guild_id} not reachable")
-        if discord.utils.get(guild.forums, name=name) is not None:
-            return None
-        legacy = discord.utils.get(guild.forums, name=legacy_name)
-        if legacy is None:
-            return None
-        if category_id is not None and str(legacy.category_id) != category_id:
-            return None
-        await legacy.edit(name=name, reason=f"kingdoms: migrate the {legacy_name} forum to {name}")
-        return str(legacy.id)
-
     async def forum_thread_exists(self, guild_id: str, thread_id: str) -> bool:
         """Whether a forum thread still exists on the platform."""
         guild = await self._guild(guild_id)
@@ -204,44 +202,20 @@ class DiscordChannelsPlatform:
             kwargs["view"] = view
         # A components-v2 layout carries its own text: Discord rejects a
         # message that sends both a view and a content string (50035).
-        content_kwarg: dict[str, Any] = (
-            {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
-        )
+        content_kwarg: dict[str, Any] = {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
+        await _pace_post_creation()
+        # silent: a bulk sync creates dozens of posts in a row — a
+        # notification storm on every guild member is hostile
         thread, _ = await forum.create_thread(
             name=name,
             reason=f"kingdoms: map post {name}",
+            silent=True,
             **content_kwarg,
             **kwargs,
         )
         return str(thread.id)
 
-    async def ensure_forum_post_view(
-        self, guild_id: str, thread_id: str, view: discord.ui.View, marker_custom_id: str
-    ) -> bool:
-        """Attach ``view`` to a forum post's starter message when absent.
-
-        Migration path for posts created before their flow existed: when
-        the starter message carries no component matching ``marker_custom_id``
-        (prefix match), edit it to attach the view. True when the post now
-        carries it (already present or just attached).
-        """
-        guild = await self._guild(guild_id)
-        if guild is None or not thread_id.isdigit():
-            return False
-        thread = guild.get_channel_or_thread(int(thread_id))
-        if not isinstance(thread, discord.Thread):
-            return False
-        message = await thread.fetch_message(thread.id)
-        for component in message.components:
-            for child in getattr(component, "children", ()):
-                if getattr(child, "custom_id", "").startswith(marker_custom_id):
-                    return True
-        await message.edit(view=view)
-        return True
-
-    async def edit_forum_post(
-        self, guild_id: str, thread_id: str, content: str, view: discord.ui.View | None
-    ) -> bool:
+    async def edit_forum_post(self, guild_id: str, thread_id: str, content: str, view: discord.ui.View | None) -> bool:
         """Edit a forum post's starter message content and components.
 
         Best-effort refresh used by the forum sync loops: False when the
@@ -262,9 +236,7 @@ class DiscordChannelsPlatform:
             await message.edit(content=truncate_body(content), view=view)
         return True
 
-    async def get_channel_overwrites(
-        self, guild_id: str, channel_id: str
-    ) -> dict[str, dict[str, bool]] | None:
+    async def get_channel_overwrites(self, guild_id: str, channel_id: str) -> dict[str, dict[str, bool]] | None:
         """Actual permission overwrites: target id -> {permission: bool}."""
         guild = await self._guild(guild_id)
         if guild is None or not channel_id.isdigit():

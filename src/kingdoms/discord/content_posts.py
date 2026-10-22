@@ -48,20 +48,13 @@ def content_service() -> Any | None:
 
 
 async def guild_locale(guild_id: str, bot: Any) -> str:
-    """Resolve the guild's configured locale (en fallback)."""
-    logs = getattr(bot, "logs_service", None)
-    if logs is None or not guild_id:
-        return "en"
-    try:
-        return str(await logs.get_locale(guild_id))
-    except Exception:
-        logger.debug("locale read failed (guild %s)", guild_id, exc_info=True)
-        return "en"
+    """Resolve the guild's native Discord locale (Server Settings language)."""
+    from kingdoms.discord.locales import stored_guild_locale
+
+    return await stored_guild_locale(bot, str(guild_id))
 
 
-async def entity_post_content(
-    entity_id: str, fallback_name: str, guild_id: str, bot: Any
-) -> tuple[str, str, str, str]:
+async def entity_post_content(entity_id: str, fallback_name: str, guild_id: str, bot: Any) -> tuple[str, str, str, str]:
     """Return ``(name, summary, source_url, image_url)`` for one entity's post.
 
     The stored content wins; the catalog entry's name is the fallback.
@@ -72,14 +65,24 @@ async def entity_post_content(
         return fallback_name, "", "", ""
     try:
         doc = await service.get(entity_id, locale)
+        if doc is None and locale != "en":
+            # The map imports store their content under the "en" locale —
+            # a guild reading in another locale still gets the card.
+            doc = await service.get(entity_id, "en")
     except Exception:
         logger.debug("content read failed (%s)", entity_id, exc_info=True)
         doc = None
     if doc is None:
         return fallback_name, "", "", ""
+    source_url = str(doc.get("source_url") or "")
+    if "aoe2techtree.net" in source_url and "?" not in source_url:
+        # the site localizes through ?lng= — carry the guild's locale
+        source_url = f"{source_url.split('#', 1)[0]}?lng={locale}" + (
+            f"#{source_url.split('#', 1)[1]}" if "#" in source_url else ""
+        )
     return (
         str(doc.get("name") or fallback_name),
         str(doc.get("summary") or ""),
-        str(doc.get("source_url") or ""),
+        source_url,
         str(doc.get("image_url") or ""),
     )

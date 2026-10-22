@@ -80,7 +80,7 @@ class PersistentPagerButton(
         """Render the requested page, fresh from the source of truth."""
         renderer = _page_renderers().get(self.mod)
         if renderer is None:
-            await interaction.response.send_message("Unknown panel", ephemeral=True)
+            await interaction.response.send_message("Panneau inconnu", ephemeral=True)
             return
         await renderer(interaction, self.page)
 

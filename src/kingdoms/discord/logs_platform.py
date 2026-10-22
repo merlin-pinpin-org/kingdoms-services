@@ -20,7 +20,6 @@ import discord
 from kingdoms.core.models.channel import ChannelModel
 from kingdoms.core.services.logs import (
     BOT_LOGS_CATEGORY,
-    BOT_LOGS_CHANNEL_NAME,
     CHANNELS_COLLECTION,
     GUILD_SETTINGS_COLLECTION,
     POLICIES_COLLECTION,
@@ -115,26 +114,6 @@ class DiscordLogsPlatform:
                 return None
         return guild
 
-    async def find_logs_channel(self, guild_id: str) -> str | None:
-        """Find an existing 🤖-bot-logs channel by name (adoption)."""
-        guild = await self._guild(guild_id)
-        if guild is None:
-            return None
-        for channel in guild.text_channels:
-            if channel.name == BOT_LOGS_CHANNEL_NAME:
-                return str(channel.id)
-        return None
-
-    async def create_logs_channel(self, guild_id: str) -> str:
-        """Create the 🤖-bot-logs text channel in the guild."""
-        guild = await self._guild(guild_id)
-        if guild is None:
-            raise RuntimeError(f"guild {guild_id} not reachable")
-        channel = await guild.create_text_channel(
-            BOT_LOGS_CHANNEL_NAME, reason="Kingdoms bot logs (kingdoms-services#109)"
-        )
-        return str(channel.id)
-
     async def apply_default_policy(self, guild_id: str, channel_id: str) -> None:
         """Admin-only default: @everyone denied, guild admins allowed."""
         guild = await self._guild(guild_id)
@@ -203,9 +182,14 @@ class DiscordLogsPlatform:
 
     async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> str:
         """Deliver one lifecycle event, pin it, return the message id (#109)."""
+        from kingdoms.discord.pinned_marks import pinned_mark
+
         channel = await self._text_channel(guild_id, channel_id)
+        marked = f"{content}\n{pinned_mark('boot-status')}" if content else None
         if layout is not None:
             message = await channel.send(view=layout)
+        elif marked is not None:
+            message = await channel.send(content=marked)
         else:
             message = await channel.send(content=content)
         await message.pin(reason="kingdoms: boot status (pinned per restart)")

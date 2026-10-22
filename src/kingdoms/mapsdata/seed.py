@@ -1,0 +1,151 @@
+"""Create-or-enrich helpers for map entries (kingdoms-services#247).
+
+``create_map_from_name`` implements the game-designer flow: given a map
+name, try the Liquipedia provider first (public data + image); when the
+page doesn't exist (or its image licence is incompatible), fall back to a
+guild-local entry with admin-entered fields. The created entry is stored
+in the catalog through the regular service, so forums and pools pick it
+up like any other map.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from dataclasses import dataclass
+
+logger = logging.getLogger("kingdoms.mapsdata")
+
+DEFAULT_USER_AGENT_TEMPLATE = "KingdomsBot/1.0 (https://github.com/merlin-pinpin-org/kingdoms; {contact})"
+
+
+def _extract_page_name(name: str) -> str:
+    """Extract the page title from a name or a full Liquipedia URL.
+
+    "https://liquipedia.net/ageofempires/Team_Islands" ->
+    "Team Islands"; query strings and trailing paths drop.
+    """
+    name = name.strip()
+    if "liquipedia.net" in name:
+        tail = name.split("/ageofempires/")[-1]
+        tail = tail.split("?")[0].split("#")[0].strip("/")
+        return tail.replace("_", " ")
+    return name
+
+
+def _title_variants(name: str) -> list[str]:
+    """Return the casings to try, in order: as-given, then title-cased.
+
+    MediaWiki resolves page titles case-sensitively; a lowercase
+    catalog name ("team islands") misses the cased wiki title ("Team
+    Islands") — both casings are tried, first hit wins.
+    """
+    title = " ".join(w[:1].upper() + w[1:] for w in name.split())
+    return [name] if name == title else [name, title]
+
+
+def _user_agent() -> str:
+    """Build the identified User-Agent; the contact comes from config."""
+    contact = os.environ.get("LIQUIPEDIA_CONTACT", "")
+    if not contact:
+        return ""
+    return DEFAULT_USER_AGENT_TEMPLATE.format(contact=contact)
+
+
+@dataclass(frozen=True)
+class MapSeed:
+    """The fields a provider resolves for one map name."""
+
+    name: str
+    description: str
+    resource_url: str
+    image_url: str
+    icon_url: str = ""
+    terrain: str = ""
+    size: str = ""
+    map_type: str = ""
+    nomad: str = ""
+    walls: str = ""
+    tc: str = ""
+    public: bool = True
+    game_versions: tuple[str, ...] = ()
+    versions: tuple[dict[str, object], ...] = ()
+    tags: tuple[str, ...] = ()
+
+
+class LiquipediaUnconfiguredError(RuntimeError):
+    """Liquipedia access is not configured on this environment.
+
+    Raised instead of returning None so the UI can tell the
+    game designer "Liquipedia is disabled here" (missing
+    LIQUIPEDIA_CONTACT) from "Liquipedia has no such page".
+    """
+
+
+async def fetch_map_seed(name: str) -> MapSeed | None:
+    """Resolve one map name into a seed via Liquipedia (best-effort).
+
+    Returns None when Liquipedia doesn't know the page — the caller
+    then creates a guild-local entry with the fields typed in
+    Discord. Raises :class:`LiquipediaUnconfiguredError` when the
+    environment declares no ``LIQUIPEDIA_CONTACT``: that is a
+    configuration gap, not an unknown map, and the UI says so.
+    """
+    user_agent = _user_agent()
+    if not user_agent:
+        logger.debug("liquipedia seed skipped: LIQUIPEDIA_CONTACT unset")
+        raise LiquipediaUnconfiguredError("LIQUIPEDIA_CONTACT is not set")
+    name = _extract_page_name(name)
+    from kingdoms.mapsdata.liquipedia import (
+        LIQUIPEDIA_ATTRIBUTION,
+        LiquipediaMapsProvider,
+        MapLicenseError,
+        query_tags,
+    )
+
+    provider = LiquipediaMapsProvider(user_agent)
+    try:
+        data = None
+        for variant in _title_variants(name):
+            try:
+                data = provider.map_data(variant)
+                break
+            except RuntimeError:
+                continue
+        if data is None:
+            return None
+        return MapSeed(
+            name=data.info.name,
+            description=data.info.description,
+            resource_url=data.info.source_url,
+            image_url=data.image_url,
+            icon_url=data.icon_url,
+            terrain=data.info.terrain,
+            nomad=data.info.nomad,
+            walls=data.info.walls,
+            tc=data.info.tc,
+            size=data.info.size,
+            map_type=data.info.map_type,
+            public=True,
+            game_versions=data.info.game_versions,
+            versions=tuple(
+                {"name": v.name, "description": v.description, "details": list(v.details)}
+                for v in data.info.versions
+            ),
+            tags=query_tags(data.info),
+        )
+    except MapLicenseError:
+        logger.info("liquipedia seed: image licence refused for %s", name)
+        seed = MapSeed(
+            name=name,
+            description="",
+            resource_url=LIQUIPEDIA_ATTRIBUTION + name.replace(" ", "_"),
+            image_url="",
+            public=True,
+        )
+        return seed
+    except Exception:
+        logger.info("liquipedia seed: no page for %s", name, exc_info=True)
+        return None
+    finally:
+        provider.close()

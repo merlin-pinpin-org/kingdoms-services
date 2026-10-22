@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.locales</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.locales</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/locales.py">SOURCE_ROOT/discord/locales.py</a></td></tr></table>
+    <p><span class="code">Native&nbsp;Discord&nbsp;locales:&nbsp;the&nbsp;single&nbsp;resolution&nbsp;seam&nbsp;for&nbsp;every&nbsp;surface.<br>
+&nbsp;<br>
+Discord&nbsp;already&nbsp;owns&nbsp;localization,&nbsp;per&nbsp;guild&nbsp;and&nbsp;per&nbsp;user:<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;guild&nbsp;carries&nbsp;``guild.preferred_locale``&nbsp;(Server&nbsp;Settings&nbsp;→&nbsp;Language);<br>
+-&nbsp;a&nbsp;user&nbsp;carries&nbsp;``interaction.locale``&nbsp;(the&nbsp;client's&nbsp;own&nbsp;language).<br>
+&nbsp;<br>
+The&nbsp;platform&nbsp;therefore&nbsp;stores&nbsp;**no&nbsp;locale&nbsp;of&nbsp;its&nbsp;own**:&nbsp;every&nbsp;surface<br>
+renders&nbsp;through&nbsp;this&nbsp;seam,&nbsp;which&nbsp;resolves&nbsp;the&nbsp;locale&nbsp;from&nbsp;the&nbsp;live<br>
+Discord&nbsp;objects.&nbsp;The&nbsp;``set_locale``/``set_user_locale``&nbsp;settings&nbsp;and<br>
+their&nbsp;admin/DM&nbsp;language&nbsp;pickers&nbsp;are&nbsp;gone&nbsp;—&nbsp;an&nbsp;admin&nbsp;who&nbsp;wants&nbsp;the&nbsp;bot<br>
+in&nbsp;French&nbsp;sets&nbsp;the&nbsp;**server&nbsp;language**&nbsp;in&nbsp;Discord;&nbsp;a&nbsp;user&nbsp;sets&nbsp;their<br>
+**client&nbsp;language**.<br>
+&nbsp;<br>
+Mapping:&nbsp;Discord&nbsp;locales&nbsp;are&nbsp;BCP-47&nbsp;(``fr``,&nbsp;``en-US``…);&nbsp;the&nbsp;catalog<br>
+carries&nbsp;``en``&nbsp;and&nbsp;``fr``.&nbsp;Anything&nbsp;not&nbsp;French&nbsp;is&nbsp;English.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-guild_locale"><strong>guild_locale</strong></a>(guild: 'discord.Guild | None') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;native&nbsp;locale&nbsp;(Server&nbsp;Settings&nbsp;→&nbsp;Language).</span></dd></dl>
+ <dl><dt><a name="-guild_locale_by_id"><strong>guild_locale_by_id</strong></a>(bot: 'object', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;guild's&nbsp;native&nbsp;locale&nbsp;from&nbsp;its&nbsp;id&nbsp;(live&nbsp;object&nbsp;only).</span></dd></dl>
+ <dl><dt><a name="-interaction_locale"><strong>interaction_locale</strong></a>(interaction: 'discord.Interaction') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;locale&nbsp;of&nbsp;an&nbsp;interaction-driven&nbsp;(ephemeral)&nbsp;surface.<br>
+&nbsp;<br>
+The&nbsp;clicker's&nbsp;own&nbsp;client&nbsp;language&nbsp;wins&nbsp;—&nbsp;Discord&nbsp;localizes&nbsp;slash<br>
+commands&nbsp;the&nbsp;same&nbsp;way&nbsp;—&nbsp;then&nbsp;the&nbsp;server's&nbsp;language&nbsp;when&nbsp;the&nbsp;client<br>
+speaks&nbsp;a&nbsp;language&nbsp;the&nbsp;catalog&nbsp;does&nbsp;not&nbsp;carry,&nbsp;then&nbsp;English.</span></dd></dl>
+ <dl><dt><a name="-normalize"><strong>normalize</strong></a>(raw: 'object') -&gt; 'str'</dt><dd><span class="code">Map&nbsp;one&nbsp;raw&nbsp;Discord&nbsp;locale&nbsp;onto&nbsp;the&nbsp;catalog&nbsp;(en/fr,&nbsp;en&nbsp;fallback).</span></dd></dl>
+ <dl><dt>async <a name="-stored_guild_locale"><strong>stored_guild_locale</strong></a>(bot: 'object', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;guild's&nbsp;effective&nbsp;locale:&nbsp;the&nbsp;STORED&nbsp;choice&nbsp;first.<br>
+&nbsp;<br>
+The&nbsp;language&nbsp;picker's&nbsp;value&nbsp;is&nbsp;the&nbsp;guild's&nbsp;explicit&nbsp;choice&nbsp;—&nbsp;it<br>
+wins&nbsp;over&nbsp;the&nbsp;Discord&nbsp;Server&nbsp;Settings&nbsp;signal;&nbsp;the&nbsp;native&nbsp;locale<br>
+only&nbsp;seeds&nbsp;the&nbsp;guilds&nbsp;that&nbsp;never&nbsp;picked.&nbsp;The&nbsp;content&nbsp;surfaces<br>
+(the&nbsp;posts,&nbsp;the&nbsp;per-locale&nbsp;reads)&nbsp;resolve&nbsp;through&nbsp;this&nbsp;seam.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>SUPPORTED</strong> = ('en', 'fr')<br>
+<strong>__all__</strong> = ['SUPPORTED', 'guild_locale', 'guild_locale_by_id', 'interaction_locale', 'normalize', 'stored_guild_locale']</td></tr></table>
+</body></html>

@@ -60,9 +60,7 @@ async def answer_ephemeral(interaction: discord.Interaction, message: str) -> No
         logger.warning("ephemeral answer failed — best-effort", exc_info=True)
 
 
-async def answer_ephemeral_view(
-    interaction: discord.Interaction, view: discord.ui.LayoutView
-) -> None:
+async def answer_ephemeral_view(interaction: discord.Interaction, view: discord.ui.LayoutView) -> None:
     """Answer a click with an ephemeral view — a pinned view never moves."""
     try:
         await interaction.response.send_message(view=view, ephemeral=True)
@@ -170,8 +168,10 @@ async def apply_read_only_policy(
     (or immediately through the panel's refresher).
     """
     try:
-        read_only = await get_pinned_read_only(guild_id, category) if settings_db is None else bool(
-            (await _read_state(settings_db, guild_id) or {}).get(category, True)
+        read_only = (
+            await get_pinned_read_only(guild_id, category)
+            if settings_db is None
+            else bool((await _read_state(settings_db, guild_id) or {}).get(category, True))
         )
         overwrite = discord.PermissionOverwrite(
             view_channel=True,
@@ -209,6 +209,10 @@ async def refresh_pin_by_marker(
     True when a pin was refreshed.
     """
     for channel in list(getattr(guild, "channels", ()) or ()):
+        # categories and forums carry no pins — skip them instead of
+        # crashing the whole refresh cascade (AttributeError .pins())
+        if isinstance(channel, (discord.CategoryChannel, discord.ForumChannel)):
+            continue
         pins = None
         try:
             pins = await channel.pins()
@@ -242,29 +246,3 @@ def _walk_custom_ids(component: Any, ids: list[str]) -> None:
                 _walk_custom_ids(child, ids)
 
 
-async def refresh_or_edit(
-    interaction: discord.Interaction,
-    rebuild: Callable[[], Awaitable[discord.ui.LayoutView]],
-    refresher_key: str | None = None,
-) -> None:
-    """Answer a click without ever moving a pinned view.
-
-    On a pinned message the pin is re-rendered **in place** (the same
-    message, the new state — it never moves nor duplicates); on a live
-    sub-view message the view is edited as before — sub-menus keep
-    their navigation.
-    """
-    message = getattr(interaction, "message", None)
-    pinned = bool(getattr(message, "pinned", False))
-    guild_id = str(getattr(interaction, "guild_id", "") or "")
-    if pinned:
-        view = await rebuild()
-        try:
-            await interaction.response.edit_message(view=view)
-            return
-        except Exception:
-            logger.warning("pinned edit failed — falling back to refresh", exc_info=True)
-    if pinned:
-        await refresh_registered_pins(guild_id)
-        return
-    await interaction.response.edit_message(view=await rebuild())

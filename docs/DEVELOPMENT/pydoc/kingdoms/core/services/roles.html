@@ -325,6 +325,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="RolesPlatform-find_role_by_name"><strong>find_role_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;role&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
+<dl><dt>async <a name="RolesPlatform-role_exists"><strong>role_exists</strong></a>(self, guild_id: 'str', role_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;role&nbsp;id&nbsp;still&nbsp;lives&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
 <hr>
 Class methods defined here:<br>
 <dl><dt><a name="RolesPlatform-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
@@ -345,7 +347,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'create_role', 'find_role_by_name'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'create_role', 'find_role_by_name', 'role_exists'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

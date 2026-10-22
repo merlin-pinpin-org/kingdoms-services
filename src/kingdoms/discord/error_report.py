@@ -148,6 +148,37 @@ def is_benign_interaction_error(exc: BaseException) -> bool:
     return False
 
 
+_RECENT_DM_REPORTS: dict[str, float] = {}
+_DM_SPAM_WINDOW_SECONDS = 300.0
+
+
+def _dedupe_key(exc: BaseException, context: str) -> str:
+    """One dedupe key per (error kind, surface): repeated failures coalesce."""
+    return f"{type(exc).__name__}:{context.split(chr(10))[0][:80]}"
+
+
+def reset_dm_report_dedupe() -> None:
+    """Clear the spam-guard's dedupe store (test isolation hook)."""
+    _RECENT_DM_REPORTS.clear()
+
+
+def _dm_report_allowed(exc: BaseException, context: str) -> bool:
+    """Whether this failure may DM the admins (spam-guard: 1 per key/5min)."""
+    import time as _time
+
+    key = _dedupe_key(exc, context)
+    now = _time.monotonic()
+    last = _RECENT_DM_REPORTS.get(key)
+    if last is not None and now - last < _DM_SPAM_WINDOW_SECONDS:
+        return False
+    _RECENT_DM_REPORTS[key] = now
+    if len(_RECENT_DM_REPORTS) > 100:
+        stale = [k for k, t in _RECENT_DM_REPORTS.items() if now - t > _DM_SPAM_WINDOW_SECONDS]
+        for k in stale:
+            _RECENT_DM_REPORTS.pop(k, None)
+    return True
+
+
 async def report_interaction_error(
     interaction: discord.Interaction,
     exc: BaseException,
@@ -181,7 +212,7 @@ async def report_interaction_error(
                 await interaction.response.send_message(content, ephemeral=True)
         except Exception:
             logger.warning("DM ERROR ANSWER FAILED — best-effort", exc_info=exc)
-    if bot is not None and admin_ids:
+    if bot is not None and admin_ids and _dm_report_allowed(exc, "guild-error"):
         await dm_admins(bot, admin_ids, content)
 
 
@@ -221,5 +252,5 @@ async def report_guild_error(
         for guild_id in guild_ids:
             event = LifecycleEvent(kind="crash", message=content)
             await logs_service.log_event(guild_id, event)
-    if bot is not None and admin_ids:
+    if bot is not None and admin_ids and _dm_report_allowed(exc, "guild-error"):
         await dm_admins(bot, admin_ids, content)

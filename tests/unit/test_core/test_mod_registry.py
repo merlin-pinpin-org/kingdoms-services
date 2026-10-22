@@ -76,9 +76,7 @@ def test_load_mod_definitions_validates_schema(tmp_path: Path) -> None:
 def test_load_mod_definitions_fails_loudly_on_invalid(tmp_path: Path) -> None:
     mods_dir = tmp_path / "mods"
     mods_dir.mkdir()
-    (mods_dir / "bad.yaml").write_text(
-        "id: bad\nseasonal: false\nchannels:\n  - key: no_display\n", encoding="utf-8"
-    )
+    (mods_dir / "bad.yaml").write_text("id: bad\nseasonal: false\nchannels:\n  - key: no_display\n", encoding="utf-8")
     with pytest.raises(ValueError, match=r"key.*and.*display_name"):
         load_mod_definitions(tmp_path)
 

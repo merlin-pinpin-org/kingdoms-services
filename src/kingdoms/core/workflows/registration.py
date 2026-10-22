@@ -72,9 +72,7 @@ class RegistrationWorkflow(IWorkflow):
                     payload={**state.payload, "error": "empty_profile_id"},
                 )
             try:
-                binding = await self._registration.bind_profile(
-                    event["user_id"], state.payload["game_key"], profile_id
-                )
+                binding = await self._registration.bind_profile(event["user_id"], state.payload["game_key"], profile_id)
             except InvalidProfileError:
                 return WorkflowTransition(
                     current_step=STEP_PROFILE,

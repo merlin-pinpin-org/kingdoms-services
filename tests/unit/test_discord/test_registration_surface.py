@@ -74,11 +74,7 @@ async def test_mongo_registration_database_bindings() -> None:
     assert len(game_bindings) == 1
 
 
-async def test_aoe2_seam_rejects_without_provider() -> None:
-    from kingdoms.discord.registration_platform import Aoe2ProfileValidationSeam
 
-    seam = Aoe2ProfileValidationSeam(provider_uri="")
-    assert await seam.validate_profile("12345") is None
 
 
 def test_error_messages_cover_workflow_errors() -> None:

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.views_routing</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.views_routing</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/views_routing.py">SOURCE_ROOT/discord/views_routing.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;view&nbsp;routing:&nbsp;declared&nbsp;view&nbsp;ids&nbsp;-&gt;&nbsp;the&nbsp;handlers&nbsp;that&nbsp;open&nbsp;them.<br>
+&nbsp;<br>
+Two&nbsp;wire&nbsp;conventions&nbsp;across&nbsp;every&nbsp;menu,&nbsp;both&nbsp;driven&nbsp;by&nbsp;the<br>
+registry&nbsp;(``config/views.yaml``):<br>
+&nbsp;<br>
+-&nbsp;``view:open:&lt;view&nbsp;id&gt;``&nbsp;—&nbsp;navigation:&nbsp;the&nbsp;router&nbsp;opens&nbsp;the&nbsp;wired<br>
+&nbsp;&nbsp;handler&nbsp;(ephemeral);&nbsp;an&nbsp;undeclared&nbsp;id&nbsp;answers&nbsp;with&nbsp;the<br>
+&nbsp;&nbsp;unknown-view&nbsp;reply,&nbsp;never&nbsp;a&nbsp;silent&nbsp;failure;<br>
+-&nbsp;``view:act:&lt;view&nbsp;id&gt;:&lt;action&nbsp;id&gt;``&nbsp;—&nbsp;behavior:&nbsp;the&nbsp;router&nbsp;runs&nbsp;the<br>
+&nbsp;&nbsp;action&nbsp;handler&nbsp;wired&nbsp;at&nbsp;boot&nbsp;(``wire_action``);&nbsp;an&nbsp;unwired&nbsp;action<br>
+&nbsp;&nbsp;answers&nbsp;with&nbsp;the&nbsp;not-wired&nbsp;reply&nbsp;(and&nbsp;renders&nbsp;disabled).<br>
+&nbsp;<br>
+Adding&nbsp;a&nbsp;view&nbsp;or&nbsp;an&nbsp;action&nbsp;means&nbsp;declaring&nbsp;it&nbsp;in&nbsp;the&nbsp;YAML&nbsp;and&nbsp;wiring<br>
+its&nbsp;handler&nbsp;—&nbsp;the&nbsp;menus&nbsp;pick&nbsp;both&nbsp;up&nbsp;mechanically.<br>
+&nbsp;<br>
+Adding&nbsp;a&nbsp;view&nbsp;means:&nbsp;declaring&nbsp;it&nbsp;(``views_declared``),&nbsp;documenting<br>
+it&nbsp;(docs/DEVELOPMENT/VIEWS.md),&nbsp;and&nbsp;wiring&nbsp;its&nbsp;handler&nbsp;here&nbsp;—&nbsp;the<br>
+menus&nbsp;pick&nbsp;it&nbsp;up&nbsp;mechanically.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>(<a href="discord.ui.item.html#Item">discord.ui.item.Item</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.views_routing.html#ActionButton">ActionButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.views_routing.html#ViewOpenButton">ViewOpenButton</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ActionButton">class <strong>ActionButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ActionButton">ActionButton</a>(view_id:&nbsp;'str',&nbsp;action_id:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+One&nbsp;declared&nbsp;action&nbsp;button:&nbsp;runs&nbsp;its&nbsp;wired&nbsp;handler&nbsp;at&nbsp;click&nbsp;time.<br>
+&nbsp;<br>
+An&nbsp;action&nbsp;declared&nbsp;but&nbsp;not&nbsp;wired&nbsp;renders&nbsp;disabled&nbsp;(never&nbsp;dead):<br>
+the&nbsp;builder&nbsp;checks&nbsp;``action_is_wired``&nbsp;before&nbsp;enabling&nbsp;it.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.views_routing.html#ActionButton">ActionButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ActionButton-__init__"><strong>__init__</strong></a>(self, view_id: 'str', action_id: 'str', label: 'str', emoji: 'str' = '', disabled: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ActionButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ActionButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Run&nbsp;the&nbsp;declared&nbsp;action&nbsp;(guarded&nbsp;actions&nbsp;guard&nbsp;themselves).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="ActionButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'ActionButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;action&nbsp;button&nbsp;from&nbsp;the&nbsp;wire.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('view:act:(?P&lt;view_id&gt;[a-z0-9:_-]+):(?P&lt;action_id&gt;[a-z0-9_-]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="ActionButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="ActionButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ActionButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ActionButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="ActionButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="ActionButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="ActionButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ActionButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ActionButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ViewOpenButton">class <strong>ViewOpenButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ViewOpenButton">ViewOpenButton</a>(view_id:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+One&nbsp;menu&nbsp;button:&nbsp;opens&nbsp;its&nbsp;declared&nbsp;target&nbsp;view&nbsp;at&nbsp;click&nbsp;time.<br>
+&nbsp;<br>
+Admin&nbsp;targets&nbsp;render&nbsp;with&nbsp;the&nbsp;padlock&nbsp;emoji&nbsp;and&nbsp;the&nbsp;most&nbsp;discreet<br>
+style&nbsp;Discord&nbsp;offers&nbsp;(secondary,&nbsp;same&nbsp;as&nbsp;every&nbsp;menu&nbsp;button&nbsp;—&nbsp;the<br>
+padlock&nbsp;alone&nbsp;carries&nbsp;the&nbsp;admin&nbsp;marker).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.views_routing.html#ViewOpenButton">ViewOpenButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ViewOpenButton-__init__"><strong>__init__</strong></a>(self, view_id: 'str', label: 'str', emoji: 'str' = '', disabled: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ViewOpenButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ViewOpenButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;declared&nbsp;target&nbsp;view&nbsp;(guarded&nbsp;views&nbsp;guard&nbsp;themselves).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="ViewOpenButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'ViewOpenButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;button&nbsp;from&nbsp;the&nbsp;wire&nbsp;(label&nbsp;kept&nbsp;from&nbsp;the&nbsp;item).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('view:open:(?P&lt;view_id&gt;[a-z0-9:_-]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="ViewOpenButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="ViewOpenButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ViewOpenButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ViewOpenButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="ViewOpenButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="ViewOpenButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="ViewOpenButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ViewOpenButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ViewOpenButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-action_is_wired"><strong>action_is_wired</strong></a>(view_id: 'str', action_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;declared&nbsp;action&nbsp;has&nbsp;a&nbsp;handler.</span></dd></dl>
+ <dl><dt>async <a name="-open_declared_view"><strong>open_declared_view</strong></a>(interaction: 'discord.Interaction', view_id: 'str') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;a&nbsp;declared&nbsp;view&nbsp;by&nbsp;id&nbsp;(ephemeral),&nbsp;unknown&nbsp;ids&nbsp;answered.<br>
+&nbsp;<br>
+A&nbsp;wired&nbsp;panel&nbsp;runs&nbsp;its&nbsp;handler;&nbsp;a&nbsp;menu&nbsp;(no&nbsp;handler&nbsp;—&nbsp;menus&nbsp;only<br>
+navigate)&nbsp;builds&nbsp;from&nbsp;the&nbsp;registry&nbsp;and&nbsp;answers&nbsp;directly.&nbsp;Only<br>
+an&nbsp;id&nbsp;that&nbsp;is&nbsp;neither&nbsp;wired&nbsp;nor&nbsp;declared&nbsp;answers&nbsp;"unknown&nbsp;view".</span></dd></dl>
+ <dl><dt><a name="-register_view_router"><strong>register_view_router</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;router's&nbsp;DynamicItems&nbsp;(every&nbsp;startup).</span></dd></dl>
+ <dl><dt>async <a name="-run_declared_action"><strong>run_declared_action</strong></a>(interaction: 'discord.Interaction', view_id: 'str', action_id: 'str') -&gt; 'None'</dt><dd><span class="code">Run&nbsp;a&nbsp;declared&nbsp;action's&nbsp;handler;&nbsp;unwired&nbsp;actions&nbsp;answered.</span></dd></dl>
+ <dl><dt><a name="-wire_action"><strong>wire_action</strong></a>(view_id: 'str', action_id: 'str', handler: 'Handler') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;one&nbsp;declared&nbsp;action's&nbsp;handler&nbsp;(idempotent,&nbsp;last&nbsp;wins).</span></dd></dl>
+ <dl><dt><a name="-wire_view"><strong>wire_view</strong></a>(view_id: 'str', handler: 'Handler') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;one&nbsp;declared&nbsp;view's&nbsp;handler&nbsp;(idempotent,&nbsp;last&nbsp;wins).</span></dd></dl>
+ <dl><dt><a name="-wired_actions"><strong>wired_actions</strong></a>() -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;wired&nbsp;action&nbsp;keys&nbsp;(diagnostics,&nbsp;tests).</span></dd></dl>
+ <dl><dt><a name="-wired_views"><strong>wired_views</strong></a>() -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;wired&nbsp;view&nbsp;ids&nbsp;(diagnostics,&nbsp;tests).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ACT_NAMESPACE</strong> = 'view:act'<br>
+<strong>BUTTON_TEMPLATE</strong> = re.compile('view:open:(?P&lt;view_id&gt;[a-z0-9:_-]+)')<br>
+<strong>__all__</strong> = ['ACT_NAMESPACE', 'BUTTON_TEMPLATE', 'ActionButton', 'ViewOpenButton', 'action_is_wired', 'open_declared_view', 'register_view_router', 'run_declared_action', 'wire_action', 'wire_view', 'wired_actions', 'wired_views']<br>
+<strong>__annotations__</strong> = {'_ACTION_HANDLERS': 'dict[str, Handler]', '_HANDLERS': 'dict[str, Handler]'}</td></tr></table>
+</body></html>

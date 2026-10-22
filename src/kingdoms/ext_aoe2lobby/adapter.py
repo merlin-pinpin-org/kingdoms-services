@@ -105,9 +105,7 @@ class Aoe2LobbyAdapter:
             "occurred_at": 0,
             "profile_ids": [str(pid) for pid in statuses],
             "metadata": {
-                str(pid): str(info.get("status", ""))
-                for pid, info in statuses.items()
-                if isinstance(info, dict)
+                str(pid): str(info.get("status", "")) for pid, info in statuses.items() if isinstance(info, dict)
             },
         }
 

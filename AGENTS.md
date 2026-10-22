@@ -6,6 +6,17 @@ mods, YAML configs.
 
 ## Read first
 
+**A mod's files never scatter** (kingdoms#179): its declaration,
+views (`config/mods/<mod>.views.yaml`), code and locales live
+together — never the platform's shared config/locales, never the
+platform's views.yaml. The same holds for a game's files.
+
+**Everything on the repositories is in English** — docs, comments,
+docstrings, commit messages, PR titles and descriptions (the
+conventions' *Working language* rule). The only French allowed is
+the **user-facing UI content** (locale catalogs, rendered labels).
+A session writing a doc, a comment or a commit in French is a bug.
+
 - [kingdoms/docs/CONVENTIONS.md](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/CONVENTIONS.md)
   — conventions shared by the three repositories (language,
   humans-never-code, secrets, PR lifecycle, issues, checks).
@@ -67,14 +78,29 @@ mods, YAML configs.
   or the `bot-admins` role via the RolesService). `default_permissions`
   only hides the command entry; it never replaces the check.
 - **Guild-level settings & admin surface:** generic, mod-independent
-  settings (guild locale, reference timezone, managed channels) are
-  **core guild settings** — a mod never re-declares them or ships its
-  own locale/timezone pickers; a mod's admin needs extend the pinned
-  bot-admins panel through the core runtime seam, never a forked panel;
-  user-facing times are Discord `<t:…>` timestamps, never formatted
-  strings — see kingdoms CONVENTIONS.md (*Guild-level settings and the
-  admin surface*) and the discord-ui skill (*Times are Discord
-  timestamps*).
+  settings (reference timezone, managed channels) are **core guild
+  settings** — a mod never re-declares them or ships its own pickers;
+  a mod's admin needs extend the pinned bot-admins panel through the
+  core runtime seam, never a forked panel. The **locale is native
+  Discord**: guild surfaces render in the server's language
+  (`guild.preferred_locale`), DMs in the user's client language —
+  resolved only through `kingdoms.discord.locales`, never stored or
+  picked on our side. User-facing times are Discord `<t:…>`
+  timestamps, never formatted strings — see kingdoms CONVENTIONS.md
+  (*Guild-level settings and the admin surface*) and the discord-ui
+  skill (*Times are Discord timestamps*).
+- **Menus vs panels (views registry):** every view is declared in
+  `views_declared.py` (the executable mirror of the kingdoms repo's
+  docs/DEVELOPMENT/VIEWS.md — read it before touching any surface).
+  A menu only navigates (its buttons open declared views through the
+  `view:open:<view id>` router); a panel informs or acts. Admin
+  buttons render with 🔒, sync buttons with 🔄. Declaring a menu
+  button whose target is undeclared is a drift the tests reject.
+- **Every view carries its view id as its footer** — a `-#` line with
+  the id in backticks (`view:aoe2:admin`), built through
+  `kingdoms.core.ids.footer` or `MenuSpec.view_id`. The id is the
+  anchor every human feedback refers to; a view without its footer id
+  is a bug.
 - **Admin surface (transparency rule):** admin messages with actions
   live in the guild's `🛡-bot-admins` channel (AdminChannelService,
   cache-aside provisioning); the BOT_ADMINS are synced into the
@@ -110,3 +136,48 @@ mods, YAML configs.
   CLI (a module per domain, `main(argv) -> int`), not in ad-hoc
   commands; sessions use `uv run kingdoms ...` and teach it to
   designers instead of improvising shell commands.
+
+## Discord UI rules (the skill's memory)
+
+- **An ephemeral view never sends a copy of itself — even after a modal
+  submit.** The ONLY valid shapes: (1) a component click answers
+  `interaction.response.edit_message(...)`; (2) a modal submit edits the
+  message its opening button CAPTURED (`origin = interaction.message` at
+  the click, `origin.edit(view=fresh)` at the submit — the pattern of
+  `_profile_followup`); the first-ever render sends the one message.
+  When the captured origin is gone (expired, superseded), the fallback
+  is a PLAIN TEXT answer — never a new copy of the view. A followup
+  that renders the same view again is a bug, whatever the defers.
+- **A modal's submit REFRESHES the view it came from.** When a button
+  of a view opens a modal, the submit changes what that view displays —
+  so the submit re-renders THAT view (origin.edit with the fresh data,
+  the `_profile_followup` shape). A modal that only answers with a
+  confirmation note while the underlying view shows stale data is a
+  bug.
+- **The guild's pinned views are NEVER refreshed wholesale** — the one
+  and only trigger is a guild language change (the pins re-read their
+  labels). Every other mutation (pool actions, map deletes, read-only
+  toggles) heals at its own surface: the forum posts through the sync
+  the action already runs, the section pins' counters at the
+  Synchroniser or the boot. A per-action full-pin refresh is a bug
+  (it burns the channel's PATCH budget — the 429s).
+- **A components-v2 message answers in a view, never in `content`.**
+  The API rejects `content` on a v2 message edit (50035
+  "The 'content' field cannot be used when using
+  MessageFlags.IS_COMPONENTS_V2") — every edit of a LayoutView message
+  carries its text inside the view (a `_text_answer` container).
+- **An ephemeral view is never swapped for another view**: the update
+  re-renders the same logical view with fresh data.
+- **Ack before the slow work**: `defer()` or the in-place edit always
+  lands inside the 3-second interaction window; forum syncs and
+  provider fetches run after.
+- **A select rides a modal WRAPPED IN a Label** (`discord.ui.Label(text=...,
+  component=select)`) — never bare: the API rejects a bare select in a
+  modal (50035 `type must be one of (4,)`), the Label-wrapped one works
+  (the same shape as the profile's add-account form). TextInput labels
+  are capped at 45 characters.
+- **An OPTIONAL select in a modal carries `required=False`**: the API
+  rejects `min_values=0` on a required component (50035 `Components
+  marked as required cannot have a min_values of 0`) — set
+  `select._underlying.required = False` alongside `min_values=0` (the
+  required flag is not exposed on the Select constructor).

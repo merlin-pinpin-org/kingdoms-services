@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any
 
 import discord
 from discord import app_commands
@@ -44,13 +43,7 @@ from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.guards import require_admin
 from kingdoms.discord.ui import (
     BLURPLE,
-    Action,
-    ChannelSelect,
     Container,
-    Option,
-    Row,
-    SelectMenu,
-    Separator,
     Text,
     UILayout,
 )
@@ -92,9 +85,14 @@ LOCALES = ("en", "fr")
 
 # (category, icon, i18n label key) — the label renders through the
 # guild's locale (admin.channel_bot_logs / admin.channel_bot_admins).
+HOME_CHANNEL_CATEGORY = "home"
+LIVE_CHANNEL_CATEGORY = "live"
+
 MANAGED_CHANNELS: tuple[tuple[str, str, str], ...] = (
     (BOT_LOGS_CATEGORY, "🛰", "channel_bot_logs"),
     (ADMIN_CHANNEL_CATEGORY, "🛡", "channel_bot_admins"),
+    (HOME_CHANNEL_CATEGORY, "🏛", "channel_home"),
+    (LIVE_CHANNEL_CATEGORY, "📡", "channel_live"),
 )
 
 _LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
@@ -120,365 +118,6 @@ def _is_guild_admin(interaction: discord.Interaction) -> bool:
     return bool(permissions and (permissions.administrator or permissions.manage_guild))
 
 
-async def build_dm_setup_view(
-    logs_service: LogService | None,
-    user_id: str,
-    bot_admins: tuple[str, ...] = (),
-    catalog: MessageCatalog | None = None,
-    error_reporter: ErrorReporter | None = None,
-) -> discord.ui.LayoutView:
-    """Build the DM /admin panel: the user's personal DM locale."""
-    locale = await logs_service.get_user_locale(user_id) if logs_service is not None else "en"
-
-    async def on_user_locale(interaction: discord.Interaction, values: list[str]) -> None:
-        """Apply the user's own DM locale choice (self-service only)."""
-        if not values or logs_service is None:
-            return
-        if str(getattr(interaction.user, "id", "")) != user_id:
-            await interaction.response.send_message(
-                "You are not allowed to change another user's language.", ephemeral=True
-            )
-            return
-        try:
-            await logs_service.set_user_locale(str(interaction.user.id), values[0])
-        except Exception as exc:
-            logger.exception("ADMIN DM: user locale change failed for user %s", interaction.user.id)
-            await _report_failure(error_reporter, interaction, exc)
-            await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
-            return
-        await interaction.response.edit_message(
-            view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter)
-        )
-
-    locale_select = SelectMenu(
-        custom_id=USER_LOCALE_SELECT_ID,
-        options=tuple(Option(_LOCALE_LABELS[loc], loc) for loc in LOCALES),
-        on_choose=on_user_locale,
-        placeholder=_t(catalog, locale, "dm_placeholder"),
-    )
-    container = (
-        Container(accent=BLURPLE)
-        .add(Text(f"# ⚙️ {_t(catalog, locale, 'dm_title')}"))
-        .add(Text(f"{_t(catalog, locale, 'dm_language')}: {_LOCALE_LABELS.get(locale, locale)}"))
-        .add(Separator())
-        .add(Text(_t(catalog, locale, "dm_language_hint")))
-        .add(Row(locale_select))
-    )
-    return UILayout().add(container).build()
-
-
-async def build_main_menu(
-    logs_service: LogService,
-    guild_id: str,
-    by: str,
-    bot_admins: tuple[str, ...] = (),
-    roles_service: RolesService | None = None,
-    catalog: MessageCatalog | None = None,
-    admin_channel_service: AdminChannelService | None = None,
-    error_reporter: ErrorReporter | None = None,
-) -> discord.ui.LayoutView:
-    """Build the /admin main menu: guild language + managed channels."""
-    locale = await logs_service.get_locale(guild_id)
-    channel_status = await _managed_channel_status(logs_service, guild_id, admin_channel_service)
-
-    async def on_locale(interaction: discord.Interaction, values: list[str]) -> None:
-        """Apply the guild's language choice, then re-render the main menu."""
-        if not values:
-            return
-        if not await require_admin(interaction, bot_admins, roles_service):
-            return
-        try:
-            await logs_service.set_locale(guild_id, values[0], by=by)
-        except Exception as exc:
-            logger.exception("ADMIN PANEL: locale change failed for guild %s", guild_id)
-            await _report_failure(error_reporter, interaction, exc)
-            await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
-            return
-        await interaction.response.edit_message(
-            view=await build_main_menu(
-                logs_service, guild_id, by, bot_admins, roles_service, catalog, admin_channel_service, error_reporter
-            )
-        )
-
-    async def on_channel(interaction: discord.Interaction, values: list[str]) -> None:
-        """Open the secondary menu of the selected managed channel."""
-        if not values:
-            return
-        if not await require_admin(interaction, bot_admins, roles_service):
-            return
-        await interaction.response.edit_message(
-            view=await build_channel_menu(
-                logs_service,
-                guild_id,
-                values[0],
-                by,
-                bot_admins,
-                roles_service,
-                catalog,
-                locale,
-                admin_channel_service,
-                error_reporter,
-            )
-        )
-
-    locale_select = SelectMenu(
-        custom_id=LOCALE_SELECT_ID,
-        options=tuple(Option(_LOCALE_LABELS[loc], loc) for loc in LOCALES),
-        on_choose=on_locale,
-        placeholder=_t(catalog, locale, "language_placeholder", value=_LOCALE_LABELS.get(locale, locale)),
-    )
-    channel_options = tuple(
-        Option(
-            f"{icon} {_t(catalog, locale, label_key)}",
-            category,
-            channel_status.get(category, _t(catalog, locale, "not_provisioned")),
-        )
-        for category, icon, label_key in MANAGED_CHANNELS
-    )
-    channel_menu = SelectMenu(
-        custom_id=CHANNEL_MENU_ID,
-        options=channel_options,
-        on_choose=on_channel,
-        placeholder=_t(catalog, locale, "channels_placeholder"),
-    )
-    container = (
-        Container(accent=BLURPLE)
-        .add(Text(f"# ⚙️ {_t(catalog, locale, 'title')}"))
-        .add(Separator())
-        .add(Text(f"## 🌍 {_t(catalog, locale, 'language')}"))
-        .add(
-            Text(
-                _t(
-                    catalog,
-                    locale,
-                    "language_hint",
-                    value=_LOCALE_LABELS.get(locale, locale),
-                )
-            )
-        )
-        .add(Row(locale_select))
-        .add(Separator())
-        .add(Text(f"## 📋 {_t(catalog, locale, 'channels')}"))
-        .add(Row(channel_menu))
-    )
-    return UILayout().add(container).build()
-
-
-async def build_channel_menu(
-    logs_service: LogService,
-    guild_id: str,
-    category: str,
-    by: str,
-    bot_admins: tuple[str, ...] = (),
-    roles_service: RolesService | None = None,
-    catalog: MessageCatalog | None = None,
-    locale: str = "en",
-    admin_channel_service: AdminChannelService | None = None,
-    error_reporter: ErrorReporter | None = None,
-) -> discord.ui.LayoutView:
-    """Build the secondary menu of one managed channel (routing, visibility)."""
-    entry = next((e for e in MANAGED_CHANNELS if e[0] == category), None)
-    if entry is None:
-        return UILayout().add(Container(accent=BLURPLE).add(Text(f"Unknown channel category: `{category}`."))).build()
-    _, icon, label_key = entry
-    label = _t(catalog, locale, label_key)
-    channel_id = await _resolve_managed_channel(logs_service, guild_id, category, admin_channel_service)
-    policy = await logs_service.get_access_policy(guild_id) if category == BOT_LOGS_CATEGORY else None
-
-    async def on_back(interaction: discord.Interaction) -> None:
-        """Return from the secondary menu to the main menu."""
-        if not await require_admin(interaction, bot_admins, roles_service):
-            return
-        await interaction.response.edit_message(
-            view=await build_main_menu(
-                logs_service, guild_id, by, bot_admins, roles_service, catalog, admin_channel_service, error_reporter
-            )
-        )
-
-    async def rerender(interaction: discord.Interaction) -> None:
-        """Re-render the secondary menu after a routing/visibility change."""
-        await interaction.response.edit_message(
-            view=await build_channel_menu(
-                logs_service,
-                guild_id,
-                category,
-                by,
-                bot_admins,
-                roles_service,
-                catalog,
-                locale,
-                admin_channel_service,
-                error_reporter,
-            )
-        )
-
-    router = _category_router(category, logs_service, admin_channel_service)
-    on_route = _routing_callback(
-        router, guild_id, by, bot_admins, roles_service, rerender, catalog, locale, error_reporter
-    )
-    on_visibility = _visibility_callback(
-        logs_service, guild_id, by, bot_admins, roles_service, rerender, catalog, locale, error_reporter
-    )
-
-    status = f"<#{channel_id}>" if channel_id else _t(catalog, locale, "not_provisioned")
-    blocks: list[Any] = [
-        Text(f"# {icon} Kingdoms — {label}"),
-        Separator(),
-        Text(f"{_t(catalog, locale, 'channel')}: {status}"),
-    ]
-    if category == BOT_LOGS_CATEGORY:
-        blocks.extend(
-            _logs_channel_blocks(logs_service, guild_id, category, by, policy, on_route, on_visibility, catalog, locale)
-        )
-    else:
-        blocks.extend(
-            [
-                Separator(),
-                Text(_t(catalog, locale, "admin_channel_note")),
-                Row(
-                    ChannelSelect(
-                        custom_id=CHANNEL_ROUTE_ID,
-                        on_choose=on_route,
-                        placeholder=_t(catalog, locale, "route_placeholder"),
-                    )
-                ),
-            ]
-        )
-
-    blocks.extend([Separator(), Row(Action(_t(catalog, locale, "back"), BACK_BUTTON_ID, on_back, style="secondary"))])
-    return UILayout().add(Container(accent=BLURPLE, blocks=tuple(blocks))).build()
-
-
-def _category_router(
-    category: str,
-    logs_service: LogService,
-    admin_channel_service: AdminChannelService | None,
-) -> Any:
-    """Resolve the routing callable of a managed channel category."""
-
-    async def route_logs(guild_id: str, channel_id: str, by: str) -> None:
-        """Route the bot logs channel (LogService.set_channel)."""
-        await logs_service.set_channel(guild_id, channel_id, by=by)
-
-    async def route_admin(guild_id: str, channel_id: str, by: str) -> None:
-        """Route the admin channel (AdminChannelService.set_channel)."""
-        if admin_channel_service is None:
-            raise RuntimeError("admin channel management is unavailable (no AdminChannelService wired)")
-        await admin_channel_service.set_channel(guild_id, channel_id)
-
-    return route_admin if category == ADMIN_CHANNEL_CATEGORY else route_logs
-
-
-def _routing_callback(
-    router: Any,
-    guild_id: str,
-    by: str,
-    bot_admins: tuple[str, ...],
-    roles_service: RolesService | None,
-    rerender: Any,
-    catalog: MessageCatalog | None = None,
-    locale: str = "en",
-    error_reporter: ErrorReporter | None = None,
-) -> Any:
-    """Build the routing select callback: guard, route, rerender."""
-
-    async def on_route(interaction: discord.Interaction, values: list[str]) -> None:
-        """Apply the channel routing picked in the ChannelSelect."""
-        if not values:
-            return
-        if not await require_admin(interaction, bot_admins, roles_service):
-            return
-        try:
-            await router(guild_id, values[0], by)
-        except Exception as exc:
-            logger.exception("ADMIN PANEL: channel routing failed for guild %s", guild_id)
-            await _report_failure(error_reporter, interaction, exc)
-            await interaction.response.send_message(_t(catalog, locale, "route_failed"), ephemeral=True)
-            return
-        await rerender(interaction)
-
-    return on_route
-
-
-def _visibility_callback(
-    logs_service: LogService,
-    guild_id: str,
-    by: str,
-    bot_admins: tuple[str, ...],
-    roles_service: RolesService | None,
-    rerender: Any,
-    catalog: MessageCatalog | None = None,
-    locale: str = "en",
-    error_reporter: ErrorReporter | None = None,
-) -> Any:
-    """Build the visibility select callback: guard, persist, rerender."""
-
-    async def on_visibility(interaction: discord.Interaction, values: list[str]) -> None:
-        """Apply the visibility picked in the select (public/admin-only)."""
-        if not values:
-            return
-        if not await require_admin(interaction, bot_admins, roles_service):
-            return
-        try:
-            await logs_service.set_visibility(guild_id, values[0] == VISIBILITY_PUBLIC, by=by)
-        except Exception as exc:
-            logger.exception("ADMIN PANEL: visibility change failed for guild %s", guild_id)
-            await _report_failure(error_reporter, interaction, exc)
-            await interaction.response.send_message(_t(catalog, locale, "visibility_failed"), ephemeral=True)
-            return
-        await rerender(interaction)
-
-    return on_visibility
-
-
-def _logs_channel_blocks(
-    logs_service: LogService,
-    guild_id: str,
-    category: str,
-    by: str,
-    policy: dict[str, object] | None,
-    on_route: Any,
-    on_visibility: Any,
-    catalog: MessageCatalog | None = None,
-    locale: str = "en",
-) -> list[Any]:
-    """Build the logs-channel specific blocks: status + routing + visibility."""
-    visibility = str((policy or {}).get("default", VISIBILITY_ADMIN_ONLY))
-    visibility_label = (
-        _t(catalog, locale, "visibility_public")
-        if visibility == VISIBILITY_PUBLIC
-        else _t(catalog, locale, "visibility_admin_only")
-    )
-    route_select = ChannelSelect(
-        custom_id=CHANNEL_ROUTE_ID,
-        on_choose=on_route,
-        placeholder=_t(catalog, locale, "route_placeholder"),
-    )
-    visibility_select = SelectMenu(
-        custom_id=VISIBILITY_SELECT_ID,
-        options=(
-            Option(
-                f"🔒 {_t(catalog, locale, 'visibility_admin_label')}",
-                VISIBILITY_ADMIN_ONLY,
-                _t(catalog, locale, "visibility_admin_hint"),
-            ),
-            Option(
-                f"🔓 {_t(catalog, locale, 'visibility_public_label')}",
-                VISIBILITY_PUBLIC,
-                _t(catalog, locale, "visibility_public_hint"),
-            ),
-        ),
-        on_choose=on_visibility,
-        placeholder=_t(catalog, locale, "visibility_placeholder"),
-    )
-    return [
-        Text(f"{_t(catalog, locale, 'visibility')}: {visibility_label}"),
-        Separator(),
-        Row(route_select),
-        Row(visibility_select),
-    ]
-
-
 async def _managed_channel_status(
     logs_service: LogService,
     guild_id: str,
@@ -498,15 +137,37 @@ async def _resolve_managed_channel(
     category: str,
     admin_channel_service: AdminChannelService | None = None,
 ) -> str | None:
-    """Resolve a managed channel id, degrading to None on failure."""
+    """Resolve a managed channel through its stored tree id; None when absent.
+
+    The tree is the single owner of the channels: the admin panel
+    resolves by the persisted id (``tree:<scope>:<key>``) and never
+    creates or adopts — a channel the tree has not provisioned simply
+    reads "not provisioned yet".
+    """
+    del logs_service, admin_channel_service
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    tree_keys = {
+        BOT_LOGS_CATEGORY: ("bot", "logs"),
+        ADMIN_CHANNEL_CATEGORY: ("bot", "admin"),
+        HOME_CHANNEL_CATEGORY: ("root", "general"),
+        LIVE_CHANNEL_CATEGORY: ("games/aoe2", "live"),
+    }
+    scope, key = tree_keys.get(category, ("", ""))
+    if not scope:
+        return None
     try:
-        if category == BOT_LOGS_CATEGORY:
-            return await logs_service.resolve_channel(guild_id)
-        if category == ADMIN_CHANNEL_CATEGORY and admin_channel_service is not None:
-            return await admin_channel_service.resolve_channel(guild_id)
+        return await stored_channel_id(guild_id, scope, key)
     except Exception:
         logger.warning("ADMIN PANEL: channel resolution failed (guild %s, category %s)", guild_id, category)
-    return None
+        return None
+
+
+def _panel_client() -> discord.Client | None:
+    """Resolve the running bot (the admin module's client reference; None unwired)."""
+    from kingdoms.discord.admin_panel_dynamic import _CLIENT_REF
+
+    return _CLIENT_REF[0] if _CLIENT_REF else None
 
 
 def build_admin_note_view(message: str) -> discord.ui.LayoutView:
@@ -568,13 +229,13 @@ def register_admin_command(
             if is_bot_admin:
                 from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
-                dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
+                # The DM panel only: the language follows the user's
+                # Discord client (no platform-stored locale anymore).
                 admin_view = await build_admin_dm_panel(interaction)
-                await interaction.followup.send(view=dm_view, ephemeral=True)
                 await interaction.followup.send(view=admin_view, ephemeral=True)
             else:
                 await interaction.followup.send(
-                    view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter),
+                    "Réglages personnels : la langue suit celle de ton client Discord.",
                     ephemeral=True,
                 )
             return
@@ -590,32 +251,10 @@ def register_admin_command(
             )
             return
 
-        await interaction.response.defer(ephemeral=True)
-        try:
-            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+        from kingdoms.discord.views_routing import open_declared_view
 
-            locale = await logs_service.get_locale(guild_id)
-            panel = await build_pin_main_menu(
-                logs_service,
-                guild_id,
-                catalog,
-                locale,
-                admin_channel_service,
-                invoker_admin=True,
-            )
-        except Exception as exc:
-            logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
-            await _report_failure(error_reporter, interaction, exc)
-            detail = f"{type(exc).__name__}: {exc}"[:120]
-            await interaction.followup.send(
-                view=build_admin_note_view(
-                    _t(catalog, "en", "panel_failed", detail=discord.utils.escape_markdown(detail))
-                ),
-                ephemeral=True,
-            )
-            return
-
-        await interaction.followup.send(view=panel, ephemeral=True)
+        await open_declared_view(interaction, "menu:admin")
+        return
 
 
 async def guards_require(
@@ -630,11 +269,11 @@ async def guards_require(
     try:
         if interaction.response.is_done():
             await interaction.followup.send(
-                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.", ephemeral=True
+                "Tu n'es ni opérateur du bot (BOT_ADMINS) ni administrateur du serveur.", ephemeral=True
             )
         else:
             await interaction.response.send_message(
-                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.", ephemeral=True
+                "Tu n'es ni opérateur du bot (BOT_ADMINS) ni administrateur du serveur.", ephemeral=True
             )
     except Exception:
         logger.warning("DENIAL ANSWER FAILED — best-effort", exc_info=True)

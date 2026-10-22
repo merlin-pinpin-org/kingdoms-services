@@ -19,7 +19,5 @@ GAME_KEY_PATTERN = re.compile(r"^[a-z0-9]+$")
 def validate_game_key(game_key: str) -> str:
     """Validate a game key (``a-z0-9`` only); raise ValueError when invalid."""
     if not GAME_KEY_PATTERN.fullmatch(game_key or ""):
-        raise ValueError(
-            f"invalid game key {game_key!r}: must be lowercase alphanumeric (a-z0-9), non-empty"
-        )
+        raise ValueError(f"invalid game key {game_key!r}: must be lowercase alphanumeric (a-z0-9), non-empty")
     return game_key

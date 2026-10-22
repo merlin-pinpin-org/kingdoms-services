@@ -332,12 +332,9 @@ def register_status_command(
         latency: float | None = interaction.client.latency
         if latency != latency or latency == float("inf"):
             latency = None
-        locale = "en"
-        if logs_service is not None and interaction.guild_id is not None:
-            try:
-                locale = await logs_service.get_locale(str(interaction.guild_id))
-            except Exception:
-                logger.warning("guild locale lookup failed (guild %s) — falling back", interaction.guild_id)
+        from kingdoms.discord.locales import interaction_locale
+
+        locale = interaction_locale(interaction)
         config = AnnounceConfig(locale=locale)
         scope = sync_target if interaction.guild is not None else ""
         commands = commands_section(scope, tree.get_commands(), locale, AnnounceConfig().config_dir)

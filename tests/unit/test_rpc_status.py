@@ -1,4 +1,5 @@
 """Status seam tests: server serves, client fetches, payloads round-trip."""
+
 from __future__ import annotations
 
 import pytest
@@ -19,9 +20,7 @@ async def _pick_port(server) -> int:  # type: ignore[no-untyped-def]
 @pytest.mark.asyncio
 async def test_status_roundtrip() -> None:
     """The client receives the server-provided status over the wire."""
-    server = build_status_server(
-        lambda: CoreStatus(version="1.2.3", process="svc-core")
-    )
+    server = build_status_server(lambda: CoreStatus(version="1.2.3", process="svc-core"))
     port = await _pick_port(server)
     try:
         status = await fetch_core_status(f"127.0.0.1:{port}")

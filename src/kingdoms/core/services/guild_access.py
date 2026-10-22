@@ -1,10 +1,10 @@
 """GuildAccessService: which guild may use which games and mods (core).
 
-A bot admin is cross-guild: they administer the platform from DMs, not
-from any single guild's panel. Conversely, a guild never gets a game or
-mod by default — every registered guild must request access, and a bot
-admin approves it from the admin DM panel. This is the platform's
-isolation seam: nothing is active until explicitly granted.
+A bot admin is cross-guild: they administer the platform from DMs,
+not from any single guild's panel. By default **everything is active**:
+a guild with no access document gets the whole platform catalog. An
+access doc only ever *restricts* — the future private-mod seam (a mod
+needing explicit activation, like kingdoms).
 
 Storage: the ``guild_access`` Mongo collection, one document per guild
 (``guild:<id>``) carrying ``games`` and ``mods`` (lists of granted
@@ -69,14 +69,22 @@ class GuildAccessService:
         return doc
 
     async def enabled_games(self, guild_id: str) -> tuple[str, ...]:
-        """List the games granted to one guild."""
+        """List the games granted to one guild.
+
+        Default open: a guild with no access document (or no granted
+        game) gets the whole platform catalog \u2014 access docs only ever
+        *restrict* (the future private-mod seam). A stored non-empty
+        list keeps its meaning: exactly those games.
+        """
         access = await self.get(guild_id)
-        return tuple(access.get("games") or ())
+        granted = tuple(access.get("games") or ())
+        return granted or self._games
 
     async def enabled_mods(self, guild_id: str) -> tuple[str, ...]:
-        """List the mods granted to one guild."""
+        """List the mods granted to one guild (default: the whole catalog)."""
         access = await self.get(guild_id)
-        return tuple(access.get("mods") or ())
+        granted = tuple(access.get("mods") or ())
+        return granted or self._mods
 
     async def request_access(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
         """Record a guild's request for games/mods (pending approval).
@@ -90,18 +98,67 @@ class GuildAccessService:
         games = set(doc.get("games") or ())
         mods = set(doc.get("mods") or ())
         fresh: list[str] = []
+        already_granted: list[str] = []
+        already_pending: list[str] = []
         for key in keys:
             if key.startswith("game:"):
                 granted = key[5:] in games
             else:
                 granted = key[4:] in mods
-            if granted or key in [k for ks in pending.values() for k in ks]:
+            if granted:
+                already_granted.append(key)
+                continue
+            if key in [k for ks in pending.values() for k in ks]:
+                already_pending.append(key)
                 continue
             fresh.append(key)
         if not fresh:
-            raise GuildAccessError("rien a demander : deja accorde ou deja en attente")
+            if already_granted:
+                raise GuildAccessError(
+                    "deja accorde : " + ", ".join(already_granted)
+                )
+            raise GuildAccessError("deja en attente : " + ", ".join(already_pending))
         pending[str(int(time.time()))] = fresh
         doc["pending"] = pending
+        doc["updated_at"] = int(time.time())
+        await self._db.upsert_guild_access(self._to_mongo(doc))
+        return doc
+
+    async def grant(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
+        """Grant games/mods to a guild directly (bot admin, no request).
+
+        Keys carry their kind (``game:<key>`` / ``mod:<key>``); a
+        mod's declared ``required_games`` ride along (same expansion
+        as the request path — a mod is never granted unusable).
+        """
+        self._validate_keys(keys)
+        doc = await self.get(guild_id)
+        games = set(doc.get("games") or ())
+        mods = set(doc.get("mods") or ())
+        for key in keys:
+            if key.startswith("game:"):
+                games.add(key[5:])
+            else:
+                mods.add(key[4:])
+        doc["games"] = sorted(games)
+        doc["mods"] = sorted(mods)
+        doc["updated_at"] = int(time.time())
+        await self._db.upsert_guild_access(self._to_mongo(doc))
+        return doc
+
+    async def revoke_keys(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
+        """Revoke games/mods from a guild directly (bot admin)."""
+        self._validate_keys(keys)
+        doc = await self.get(guild_id)
+        games = set(doc.get("games") or ())
+        mods = set(doc.get("mods") or ())
+        for key in keys:
+            if key.startswith("game:"):
+                games.discard(key[5:])
+            else:
+                mods.discard(key[4:])
+        doc["games"] = sorted(games)
+        doc["mods"] = sorted(mods)
         doc["updated_at"] = int(time.time())
         await self._db.upsert_guild_access(self._to_mongo(doc))
         return doc

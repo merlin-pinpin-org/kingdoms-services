@@ -1,6 +1,7 @@
 """Unit tests for the LogService (kingdoms-services#109).
 
-Covers the cache-aside resolution flow (Redis → MongoDB → creation),
+Covers the cache-aside resolution flow (Redis → MongoDB — the
+tree routes the channel, the service never adopts or creates one),
 the admin-only default policy, the crash-loop collapse, and the
 best-effort degradation (store failures never propagate).
 """
@@ -14,7 +15,6 @@ import pytest
 from kingdoms.core.models.channel import ChannelModel
 from kingdoms.core.services.logs import (
     BOT_LOGS_CATEGORY,
-    BOT_LOGS_CHANNEL_NAME,
     CRASH_LOOP_THRESHOLD,
     LifecycleEvent,
     LogService,
@@ -33,6 +33,7 @@ class FakeLogsDatabase:
         self.channels: dict[str, ChannelModel] = {}
         self.policies: dict[str, dict[str, Any]] = {}
         self.settings: dict[str, dict[str, Any]] = {}
+        self.users: dict[str, dict[str, Any]] = {}
         self.created_order: list[str] = []
 
     async def find_channel(self, guild_id: str, category: str) -> ChannelModel | None:
@@ -50,6 +51,12 @@ class FakeLogsDatabase:
 
     async def set_policy(self, guild_id: str, category: str, policy: dict[str, Any]) -> None:
         self.policies[f"{guild_id}:{category}"] = dict(policy)
+
+    async def get_user_settings(self, user_id: str) -> dict[str, Any] | None:
+        return self.users.get(user_id)
+
+    async def set_user_settings(self, user_id: str, settings: dict[str, Any]) -> None:
+        self.users[user_id] = dict(settings)
 
     async def get_guild_settings(self, guild_id: str) -> dict[str, Any] | None:
         return self.settings.get(guild_id)
@@ -70,21 +77,10 @@ class FakeLogsPlatform:
         self.sent: list[tuple[str, str]] = []
         self.layouts: list[tuple[str, Any]] = []
         self.exists_calls = 0
-        self.adoptable: set[str] = set()
         self.channel_names: dict[str, str] = {}
         self.next_message_id = 5000
         self.pinned: list[tuple[str, str]] = []
         self.unpinned: list[tuple[str, str]] = []
-
-    async def find_logs_channel(self, guild_id: str) -> str | None:
-        adopted = sorted(self.adoptable & self.live_channels)
-        return adopted[0] if adopted else None
-
-    async def create_logs_channel(self, guild_id: str) -> str:
-        channel_id = str(self.next_channel_id)
-        self.next_channel_id += 1
-        self.live_channels.add(channel_id)
-        return channel_id
 
     async def apply_default_policy(self, guild_id: str, channel_id: str) -> None:
         self.default_policy_applied.append(channel_id)
@@ -148,65 +144,63 @@ def service(store: InMemoryStateStore, database: FakeLogsDatabase, platform: Fak
 
 
 @pytest.mark.asyncio
-async def test_first_resolution_creates_admin_only_channel(
+async def test_routed_channel_resolves_from_the_store(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
-    channel_id = await service.resolve_channel(GUILD)
-    assert channel_id is not None
-    assert platform.default_policy_applied == [channel_id]
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="channel-tree")
+    assert await service.resolve_channel(GUILD) == "777"
     stored = database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"]
-    assert stored.channel_id == channel_id
-    assert stored.name == BOT_LOGS_CHANNEL_NAME
+    assert stored.channel_id == "777"
     assert stored.category == BOT_LOGS_CATEGORY
-    persisted_policy = await database.get_policy(GUILD, BOT_LOGS_CATEGORY)
-    assert persisted_policy is not None
-    assert persisted_policy["default"] == "admin_only"
-    assert persisted_policy["roles_with_view"] == []
 
 
 @pytest.mark.asyncio
-async def test_existing_channel_is_adopted_not_duplicated(
+async def test_no_adoption_no_creation_the_tree_routes_the_channel(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
-    """A pre-existing logs channel with no DB record is adopted, not duplicated.
+    """Without a routed channel the service writes nowhere.
 
-    This is the CI/CD-bot scenario: a fresh ephemeral MongoDB with an
-    existing guild must never create a second 🤖-bot-logs channel.
+    The tree owns ``bot/logs`` and routes it through ``set_channel``;
+    a legacy ``\U0001f916-bot-logs`` channel (or any existing channel)
+    is never adopted by name and never created — the legacy channel
+    stays dead.
     """
-    platform.live_channels.add("999")
-    platform.adoptable.add("999")
-    channel_id = await service.resolve_channel(GUILD)
-    assert channel_id == "999"
-    assert platform.default_policy_applied == ["999"], (
-        "adopted channels are private by default (the default policy is re-applied)"
-    )
-    stored = database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"]
-    assert stored.channel_id == "999"
+    assert await service.resolve_channel(GUILD) is None
+    assert database.channels == {}
+    await service.log_event(GUILD, LifecycleEvent(kind="start", message="live"))
+    assert platform.sent == []
 
 
 @pytest.mark.asyncio
 async def test_second_resolution_hits_the_cache(service: LogService, platform: FakeLogsPlatform) -> None:
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     first = await service.resolve_channel(GUILD)
-    assert platform.exists_calls == 0
+    assert first == "777"
+    calls_after_route = platform.exists_calls
     second = await service.resolve_channel(GUILD)
     assert second == first
-    assert platform.exists_calls == 1
+    assert platform.exists_calls == calls_after_route + 1
 
 
 @pytest.mark.asyncio
-async def test_deleted_channel_is_reprovisioned(
+async def test_deleted_routed_channel_drops_to_none(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     first = await service.resolve_channel(GUILD)
-    platform.live_channels.discard(first)
-    second = await service.resolve_channel(GUILD)
-    assert second is not None and second != first
-    assert database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"].channel_id == second
-    assert platform.default_policy_applied == [first, second]
+    assert first == "777"
+    platform.live_channels.discard("777")
+    assert await service.resolve_channel(GUILD) is None
+    assert f"{GUILD}:{BOT_LOGS_CATEGORY}" not in database.channels
 
 
 @pytest.mark.asyncio
 async def test_log_event_delivers_footer_as_subtext(service: LogService, platform: FakeLogsPlatform) -> None:
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     await service.resolve_channel(GUILD)
     event = LifecycleEvent(kind="start", message="Bot is live", footer="kingdoms-deploy env=test")
     await service.log_event(GUILD, event)
@@ -216,7 +210,6 @@ async def test_log_event_delivers_footer_as_subtext(service: LogService, platfor
 
 @pytest.mark.asyncio
 async def test_log_event_never_raises_on_platform_failure(service: LogService, platform: FakeLogsPlatform) -> None:
-    platform.live_channels.clear()
     event = LifecycleEvent(kind="stop", message="Bye")
     await service.log_event(GUILD, event)
 
@@ -224,6 +217,8 @@ async def test_log_event_never_raises_on_platform_failure(service: LogService, p
 @pytest.mark.asyncio
 async def test_pinned_boot_status_keeps_only_the_latest(service: LogService, platform: FakeLogsPlatform) -> None:
     """Two boots: the previous pinned status is unpinned — one pin survives."""
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     first = LifecycleEvent(kind="start", message="boot 1")
     second = LifecycleEvent(kind="start", message="boot 2")
     await service.log_event(GUILD, first, pin=True)
@@ -237,6 +232,8 @@ async def test_pinned_boot_status_keeps_only_the_latest(service: LogService, pla
 @pytest.mark.asyncio
 async def test_first_pinned_boot_status_has_nothing_to_unpin(service: LogService, platform: FakeLogsPlatform) -> None:
     """The very first boot pins cleanly — no phantom unpin."""
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     event = LifecycleEvent(kind="start", message="boot 1")
     await service.log_event(GUILD, event, pin=True)
     assert len(platform.pinned) == 1
@@ -245,13 +242,13 @@ async def test_first_pinned_boot_status_has_nothing_to_unpin(service: LogService
 
 @pytest.mark.asyncio
 async def test_crash_loop_collapses_after_threshold(service: LogService, platform: FakeLogsPlatform) -> None:
-    await service.resolve_channel(GUILD)
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     event = LifecycleEvent(kind="start", message="Bot is live")
     for _ in range(CRASH_LOOP_THRESHOLD):
         await service.log_crash_loop(GUILD, event)
-    assert len(platform.sent) == 1
-    assert "crash-loop detected" in platform.sent[0][1]
-    assert f"{CRASH_LOOP_THRESHOLD} events" in platform.sent[0][1]
+    assert "crash-loop detected" in platform.sent[-1][1]
+    assert f"{CRASH_LOOP_THRESHOLD} events" in platform.sent[-1][1]
 
 
 @pytest.mark.asyncio
@@ -276,6 +273,8 @@ async def test_default_policy_is_admin_only(database: FakeLogsDatabase) -> None:
 async def test_grant_role_view_access_persists_grants_and_audits(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     await service.resolve_channel(GUILD)
     await service.grant_role_view_access(GUILD, "999", by="42")
     policy = await service.get_access_policy(GUILD)
@@ -291,6 +290,8 @@ async def test_grant_role_view_access_persists_grants_and_audits(
 async def test_reapply_default_policy_audits(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     await service.resolve_channel(GUILD)
     await service.reapply_default_policy(GUILD, by="42")
     policy = await service.get_access_policy(GUILD)
@@ -318,9 +319,10 @@ async def test_redis_down_degrades_to_mongo(
         platform=platform,
         state=StateService(store=FailingStore(clock=FakeClock())),  # type: ignore[arg-type]
     )
-    channel_id = await service.resolve_channel(GUILD)
-    assert channel_id is not None
-    assert database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"].channel_id == channel_id
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
+    assert await service.resolve_channel(GUILD) == "777"
+    assert database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"].channel_id == "777"
 
 
 @pytest.mark.asyncio
@@ -328,8 +330,8 @@ async def test_set_channel_reroutes_and_reapplies_rights(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
     """Routing to an existing channel: the policy follows the routing."""
-    old = await service.resolve_channel(GUILD)
-    assert old is not None
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     await service.grant_role_view_access(GUILD, "777", by="42")
     platform.live_channels.add("5555")
     platform.default_policy_applied.clear()
@@ -355,8 +357,10 @@ async def test_set_visibility_public_then_back(
 ) -> None:
     """Visibility toggling: public opens the channel, admin-only restores
     the default overwrites and re-applies the role grants."""
+    platform.live_channels.add("777")
+    await service.set_channel(GUILD, "777", by="test")
     channel_id = await service.resolve_channel(GUILD)
-    assert channel_id is not None
+    assert channel_id == "777"
     await service.grant_role_view_access(GUILD, "777", by="42")
     platform.default_policy_applied.clear()
     platform.role_grants.clear()
@@ -379,12 +383,11 @@ async def test_locale_roundtrip_and_fallback(
     service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
 ) -> None:
     await service.resolve_channel(GUILD)
-    assert await service.get_locale(GUILD) == "en", "the default locale is en"
-    await service.set_locale(GUILD, "fr", by="42")
-    assert await service.get_locale(GUILD) == "fr"
-    assert database.settings[GUILD]["locale"] == "fr"
-    with pytest.raises(ValueError):
-        await service.set_locale(GUILD, "de", by="42")
+    assert await service.get_locale(GUILD) == "en", "no resolver: English fallback"
+    service.set_locale_resolver(lambda guild_id: "fr")
+    assert await service.get_locale(GUILD) == "fr", "the resolver drives the locale"
+    service.set_locale_resolver(lambda guild_id: "de")
+    assert await service.get_locale(GUILD) == "en", "unsupported locales fall back to English"
 
 
 @pytest.mark.asyncio
@@ -397,3 +400,35 @@ async def test_list_text_channels_serves_the_picker(service: LogService, platfor
     assert "5555" in ids
     entry = next(c for c in channels if c["id"] == "5555")
     assert entry["name"] == "general"
+
+
+@pytest.mark.asyncio
+async def test_user_locale_observation(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """Interaction-free DMs render in the language the user was last seen using."""
+    assert await service.get_user_locale("777") == "en", "never seen: English"
+    await service.observe_user_locale("777", "fr")
+    assert await service.get_user_locale("777") == "fr"
+    assert database.users["777"]["locale"] == "fr"
+    await service.observe_user_locale("777", "de")
+    assert await service.get_user_locale("777") == "fr", "unsupported locales never overwrite"
+
+
+@pytest.mark.asyncio
+async def test_guild_member_locale_majority(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """A non-Community guild's language falls back to the members' majority.
+
+    Discord hard-codes ``en-US`` for non-Community servers (no language
+    setting exists); the bot observes each member's client language at
+    interaction time and the guild renders in the majority.
+    """
+    assert await service.observed_guild_locale(GUILD) == "en", "no observation: English"
+    await service.observe_guild_member_locale(GUILD, "1", "fr")
+    await service.observe_guild_member_locale(GUILD, "2", "fr")
+    await service.observe_guild_member_locale(GUILD, "3", "en")
+    assert await service.observed_guild_locale(GUILD) == "fr", "the majority wins"
+    await service.observe_guild_member_locale(GUILD, "4", "de")
+    assert await service.observed_guild_locale(GUILD) == "fr", "unsupported never counts"

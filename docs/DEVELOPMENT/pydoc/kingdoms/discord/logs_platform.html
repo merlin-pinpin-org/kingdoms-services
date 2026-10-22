@@ -61,10 +61,6 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;sea
 
 <dl><dt>async <a name="DiscordLogsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordLogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;🤖-bot-logs&nbsp;text&nbsp;channel&nbsp;in&nbsp;the&nbsp;guild.</span></dd></dl>
-
-<dl><dt>async <a name="DiscordLogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;🤖-bot-logs&nbsp;channel&nbsp;by&nbsp;name&nbsp;(adoption).</span></dd></dl>
-
 <dl><dt>async <a name="DiscordLogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordLogsPlatform-list_pinned_log_messages"><strong>list_pinned_log_messages</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;pinned&nbsp;message&nbsp;id&nbsp;of&nbsp;the&nbsp;logs&nbsp;channel.<br>
@@ -142,7 +138,6 @@ Data descriptors defined here:<br>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BOT_LOGS_CATEGORY</strong> = 'bot_logs'<br>
-<strong>BOT_LOGS_CHANNEL_NAME</strong> = '🤖-bot-logs'<br>
 <strong>CHANNELS_COLLECTION</strong> = 'channels'<br>
 <strong>GUILD_SETTINGS_COLLECTION</strong> = 'guild_settings'<br>
 <strong>POLICIES_COLLECTION</strong> = 'channel_access_policies'<br>

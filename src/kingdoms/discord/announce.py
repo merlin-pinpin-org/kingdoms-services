@@ -45,7 +45,7 @@ from typing import Any
 import discord
 
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.core.services.logs import LifecycleEvent, LogService
+from kingdoms.core.services.logs import LogService
 from kingdoms.core.services.status import StatusService
 from kingdoms.discord.deploy_render import (
     INFRA_REPO_URL,
@@ -230,7 +230,7 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     if sha:
         buttons.append(Button(f"🔧 {catalog['commit_label']}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
-            buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
+            buttons.append(Button(f"📁 {catalog['files_label']}", status.deploy_tree_url))
     if is_release_kind(status.deploy_kind) and status.deploy_ref:
         buttons.append(Button(f"🏷️ {catalog['tag_label']}", f"{SERVICES_REPO_URL}/releases/tag/{status.deploy_ref}"))
     if status.deploy_url and not _release_section(status, catalog):
@@ -325,7 +325,7 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
     if sha:
         row.append(Button(f"🔧 {catalog['commit_label']}", f"{INFRA_REPO_URL}/commit/{sha}"))
     if status.deploy_infra_url:
-        row.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_infra_url))
+        row.append(Button(f"📁 {catalog['files_label']}", status.deploy_infra_url))
     if row:
         blocks.append(Row(*row))
     run_ts = relative_time(status.deploy_run_ts)
@@ -416,6 +416,9 @@ def build_announcement_layout(
     container = container.add(*_services_blocks(status, catalog))
     container = container.add(Separator())
     container = container.add(*_infra_blocks(status, catalog))
+    from kingdoms.core.ids import footer
+
+    container = container.add(Text(footer("panel:status")))
     return UILayout().add(container).build()
 
 
@@ -433,10 +436,10 @@ async def announce_startup(
 ) -> None:
     """Post the deployment announcement per guild in its bot logs channel.
 
-    ``locale_resolver`` (an async ``guild_id -> locale`` callable, the
-    LogService's ``get_locale``) localizes per guild when provided —
-    each guild's language choice (managed through /admin) applies to
-    its own announcement; without it the AnnounceConfig locale stands.
+    ``locale_resolver`` (a ``guild_id -> locale`` callable, the bot's
+    native ``guild.preferred_locale``) localizes per guild when
+    provided — each server's Discord language applies to its own
+    announcement; without it the AnnounceConfig locale stands.
     ``commands`` (the synced command tree) rides the Bot section as
     the Commands block — the boot message is a non-ephemeral /status.
     """
@@ -446,30 +449,91 @@ async def announce_startup(
     if logs_service is None:
         logger.info("STARTUP ANNOUNCEMENT SKIPPED: no LogService wired (local run?)")
         return
+    del locale_resolver
     latency_ms = _gateway_latency(bot)
-    for guild in bot.guilds:
-        locale = config.locale
-        if locale_resolver is not None:
+    await _announce_boot_to_admins(
+        bot, status, config, logs_service, deploy_env, latency_ms, commands or (), sync_scope
+    )
+
+
+async def _announce_boot_to_admins(
+    bot: discord.Client,
+    status: StatusService,
+    config: AnnounceConfig,
+    logs_service: LogService,
+    deploy_env: str,
+    latency_ms: int | None,
+    commands: Iterable[object],
+    sync_scope: str,
+) -> None:
+    """DM the boot message to every bot-admin (the tree contract).
+
+    The boot message targets the operators personally: one DM per
+    bot-admin, best-effort (a closed DM or an unreachable user logs
+    and moves on — the guild announcement above is the fallback).
+    """
+    from kingdoms.discord.admin_dm_panel import clear_admin_dm_panel_cache
+
+    clear_admin_dm_panel_cache()
+    command_items = tuple(commands or ())
+    commands_block = commands_section(sync_scope, command_items, config.locale, config.config_dir)
+    layout = build_announcement_layout(
+        status,
+        config,
+        env=deploy_env,
+        latency_ms=latency_ms,
+        commands=commands_block,
+        command_ids=command_items,
+    )
+    for admin_id in status.bot_admins:
+        try:
+            user = await bot.fetch_user(int(admin_id))
             try:
-                locale = await locale_resolver(str(guild.id))
+                observed = await logs_service.get_user_locale(str(admin_id))
             except Exception:
-                logger.warning("guild locale lookup failed (guild %s) — falling back", guild.id)
-        guild_config = AnnounceConfig(locale=locale, config_dir=config.config_dir)
-        commands_block = (
-            commands_section(sync_scope, commands, locale, config.config_dir) if commands is not None else ""
-        )
-        layout = build_announcement_layout(
-            status,
-            guild_config,
-            env=deploy_env,
-            thumbnail_url=thumbnail_url,
-            latency_ms=latency_ms,
-            commands=commands_block,
-            command_ids=commands or (),
-        )
-        event = LifecycleEvent(kind="start", message="", layout=layout)
-        await logs_service.log_event(str(guild.id), event, pin=True)
-        logger.info("STARTUP ANNOUNCEMENT SENT to guild %s (locale=%s, pinned)", guild.id, locale)
+                observed = "en"
+            per_admin_config = AnnounceConfig(locale=observed) if observed != config.locale else config
+            per_admin_layout = (
+                layout
+                if observed == config.locale
+                else build_announcement_layout(
+                    status,
+                    per_admin_config,
+                    env=deploy_env,
+                    latency_ms=latency_ms,
+                    commands=commands_block,
+                    command_ids=command_items,
+                )
+            )
+            await user.send(view=per_admin_layout)
+            logger.info("STARTUP ANNOUNCEMENT DM sent to bot-admin %s", admin_id)
+            await _send_boot_admin_dm(bot, user)
+        except Exception:
+            logger.warning("STARTUP ANNOUNCEMENT DM failed (admin %s) — best-effort", admin_id, exc_info=True)
+
+
+async def _send_boot_admin_dm(bot: discord.Client, user: Any) -> None:
+    """Send the bot-admin DM menu after the boot message (best-effort).
+
+    The cross-guild management menu (access grants, DM locale, content
+    refresh) lands in every bot-admin's DM at boot — the operators'
+    home surface, kept for the session; the clicks answer ephemerally.
+    """
+    from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
+
+    try:
+        panel = await build_admin_dm_panel(bot, user_id=str(user.id))
+        message = await user.send(view=panel)
+        try:
+            await message.pin(reason="kingdoms: boot admin DM menu")
+        except Exception:
+            logger.info("BOOT ADMIN DM menu pin skipped (admin %s)", user.id)
+        from kingdoms.discord.admin_dm_panel import track_admin_menu
+
+        track_admin_menu(message)
+        logger.info("BOOT ADMIN DM menu sent to bot-admin %s", user.id)
+    except Exception:
+        logger.warning("BOOT ADMIN DM menu failed (admin %s) — best-effort", user.id, exc_info=True)
 
 
 def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ui.panels</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.panels</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/panels.py">SOURCE_ROOT/discord/ui/panels.py</a></td></tr></table>
+    <p><span class="code">Panels&nbsp;SDK:&nbsp;the&nbsp;declarative&nbsp;contract&nbsp;for&nbsp;a&nbsp;guild's&nbsp;pinned&nbsp;menus.<br>
+&nbsp;<br>
+A&nbsp;panel&nbsp;is&nbsp;a&nbsp;*frozen*&nbsp;surface:&nbsp;one&nbsp;pinned&nbsp;message&nbsp;per&nbsp;channel&nbsp;whose<br>
+page&nbsp;never&nbsp;changes.&nbsp;Its&nbsp;buttons&nbsp;open&nbsp;ephemeral&nbsp;views&nbsp;(navigation,<br>
+sub-menus,&nbsp;modals)&nbsp;—&nbsp;never&nbsp;in-place&nbsp;page&nbsp;swaps.&nbsp;The&nbsp;SDK&nbsp;owns&nbsp;the<br>
+whole&nbsp;lifecycle&nbsp;so&nbsp;a&nbsp;mod&nbsp;or&nbsp;a&nbsp;game&nbsp;never&nbsp;hand-rolls&nbsp;provisioning:<br>
+&nbsp;<br>
+*&nbsp;``<a href="#PanelSpec">PanelSpec</a>``&nbsp;declares&nbsp;the&nbsp;panel&nbsp;(name,&nbsp;channels,&nbsp;mode,&nbsp;heal,<br>
+&nbsp;&nbsp;permissions,&nbsp;builder)&nbsp;—&nbsp;one&nbsp;dataclass,&nbsp;registered&nbsp;at&nbsp;boot;<br>
+*&nbsp;the&nbsp;provisioning&nbsp;applies&nbsp;the&nbsp;channel-tree&nbsp;rules<br>
+&nbsp;&nbsp;(docs/architecture/channel-tree.md):&nbsp;per-scope&nbsp;folders,&nbsp;canonical<br>
+&nbsp;&nbsp;order&nbsp;(général&nbsp;→&nbsp;discussions&nbsp;→&nbsp;data&nbsp;→&nbsp;admin&nbsp;→&nbsp;décisions),<br>
+&nbsp;&nbsp;read-only&nbsp;menu&nbsp;channels,&nbsp;guild-locale&nbsp;naming;<br>
+*&nbsp;autopin&nbsp;+&nbsp;autoheal:&nbsp;the&nbsp;pin&nbsp;is&nbsp;(re)created&nbsp;on&nbsp;the&nbsp;delete&nbsp;events<br>
+&nbsp;&nbsp;and&nbsp;by&nbsp;the&nbsp;safety&nbsp;sweep;&nbsp;the&nbsp;registry&nbsp;key&nbsp;is<br>
+&nbsp;&nbsp;``view:&lt;guild-id&gt;:&lt;slug&gt;``&nbsp;so&nbsp;the&nbsp;pin&nbsp;id&nbsp;survives&nbsp;reboots.<br>
+&nbsp;<br>
+The&nbsp;single-Admin-button&nbsp;rule&nbsp;lives&nbsp;here&nbsp;too:&nbsp;public&nbsp;surfaces&nbsp;never<br>
+carry&nbsp;action&nbsp;buttons;&nbsp;they&nbsp;carry&nbsp;one&nbsp;⚙️&nbsp;Admin&nbsp;button&nbsp;whose&nbsp;callback<br>
+checks&nbsp;permissions&nbsp;and&nbsp;opens&nbsp;a&nbsp;state-greyed&nbsp;ephemeral&nbsp;management<br>
+menu&nbsp;(see&nbsp;``admin_button``).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.panels.html#ChannelDecl">ChannelDecl</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.panels.html#PanelSpec">PanelSpec</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.panels.html#ScopeSpec">ScopeSpec</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="enum.html#Enum">enum.Enum</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.panels.html#PinMode">PinMode</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelDecl">class <strong>ChannelDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelDecl">ChannelDecl</a>(key:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;kind:&nbsp;'str'&nbsp;=&nbsp;'text',&nbsp;access:&nbsp;'str'&nbsp;=&nbsp;'public',&nbsp;position:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;channel&nbsp;of&nbsp;a&nbsp;scope&nbsp;folder,&nbsp;tree-rule-declared.<br>
+&nbsp;<br>
+``key``&nbsp;is&nbsp;the&nbsp;stable&nbsp;resolution&nbsp;key&nbsp;(the&nbsp;heal&nbsp;matches&nbsp;on&nbsp;it,<br>
+never&nbsp;on&nbsp;the&nbsp;translated&nbsp;name);&nbsp;``label_key``&nbsp;is&nbsp;the&nbsp;i18n&nbsp;key&nbsp;of<br>
+the&nbsp;displayed&nbsp;name;&nbsp;``kind``&nbsp;picks&nbsp;text/forum/category;<br>
+``access``&nbsp;picks&nbsp;public&nbsp;(everyone),&nbsp;readonly&nbsp;(read&nbsp;for&nbsp;all,&nbsp;no<br>
+send&nbsp;for&nbsp;anyone),&nbsp;or&nbsp;admin&nbsp;(bot-admins&nbsp;only).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ChannelDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ChannelDecl-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ChannelDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ChannelDecl-__init__"><strong>__init__</strong></a>(self, key: 'str', label_key: 'str', kind: 'str' = 'text', access: 'str' = 'public', position: 'int | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ChannelDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ChannelDecl-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'access': 'str', 'key': 'str', 'kind': 'str', 'label_key': 'str', 'position': 'int | None'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'access': Field(name='access',type='str',default='public',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default='text',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'position': Field(name='position',type='int | None',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'label_key', 'kind', 'access', 'position')</dl>
+
+<dl><dt><strong>access</strong> = 'public'</dl>
+
+<dl><dt><strong>kind</strong> = 'text'</dl>
+
+<dl><dt><strong>position</strong> = None</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PanelSpec">class <strong>PanelSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PanelSpec">PanelSpec</a>(name:&nbsp;'str',&nbsp;channel:&nbsp;'str',&nbsp;build:&nbsp;'Callable[[str,&nbsp;str],&nbsp;Awaitable[discord.ui.LayoutView]]',&nbsp;pin_mode:&nbsp;'<a href="#PinMode">PinMode</a>'&nbsp;=&nbsp;&amp;lt;<a href="#PinMode">PinMode</a>.LATEST_ONLY:&nbsp;'latest_only'&amp;gt;,&nbsp;autoheal:&nbsp;'bool'&nbsp;=&nbsp;True,&nbsp;permissions:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;description_key:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;frozen&nbsp;pinned&nbsp;menu,&nbsp;tree-rule-declared.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PanelSpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PanelSpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="PanelSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="PanelSpec-__init__"><strong>__init__</strong></a>(self, name: 'str', channel: 'str', build: 'Callable[[str, str], Awaitable[discord.ui.LayoutView]]', pin_mode: 'PinMode' = &lt;PinMode.LATEST_ONLY: 'latest_only'&gt;, autoheal: 'bool' = True, permissions: 'tuple[str, ...]' = (), description_key: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="PanelSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PanelSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>registry_key</strong></dt>
+<dd><span class="code">The&nbsp;message-registry&nbsp;key:&nbsp;``view:&lt;guild-id&gt;:&lt;slug&gt;``.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'autoheal': 'bool', 'build': 'Callable[[str, str], Awaitable[discord.ui.LayoutView]]', 'channel': 'str', 'description_key': 'str', 'name': 'str', 'permissions': 'tuple[str, ...]', 'pin_mode': 'PinMode'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'autoheal': Field(name='autoheal',type='bool',default=True,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'build': Field(name='build',type='Callable[[str, str], Aw...appingproxy({}),kw_only=False,_field_type=_FIELD), 'channel': Field(name='channel',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'description_key': Field(name='description_key',type='str',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'permissions': Field(name='permissions',type='tuple[str, ...]',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'pin_mode': Field(name='pin_mode',type='PinMode',default=&lt;Pi...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('name', 'channel', 'build', 'pin_mode', 'autoheal', 'permissions', 'description_key')</dl>
+
+<dl><dt><strong>autoheal</strong> = True</dl>
+
+<dl><dt><strong>description_key</strong> = ''</dl>
+
+<dl><dt><strong>permissions</strong> = ()</dl>
+
+<dl><dt><strong>pin_mode</strong> = &lt;PinMode.LATEST_ONLY: 'latest_only'&gt;</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PinMode">class <strong>PinMode</strong></a>(<a href="enum.html#Enum">enum.Enum</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinMode">PinMode</a>(*values)<br>
+&nbsp;<br>
+How&nbsp;a&nbsp;panel's&nbsp;message&nbsp;is&nbsp;pinned&nbsp;in&nbsp;its&nbsp;channel.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.ui.panels.html#PinMode">PinMode</a></dd>
+<dd><a href="enum.html#Enum">enum.Enum</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>ALL</strong> = &lt;PinMode.ALL: 'all'&gt;</dl>
+
+<dl><dt><strong>LATEST_ONLY</strong> = &lt;PinMode.LATEST_ONLY: 'latest_only'&gt;</dl>
+
+<dl><dt><strong>NONE</strong> = &lt;PinMode.NONE: 'none'&gt;</dl>
+
+<hr>
+Data descriptors inherited from <a href="enum.html#Enum">enum.Enum</a>:<br>
+<dl><dt><strong>name</strong></dt>
+<dd><span class="code">The&nbsp;name&nbsp;of&nbsp;the&nbsp;Enum&nbsp;member.</span></dd>
+</dl>
+<dl><dt><strong>value</strong></dt>
+<dd><span class="code">The&nbsp;value&nbsp;of&nbsp;the&nbsp;Enum&nbsp;member.</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="enum.html#EnumType">enum.EnumType</a>:<br>
+<dl><dt><a name="PinMode-__contains__"><strong>__contains__</strong></a>(value)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;`value`&nbsp;is&nbsp;in&nbsp;`cls`.<br>
+&nbsp;<br>
+`value`&nbsp;is&nbsp;in&nbsp;`cls`&nbsp;if:<br>
+1)&nbsp;`value`&nbsp;is&nbsp;a&nbsp;member&nbsp;of&nbsp;`cls`,&nbsp;or<br>
+2)&nbsp;`value`&nbsp;is&nbsp;the&nbsp;value&nbsp;of&nbsp;one&nbsp;of&nbsp;the&nbsp;`cls`'s&nbsp;members.<br>
+3)&nbsp;`value`&nbsp;is&nbsp;a&nbsp;pseudo-member&nbsp;(flags)</span></dd></dl>
+
+<dl><dt><a name="PinMode-__getitem__"><strong>__getitem__</strong></a>(name)</dt><dd><span class="code">Return&nbsp;the&nbsp;member&nbsp;matching&nbsp;`name`.</span></dd></dl>
+
+<dl><dt><a name="PinMode-__iter__"><strong>__iter__</strong></a>()</dt><dd><span class="code">Return&nbsp;members&nbsp;in&nbsp;definition&nbsp;order.</span></dd></dl>
+
+<dl><dt><a name="PinMode-__len__"><strong>__len__</strong></a>()</dt><dd><span class="code">Return&nbsp;the&nbsp;number&nbsp;of&nbsp;members&nbsp;(no&nbsp;aliases)</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="enum.html#EnumType">enum.EnumType</a>:<br>
+<dl><dt><strong>__members__</strong></dt>
+<dd><span class="code">Returns&nbsp;a&nbsp;mapping&nbsp;of&nbsp;member&nbsp;name-&gt;value.<br>
+&nbsp;<br>
+This&nbsp;mapping&nbsp;lists&nbsp;all&nbsp;enum&nbsp;members,&nbsp;including&nbsp;aliases.&nbsp;Note&nbsp;that&nbsp;this<br>
+is&nbsp;a&nbsp;read-only&nbsp;view&nbsp;of&nbsp;the&nbsp;internal&nbsp;mapping.</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ScopeSpec">class <strong>ScopeSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ScopeSpec">ScopeSpec</a>(scope:&nbsp;'str',&nbsp;category_key:&nbsp;'str',&nbsp;channels:&nbsp;'tuple[<a href="#ChannelDecl">ChannelDecl</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;panels:&nbsp;'tuple[<a href="#PanelSpec">PanelSpec</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;scope&nbsp;folder&nbsp;(a&nbsp;game&nbsp;or&nbsp;a&nbsp;mod)&nbsp;and&nbsp;its&nbsp;panels.<br>
+&nbsp;<br>
+The&nbsp;canonical&nbsp;order&nbsp;is&nbsp;applied&nbsp;by&nbsp;the&nbsp;provisioning&nbsp;from&nbsp;the<br>
+declarations:&nbsp;général,&nbsp;discussions,&nbsp;data&nbsp;channels,&nbsp;admin,<br>
+décisions&nbsp;—&nbsp;``position``&nbsp;breaks&nbsp;ties&nbsp;inside&nbsp;a&nbsp;band.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ScopeSpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ScopeSpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ScopeSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ScopeSpec-__init__"><strong>__init__</strong></a>(self, scope: 'str', category_key: 'str', channels: 'tuple[ChannelDecl, ...]' = &lt;factory&gt;, panels: 'tuple[PanelSpec, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ScopeSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ScopeSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'category_key': 'str', 'channels': 'tuple[ChannelDecl, ...]', 'panels': 'tuple[PanelSpec, ...]', 'scope': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'category_key': Field(name='category_key',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'channels': Field(name='channels',type='tuple[ChannelDecl, ....appingproxy({}),kw_only=False,_field_type=_FIELD), 'panels': Field(name='panels',type='tuple[PanelSpec, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'scope': Field(name='scope',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('scope', 'category_key', 'channels', 'panels')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-admin_button"><strong>admin_button</strong></a>(entity_id: 'str', kind: 'str', *, game_key: 'str' = '', owned_by_guild: 'bool' = False) -&gt; 'discord.ui.Button[Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;single&nbsp;⚙️&nbsp;Admin&nbsp;button&nbsp;of&nbsp;a&nbsp;public&nbsp;post.<br>
+&nbsp;<br>
+The&nbsp;tree&nbsp;rule:&nbsp;a&nbsp;public&nbsp;surface&nbsp;(a&nbsp;forum&nbsp;post)&nbsp;never&nbsp;carries<br>
+action&nbsp;buttons&nbsp;—&nbsp;one&nbsp;Admin&nbsp;button&nbsp;opens&nbsp;the&nbsp;ephemeral&nbsp;management<br>
+menu,&nbsp;permission-checked&nbsp;at&nbsp;click&nbsp;time,&nbsp;its&nbsp;buttons&nbsp;greyed&nbsp;by<br>
+the&nbsp;entity's&nbsp;state.&nbsp;``kind``&nbsp;picks&nbsp;the&nbsp;management&nbsp;view<br>
+(``map``,&nbsp;``pool``,&nbsp;``civ``).</span></dd></dl>
+ <dl><dt><a name="-register_scope"><strong>register_scope</strong></a>(spec: 'ScopeSpec') -&gt; 'ScopeSpec'</dt><dd><span class="code">Register&nbsp;one&nbsp;scope&nbsp;folder&nbsp;(idempotent;&nbsp;last&nbsp;wins).</span></dd></dl>
+ <dl><dt><a name="-registered_scopes"><strong>registered_scopes</strong></a>() -&gt; 'tuple[ScopeSpec, ...]'</dt><dd><span class="code">List&nbsp;every&nbsp;registered&nbsp;scope&nbsp;folder.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ChannelDecl', 'PanelSpec', 'PinMode', 'ScopeSpec', 'admin_button', 'register_scope', 'registered_scopes']<br>
+<strong>__annotations__</strong> = {'_REGISTRY': 'dict[str, ScopeSpec]'}</td></tr></table>
+</body></html>

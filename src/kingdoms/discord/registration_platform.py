@@ -8,12 +8,99 @@ kingdoms.v1.Game contract) can resolve its stats.
 
 from __future__ import annotations
 
+import logging
 import os
+import re
 from typing import Any
+
+import httpx
 
 from kingdoms.core.services.registration import (
     PROFILE_BINDINGS_COLLECTION,
 )
+
+INSIGHTS_BASE_URL = "https://www.aoe2insights.com"
+INSIGHTS_URL_RE = re.compile(
+    r"^https?://(?:www\.)?aoe2insights\.com/user/(\d{1,15})(?:[/?#].*)?$", re.IGNORECASE
+)
+_NUMERIC_ID_RE = re.compile(r"^\d{1,15}$")
+
+
+def extract_insights_user_id(typed: str) -> str | None:
+    """Extract the aoe2insights user id from a pasted URL, strictly.
+
+    Only an aoe2insights.com URL of the exact shape
+    ``https://www.aoe2insights.com/user/<digits>...`` matches — anything
+    else (another host, a path-injection attempt, a query trick) is
+    rejected. Double gate: the anchored regex AND a parsed-URL host check
+    (the id never leaves the regex's capture group, so the downstream
+    request URL cannot be tampered with).
+    """
+    match = INSIGHTS_URL_RE.match(typed)
+    if match is None:
+        return None
+    from urllib.parse import urlparse
+
+    parsed = urlparse(typed)
+    if parsed.scheme not in ("http", "https") or parsed.netloc.lower() not in (
+        "www.aoe2insights.com",
+        "aoe2insights.com",
+    ):
+        return None
+    return match.group(1)
+
+
+async def resolve_relic_id(
+    typed_id: str,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> str | None:
+    """Resolve whatever id the user typed into the relic profile id.
+
+    The user may paste either id (the 2026-10-16 UX lesson: the insights
+    URL id and the relic id are different numbers and only the relic id
+    works with librematch/aoe2lobby):
+
+    - a relic id (what we want) — validates as-is;
+    - an aoe2insights user id — resolved through
+      ``/user/<id>/relic-id/``, which answers the relic id in plain text;
+    - a full insights URL — **always resolved**: the user id is extracted
+      by the strict URL pattern, then mapped to the relic id.
+
+    Injection safety: the request URL is built ONLY from a
+    regex-validated digit string (<= 15 chars); the reply must be a
+    bare numeric id — any HTML, extra text or mismatch is rejected.
+
+    ``transport`` is the test seam; None means the real network.
+    Returns None when nothing resolves (unknown id, insights down).
+    """
+    typed = typed_id.strip()
+    if not typed or len(typed) > 100:
+        return None
+    # A pasted insights URL ALWAYS resolves: the id in the URL is the
+    # insights user id, never the relic id.
+    url_id = extract_insights_user_id(typed)
+    if url_id is not None:
+        typed = url_id
+    elif not _NUMERIC_ID_RE.fullmatch(typed):
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=5, follow_redirects=True, transport=transport) as client:
+            reply = await client.get(f"{INSIGHTS_BASE_URL}/user/{typed}/relic-id/")
+            if reply.status_code != 200:
+                return None
+            text = reply.text.strip()
+    except Exception:
+        logging.getLogger("kingdoms.registration.seam").warning(
+            "INSIGHTS relic-id resolve failed (id %s)", typed, exc_info=True
+        )
+        return None
+    # The reply must be a bare numeric id (the relic-id page answers
+    # plain text); anything else — HTML, an error page, an injection —
+    # is rejected. A reply equal to the typed id means the typed id was
+    # already the relic id: not a resolution.
+    if not _NUMERIC_ID_RE.fullmatch(text) or text == typed:
+        return None
+    return text
 
 
 class MongoRegistrationDatabase:
@@ -57,6 +144,10 @@ class MongoRegistrationDatabase:
         return [dict(doc) async for doc in cursor]
 
 
+class ProviderStatsUnavailableError(RuntimeError):
+    """The provider declares no player-stats capability (configuration gap)."""
+
+
 class Aoe2ProfileValidationSeam:
     """AoE2 profile validation through the provider (kingdoms.v1.Game).
 
@@ -65,21 +156,68 @@ class Aoe2ProfileValidationSeam:
     validation is the whole point of the binding (reference §0/§6).
     """
 
+    DEFAULT_PROVIDER_URI = "kingdoms-ext-librematch:50061"
+
     def __init__(self, provider_uri: str | None = None) -> None:
-        """Read the provider address from the environment by default."""
-        self._provider_uri = provider_uri or os.environ.get("EXT_LIBREMATCH_URI", "")
+        """Read the provider address from the environment by default.
+
+        The docker-network default (kingdoms-ext-librematch:50061) stands
+        in when the environment declares no URI: the compose network
+        always carries the provider, and an empty URI made the seam
+        reject every profile silently (the 2026-10-16 test findings).
+        """
+        self._provider_uri = provider_uri or os.environ.get("EXT_LIBREMATCH_URI", "") or self.DEFAULT_PROVIDER_URI
+        logging.getLogger("kingdoms.registration.seam").info(
+            "AOE2 PROFILE SEAM provider_uri=%s", self._provider_uri
+        )
 
     async def validate_profile(self, profile_id: str) -> dict[str, Any] | None:
-        """Return the profile's public data when the provider knows it."""
-        if not self._provider_uri:
-            return None
+        """Return the profile's public data when the provider knows it.
+
+        The typed id may be either the relic id (what the provider wants)
+        or the aoe2insights user id (what the user pastes). The provider
+        is tried first; on a miss, the insights resolver maps the typed
+        id to the relic id and the validation retries \u2014 the binding
+        always stores the relic id.
+        """
         from kingdoms.core.rpc.game_client import GameProviderClient
 
         client = GameProviderClient(self._provider_uri, "ext-librematch", "aoe2")
+        capabilities = await client.get_capabilities()
+        if not capabilities.player_stats:
+            raise ProviderStatsUnavailableError(
+                "ext-librematch ne sert pas les stats de profil "
+                "(provider mal configur\u00e9 ou injoignable \u2014 vois les logs du bot)"
+            )
+        # A pasted insights URL always resolves first: the id it carries is
+        # the insights user id, never the relic id the provider wants.
+        typed = profile_id.strip()
+        if extract_insights_user_id(typed) is not None:
+            relic_id = await resolve_relic_id(typed)
+            if relic_id is None:
+                return None
+            return await self._validate_with_client(client, relic_id)
+        # A plain id: try the provider first (a relic id validates directly),
+        # then resolve through insights (the user typed the insights id).
+        validated = await self._validate_with_client(client, typed)
+        if validated is not None:
+            return validated
+        relic_id = await resolve_relic_id(typed)
+        if relic_id is None:
+            return None
+        return await self._validate_with_client(client, relic_id)
+
+    @staticmethod
+    async def _validate_with_client(client: Any, profile_id: str) -> dict[str, Any] | None:
+        """Validate one relic id against the running provider."""
         stats = await client.get_player_stats(profile_id)
         if stats is None:
             return None
+        entries = [e for b in stats.blocks for e in b.entries]
+        aliases = [e.value for e in entries if e.key == "alias"]
+        if not aliases:
+            aliases = [e.value for e in entries][:5]
         return {
             "profile_id": profile_id,
-            "aliases": [e.value for b in stats.blocks for e in b.entries][:5],
+            "aliases": aliases[:5],
         }

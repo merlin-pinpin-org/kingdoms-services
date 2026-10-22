@@ -5,6 +5,7 @@ Symmetric counterpart of ``identity_import.py``: reads the core
 binding). The ladder players are never read — identities live in the
 core, not in ladder collections.
 """
+
 from __future__ import annotations
 
 import csv

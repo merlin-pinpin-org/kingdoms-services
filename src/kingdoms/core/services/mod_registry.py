@@ -47,11 +47,7 @@ def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCat
         if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
             raise ValueError(f"{source}: channel entries need 'key' and 'display_name'")
         access_data = entry.get("access")
-        access = (
-            ChannelAccessPolicy.from_dict(access_data)
-            if isinstance(access_data, dict)
-            else ChannelAccessPolicy()
-        )
+        access = ChannelAccessPolicy.from_dict(access_data) if isinstance(access_data, dict) else ChannelAccessPolicy()
         categories.append(
             ChannelCategoryDef(
                 key=key,
@@ -103,21 +99,34 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     workflows = _parse_str_list(data.get("workflows", []), "workflows", source)
     commands = _parse_str_list(data.get("commands", []), "commands", source)
     dependencies = _parse_str_list(data.get("dependencies", []), "dependencies", source)
-    games = _parse_str_list(data.get("games", []), "games", source)
+    required_games = _parse_str_list(data.get("required_games", []), "required_games", source)
     seasonal = data.get("seasonal")
     if not isinstance(seasonal, bool):
         raise ValueError(f"{source}: 'seasonal: true|false' is mandatory (mod type: seasonal or permanent)")
 
+    private = bool(data.get("private", False))
+    raw_owners = data.get("owner_discord_ids", [])
+    if raw_owners is None:
+        raw_owners = []
+    if not isinstance(raw_owners, list):
+        raise ValueError(f"{source}: 'owner_discord_ids' must be a list of Discord user ids")
+    owner_ids = tuple(str(o).strip() for o in raw_owners if str(o).strip().isdigit())
+    if private and not owner_ids:
+        raise ValueError(
+            f"{source}: a private mod must declare 'owner_discord_ids' (Discord user ids)"
+        )
     return ModDefinition(
         name=name,
         enabled=bool(data.get("enabled", True)),
         seasonal=seasonal,
+        private=private,
+        owner_ids=owner_ids,
         channel_categories=tuple(categories),
         roles=tuple(roles),
         workflows=tuple(workflows),
         commands=tuple(commands),
         dependencies=tuple(dependencies),
-        games=tuple(games),
+        required_games=tuple(required_games),
     )
 
 
@@ -131,7 +140,15 @@ def load_mod_definitions(config_dir: Path) -> ModDefs:
     definitions: ModDefs = {}
     if not mods_dir.is_dir():
         return definitions
+    max_mods = 20
     for path in sorted(mods_dir.glob("*.yaml")):
+        if path.name.endswith(".views.yaml"):
+            continue  # a mod's views declaration, not a mod declaration
+        if len(definitions) >= max_mods:
+            raise ValueError(
+                f"the platform carries at most {max_mods} mods ({mods_dir}); "
+                "disable one before declaring another"
+            )
         with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         if not isinstance(data, dict):

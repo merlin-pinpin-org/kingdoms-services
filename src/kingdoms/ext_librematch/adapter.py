@@ -28,10 +28,31 @@ logger = logging.getLogger(__name__)
 DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
 LOBBIES_PATH = "/community/advertisement/findAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
+PERSONAL_STAT_PATH = "/community/leaderboard/GetPersonalStat"
 LOBBIES_QUERY_PARAMS = {"title": "age2"}
 LEADERBOARD_KEYS = {"0": "rm_1v1", "1": "rm_team", "2": "unranked", "3": "dm_1v1", "4": "dm_team"}
 
 _SLOT_KINDS = {True: "human", False: "open"}
+
+
+def _matching_entry(
+    containers: list[Any],
+    profile_id: str,
+    nested_key: str = "",
+) -> dict[str, Any]:
+    """Find the entry (or nested member) matching one profile id."""
+    for container in containers:
+        candidates: list[Any] = []
+        if nested_key:
+            candidates = (container or {}).get(nested_key, []) or []
+        elif isinstance(container, dict):
+            candidates = [container]
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            if str(candidate.get("profile_id", "")) == str(profile_id):
+                return candidate
+    return {}
 
 
 class LibrematchAdapter:
@@ -50,7 +71,7 @@ class LibrematchAdapter:
         api_key: str = "",
         rate_limiter: ProviderRateLimiter | None = None,
     ) -> None:
-        self._base_url = base_url.rstrip("/")
+        self._base_url = (base_url or DEFAULT_BASE_URL).rstrip("/")
         self._timeout_s = timeout_s
         self._transport = transport
         self._api_key = api_key
@@ -107,14 +128,19 @@ class LibrematchAdapter:
         return list(maps.values())
 
     async def player_stats(self, profile_id: str) -> PlayerStats | None:
-        """Fetch a profile's leaderboard stats as pre-formatted blocks.
+        """Fetch a profile's identity and leaderboard stats.
 
-        Uses the authenticated leaderboard endpoint when an API key is
-        configured; without one, degrades to None (the caller falls back
-        to the manual path). Transport/decode failures also degrade —
-        the provider never fails the serving process.
+        Calls the community leaderboard endpoint — it is PUBLIC (no API
+        key; the 2026-10-16 lesson: the key gate rejected every profile
+        while the endpoint answers anyone):
+        ``/community/leaderboard/GetPersonalStat?title=age2&profile_ids=[...]``.
+        The reply carries the profile's identity (``statGroups[].members[]``
+        — alias, country, clan) plus one stats entry per requested
+        leaderboard (``leaderboardStats[]``). Transport failures degrade
+        to None — the provider never fails the serving process; the
+        Redis-backed rate budget is the only throttle.
         """
-        if not self._api_key or not profile_id:
+        if not profile_id:
             return None
         if not await self._allowed():
             logger.warning("librematch call over rate budget; degrading stats to None")
@@ -124,9 +150,8 @@ class LibrematchAdapter:
             for board_id, board_name in LEADERBOARD_KEYS.items():
                 try:
                     reply = await client.get(
-                        urljoin(self._base_url + "/", LEADERBOARDS_PATH.lstrip("/")),
-                        params={"leaderboardId": board_id, "profileIds": f'["{profile_id}"]'},
-                        headers={"Ocp-Apim-Subscription-Key": self._api_key},
+                        urljoin(self._base_url + "/", PERSONAL_STAT_PATH.lstrip("/")),
+                        params={"title": "age2", "profile_ids": f'["{profile_id}"]', "leaderboard_id": board_id},
                     )
                     reply.raise_for_status()
                     payload = reply.json()
@@ -140,22 +165,42 @@ class LibrematchAdapter:
             return None
         return PlayerStats(profile_id=profile_id, blocks=tuple(blocks))
 
+
+
+
     def _parse_leaderboard_entry(self, payload: dict[str, Any], profile_id: str) -> list[StatsEntry]:
-        """Extract one profile's stats entries from a leaderboard reply."""
-        for item in payload.get("result", payload.get("leaderboard", [])):
-            if not isinstance(item, dict):
-                continue
-            if str(item.get("profileId", item.get("profile_id", ""))) != str(profile_id):
-                continue
-            return [
-                StatsEntry(key="rank", value=str(item.get("rank", ""))),
-                StatsEntry(key="rating", value=str(item.get("rating", item.get("elo", "")))),
-                StatsEntry(key="wins", value=str(item.get("wins", ""))),
-                StatsEntry(key="losses", value=str(item.get("losses", ""))),
-                StatsEntry(key="streak", value=str(item.get("streak", ""))),
-                StatsEntry(key="games", value=str(item.get("games", ""))),
-            ]
-        return []
+        """Extract one profile's entries from a GetPersonalStat reply.
+
+        The identity lives in ``statGroups[].members[]`` (the member whose
+        ``profile_id`` matches); the per-board stats in ``leaderboardStats[]``
+        (each carrying ``profile_id`` alongside rank/rating/wins/losses).
+        A profile present in ``statGroups`` but absent from
+        ``leaderboardStats`` still yields its identity entries (alias,
+        country, clan) — the registration validation only needs the
+        profile to exist.
+        """
+        member = _matching_entry(payload.get("statGroups", []) or [], profile_id, "members")
+        stat = _matching_entry(payload.get("leaderboardStats", []) or [], profile_id)
+        if not member and not stat:
+            return []
+        entries: list[StatsEntry] = []
+        if member:
+            alias = str(member.get("alias", "") or member.get("name", "") or "")
+            entries.append(StatsEntry(key="alias", value=alias))
+            entries.append(StatsEntry(key="country", value=str(member.get("country", "") or "")))
+            entries.append(StatsEntry(key="clan", value=str(member.get("clanlist_name", "") or "")))
+        if stat:
+            entries.extend(
+                [
+                    StatsEntry(key="rank", value=str(stat.get("rank", ""))),
+                    StatsEntry(key="rating", value=str(stat.get("rating", stat.get("elo", "")))),
+                    StatsEntry(key="wins", value=str(stat.get("wins", ""))),
+                    StatsEntry(key="losses", value=str(stat.get("losses", ""))),
+                    StatsEntry(key="streak", value=str(stat.get("streak", ""))),
+                    StatsEntry(key="games", value=str(stat.get("games", ""))),
+                ]
+            )
+        return [e for e in entries if e.value]
 
     def _to_match_details(self, lobby: dict[str, Any]) -> MatchDetails:
         """Map one raw lobby payload to MatchDetails, blobs decoded.
@@ -216,9 +261,7 @@ class LibrematchAdapter:
             slots.append(
                 Slot(
                     slot_index=int(str(entry.get("slot_index", entry.get("stationID", index)) or "0")),
-                    profile_id=str(
-                        entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))
-                    ),
+                    profile_id=str(entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))),
                     faction_key=str(civ),
                     team=int(str(entry.get("team", entry.get("teamID", 0)) or "0")),
                     filled=filled,
