@@ -1,0 +1,135 @@
+"""game-aoe2 aggregator: provider events → enriched player states.
+
+The game service consumes the providers' ``StreamMatchEvents``
+(ext-aoe2lobby realtime layer; ext-librematch the source of truth),
+folds them into per-profile states, and keeps the full match summary
+carried by the events' metadata (map, format, civs, host, join and
+spectate links, aoe2de deep link) so the dashboard and the mod
+notifications render rich context without any extra provider call.
+
+Ownership (direction développeur): this service owns the AoE2 domain
+state; svc-core and the bot only see what the GameData contract serves.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from typing import Any, Protocol
+
+STATE_OFFLINE = "offline"
+STATE_IN_LOBBY = "in_lobby"
+STATE_IN_GAME = "in_game"
+
+STATUS_LOBBY = "lobby"
+STATUS_GAME = "game"
+
+_EVENT_STATE = {
+    "lobby_opened": STATE_IN_LOBBY,
+    "game_started": STATE_IN_GAME,
+    "lobby_closed": STATE_OFFLINE,
+    "game_ended": STATE_OFFLINE,
+}
+
+GRACE_MS = 15_000
+SNAPSHOT_KEYS = (
+    "map",
+    "format",
+    "status",
+    "slots_taken",
+    "slots_total",
+    "host",
+    "players",
+    "lobby_url",
+    "spectate_url",
+    "deep_link",
+    "match_url",
+)
+
+
+class ProviderEvents(Protocol):
+    """One provider's live event stream (GameProviderClient.stream_match_events)."""
+
+    provider_id: str
+
+    def stream_match_events(self, since: int) -> Any:
+        """Async iterator of MatchEvent from the provider."""
+        ...
+
+
+class GameAoe2Aggregator:
+    """Fold provider events into enriched per-player dashboard states."""
+
+    def __init__(self) -> None:
+        """Start with an empty state; the first snapshot resolves it."""
+        self._players: dict[str, dict[str, Any]] = {}
+        self._degraded = True
+        self._transitions: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+
+    def snapshot(self) -> dict[str, Any]:
+        """Build the current dashboard snapshot (every known player)."""
+        players = [
+            dict(state)
+            for _, state in sorted(self._players.items())
+        ]
+        return {"players": players, "generated_at": _now_ms(), "degraded": self._degraded}
+
+    async def apply_event(self, event: Any) -> None:
+        """Fold one provider MatchEvent into the player states."""
+        self._degraded = False
+        target_state = _EVENT_STATE.get(event.type)
+        if target_state is None:
+            return
+        for profile_id in event.profile_ids:
+            current = self._players.get(profile_id)
+            if target_state == STATE_OFFLINE and current is not None and current["state"] == STATE_IN_GAME:
+                if event.type == "lobby_closed" and event.occurred_at - current["since"] < GRACE_MS:
+                    continue
+            summary = _summary_of(event)
+            new_state = {
+                "profile_id": profile_id,
+                "state": target_state,
+                "match_ref": event.match_ref if target_state != STATE_OFFLINE else "",
+                "since": event.occurred_at,
+                "match": summary if target_state != STATE_OFFLINE else {},
+            }
+            old_state = current["state"] if current else STATE_OFFLINE
+            self._players[profile_id] = new_state
+            if old_state != target_state:
+                self._transitions.put_nowait(
+                    {
+                        "profile_id": profile_id,
+                        "old_status": old_state,
+                        "new_status": target_state,
+                        "match_ref": new_state["match_ref"],
+                        "occurred_at": event.occurred_at,
+                        "match": summary,
+                    }
+                )
+
+    async def next_transition(self) -> dict[str, Any]:
+        """Await the next normalized transition (WatchPlayerEvents)."""
+        return await self._transitions.get()
+
+    def pending_transitions(self) -> int:
+        """Report the number of queued transitions (diagnostics, tests)."""
+        return self._transitions.qsize()
+
+    def mark_degraded(self) -> None:
+        """Flag the state provider-less (all offline)."""
+        self._degraded = True
+
+    def mark_healthy(self) -> None:
+        """Clear the degraded flag once a provider stream is live."""
+        self._degraded = False
+
+
+def _summary_of(event: Any) -> dict[str, Any]:
+    """Extract the match summary an event's metadata carries."""
+    metadata = dict(getattr(event, "metadata", ()) or {})
+    return {key: str(metadata.get(key, "")) for key in SNAPSHOT_KEYS if metadata.get(key) not in (None, "")}
+
+
+def _now_ms() -> int:
+    """Epoch milliseconds, the repo's timestamp convention."""
+    return int(time.time() * 1000)

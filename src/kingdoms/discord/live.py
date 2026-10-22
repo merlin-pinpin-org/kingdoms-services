@@ -111,6 +111,7 @@ def group_by_account(
                 "display_name": str(profile_stats.get("display_name", "")) or profile_id,
                 "boards": profile_stats.get("boards", []),
                 "last_match_ms": profile_stats.get("last_match_ms", 0),
+                "match": dict(p.get("match") or {}),
             }
         )
         if state in ("in_lobby", "in_game"):
@@ -125,12 +126,71 @@ def _account_sort_key(account: dict[str, Any]) -> tuple[int, int]:
 
 
 def _render_account(account: dict[str, Any]) -> str:
-    """One line per Discord user: mention, fused state, last-match stamp."""
+    """One line per Discord user: mention, fused state, last-match stamp.
+
+    Each active profile renders its enriched match context (map,
+    format, the player's civilization, join/spectate links and the
+    aoe2de:// deep link) — one sub-line per active profile.
+    """
     icon = "🟢" if account["active"] else "⚫"
     header = f"{icon} <@{account['user_id']}>"
     if account["last_match_ms"]:
         header += f" — last match <t:{account['last_match_ms'] // 1000}:R>"
-    return header
+    lines = [header]
+    for profile in account["profiles"]:
+        if profile["state"] == "offline":
+            continue
+        lines.append(_render_active_profile(account, profile))
+    return "\n".join(lines)
+
+
+def _render_active_profile(account: dict[str, Any], profile: dict[str, Any]) -> str:
+    """One sub-line per active profile: map, format, civ, links."""
+    match = profile.get("match") or {}
+    state_icon = _STATE_ICONS.get(profile["state"], "⚫")
+    sub = f"  {state_icon} "
+    sub += f"**{profile['display_name']}**"
+    parts = []
+    if match.get("map"):
+        parts.append(f"🗺️ {match['map']}")
+    if match.get("format"):
+        parts.append(f"{match['format']}")
+    civ = _profile_civ(match, profile["display_name"])
+    if civ:
+        parts.append(f"🏛️ {civ}")
+    if parts:
+        sub += " — " + " · ".join(parts)
+    links = _match_links(match, profile["state"])
+    if links:
+        sub += f"\n    ⛓️ {' | '.join(links)}"
+    return sub
+
+
+def _profile_civ(match: dict[str, Any], display_name: str) -> str:
+    """Resolve the profile's civilization from the match summary players.
+
+    The summary's players ride as ``Name(Civ),...``; the entry whose
+    name matches the profile's display name carries its civ.
+    """
+    players = str(match.get("players", ""))
+    for entry in players.split(","):
+        name, _, civ = entry.partition("(")
+        if name.strip() == display_name and civ.rstrip(")").strip():
+            return civ.rstrip(")").strip()
+    return ""
+
+
+def _match_links(match: dict[str, Any], state: str) -> list[str]:
+    """Render the join/spectate/deep links of the profile's match."""
+    links = []
+    if state == "in_game" and match.get("spectate_url"):
+        links.append(f"[▶ Watch]({match['spectate_url']})")
+    if state == "in_lobby":
+        if match.get("deep_link"):
+            links.append(f"[🎮 Join]({match['deep_link']})")
+        if match.get("lobby_url"):
+            links.append(f"[🔍 Lobby]({match['lobby_url']})")
+    return links
 
 
 def register_live_commands(
@@ -156,10 +216,14 @@ def _now_ms() -> int:
 
 
 class LiveClientLike(Protocol):
-    """The svc-core live client seam (LiveClient)."""
+    """The dashboard client seam (LiveClient or the GameDataClient)."""
 
     async def watch(self, game_key: str) -> dict[str, Any]:
         """Fetch the current dashboard snapshot for a game."""
+        ...
+
+    def stream_snapshots(self, game_key: str) -> Any:
+        """Yield dashboard snapshots continuously (async iterator)."""
         ...
 
 
@@ -651,11 +715,11 @@ async def _watch_stream(
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
 ) -> None:
-    """Consume the WatchDashboard stream; every changed frame refreshes the dashboards."""
-    from kingdoms.core.rpc.live import LiveClient
+    """Consume the WatchDashboard stream; every changed frame refreshes the dashboards.
 
-    if not isinstance(client, LiveClient):
-        return
+    Works with either client: the Live seam (svc-core) or the enriched
+    GameData client (game-aoe2) — both expose ``stream_snapshots``.
+    """
     while True:
         try:
             async for snapshot in client.stream_snapshots(GAME_KEY):

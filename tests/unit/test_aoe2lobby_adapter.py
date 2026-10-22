@@ -257,3 +257,67 @@ async def test_player_status_null_status_schedules_graced_close() -> None:
     adapter._grace._closed_at["123"] -= 16.0
     closed = adapter._sweep_pending_closes()
     assert [e["type"] for e in closed] == ["lobby_closed"]
+
+
+def test_schema_frame_captured_and_civ_labels_resolved() -> None:
+    """The ws schema frame is captured; civ ids resolve to labels."""
+    adapter = Aoe2LobbyAdapter()
+    assert _frame(adapter, {"schema": {"civilization": {"1": "Britons", "2": "Franks"}}}) == []
+    assert adapter._civ_label(1) == "Britons"
+    assert adapter._civ_label("2") == "Franks"
+    assert adapter._civ_label(99) == "99"
+
+
+def test_match_summary_enriched_with_format_civs_links() -> None:
+    """The summary carries map, format, civs, host and the links."""
+    adapter = Aoe2LobbyAdapter()
+    _frame(adapter, {"schema": {"civilization": {"1": "Britons"}}})
+    _frame(
+        adapter,
+        {
+            "lobby_match_all": {
+                "111": {
+                    "matchid": 111,
+                    "map_name": "Arabia",
+                    "host_profileid": 123,
+                    "slots_taken": 2,
+                    "slots_total": 2,
+                    "slots": {
+                        "s1": {"profileid": 123, "status": 3, "name": "Alice", "team": 1, "civilization": 1},
+                        "s2": {"profileid": 456, "status": 3, "name": "Bob", "team": 2, "civilization": 2},
+                        "s3": {"profileid": 999, "status": 1},
+                    },
+                }
+            }
+        },
+    )
+    summary = adapter.match_summary("111", "lobby")
+    assert summary["map"] == "Arabia"
+    assert summary["format"] == "1v1"
+    assert summary["host"] == "Alice"
+    assert "Alice(Britons)" in summary["players"]
+    assert "Bob(Franks... )" not in summary["players"]
+    assert summary["lobby_url"] == "https://www.aoe2lobby.com/j/111"
+    assert summary["deep_link"] == "aoe2de://1/-111"
+
+
+async def test_transition_carries_the_summary_metadata() -> None:
+    """A transition event embeds the enriched match summary."""
+    adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
+    events = _frame(
+        adapter,
+        {
+            "lobby_match_all": {
+                "111": {
+                    "matchid": 111,
+                    "map_name": "Arabia",
+                    "host_profileid": 123,
+                    "slots": {"s1": {"profileid": 123, "status": 3, "name": "Alice", "team": 1}},
+                }
+            }
+        },
+    )
+    assert events and events[0]["metadata"]["map"] == "Arabia"
+    assert events[0]["metadata"]["deep_link"] == "aoe2de://1/-111"
+    assert events[0]["metadata"]["format"] == "solo"

@@ -81,6 +81,20 @@ One-session&nbsp;WebSocket&nbsp;client&nbsp;reducing&nbsp;aoe2lobby&nbsp;deltas&
 Unknown&nbsp;top-level&nbsp;keys&nbsp;are&nbsp;ignored&nbsp;cleanly&nbsp;(the&nbsp;schema&nbsp;may<br>
 evolve);&nbsp;undecodable&nbsp;frames&nbsp;are&nbsp;skipped&nbsp;with&nbsp;a&nbsp;warning.</span></dd></dl>
 
+<dl><dt>async <a name="Aoe2LobbyAdapter-fetch_schema"><strong>fetch_schema</strong></a>(self, timeout_s: 'float' = 15.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Capture&nbsp;the&nbsp;ws&nbsp;schema&nbsp;frame&nbsp;(civ&nbsp;labels,&nbsp;reference&nbsp;§7).<br>
+&nbsp;<br>
+The&nbsp;schema&nbsp;frame&nbsp;is&nbsp;only&nbsp;pushed&nbsp;on&nbsp;the&nbsp;contextual&nbsp;endpoints<br>
+(``/ws/lobby/``);&nbsp;the&nbsp;main&nbsp;session&nbsp;never&nbsp;carries&nbsp;it.&nbsp;One&nbsp;short<br>
+dedicated&nbsp;connection&nbsp;at&nbsp;bootstrap&nbsp;captures&nbsp;it;&nbsp;failures&nbsp;degrade<br>
+to&nbsp;raw&nbsp;ids&nbsp;(the&nbsp;summaries&nbsp;still&nbsp;render,&nbsp;with&nbsp;numeric&nbsp;civs).</span></dd></dl>
+
+<dl><dt><a name="Aoe2LobbyAdapter-match_summary"><strong>match_summary</strong></a>(self, match_ref: 'str', status: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;enriched&nbsp;summary&nbsp;of&nbsp;a&nbsp;match&nbsp;for&nbsp;the&nbsp;given&nbsp;context.<br>
+&nbsp;<br>
+Covers&nbsp;the&nbsp;dashboard&nbsp;requirements:&nbsp;map&nbsp;name,&nbsp;format&nbsp;(1v1,&nbsp;2v2,<br>
+FFA&nbsp;—&nbsp;derived&nbsp;from&nbsp;the&nbsp;team&nbsp;distribution),&nbsp;slots,&nbsp;host,&nbsp;per-slot<br>
+civs,&nbsp;aoe2lobby&nbsp;join/spectate&nbsp;URLs&nbsp;and&nbsp;the&nbsp;aoe2de://&nbsp;deep&nbsp;link<br>
+(joinable&nbsp;lobbies&nbsp;only).</span></dd></dl>
+
 <dl><dt>async <a name="Aoe2LobbyAdapter-set_subscribed_profiles"><strong>set_subscribed_profiles</strong></a>(self, profile_ids: 'list[str] | tuple[str, ...]') -&gt; 'bool'</dt><dd><span class="code">Reconcile&nbsp;the&nbsp;players&nbsp;subscription&nbsp;in&nbsp;place&nbsp;(no&nbsp;session&nbsp;teardown).<br>
 &nbsp;<br>
 Diffs&nbsp;the&nbsp;requested&nbsp;list&nbsp;against&nbsp;the&nbsp;current&nbsp;subscription&nbsp;and<br>
@@ -117,6 +131,7 @@ Data descriptors defined here:<br>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>CONTEXT_LOBBY</strong> = 'lobby'<br>
 <strong>CONTEXT_SPECTATE</strong> = 'spectate'<br>
+<strong>DEEP_LINK_URL</strong> = 'aoe2de://1/-'<br>
 <strong>DEFAULT_HEARTBEAT_S</strong> = 90.0<br>
 <strong>DEFAULT_MAX_SIZE</strong> = 10485760<br>
 <strong>DEFAULT_RECONNECT_DELAY_S</strong> = 5.0<br>
@@ -129,6 +144,8 @@ Data descriptors defined here:<br>
 <strong>GRACE_PERIOD_S</strong> = 15<br>
 <strong>MATCHID_FIELD</strong> = 'matchid'<br>
 <strong>PLAYER_STATUS_FIELD</strong> = 'player_status'<br>
+<strong>SCHEMA_FIELD</strong> = 'schema'<br>
+<strong>SCHEMA_WS_URL</strong> = 'wss://data.aoe2lobby.com/ws/lobby/'<br>
 <strong>STATUS_FIELD</strong> = 'status'<br>
 <strong>STATUS_GAME</strong> = 'game'<br>
 <strong>STATUS_LOBBY</strong> = 'lobby'<br>

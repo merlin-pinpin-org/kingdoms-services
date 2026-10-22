@@ -54,26 +54,33 @@ def start_player_status_stream(bot: Any) -> asyncio.Task[None] | None:
     Returns None when the core is not configured (``CORE_URI``) — the
     mods simply receive no live transitions, the bot keeps running.
     """
-    from kingdoms.core.rpc.live import LiveClient
-
+    game_uri = os.environ.get("GAME_AOE2_URI", "")
     core_uri = os.environ.get("CORE_URI", "")
-    if not core_uri:
+    if game_uri:
+        from kingdoms.game_aoe2.client import GameDataClient
+
+        client: Any = GameDataClient(game_uri)
+    elif core_uri:
+        from kingdoms.core.rpc.live import LiveClient
+
+        client = LiveClient(core_uri)
+    else:
         return None
-    client = LiveClient(core_uri)
 
     async def _run() -> None:
         while True:
             try:
                 async for transition in client.stream_player_events():
+                    match = transition.get("match") or {}
                     event = PlayerStatusEvent(
-                        game_key=transition["game_key"],
+                        game_key=transition.get("game_key", "aoe2"),
                         profile_id=transition["profile_id"],
-                        user_id=transition["user_id"],
+                        user_id=transition.get("user_id", ""),
                         old_status=transition["old_status"],
                         new_status=transition["new_status"],
-                        match_ref=transition["match_ref"],
-                        match_url=transition["match_url"],
-                        occurred_at=transition["occurred_at"],
+                        match_ref=transition.get("match_ref", ""),
+                        match_url=str(match.get("lobby_url") or match.get("spectate_url") or ""),
+                        occurred_at=transition.get("occurred_at", 0),
                     )
                     notified = await _router.dispatch(event)
                     if notified:

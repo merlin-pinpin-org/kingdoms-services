@@ -54,7 +54,7 @@ simple&nbsp;per&nbsp;#147).</span></p>
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#LiveClientLike">LiveClientLike</a>(*args,&nbsp;**kwargs)<br>
 &nbsp;<br>
-The&nbsp;svc-core&nbsp;live&nbsp;client&nbsp;seam&nbsp;(LiveClient).<br>&nbsp;</span></td></tr>
+The&nbsp;dashboard&nbsp;client&nbsp;seam&nbsp;(LiveClient&nbsp;or&nbsp;the&nbsp;GameDataClient).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.live.html#LiveClientLike">LiveClientLike</a></dd>
@@ -65,6 +65,8 @@ The&nbsp;svc-core&nbsp;live&nbsp;client&nbsp;seam&nbsp;(LiveClient).<br>&nbsp;</
 <hr>
 Methods defined here:<br>
 <dl><dt><a name="LiveClientLike-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt><a name="LiveClientLike-stream_snapshots"><strong>stream_snapshots</strong></a>(self, game_key: 'str') -&gt; 'Any'</dt><dd><span class="code">Yield&nbsp;dashboard&nbsp;snapshots&nbsp;continuously&nbsp;(async&nbsp;iterator).</span></dd></dl>
 
 <dl><dt>async <a name="LiveClientLike-watch"><strong>watch</strong></a>(self, game_key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
@@ -88,7 +90,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'watch'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'stream_snapshots', 'watch'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

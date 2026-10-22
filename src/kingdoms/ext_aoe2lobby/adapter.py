@@ -45,6 +45,7 @@ from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S, LobbyClosedGrace
 logger = logging.getLogger(__name__)
 
 DEFAULT_WS_URL = "wss://data.aoe2lobby.com/ws/"
+SCHEMA_WS_URL = "wss://data.aoe2lobby.com/ws/lobby/"
 DEFAULT_MAX_SIZE = 10 * 1024 * 1024
 DEFAULT_RECONNECT_DELAY_S = 5.0
 DEFAULT_HEARTBEAT_S = 90.0
@@ -65,6 +66,9 @@ EVENT_GAME_ENDED = "game_ended"
 PLAYER_STATUS_FIELD = "player_status"
 STATUS_FIELD = "status"
 MATCHID_FIELD = "matchid"
+SCHEMA_FIELD = "schema"
+
+DEEP_LINK_URL = "aoe2de://1/-"
 
 
 class Aoe2LobbyAdapter:
@@ -92,6 +96,7 @@ class Aoe2LobbyAdapter:
         self._last_snapshot_at = 0
         self._subscribed_ids: set[str] = set()
         self._ws: Any = None
+        self._schema: dict[str, Any] = {}
 
     async def set_subscribed_profiles(self, profile_ids: list[str] | tuple[str, ...]) -> bool:
         """Reconcile the players subscription in place (no session teardown).
@@ -134,6 +139,28 @@ class Aoe2LobbyAdapter:
             except Exception:
                 logger.warning("aoe2lobby %s %s failed (will re-sync on reconnect)", action, sub_type)
 
+    async def fetch_schema(self, timeout_s: float = 15.0) -> dict[str, Any]:
+        """Capture the ws schema frame (civ labels, reference §7).
+
+        The schema frame is only pushed on the contextual endpoints
+        (``/ws/lobby/``); the main session never carries it. One short
+        dedicated connection at bootstrap captures it; failures degrade
+        to raw ids (the summaries still render, with numeric civs).
+        """
+        try:
+            async with websockets.connect(SCHEMA_WS_URL, max_size=self._max_size) as ws:
+                raw = await asyncio.wait_for(ws.recv(), timeout=timeout_s)
+                frame = json.loads(raw)
+                while not isinstance(frame, dict) or "schema" not in frame:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=timeout_s)
+                    frame = json.loads(raw)
+                if isinstance(frame.get("schema"), dict):
+                    self._schema = frame["schema"]
+                    logger.info("aoe2lobby schema captured: %d key(s)", len(self._schema))
+        except Exception:
+            logger.warning("aoe2lobby schema capture failed — civs stay as raw ids")
+        return self._schema
+
     async def stream_events(self) -> AsyncIterator[dict[str, Any]]:
         """Yield normalized event dicts from the WebSocket, forever.
 
@@ -152,6 +179,8 @@ class Aoe2LobbyAdapter:
                 async with websockets.connect(self._ws_url, max_size=self._max_size) as ws:
                     self._ws = ws
                     self._reset_matches()
+                    if not self._schema:
+                        await self.fetch_schema()
                     await self._subscribe_all(ws)
                     logger.info("aoe2lobby ws connected: %s", self._ws_url)
                     while True:
@@ -206,6 +235,11 @@ class Aoe2LobbyAdapter:
             logger.warning("undecodable ws frame: %r", raw[:120])
             return []
         if not isinstance(frame, dict):
+            return []
+        schema = frame.get(SCHEMA_FIELD)
+        if isinstance(schema, dict):
+            self._schema = schema
+            logger.info("aoe2lobby schema captured: %d key(s)", len(schema))
             return []
         events = self._reduce_player_status(frame.get(PLAYER_STATUS_FIELD))
         if events:
@@ -332,19 +366,22 @@ class Aoe2LobbyAdapter:
     def _transition_event(
         self, profile_id: str, old_status: str | None, status: str, match_ref: str
     ) -> dict[str, Any]:
-        """Build one normalized transition event in the MatchEvent shape."""
+        """Build one normalized transition event in the MatchEvent shape.
+
+        The metadata carries the full match summary (map, format, civs,
+        teams, host, join/spectate links, aoe2de deep link) so consumers
+        render rich notifications without any extra provider call.
+        """
         event_type = EVENT_GAME_STARTED if status == STATUS_GAME else EVENT_LOBBY_OPENED
-        context = CONTEXT_SPECTATE if status == STATUS_GAME else CONTEXT_LOBBY
         metadata: dict[str, str] = {}
         if match_ref:
             metadata["match_url"] = (
                 "https://www.aoe2lobby.com/w/" if status == STATUS_GAME else "https://www.aoe2lobby.com/j/"
             ) + match_ref
-            match = self._matches[context].get(match_ref)
-            if isinstance(match, dict):
-                map_name = match.get("map_name")
-                if map_name:
-                    metadata["map"] = str(map_name)
+            summary = self.match_summary(match_ref, status)
+            for key, value in summary.items():
+                if value not in ("", None):
+                    metadata[str(key)] = str(value)
         if old_status is not None:
             metadata["old_status"] = old_status
         return {
@@ -354,6 +391,76 @@ class Aoe2LobbyAdapter:
             "profile_ids": [profile_id],
             "metadata": metadata,
         }
+
+    def _civ_label(self, civ_id: object) -> str:
+        """Resolve a civilization id to its label through the ws schema.
+
+        The server pushes a ``schema`` frame on connect (wsSchema.json,
+        reference §7); civilization maps civ ids to labels. Falls back
+        to the raw id when the schema is missing or the id unknown.
+        """
+        raw = str(civ_id if civ_id not in (None, "") else "")
+        if not raw:
+            return ""
+        civs = self._schema.get("civilization")
+        if isinstance(civs, dict):
+            label = civs.get(raw) or civs.get(int(raw)) if raw.isdigit() else civs.get(raw)
+            if isinstance(label, str) and label:
+                return label
+        return raw
+
+    def match_summary(self, match_ref: str, status: str) -> dict[str, Any]:
+        """Build the enriched summary of a match for the given context.
+
+        Covers the dashboard requirements: map name, format (1v1, 2v2,
+        FFA — derived from the team distribution), slots, host, per-slot
+        civs, aoe2lobby join/spectate URLs and the aoe2de:// deep link
+        (joinable lobbies only).
+        """
+        context = CONTEXT_SPECTATE if status == STATUS_GAME else CONTEXT_LOBBY
+        match = self._matches[context].get(match_ref)
+        if not isinstance(match, dict):
+            return {}
+        slots = self._match_slots(match)
+        players: list[dict[str, Any]] = []
+        teams: dict[int, int] = {}
+        for slot in slots:
+            profile_id = slot.get("profileid")
+            if profile_id in (None, ""):
+                continue
+            team = int(slot.get("team") or 0)
+            teams[team] = teams.get(team, 0) + 1
+            players.append(
+                {
+                    "profile_id": str(profile_id),
+                    "name": str(slot.get("name") or ""),
+                    "civilization": self._civ_label(slot.get("civilization")),
+                    "team": team,
+                }
+            )
+        host_profile = str(match.get("host_profileid") or "")
+        host = next((p for p in players if p["profile_id"] == host_profile), None)
+        return {
+            "map": str(match.get("map_name") or ""),
+            "format": _format_label(teams, len(players)),
+            "status": status,
+            "slots_taken": str(match.get("slots_taken", len(players))),
+            "slots_total": str(match.get("slots_total", 0)),
+            "host": str(host["name"]) if host else "",
+            "players": ",".join(
+                f"{p['name']}({p['civilization'] or '?'})" for p in players
+            ),
+            "lobby_url": f"https://www.aoe2lobby.com/j/{match_ref}",
+            "spectate_url": f"https://www.aoe2lobby.com/w/{match_ref}",
+            "deep_link": f"{DEEP_LINK_URL}{match_ref}" if status != STATUS_GAME else "",
+        }
+
+    def _match_slots(self, match: dict[str, Any]) -> list[dict[str, Any]]:
+        """Extract the occupied slot dicts of one match payload."""
+        slots = match.get("slots")
+        if not isinstance(slots, dict):
+            return []
+        return [s for s in slots.values() if isinstance(s, dict) and s.get("status") == 3]
 
     def _schedule_close(self, profile_id: str, match_ref: str, now_ms: float) -> None:
         """Park a removal behind the game module's grace window (§4 trap).
@@ -409,16 +516,38 @@ def _as_match_dict(payload: object) -> dict[str, dict[str, Any]]:
 
 
 def _profiles_of(matches: dict[str, dict[str, Any]]) -> set[str]:
-    """Profile ids present in the given matches (occupied player slots)."""
+    """Profile ids present in the given matches (occupied player slots).
+
+    Only status 3 (Player) slots count: Open/Closed/AI slots can carry a
+    residual profileid that is not a present player (reference §5).
+    """
     profiles: set[str] = set()
     for match in matches.values():
         slots = match.get("slots") if isinstance(match, dict) else None
         if not isinstance(slots, dict):
             continue
         for slot in slots.values():
-            if isinstance(slot, dict) and slot.get("profileid") not in (None, ""):
+            if (
+                isinstance(slot, dict)
+                and slot.get("status") == 3
+                and slot.get("profileid") not in (None, "")
+            ):
                 profiles.add(str(slot["profileid"]))
     return profiles
+
+
+def _format_label(teams: dict[int, int], player_count: int) -> str:
+    """Derive the human match format from the team distribution.
+
+    All distinct teams of equal size read as ``NvN``; anything else
+    (mixed sizes, no teams, one team) reads as FFA.
+    """
+    sizes = sorted(teams.values())
+    if player_count > 1 and sizes and len(set(sizes)) == 1 and len(sizes) > 1:
+        return f"{sizes[0]}v{sizes[0]}"
+    if player_count == 1:
+        return "1v1" if not teams else "solo"
+    return f"FFA ({player_count}p)" if player_count else ""
 
 
 def _now_ms() -> int:

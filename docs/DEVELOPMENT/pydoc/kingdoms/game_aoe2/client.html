@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.game_aoe2.client</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.game_aoe2.html" class="white">game_aoe2</a>.client</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/client.py">SOURCE_ROOT/game_aoe2/client.py</a></td></tr></table>
+    <p><span class="code">game-aoe2&nbsp;client&nbsp;(bot&nbsp;side):&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;consumer.<br>
+&nbsp;<br>
+Same&nbsp;shape&nbsp;as&nbsp;the&nbsp;LiveClient&nbsp;seam&nbsp;(``watch``&nbsp;+&nbsp;``stream_snapshots``&nbsp;+<br>
+``stream_player_events``)&nbsp;so&nbsp;the&nbsp;bot&nbsp;wiring&nbsp;picks&nbsp;whichever&nbsp;process&nbsp;is<br>
+configured:&nbsp;the&nbsp;enriched&nbsp;GameData&nbsp;feed&nbsp;when&nbsp;``GAME_AOE2_URI``&nbsp;is&nbsp;set,<br>
+the&nbsp;plain&nbsp;Live&nbsp;feed&nbsp;otherwise.&nbsp;The&nbsp;GameData&nbsp;feed&nbsp;carries&nbsp;the&nbsp;full<br>
+match&nbsp;summaries&nbsp;(map,&nbsp;format,&nbsp;civs,&nbsp;aoe2lobby&nbsp;links,&nbsp;aoe2de&nbsp;deep<br>
+link)&nbsp;through&nbsp;``GamePlayerState.match``.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.game_aoe2.client.html#GameDataClient">GameDataClient</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataClient">class <strong>GameDataClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataClient">GameDataClient</a>(uri:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Typed&nbsp;client&nbsp;for&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;service&nbsp;(bot&nbsp;side).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameDataClient-__init__"><strong>__init__</strong></a>(self, uri: 'str') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;service&nbsp;address;&nbsp;channels&nbsp;are&nbsp;per-call&nbsp;(ADR-0020).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-stream_player_events"><strong>stream_player_events</strong></a>(self, game_key: 'str' = '')</dt><dd><span class="code">Yield&nbsp;normalized&nbsp;player&nbsp;transitions&nbsp;continuously,&nbsp;forever.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-stream_snapshots"><strong>stream_snapshots</strong></a>(self, game_key: 'str')</dt><dd><span class="code">Yield&nbsp;dashboard&nbsp;snapshots&nbsp;continuously:&nbsp;one&nbsp;per&nbsp;effective&nbsp;change.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-watch"><strong>watch</strong></a>(self, game_key: 'str', timeout_s: 'float' = 5.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;(first&nbsp;stream&nbsp;frame).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>

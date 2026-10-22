@@ -1,0 +1,215 @@
+"""game-aoe2 RPC seam — the kingdoms.v1.GameData servicer.
+
+Translates between the GameData contract and the aggregator's
+snapshots/transitions. The match summaries ride the wire as the
+``GameMatchSummary`` message (map, format, slots, host, players with
+civs, aoe2lobby join/spectate URLs, aoe2de deep link).
+"""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import AsyncIterator
+from typing import Any
+
+import grpc
+
+from kingdoms.rpc_generated.kingdoms.v1 import gamedata_pb2, gamedata_pb2_grpc
+
+
+def summary_to_wire(summary: dict[str, Any]) -> gamedata_pb2.GameMatchSummary:
+    """Translate one match summary dict into the wire message.
+
+    The summary's ``players`` field rides as the compact
+    ``Name(Civ),Name(Civ)`` string (the adapter's metadata shape); it is
+    parsed into the structured slots here so the wire stays typed, and
+    rejoined on the way back (round-trip stable).
+    """
+    return gamedata_pb2.GameMatchSummary(
+        match_ref=str(summary.get("match_ref", "")),
+        map_name=str(summary.get("map", "")),
+        format=str(summary.get("format", "")),
+        status=str(summary.get("status", "")),
+        slots_taken=int(summary.get("slots_taken") or 0),
+        slots_total=int(summary.get("slots_total") or 0),
+        host_name=str(summary.get("host", "")),
+        players=_parse_players(str(summary.get("players", ""))),
+        lobby_url=str(summary.get("lobby_url", "")),
+        spectate_url=str(summary.get("spectate_url", "")),
+        deep_link=str(summary.get("deep_link", "")),
+    )
+
+
+def _parse_players(compact: str) -> list[gamedata_pb2.GamePlayerSlot]:
+    """Parse the compact ``Name(Civ),...`` string into typed slots."""
+    slots: list[gamedata_pb2.GamePlayerSlot] = []
+    for entry in compact.split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        name, _, civ = entry.partition("(")
+        slots.append(
+            gamedata_pb2.GamePlayerSlot(
+                name=name.strip(),
+                civilization=civ.rstrip(")").strip(),
+            )
+        )
+    return slots
+
+
+def player_state_to_wire(state: dict[str, Any]) -> gamedata_pb2.GamePlayerState:
+    """Translate one player state dict into the wire message."""
+    summary = state.get("match") or {}
+    return gamedata_pb2.GamePlayerState(
+        user_id=str(state.get("user_id", "")),
+        profile_id=str(state.get("profile_id", "")),
+        state=str(state.get("state", "offline")),
+        match_ref=str(state.get("match_ref", "")),
+        since=int(state.get("since", 0)),
+        match=summary_to_wire(summary) if summary else None,
+    )
+
+
+def dashboard_to_wire(snapshot: dict[str, Any]) -> gamedata_pb2.GameDashboard:
+    """Translate one aggregator snapshot into the wire message."""
+    return gamedata_pb2.GameDashboard(
+        players=[player_state_to_wire(p) for p in snapshot.get("players", [])],
+        generated_at=int(snapshot.get("generated_at", 0)),
+        degraded=bool(snapshot.get("degraded", False)),
+    )
+
+
+def event_to_wire(transition: dict[str, Any], game_key: str = "aoe2") -> gamedata_pb2.GamePlayerEvent:
+    """Translate one normalized transition into the wire message."""
+    return gamedata_pb2.GamePlayerEvent(
+        game_key=game_key,
+        profile_id=str(transition.get("profile_id", "")),
+        user_id=str(transition.get("user_id", "")),
+        old_status=str(transition.get("old_status", "")),
+        new_status=str(transition.get("new_status", "")),
+        occurred_at=int(transition.get("occurred_at", 0)),
+        match=summary_to_wire(transition.get("match") or {}) or None,
+    )
+
+
+def dashboard_from_wire(wire: gamedata_pb2.GameDashboard) -> dict[str, Any]:
+    """Translate a wire dashboard back into the plain dict shape."""
+    return {
+        "players": [
+            {
+                "user_id": p.user_id,
+                "profile_id": p.profile_id,
+                "state": p.state,
+                "match_ref": p.match_ref,
+                "since": p.since,
+                "match": summary_from_wire(p.match) if p.HasField("match") else {},
+            }
+            for p in wire.players
+        ],
+        "generated_at": wire.generated_at,
+        "degraded": wire.degraded,
+    }
+
+
+def event_from_wire(wire: gamedata_pb2.GamePlayerEvent) -> dict[str, Any]:
+    """Translate a wire player event back into the plain dict shape."""
+    return {
+        "game_key": wire.game_key,
+        "profile_id": wire.profile_id,
+        "user_id": wire.user_id,
+        "old_status": wire.old_status,
+        "new_status": wire.new_status,
+        "occurred_at": wire.occurred_at,
+        "match": summary_from_wire(wire.match) if wire.HasField("match") else {},
+    }
+
+
+def summary_from_wire(wire: gamedata_pb2.GameMatchSummary) -> dict[str, Any]:
+    """Translate a wire match summary back into the plain dict shape."""
+    return {
+        "match_ref": wire.match_ref,
+        "map": wire.map_name,
+        "format": wire.format,
+        "status": wire.status,
+        "slots_taken": str(wire.slots_taken),
+        "slots_total": str(wire.slots_total),
+        "host": wire.host_name,
+        "players": ",".join(
+            f"{p.name}({p.civilization or '?'})" for p in wire.players
+        ),
+        "lobby_url": wire.lobby_url,
+        "spectate_url": wire.spectate_url,
+        "deep_link": wire.deep_link,
+    }
+
+
+class GameDataServicer(gamedata_pb2_grpc.GameDataServicer):
+    """Serve the kingdoms.v1.GameData contract from the aggregator."""
+
+    def __init__(
+        self,
+        aggregator: Any,
+        poll_interval_s: float = 2.0,
+        enrollments: Any = None,
+    ) -> None:
+        """Wire the aggregator, the refresh interval and the enrollments pusher."""
+        self._aggregator = aggregator
+        self._poll_interval_s = poll_interval_s
+        self._enrollments = enrollments
+
+    async def GetCoverage(
+        self,
+        request: gamedata_pb2.CoverageRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> gamedata_pb2.GameCoverage:
+        """Serve the games this process covers and its health."""
+        return gamedata_pb2.GameCoverage(
+            game_keys=["aoe2"],
+            realtime=True,
+            degraded=self._aggregator.snapshot()["degraded"],
+        )
+
+    async def UpdateEnrollments(
+        self,
+        request: gamedata_pb2.UpdateEnrollmentsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> gamedata_pb2.UpdateEnrollmentsResponse:
+        """Forward the platform's enrollments to the realtime provider."""
+        if self._enrollments is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "enrollments not wired")
+        subscribed, applied = await self._enrollments.apply(
+            request.game_key, list(request.profile_ids)
+        )
+        return gamedata_pb2.UpdateEnrollmentsResponse(subscribed=subscribed, applied=applied)
+
+    async def WatchDashboard(
+        self,
+        request: gamedata_pb2.WatchGameDataRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> AsyncIterator[gamedata_pb2.GameDashboard]:
+        """Stream snapshots: one immediately, then one per effective change."""
+        last: bytes | None = None
+        while True:
+            wire = dashboard_to_wire(self._aggregator.snapshot())
+            payload = wire.SerializeToString()
+            if payload != last:
+                yield wire
+                last = payload
+            await asyncio.sleep(self._poll_interval_s)
+
+    async def WatchPlayerEvents(
+        self,
+        request: gamedata_pb2.WatchGameDataRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> AsyncIterator[gamedata_pb2.GamePlayerEvent]:
+        """Stream normalized transitions as the aggregator queues them."""
+        while True:
+            transition = await self._aggregator.next_transition()
+            if request.since and transition.get("occurred_at", 0) < request.since:
+                continue
+            yield event_to_wire(transition)
+
+
+def add_gamedata_servicer(server: grpc.aio.Server, servicer: GameDataServicer) -> None:
+    """Bind the GameData servicer onto the server."""
+    gamedata_pb2_grpc.add_GameDataServicer_to_server(servicer, server)

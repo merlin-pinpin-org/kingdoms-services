@@ -893,8 +893,16 @@ def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
     if not core_uri or registry is None:
         return None
 
+    game_uri = os.environ.get("GAME_AOE2_URI", "")
+    if game_uri:
+        from kingdoms.game_aoe2.client import GameDataClient
+
+        client: Any = GameDataClient(game_uri)
+    else:
+        client = LiveClient(core_uri)
+
     async def _run() -> None:
-        await start_live_dashboard_refresh(bot, LiveClient(core_uri), registry)
+        await start_live_dashboard_refresh(bot, client, registry)
 
     from kingdoms.discord.player_status import start_player_status_stream
 

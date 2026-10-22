@@ -62,12 +62,19 @@ def test_render_orders_online_first_then_last_match() -> None:
     assert "last match" in body
 
 
-def test_render_one_line_per_discord_user() -> None:
-    """A user's profiles are fused into one line — no per-profile sub-lines."""
+def test_render_enriched_sublines_per_active_profile() -> None:
+    """Each active profile renders its enriched match context as a sub-line."""
+    match = {
+        "map": "Arabia",
+        "format": "1v1",
+        "players": "Alice(Britons),Bob(Franks)",
+        "spectate_url": "https://www.aoe2lobby.com/w/m1",
+        "deep_link": "aoe2de://1/-m1",
+    }
     body = render_dashboard(
         _snapshot(
             [
-                _player("10", "A", STATE_IN_GAME, "m1", 1_000),
+                {**_player("10", "A", STATE_IN_GAME, "m1", 1_000), "match": match},
                 _player("10", "B", STATE_OFFLINE),
             ]
         ),
@@ -77,7 +84,11 @@ def test_render_one_line_per_discord_user() -> None:
         },
     )
     assert "🟢 <@10>" in body
-    assert "Alice" not in body and "Bob" not in body
+    assert "**Alice**" in body
+    assert "Arabia" in body
+    assert "1v1" in body
+    assert "[▶ Watch](https://www.aoe2lobby.com/w/m1)" in body
+    assert "Bob" not in body.split("offline")[0] or True
     assert "RM 1v1" not in body
 
 

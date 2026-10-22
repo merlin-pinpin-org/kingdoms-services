@@ -14,6 +14,7 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN:-}
       - BOT_ADMINS=${BOT_ADMINS:-}
       - CORE_URI=kingdoms-core:50051
+      - GAME_AOE2_URI=${GAME_AOE2_URI:-kingdoms-game-aoe2:50071}
     depends_on:
       - kingdoms-mongo
       - kingdoms-redis
@@ -27,6 +28,7 @@ services:
       - KINGDOMS_PROCESS=core
       - MONGO_URI=mongodb://kingdoms-mongo:27017
       - REDIS_URI=redis://kingdoms-redis:6379
+      - GAME_AOE2_URI=${GAME_AOE2_URI:-kingdoms-game-aoe2:50071}
       - CORE_GRPC_PORT=50051
     expose:
       - "50051"
@@ -56,6 +58,18 @@ services:
       - EXT_GRPC_PORT=50062
     expose:
       - "50062"
+  kingdoms-game-aoe2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["all", "providers", "aoe2lobby"]
+    environment:
+      - KINGDOMS_PROCESS=game-aoe2
+      - EXT_AOE2LOBBY_URI=${EXT_AOE2LOBBY_URI:-kingdoms-ext-aoe2lobby:50062}
+      - EXT_LIBREMATCH_URI=${EXT_LIBREMATCH_URI:-kingdoms-ext-librematch:50061}
+      - GAME_GRPC_PORT=50071
+    expose:
+      - "50071"
   kingdoms-mongo:
     image: mongo:7.0
     profiles: ["all", "bot", "core"]

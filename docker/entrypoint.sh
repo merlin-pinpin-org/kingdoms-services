@@ -27,12 +27,15 @@ case "${KINGDOMS_PROCESS:-bot}" in
   ext-aoe2techtree)
     exec python -m kingdoms.ext_aoe2techtree.server
     ;;
+  game-aoe2)
+    exec python -m kingdoms.game_aoe2.server
+    ;;
   seed)
     : "${MONGO_URI:?MONGO_URI is required}"
     exec python -m kingdoms.core.games.aoe2.seed_cli
     ;;
   *)
-    echo "KINGDOMS_PROCESS must be 'bot', 'core', 'ext-librematch', 'ext-aoe2lobby', 'ext-aoe2techtree' or 'seed' (got: ${KINGDOMS_PROCESS})"
+    echo "KINGDOMS_PROCESS must be 'bot', 'core', 'ext-librematch', 'ext-aoe2lobby', 'ext-aoe2techtree', 'game-aoe2' or 'seed' (got: ${KINGDOMS_PROCESS})"
     exit 1
     ;;
 esac
