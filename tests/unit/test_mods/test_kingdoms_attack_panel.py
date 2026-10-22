@@ -1424,6 +1424,53 @@ async def test_sabotage_phase_service_both_sides_and_resolution() -> None:
         await bundle.attacks.sabotage_techno(attack.id, "stranger", "perses")
 
 
+async def test_sabotage_techno_consumes_the_bought_charge() -> None:
+    """sabotage-consommable-v1 (Drasah 22/10): one bought Sabotage
+    charge is CONSUMED at the snipe — the remaining stock decrements,
+    a refused pick (bad civ, cap reached, empty stock) never consumes
+    a charge, and the 2-per-attack cap stays independent of the
+    bought stock."""
+    from kingdoms.mods.kingdoms.attacks import (
+        AttackStateError,
+        SabotageError,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=3)
+
+    # First snipe: the charge is spent (3 bought -> 2 left).
+    moved = await bundle.attacks.sabotage_techno(attack.id, "king-a", "huns")
+    assert (moved.pickban or {}).get("attacker_sabotages") == ["huns"]
+    state = await bundle.attacks.technology_state(aquitaine)
+    assert state.purchases.get("sabotage") == 2
+
+    # A REFUSED pick never consumes a charge (wrong civ).
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.sabotage_techno(attack.id, "king-a", "francs")
+    state = await bundle.attacks.technology_state(aquitaine)
+    assert state.purchases.get("sabotage") == 2
+
+    # Second snipe -> 1 left; the third hits the 2-per-attack CAP
+    # before touching the stock.
+    await bundle.attacks.sabotage_techno(attack.id, "king-a", "perses")
+    with pytest.raises(SabotageError):
+        await bundle.attacks.sabotage_techno(attack.id, "king-a", "byzantins")
+    state = await bundle.attacks.technology_state(aquitaine)
+    assert state.purchases.get("sabotage") == 1
+
+    # An empty stock refuses the snipe even with civs available
+    # (the defender side — its per-attack cap is still fresh).
+    await bundle.stock(_bourgogne, sabotage=1)
+    await bundle.attacks.sabotage_techno(attack.id, "lord-b", "francs")
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.sabotage_techno(attack.id, "lord-b", "bretons")
+    state = await bundle.attacks.technology_state(_bourgogne)
+    assert state.purchases.get("sabotage") == 0
+
+
 async def test_sabotage_dm_buttons_flow_and_no_resources_notice() -> None:
     """The 🗡️ DM button opens the ephemeral menu (no techno → the
     sab_no_resources notice); the techno path removes a civ and the
@@ -2079,6 +2126,9 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
     pick_content = str(pick.response.message.content or "") if pick.response.message else ""
     assert "1/2" in pick_content
     assert "huns" in pick_content
+    # sabotage-consommable-v1: the stock line decrements after the snipe
+    # (2 bought charges - 1 used = 1 left, the panel is edited in place).
+    assert "🗡️ Sabotage : 1" in pick_content
 
     # The ⚔️ Passer click deletes the panel at once.
     passer = KingdomSabotagePassButton(attack.id, "king-a", strings["sab_pass_button"])

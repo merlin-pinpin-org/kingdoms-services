@@ -1576,6 +1576,9 @@ class AttackService:
         sides may snipe up to 2 enemy civilizations with the techno
         bought during the season (the attacker-only rule is gone).
         Same storage as the Faucon — one shape for the reveal.
+        sabotage-consommable-v1 (Drasah 22/10): one bought charge is
+        CONSUMED at the snipe — like the Embuscade/Traquenard; the
+        2-per-attack side cap is independent of the bought stock.
         """
         attack = await self._require_sabotage_attack(attack_id, _now())
         side = await self._sabotage_side(attack, player_id)
@@ -1593,6 +1596,11 @@ class AttackService:
             raise AttackStateError("this civilization is already sabotaged")
         if len(sabotages) >= 2:
             raise SabotageError("the sabotage limit (2) is already reached")
+        # sabotage-consommable-v1 (Drasah 22/10): the charge is spent
+        # ONLY on a successful snipe (bought - 1, pattern Embuscade) —
+        # a refused pick never consumes a charge.
+        state.purchases["sabotage"] = state.purchases["sabotage"] - 1
+        await self._store.upsert_technology(state.to_mongo())
         sabotages.append(civ_key)
         pickban[f"{side}_sabotages"] = sabotages
         attack.pickban = pickban

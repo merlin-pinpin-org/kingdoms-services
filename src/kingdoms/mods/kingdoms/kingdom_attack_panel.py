@@ -2681,7 +2681,8 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
         locale,
     )
     # sabotage-ux-v1 (Drasah 22/10): the draft DM carries the stock
-    # line — Sabotage is NOT consumed by a use, the Faucon flies 48h.
+    # line — sabotage-consommable-v1: one charge is spent per snipe,
+    # the Faucon flies 48h.
     wiring = None
     try:
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
@@ -4290,10 +4291,11 @@ def _room_side_of(attack: Any, user_id: str) -> str:
 async def _sabotage_stock_line(wiring: Any, attack: Any, side: str, strings: dict[str, str]) -> str:
     """Build the « 🗡️ Sabotage : n · 🦅 Faucon : … » line (sabotage-ux-v1).
 
-    Drasah 22/10: the draft & ban DM tells the player what he owns —
-    the Sabotage techno is NOT consumed by a use (the stock stays),
-    while the Faucon is a volière slot + a 48h cooldown. Best effort:
-    a failing lookup never breaks the DM.
+    Drasah 22/10: the draft & ban DM tells the player what he owns.
+    sabotage-consommable-v1: one bought Sabotage charge is spent at
+    the snipe — the line shows the REMAINING stock (it decrements
+    after each use); the Faucon stays a volière slot + a 48h cooldown.
+    Best effort: a failing lookup never breaks the DM.
     """
     kingdom_id = str(
         getattr(attack, "attacker_kingdom_id", "") if side == "attacker" else getattr(attack, "defender_kingdom_id", "")
