@@ -148,6 +148,17 @@ A session writing a doc, a comment or a commit in French is a bug.
   When the captured origin is gone (expired, superseded), the fallback
   is a PLAIN TEXT answer — never a new copy of the view. A followup
   that renders the same view again is a bug, whatever the defers.
+- **A modal's submit REFRESHES the view it came from.** When a button
+  of a view opens a modal, the submit changes what that view displays —
+  so the submit re-renders THAT view (origin.edit with the fresh data,
+  the `_profile_followup` shape). A modal that only answers with a
+  confirmation note while the underlying view shows stale data is a
+  bug.
+- **A components-v2 message answers in a view, never in `content`.**
+  The API rejects `content` on a v2 message edit (50035
+  "The 'content' field cannot be used when using
+  MessageFlags.IS_COMPONENTS_V2") — every edit of a LayoutView message
+  carries its text inside the view (a `_text_answer` container).
 - **An ephemeral view is never swapped for another view**: the update
   re-renders the same logical view with fresh data.
 - **Ack before the slow work**: `defer()` or the in-place edit always

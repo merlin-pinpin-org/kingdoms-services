@@ -59,12 +59,13 @@ def display_name(raw: str) -> str:
     return " ".join(w[:1].upper() + w[1:] for w in str(raw or "").split()) or str(raw or "")
 
 
-# the emojis of the lifecycle buttons (Editer, Publier, Archiver...)
+# the state emojis read at a glance: edition writes, published checks,
+# used keeps the clap (a real run), closed is refused
 POOL_STATE_EMOJIS = {
-    POOL_STATE_DRAFT: "\u270f",
-    POOL_STATE_PUBLISHED: "\U0001F4E3",
+    POOL_STATE_DRAFT: "\u270d\U0001F3FB",
+    POOL_STATE_PUBLISHED: "\u2705",
     POOL_STATE_USED: "\U0001F3AC",
-    POOL_STATE_CLOSED: "\U0001F4E6",
+    POOL_STATE_CLOSED: "\u26D4",
 }
 
 

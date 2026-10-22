@@ -130,6 +130,13 @@ class MapAddToPoolModal(discord.ui.Modal):
         await picker.callback(interaction)
 
 
+def _text_answer(text: str) -> discord.ui.LayoutView:
+    """Build the one-line components-v2 answer of a picker action."""
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(text)))
+    return view
+
+
 class MapPoolPickerSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=rf"{_PICK_NS}:(?P<map_id>.+)",
@@ -193,14 +200,14 @@ class MapPoolPickerSelect(
         service = _games_wiring()
         if service is None:
             await interaction.response.edit_message(
-                content=await reply(interaction, "replies_shared.wiring_unavailable")
+                view=_text_answer(await reply(interaction, "replies_shared.wiring_unavailable"))
             )
             return
         chosen = (self.item.values or [""])[0]
         entry = await service.get_map(self.map_id)
         if entry is None:
             await interaction.response.edit_message(
-                content=await reply(interaction, "replies_shared.map_not_found")
+                view=_text_answer(await reply(interaction, "replies_shared.map_not_found"))
             )
             return
         if chosen == "__new__":
@@ -209,12 +216,12 @@ class MapPoolPickerSelect(
         pool = await service.get_map_pool(chosen)
         if pool is None:
             await interaction.response.edit_message(
-                content=await reply(interaction, "replies_shared.pool_not_found")
+                view=_text_answer(await reply(interaction, "replies_shared.pool_not_found"))
             )
             return
         if not pool.edition_mode:
             await interaction.response.edit_message(
-                content=(
+                view=_text_answer(
                     f"**{pool.name}** n'est pas en édition — une map ne peut être ajoutée "
                     "qu'à un pool en édition (publié, utilisé ou archivé : la "
                     "composition ne change plus)."
@@ -232,11 +239,11 @@ class MapPoolPickerSelect(
         except Exception:
             logger.warning("POOL FLOW: add to existing pool failed", exc_info=True)
             await interaction.response.edit_message(
-                content=await reply(interaction, "replies_shared.action_failed")
+                view=_text_answer(await reply(interaction, "replies_shared.action_failed"))
             )
             return
         await interaction.response.edit_message(
-            content=f"**{entry.name}** ajoutée à **{pool.name}**.", view=None
+            view=_text_answer(f"**{entry.name}** ajoutée à **{pool.name}**.")
         )
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum

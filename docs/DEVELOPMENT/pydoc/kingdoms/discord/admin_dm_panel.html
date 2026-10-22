@@ -349,6 +349,10 @@ that&nbsp;mutate&nbsp;the&nbsp;data&nbsp;re-render&nbsp;it&nbsp;in&nbsp;place&nb
 The&nbsp;cache&nbsp;only&nbsp;spans&nbsp;one&nbsp;delivery&nbsp;pass&nbsp;(the&nbsp;boot&nbsp;loop,&nbsp;one<br>
 refresh&nbsp;sweep):&nbsp;same&nbsp;language,&nbsp;same&nbsp;view;&nbsp;the&nbsp;next&nbsp;pass&nbsp;rebuilds<br>
 with&nbsp;the&nbsp;current&nbsp;data.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_user_dm_menu"><strong>refresh_user_dm_menu</strong></a>(client: 'Any', user_id: 'str') -&gt; 'None'</dt><dd><span class="code">Re-render&nbsp;the&nbsp;pinned&nbsp;DM&nbsp;menu&nbsp;of&nbsp;ONE&nbsp;user&nbsp;(their&nbsp;language&nbsp;changed).<br>
+&nbsp;<br>
+The&nbsp;tracked&nbsp;menus&nbsp;carry&nbsp;their&nbsp;channel;&nbsp;the&nbsp;recipient&nbsp;is&nbsp;resolved<br>
+from&nbsp;the&nbsp;channel&nbsp;when&nbsp;the&nbsp;shape&nbsp;allows,&nbsp;the&nbsp;stored&nbsp;locale&nbsp;wins.</span></dd></dl>
  <dl><dt><a name="-register_admin_dm_items"><strong>register_admin_dm_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;DM&nbsp;panel's&nbsp;persistent&nbsp;dynamic&nbsp;items.</span></dd></dl>
  <dl><dt><a name="-track_admin_menu"><strong>track_admin_menu</strong></a>(message: 'Any') -&gt; 'None'</dt><dd><span class="code">Track&nbsp;one&nbsp;freshly&nbsp;delivered&nbsp;DM&nbsp;menu&nbsp;message&nbsp;(per&nbsp;admin).</span></dd></dl>
 </td></tr></table><p>

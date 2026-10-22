@@ -271,6 +271,8 @@ class LanguageModal(discord.ui.Modal):
         await interaction.response.send_message(rendered, ephemeral=True)
         if self.guild_scoped and interaction.guild_id:
             await _rerender_guild_surfaces(interaction)
+        if not self.guild_scoped:
+            await _rerender_dm_menu(interaction)
 
 
 __all__ = [
@@ -289,6 +291,20 @@ __all__ = [
 ]
 
 
+
+
+async def _rerender_dm_menu(interaction: discord.Interaction) -> None:
+    """Re-render the user's pinned admin DM menu (their language changed)."""
+    import logging
+
+    try:
+        from kingdoms.discord.admin_dm_panel import refresh_user_dm_menu
+
+        await refresh_user_dm_menu(interaction.client, str(interaction.user.id))
+    except Exception:
+        logging.getLogger("kingdoms.views").warning(
+            "DM menu refresh after language change failed — best-effort", exc_info=True
+        )
 
 
 async def _rerender_guild_surfaces(interaction: discord.Interaction) -> None:

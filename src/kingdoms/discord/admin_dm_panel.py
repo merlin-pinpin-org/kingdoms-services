@@ -189,6 +189,24 @@ async def _render_dm_menu_into(message: Any, client: Any) -> None:
         logger.warning("DM PANEL: menu refresh failed — best-effort", exc_info=True)
 
 
+async def refresh_user_dm_menu(client: Any, user_id: str) -> None:
+    """Re-render the pinned DM menu of ONE user (their language changed).
+
+    The tracked menus carry their channel; the recipient is resolved
+    from the channel when the shape allows, the stored locale wins.
+    """
+    for channel_id, message in list(_ADMIN_MENU_MESSAGES.items()):
+        if _message_recipient_id(message) != user_id:
+            continue
+        try:
+            await message.edit(
+                view=await build_admin_dm_panel(client, user_id=user_id)
+            )
+            return
+        except Exception:
+            logger.warning("DM menu refresh failed (channel %s) — best-effort", channel_id, exc_info=True)
+
+
 async def _refresh_admin_dm_menus(client: Any, exclude_channel: int | None = None) -> None:
     """Re-render every bot-admin's pinned DM menu (best-effort).
 
