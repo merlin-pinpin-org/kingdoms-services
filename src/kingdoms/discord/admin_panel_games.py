@@ -528,12 +528,10 @@ class GamesPoolRenameModal(discord.ui.Modal):
             logger.exception("GAMES ADMIN: pool rename failed")
             await interaction.followup.send("Renommage échoué (voir les logs).", ephemeral=True)
             return
-        # confirm FIRST — the forum sync is best-effort behind (never eats
-        # the answer; behind a rate-limited bucket it would hang ~10 min)
-        await interaction.followup.send(
-            f"Pool renommé **{pool.name}** — son post suit à la prochaine synchronisation.",
-            ephemeral=True,
-        )
+        # confirm FIRST (the answer never waits on the channel's budget),
+        # then the sync edits the post's title and layout right behind —
+        # the rename is visible on the post within the same breath
+        await interaction.followup.send(f"Pool renommé **{pool.name}**.", ephemeral=True)
         await _finish_pool_transition(interaction, pool, origin=self.origin)
 
 

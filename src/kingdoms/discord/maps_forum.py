@@ -149,19 +149,17 @@ async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = No
         pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
     except Exception:
         return []
-    thread_ids: dict[str, str] = {}
-    guild = bot.get_guild(int(guild_id)) if bot is not None and guild_id.isdigit() else None
-    if guild is not None:
-        forum = discord.utils.get(guild.forums, name=f"{entry.game_key}-map-pools")
-        if forum is not None:
-            thread_ids = {thread.name: str(thread.id) for thread in forum.threads}
     lines = []
     for pool in pools:
         if entry.id not in pool.map_ids:
             continue
-        thread_id = thread_ids.get(pool.name)
+        # the pool's stored thread link is the source of truth: the
+        # thread titles carry the state emoji now (a name match missed)
+        thread_id = str(getattr(pool, "forum_thread_id", "") or "")
         if thread_id:
-            lines.append(f"- [{pool.name}](https://discord.com/channels/{guild_id}/{thread_id}/{thread_id})")
+            lines.append(
+                f"- [{pool.name}](https://discord.com/channels/{guild_id}/{thread_id}/{thread_id})"
+            )
         else:
             lines.append(f"- {pool.name}")
     return lines

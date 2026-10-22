@@ -295,7 +295,7 @@ en:
     menu_status: 🌍 {servers} server(s)
     menu_btn_requests: Requests
     menu_btn_servers: Servers
-    menu_btn_sync: Synchroniser
+    menu_btn_sync: Synchronize
     sync_title: Cross-guild sync
     sync_subtitle: 'The bot-wide sync actions: each button updates the data shared by every server.'
     btn_refresh_aoe2_civs: Refresh aoe2 civs
