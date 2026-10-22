@@ -31,8 +31,7 @@ so&nbsp;content&nbsp;is&nbsp;keyed&nbsp;by&nbsp;the&nbsp;same&nbsp;stable&nbsp;i
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -59,31 +58,7 @@ Per-locale&nbsp;entity&nbsp;content:&nbsp;cache-aside&nbsp;reads&nbsp;over&nbsp;
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="FactionContentService-__init__"><strong>__init__</strong></a>(self, database: 'Any', state: 'StateService | None' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams:&nbsp;the&nbsp;Mongo&nbsp;database&nbsp;and&nbsp;the&nbsp;Redis-backed&nbsp;state.</span></dd></dl>
 
-<dl><dt>async <a name="FactionContentService-ensure_indexes"><strong>ensure_indexes</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;query&nbsp;indexes&nbsp;of&nbsp;the&nbsp;content&nbsp;collection.<br>
-&nbsp;<br>
-``tags``&nbsp;backs&nbsp;the&nbsp;Liquipedia&nbsp;map&nbsp;filters&nbsp;(``terrain:hybrid``,<br>
-``water``...)&nbsp;—&nbsp;a&nbsp;multikey&nbsp;index&nbsp;on&nbsp;the&nbsp;array;&nbsp;the&nbsp;covered<br>
-``(entity_id,&nbsp;locale)``&nbsp;pair&nbsp;backs&nbsp;the&nbsp;guild-scoped&nbsp;map<br>
-listings.&nbsp;Idempotent&nbsp;(Mongo&nbsp;``create_index``&nbsp;is&nbsp;a&nbsp;no-op&nbsp;on&nbsp;an<br>
-existing&nbsp;index);&nbsp;safe&nbsp;to&nbsp;call&nbsp;from&nbsp;every&nbsp;sync/CLI&nbsp;run.</span></dd></dl>
-
 <dl><dt>async <a name="FactionContentService-get"><strong>get</strong></a>(self, entity_id: 'str', locale: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;entity's&nbsp;content:&nbsp;Redis&nbsp;first,&nbsp;then&nbsp;Mongo.</span></dd></dl>
-
-<dl><dt>async <a name="FactionContentService-list_map_content"><strong>list_map_content</strong></a>(self, entity_ids: 'list[str]', locale: 'str', cache_key: 'str' = '') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;stored&nbsp;content&nbsp;of&nbsp;a&nbsp;guild-visible&nbsp;set&nbsp;of&nbsp;maps.<br>
-&nbsp;<br>
-The&nbsp;guild's&nbsp;map&nbsp;list&nbsp;is&nbsp;its&nbsp;catalog&nbsp;scope&nbsp;(guild-local&nbsp;+<br>
-global&nbsp;maps)&nbsp;—&nbsp;many&nbsp;guilds&nbsp;share&nbsp;the&nbsp;public&nbsp;maps,&nbsp;so&nbsp;the&nbsp;whole<br>
-resolved&nbsp;list&nbsp;is&nbsp;cached&nbsp;in&nbsp;Redis&nbsp;under&nbsp;``cache_key``&nbsp;(one&nbsp;key<br>
-per&nbsp;guild+locale)&nbsp;before&nbsp;hitting&nbsp;Mongo.&nbsp;The&nbsp;tracker&nbsp;set&nbsp;below<br>
-``tracker:&lt;entity&gt;:&lt;locale&gt;``&nbsp;records&nbsp;every&nbsp;cache&nbsp;key&nbsp;an<br>
-entity&nbsp;landed&nbsp;in;&nbsp;a&nbsp;store&nbsp;of&nbsp;that&nbsp;entity&nbsp;deletes&nbsp;them.</span></dd></dl>
-
-<dl><dt>async <a name="FactionContentService-query_by_tags"><strong>query_by_tags</strong></a>(self, tags: 'list[str]', entity_prefix: 'str' = '', locale: 'str' = '') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;content&nbsp;docs&nbsp;carrying&nbsp;every&nbsp;given&nbsp;tag.<br>
-&nbsp;<br>
-``entity_prefix``&nbsp;scopes&nbsp;the&nbsp;query&nbsp;(``map:aoe2:``&nbsp;—&nbsp;only&nbsp;maps,<br>
-not&nbsp;factions);&nbsp;``locale``&nbsp;filters&nbsp;when&nbsp;non-empty.&nbsp;Returns&nbsp;the<br>
-raw&nbsp;documents&nbsp;(they&nbsp;carry&nbsp;``tags``,&nbsp;``summary``,&nbsp;``image_url``<br>
-and&nbsp;the&nbsp;provider&nbsp;fields).</span></dd></dl>
 
 <dl><dt>async <a name="FactionContentService-store"><strong>store</strong></a>(self, content: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Upsert&nbsp;one&nbsp;content&nbsp;document&nbsp;(idempotent&nbsp;by&nbsp;``&lt;entity&nbsp;id&gt;:&lt;locale&gt;``).</span></dd></dl>
 
@@ -104,7 +79,5 @@ Data descriptors defined here:<br>
 <td class="singlecolumn"><strong>CACHE_SCOPE</strong> = 'faction_content'<br>
 <strong>CACHE_TTL_S</strong> = 86400<br>
 <strong>CONTENT_COLLECTION</strong> = 'faction_content'<br>
-<strong>LIST_CACHE_SCOPE</strong> = 'faction_content_list'<br>
-<strong>LIST_CACHE_TTL_S</strong> = 3600<br>
-<strong>logger</strong> = &lt;Logger kingdoms.core.faction_content (WARNING)&gt;</td></tr></table>
+<strong>logger</strong> = &lt;Logger kingdoms.core.faction_content (INFO)&gt;</td></tr></table>
 </body></html>

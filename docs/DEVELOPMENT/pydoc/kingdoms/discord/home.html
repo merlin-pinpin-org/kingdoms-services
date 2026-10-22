@@ -11,7 +11,7 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/home.py">SOURCE_ROOT/discord/home.py</a></td></tr></table>
     <p><span class="code">The&nbsp;home&nbsp;surface:&nbsp;/home&nbsp;+&nbsp;the&nbsp;pinned&nbsp;🏛&nbsp;menu,&nbsp;one&nbsp;ephemeral&nbsp;view&nbsp;per&nbsp;button.<br>
 &nbsp;<br>
-The&nbsp;home&nbsp;is&nbsp;the&nbsp;guild's&nbsp;front&nbsp;door:&nbsp;a&nbsp;pinned&nbsp;menu&nbsp;in&nbsp;the&nbsp;🏛-home<br>
+The&nbsp;home&nbsp;is&nbsp;the&nbsp;guild's&nbsp;front&nbsp;door:&nbsp;a&nbsp;pinned&nbsp;menu&nbsp;in&nbsp;the&nbsp;🏛-kingdoms-home<br>
 channel&nbsp;(provisioned&nbsp;like&nbsp;every&nbsp;managed&nbsp;channel),&nbsp;plus&nbsp;the&nbsp;/home&nbsp;command<br>
 showing&nbsp;the&nbsp;same&nbsp;menu.&nbsp;Every&nbsp;button&nbsp;answers&nbsp;with&nbsp;an&nbsp;**ephemeral**&nbsp;view&nbsp;—<br>
 the&nbsp;home&nbsp;is&nbsp;public,&nbsp;the&nbsp;answers&nbsp;are&nbsp;personal.<br>
@@ -67,8 +67,19 @@ for&nbsp;the&nbsp;process's&nbsp;lifetime.</span></p>
 </dt><dd>
 <dl>
 <dt class="heading-text"><a href="kingdoms.discord.home.html#ProfileAddAccountModal">ProfileAddAccountModal</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.home.html#ProfileRemoveAccountModal">ProfileRemoveAccountModal</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.home.html#ProfileRenameModal">ProfileRenameModal</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.ui.select.html#Select">discord.ui.select.Select</a>(<a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.home.html#ProfileRemoveSelect">ProfileRemoveSelect</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.ui.view.html#View">discord.ui.view.View</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.home.html#ProfileRemoveSelectView">ProfileRemoveSelectView</a>
 </dt></dl>
 </dd>
 </dl>
@@ -93,12 +104,7 @@ One&nbsp;persistent&nbsp;home&nbsp;button:&nbsp;opens&nbsp;an&nbsp;ephemeral&nbs
 Methods defined here:<br>
 <dl><dt><a name="HomeButton-__init__"><strong>__init__</strong></a>(self, view_key: 'str', label: 'str', emoji: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#HomeButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="HomeButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;declared&nbsp;view&nbsp;at&nbsp;click&nbsp;time&nbsp;(legacy&nbsp;ids&nbsp;mapped).<br>
-&nbsp;<br>
-The&nbsp;declared&nbsp;menus&nbsp;carry&nbsp;``view:open:&lt;view&nbsp;id&gt;``&nbsp;buttons;&nbsp;the<br>
-legacy&nbsp;``home:open:&lt;key&gt;``&nbsp;ids&nbsp;ride&nbsp;the&nbsp;pins&nbsp;deployed&nbsp;before<br>
-the&nbsp;views&nbsp;registry.&nbsp;They&nbsp;map&nbsp;onto&nbsp;the&nbsp;same&nbsp;declared&nbsp;views&nbsp;so<br>
-an&nbsp;un-refreshed&nbsp;pin&nbsp;still&nbsp;opens&nbsp;the&nbsp;right&nbsp;thing.</span></dd></dl>
+<dl><dt>async <a name="HomeButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;view&nbsp;at&nbsp;click&nbsp;time&nbsp;(ephemeral).</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -129,7 +135,7 @@ The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True`
 ..&nbsp;note::<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
-&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`<a href="discord.ui.view.html#View">View</a>.on_error`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
@@ -223,7 +229,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileAddAccountButton">class <strong>ProfileAddAccountButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileAddAccountButton">ProfileAddAccountButton</a>(label:&nbsp;'str'&nbsp;=&nbsp;'Ajouter&nbsp;un&nbsp;compte')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileAddAccountButton">ProfileAddAccountButton</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Open&nbsp;the&nbsp;add-account&nbsp;modal&nbsp;(profile&nbsp;id).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -236,9 +242,9 @@ Open&nbsp;the&nbsp;add-account&nbsp;modal&nbsp;(profile&nbsp;id).<br>&nbsp;</spa
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileAddAccountButton-__init__"><strong>__init__</strong></a>(self, label: 'str' = 'Ajouter un compte') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileAddAccountButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileAddAccountButton-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileAddAccountButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileAddAccountButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;add-account&nbsp;modal&nbsp;(game&nbsp;options,&nbsp;aoe2-only&nbsp;fallback).</span></dd></dl>
+<dl><dt>async <a name="ProfileAddAccountButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;add-account&nbsp;modal.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -269,7 +275,7 @@ The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True`
 ..&nbsp;note::<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
-&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`<a href="discord.ui.view.html#View">View</a>.on_error`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
@@ -363,9 +369,9 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileAddAccountModal">class <strong>ProfileAddAccountModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileAddAccountModal">ProfileAddAccountModal</a>(options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;origin:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileAddAccountModal">ProfileAddAccountModal</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;add-account&nbsp;form:&nbsp;game&nbsp;select&nbsp;(aoe2&nbsp;preselected)&nbsp;+&nbsp;profile&nbsp;id.<br>&nbsp;</span></td></tr>
+The&nbsp;add-account&nbsp;form:&nbsp;game&nbsp;key&nbsp;+&nbsp;profile&nbsp;id.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.home.html#ProfileAddAccountModal">ProfileAddAccountModal</a></dd>
@@ -375,9 +381,9 @@ The&nbsp;add-account&nbsp;form:&nbsp;game&nbsp;select&nbsp;(aoe2&nbsp;preselecte
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileAddAccountModal-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption] | None' = None, origin: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileAddAccountModal-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileAddAccountModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;account,&nbsp;audit,&nbsp;confirm,&nbsp;then&nbsp;refresh&nbsp;the&nbsp;profile&nbsp;view.</span></dd></dl>
+<dl><dt>async <a name="ProfileAddAccountModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;account,&nbsp;audit,&nbsp;confirm.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -404,7 +410,7 @@ TypeError<br>
 ValueError<br>
 &nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
 &nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
-&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;<a href="discord.ui.view.html#View">View</a>.</span></dd></dl>
 
 <dl><dt>async <a name="ProfileAddAccountModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
 &nbsp;<br>
@@ -544,17 +550,17 @@ Yields<br>
 
 <hr>
 Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
-<dl><dt><a name="ProfileAddAccountModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+<dl><dt><a name="ProfileAddAccountModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`<br>
 or&nbsp;:class:`LayoutView`.<br>
 &nbsp;<br>
 The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
 and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
 In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
-converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
 &nbsp;<br>
 If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
 :class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
-their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
 &nbsp;<br>
 Parameters<br>
 -----------<br>
@@ -565,8 +571,8 @@ timeout:&nbsp;Optional[:class:`float`]<br>
 &nbsp;<br>
 Returns<br>
 -------<br>
-Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+Union[:class:`<a href="discord.ui.view.html#View">View</a>`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;or<br>
 &nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
 
 <hr>
@@ -603,9 +609,9 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRemoveAccountButton">class <strong>ProfileRemoveAccountButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveAccountButton">ProfileRemoveAccountButton</a>(label:&nbsp;'str'&nbsp;=&nbsp;'Retirer&nbsp;un&nbsp;compte')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveAccountButton">ProfileRemoveAccountButton</a>(profile_ids:&nbsp;'list[str]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-Open&nbsp;the&nbsp;remove-account&nbsp;modal&nbsp;(multi-select&nbsp;of&nbsp;the&nbsp;linked&nbsp;accounts).<br>&nbsp;</span></td></tr>
+Open&nbsp;the&nbsp;remove-account&nbsp;select&nbsp;(ephemeral&nbsp;state&nbsp;rides&nbsp;the&nbsp;wire).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.home.html#ProfileRemoveAccountButton">ProfileRemoveAccountButton</a></dd>
@@ -616,13 +622,13 @@ Open&nbsp;the&nbsp;remove-account&nbsp;modal&nbsp;(multi-select&nbsp;of&nbsp;the
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileRemoveAccountButton-__init__"><strong>__init__</strong></a>(self, label: 'str' = 'Retirer un compte') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileRemoveAccountButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileRemoveAccountButton-__init__"><strong>__init__</strong></a>(self, profile_ids: 'list[str] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileRemoveAccountButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRemoveAccountButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;multi-select&nbsp;remove&nbsp;modal&nbsp;(accounts&nbsp;read&nbsp;fast,&nbsp;aoe2&nbsp;cap).</span></dd></dl>
+<dl><dt>async <a name="ProfileRemoveAccountButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Confirm&nbsp;with&nbsp;a&nbsp;select&nbsp;of&nbsp;the&nbsp;user's&nbsp;accounts.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
-<dl><dt>async <a name="ProfileRemoveAccountButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'ProfileRemoveAccountButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(bindings&nbsp;resolve&nbsp;at&nbsp;click&nbsp;time).</span></dd></dl>
+<dl><dt>async <a name="ProfileRemoveAccountButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'ProfileRemoveAccountButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item;&nbsp;the&nbsp;profile&nbsp;list&nbsp;is&nbsp;rebuilt&nbsp;from&nbsp;the&nbsp;bindings.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -649,7 +655,7 @@ The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True`
 ..&nbsp;note::<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
-&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`<a href="discord.ui.view.html#View">View</a>.on_error`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
@@ -740,34 +746,240 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRemoveAccountModal">class <strong>ProfileRemoveAccountModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRemoveSelect">class <strong>ProfileRemoveSelect</strong></a>(<a href="discord.ui.select.html#Select">discord.ui.select.Select</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveAccountModal">ProfileRemoveAccountModal</a>(options:&nbsp;'list[discord.SelectOption]',&nbsp;origin:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveSelect">ProfileRemoveSelect</a>(options:&nbsp;'list[discord.SelectOption]')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;remove-account&nbsp;form:&nbsp;one&nbsp;multi-select&nbsp;of&nbsp;the&nbsp;linked&nbsp;accounts.<br>&nbsp;</span></td></tr>
+The&nbsp;account&nbsp;picker&nbsp;of&nbsp;the&nbsp;remove&nbsp;flow.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
-<dd><a href="kingdoms.discord.home.html#ProfileRemoveAccountModal">ProfileRemoveAccountModal</a></dd>
-<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
-<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="kingdoms.discord.home.html#ProfileRemoveSelect">ProfileRemoveSelect</a></dd>
+<dd><a href="discord.ui.select.html#Select">discord.ui.select.Select</a></dd>
+<dd><a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileRemoveAccountModal-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]', origin: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileRemoveSelect-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileRemoveSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRemoveAccountModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Unlink&nbsp;every&nbsp;chosen&nbsp;account,&nbsp;then&nbsp;refresh&nbsp;the&nbsp;profile&nbsp;view.</span></dd></dl>
+<dl><dt>async <a name="ProfileRemoveSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Unlink&nbsp;the&nbsp;chosen&nbsp;account,&nbsp;confirm.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__modal_children_items__</strong> = {}</dl>
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.select.Select[typing.Any],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
 
 <hr>
-Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
-<dl><dt><a name="ProfileRemoveAccountModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+Methods inherited from <a href="discord.ui.select.html#Select">discord.ui.select.Select</a>:<br>
+<dl><dt><a name="ProfileRemoveSelect-add_option"><strong>add_option</strong></a>(self, *, label: 'str', value: 'str' = ..., description: 'Optional[str]' = None, emoji: 'Optional[Union[str, Emoji, PartialEmoji]]' = None, default: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Adds&nbsp;an&nbsp;option&nbsp;to&nbsp;the&nbsp;select&nbsp;menu.<br>
+&nbsp;<br>
+To&nbsp;append&nbsp;a&nbsp;pre-existing&nbsp;:class:`discord.SelectOption`&nbsp;use&nbsp;the<br>
+:meth:`append_option`&nbsp;method&nbsp;instead.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+label:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;label&nbsp;of&nbsp;the&nbsp;option.&nbsp;This&nbsp;is&nbsp;displayed&nbsp;to&nbsp;users.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Can&nbsp;only&nbsp;be&nbsp;up&nbsp;to&nbsp;100&nbsp;characters.<br>
+value:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;value&nbsp;of&nbsp;the&nbsp;option.&nbsp;This&nbsp;is&nbsp;not&nbsp;displayed&nbsp;to&nbsp;users.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;not&nbsp;given,&nbsp;defaults&nbsp;to&nbsp;the&nbsp;label.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Can&nbsp;only&nbsp;be&nbsp;up&nbsp;to&nbsp;100&nbsp;characters.<br>
+description:&nbsp;Optional[:class:`str`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;additional&nbsp;description&nbsp;of&nbsp;the&nbsp;option,&nbsp;if&nbsp;any.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Can&nbsp;only&nbsp;be&nbsp;up&nbsp;to&nbsp;100&nbsp;characters.<br>
+emoji:&nbsp;Optional[Union[:class:`str`,&nbsp;:class:`.Emoji`,&nbsp;:class:`.PartialEmoji`]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;emoji&nbsp;of&nbsp;the&nbsp;option,&nbsp;if&nbsp;available.&nbsp;This&nbsp;can&nbsp;either&nbsp;be&nbsp;a&nbsp;string&nbsp;representing<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;custom&nbsp;or&nbsp;unicode&nbsp;emoji&nbsp;or&nbsp;an&nbsp;instance&nbsp;of&nbsp;:class:`.PartialEmoji`&nbsp;or&nbsp;:class:`.Emoji`.<br>
+default:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;this&nbsp;option&nbsp;is&nbsp;selected&nbsp;by&nbsp;default.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;number&nbsp;of&nbsp;options&nbsp;exceeds&nbsp;25.</span></dd></dl>
+
+<dl><dt><a name="ProfileRemoveSelect-append_option"><strong>append_option</strong></a>(self, option: 'SelectOption') -&gt; 'None'</dt><dd><span class="code">Appends&nbsp;an&nbsp;option&nbsp;to&nbsp;the&nbsp;select&nbsp;menu.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+option:&nbsp;:class:`discord.SelectOption`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;option&nbsp;to&nbsp;append&nbsp;to&nbsp;the&nbsp;select&nbsp;menu.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;number&nbsp;of&nbsp;options&nbsp;exceeds&nbsp;25.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.select.html#Select">discord.ui.select.Select</a>:<br>
+<dl><dt><strong>type</strong></dt>
+<dd><span class="code">:class:`.ComponentType`:&nbsp;The&nbsp;type&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<dl><dt><strong>values</strong></dt>
+<dd><span class="code">List[:class:`str`]:&nbsp;A&nbsp;list&nbsp;of&nbsp;values&nbsp;that&nbsp;have&nbsp;been&nbsp;selected&nbsp;by&nbsp;the&nbsp;user.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.select.html#Select">discord.ui.select.Select</a>:<br>
+<dl><dt><strong>options</strong></dt>
+<dd><span class="code">List[:class:`discord.SelectOption`]:&nbsp;A&nbsp;list&nbsp;of&nbsp;options&nbsp;that&nbsp;can&nbsp;be&nbsp;selected&nbsp;in&nbsp;this&nbsp;menu.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.select.html#Select">discord.ui.select.Select</a>:<br>
+<dl><dt><strong>__component_attributes__</strong> = ('custom_id', 'placeholder', 'min_values', 'max_values', 'disabled', 'id', 'options')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a>:<br>
+<dl><dt><a name="ProfileRemoveSelect-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<dl><dt><a name="ProfileRemoveSelect-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ProfileRemoveSelect-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'SelectMenuPayload'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a>:<br>
+<dl><dt><a name="ProfileRemoveSelect-from_component"><strong>from_component</strong></a>(component: 'SelectMenu') -&gt; 'BaseSelect[V]'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a>:<br>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;select&nbsp;menu&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>disabled</strong></dt>
+<dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;select&nbsp;is&nbsp;disabled&nbsp;or&nbsp;not.</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;select.</span></dd>
+</dl>
+<dl><dt><strong>max_values</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;maximum&nbsp;number&nbsp;of&nbsp;items&nbsp;that&nbsp;can&nbsp;be&nbsp;chosen&nbsp;for&nbsp;this&nbsp;select&nbsp;menu.</span></dd>
+</dl>
+<dl><dt><strong>min_values</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;minimum&nbsp;number&nbsp;of&nbsp;items&nbsp;that&nbsp;must&nbsp;be&nbsp;chosen&nbsp;for&nbsp;this&nbsp;select&nbsp;menu.</span></dd>
+</dl>
+<dl><dt><strong>placeholder</strong></dt>
+<dd><span class="code">Optional[:class:`str`]:&nbsp;The&nbsp;placeholder&nbsp;text&nbsp;that&nbsp;is&nbsp;shown&nbsp;if&nbsp;nothing&nbsp;is&nbsp;selected,&nbsp;if&nbsp;any.</span></dd>
+</dl>
+<dl><dt><strong>required</strong></dt>
+<dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;select&nbsp;is&nbsp;required&nbsp;or&nbsp;not.&nbsp;Only&nbsp;supported&nbsp;in&nbsp;modals.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.select.html#BaseSelect">discord.ui.select.BaseSelect</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('placeholder', 'min_values', 'max_values', 'disabled', 'id')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="ProfileRemoveSelect-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt>async <a name="ProfileRemoveSelect-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`<a href="discord.ui.view.html#View">View</a>.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="ProfileRemoveSelect-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ProfileRemoveSelect-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+<dl><dt><a name="ProfileRemoveSelect-__init_subclass__"><strong>__init_subclass__</strong></a>(...)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRemoveSelectView">class <strong>ProfileRemoveSelectView</strong></a>(<a href="discord.ui.view.html#View">discord.ui.view.View</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRemoveSelectView">ProfileRemoveSelectView</a>(options:&nbsp;'list[discord.SelectOption]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;remove-account&nbsp;select&nbsp;(ephemeral,&nbsp;short-lived).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.home.html#ProfileRemoveSelectView">ProfileRemoveSelectView</a></dd>
+<dd><a href="discord.ui.view.html#View">discord.ui.view.View</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ProfileRemoveSelectView-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ProfileRemoveSelectView-on_error"><strong>on_error</strong></a>(self, interaction: 'discord.Interaction[discord.Client]', error: 'Exception', item: 'Any') -&gt; 'None'</dt><dd><span class="code">Log&nbsp;and&nbsp;answer&nbsp;quietly&nbsp;(the&nbsp;surface&nbsp;is&nbsp;ephemeral).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="ProfileRemoveSelectView-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
 &nbsp;<br>
 This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
 chaining.<br>
@@ -784,47 +996,41 @@ TypeError<br>
 ValueError<br>
 &nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
 &nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
-&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;<a href="discord.ui.view.html#View">View</a>.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRemoveAccountModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+<dl><dt><a name="ProfileRemoveSelectView-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
 &nbsp;<br>
-A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;:meth:`on_submit`<br>
-fails&nbsp;with&nbsp;an&nbsp;error.<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="ProfileRemoveSelectView-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
 &nbsp;<br>
-The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
 &nbsp;<br>
 Parameters<br>
 -----------<br>
-interaction:&nbsp;:class:`~discord.Interaction`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
-error:&nbsp;:class:`Exception`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.</span></dd></dl>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
-
-<dl><dt><a name="ProfileRemoveAccountModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+<dl><dt><a name="ProfileRemoveSelectView-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
 
 <hr>
-Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
-<dl><dt><a name="ProfileRemoveAccountModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+Class methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="ProfileRemoveSelectView-__init_subclass__"><strong>__init_subclass__</strong></a>() -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
 &nbsp;<br>
 The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
 overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
 
 <hr>
-Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
-<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+Data and other attributes inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = True</dl>
 
 <hr>
 Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
-<dl><dt><a name="ProfileRemoveAccountModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+<dl><dt><a name="ProfileRemoveSelectView-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
-&nbsp;<br>
-This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
-chaining.</span></dd></dl>
-
-<dl><dt><a name="ProfileRemoveAccountModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+<dl><dt><a name="ProfileRemoveSelectView-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
 not&nbsp;found.<br>
 &nbsp;<br>
 ..&nbsp;warning::<br>
@@ -843,9 +1049,9 @@ Returns<br>
 Optional[:class:`Item`]<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+<dl><dt><a name="ProfileRemoveSelectView-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
 
-<dl><dt>async <a name="ProfileRemoveAccountModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+<dl><dt>async <a name="ProfileRemoveSelectView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
 &nbsp;<br>
 A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
 that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
@@ -870,36 +1076,26 @@ Returns<br>
 :class:`bool`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+<dl><dt><a name="ProfileRemoveSelectView-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+<dl><dt><a name="ProfileRemoveSelectView-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+<dl><dt><a name="ProfileRemoveSelectView-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+<dl><dt><a name="ProfileRemoveSelectView-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
 &nbsp;<br>
 A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
 a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRemoveAccountModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+<dl><dt>async <a name="ProfileRemoveSelectView-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
 &nbsp;<br>
 A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
-&nbsp;<br>
-This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
-chaining.<br>
-&nbsp;<br>
-Parameters<br>
------------<br>
-item:&nbsp;:class:`Item`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
-
-<dl><dt><a name="ProfileRemoveAccountModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+<dl><dt><a name="ProfileRemoveSelectView-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
 &nbsp;<br>
 This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRemoveAccountModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+<dl><dt>async <a name="ProfileRemoveSelectView-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
 &nbsp;<br>
 Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
 &nbsp;<br>
@@ -912,7 +1108,7 @@ Returns<br>
 &nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
 &nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
 
-<dl><dt><a name="ProfileRemoveAccountModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+<dl><dt><a name="ProfileRemoveSelectView-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
 and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
 &nbsp;<br>
 ..&nbsp;versionadded::&nbsp;2.6<br>
@@ -924,17 +1120,17 @@ Yields<br>
 
 <hr>
 Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
-<dl><dt><a name="ProfileRemoveAccountModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+<dl><dt><a name="ProfileRemoveSelectView-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`<br>
 or&nbsp;:class:`LayoutView`.<br>
 &nbsp;<br>
 The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
 and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
 In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
-converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
 &nbsp;<br>
 If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
 :class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
-their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
 &nbsp;<br>
 Parameters<br>
 -----------<br>
@@ -945,8 +1141,8 @@ timeout:&nbsp;Optional[:class:`float`]<br>
 &nbsp;<br>
 Returns<br>
 -------<br>
-Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+Union[:class:`<a href="discord.ui.view.html#View">View</a>`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;or<br>
 &nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
 
 <hr>
@@ -973,9 +1169,7 @@ If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
 </dl>
 <hr>
 Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
-<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
-
-<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+<dl><dt><strong>__discord_ui_modal__</strong> = False</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -983,7 +1177,7 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRenameButton">class <strong>ProfileRenameButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRenameButton">ProfileRenameButton</a>(label:&nbsp;'str'&nbsp;=&nbsp;'Changer&nbsp;de&nbsp;pseudo')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRenameButton">ProfileRenameButton</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Open&nbsp;the&nbsp;rename&nbsp;modal&nbsp;(the&nbsp;user's&nbsp;chosen&nbsp;gamer&nbsp;name).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -996,9 +1190,9 @@ Open&nbsp;the&nbsp;rename&nbsp;modal&nbsp;(the&nbsp;user's&nbsp;chosen&nbsp;game
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileRenameButton-__init__"><strong>__init__</strong></a>(self, label: 'str' = 'Changer de pseudo') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileRenameButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileRenameButton-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ProfileRenameButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRenameButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;rename&nbsp;modal,&nbsp;prefilled&nbsp;with&nbsp;the&nbsp;current&nbsp;nickname.</span></dd></dl>
+<dl><dt>async <a name="ProfileRenameButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;rename&nbsp;modal.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -1029,7 +1223,7 @@ The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True`
 ..&nbsp;note::<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
-&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`<a href="discord.ui.view.html#View">View</a>.on_error`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
@@ -1123,7 +1317,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProfileRenameModal">class <strong>ProfileRenameModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRenameModal">ProfileRenameModal</a>(current:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;origin:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileRenameModal">ProfileRenameModal</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;rename&nbsp;form:&nbsp;the&nbsp;user's&nbsp;chosen&nbsp;name&nbsp;(1-16&nbsp;chars).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -1135,9 +1329,9 @@ The&nbsp;rename&nbsp;form:&nbsp;the&nbsp;user's&nbsp;chosen&nbsp;name&nbsp;(1-16
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ProfileRenameModal-__init__"><strong>__init__</strong></a>(self, current: 'str' = '', origin: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ProfileRenameModal-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ProfileRenameModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;new&nbsp;name,&nbsp;confirm,&nbsp;then&nbsp;refresh&nbsp;the&nbsp;profile&nbsp;view.</span></dd></dl>
+<dl><dt>async <a name="ProfileRenameModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;new&nbsp;name,&nbsp;confirm.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -1164,7 +1358,7 @@ TypeError<br>
 ValueError<br>
 &nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
 &nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
-&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;<a href="discord.ui.view.html#View">View</a>.</span></dd></dl>
 
 <dl><dt>async <a name="ProfileRenameModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
 &nbsp;<br>
@@ -1304,17 +1498,17 @@ Yields<br>
 
 <hr>
 Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
-<dl><dt><a name="ProfileRenameModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+<dl><dt><a name="ProfileRenameModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`<br>
 or&nbsp;:class:`LayoutView`.<br>
 &nbsp;<br>
 The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
 and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
 In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
-converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
 &nbsp;<br>
 If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
 :class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
-their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
 &nbsp;<br>
 Parameters<br>
 -----------<br>
@@ -1325,8 +1519,8 @@ timeout:&nbsp;Optional[:class:`float`]<br>
 &nbsp;<br>
 Returns<br>
 -------<br>
-Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
-&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+Union[:class:`<a href="discord.ui.view.html#View">View</a>`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`<a href="discord.ui.view.html#View">View</a>`&nbsp;or<br>
 &nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
 
 <hr>
@@ -1363,11 +1557,17 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-open_home_view_for_guild"><strong>open_home_view_for_guild</strong></a>(interaction: 'discord.Interaction', view_key: 'str', guild_id: 'str') -&gt; 'None'</dt><dd><span class="code">Re-dispatch&nbsp;a&nbsp;declared&nbsp;view&nbsp;with&nbsp;an&nbsp;explicit&nbsp;guild&nbsp;scope&nbsp;(DM&nbsp;pick).<br>
+<td class="singlecolumn"><dl><dt><a name="-build_home_menu"><strong>build_home_menu</strong></a>(home: 'HomeService') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;home&nbsp;menu&nbsp;layout:&nbsp;one&nbsp;button&nbsp;per&nbsp;home&nbsp;view.</span></dd></dl>
+ <dl><dt><a name="-build_home_menu_view"><strong>build_home_menu_view</strong></a>(bot: 'Any', guild_id: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;home&nbsp;menu&nbsp;layout&nbsp;for&nbsp;a&nbsp;guild&nbsp;(refresher&nbsp;entry).</span></dd></dl>
+ <dl><dt>async <a name="-ensure_pinned_home_menu"><strong>ensure_pinned_home_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;home&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;menu,&nbsp;never&nbsp;rebuilt&nbsp;while&nbsp;it&nbsp;lives.<br>
 &nbsp;<br>
-The&nbsp;DM&nbsp;guild&nbsp;picker&nbsp;re-dispatches&nbsp;a&nbsp;view&nbsp;on&nbsp;a&nbsp;chosen&nbsp;guild;&nbsp;the<br>
-declared&nbsp;router&nbsp;owns&nbsp;the&nbsp;resolution&nbsp;(the&nbsp;legacy&nbsp;view&nbsp;keys&nbsp;map<br>
-through&nbsp;the&nbsp;same&nbsp;table&nbsp;as&nbsp;the&nbsp;home&nbsp;buttons).</span></dd></dl>
+The&nbsp;message&nbsp;id&nbsp;is&nbsp;resolved&nbsp;through&nbsp;the&nbsp;message&nbsp;registry&nbsp;(Mongo-backed,<br>
+restart-proof)&nbsp;or&nbsp;the&nbsp;bot's&nbsp;in-memory&nbsp;fallback&nbsp;store:&nbsp;as&nbsp;long&nbsp;as&nbsp;the<br>
+registered&nbsp;message&nbsp;exists&nbsp;it&nbsp;is&nbsp;merely&nbsp;re-pinned;&nbsp;only&nbsp;a&nbsp;gone&nbsp;message<br>
+(deleted&nbsp;or&nbsp;channel&nbsp;wiped)&nbsp;triggers&nbsp;a&nbsp;rebuild,&nbsp;whose&nbsp;id&nbsp;replaces&nbsp;the<br>
+registration.</span></dd></dl>
+ <dl><dt>async <a name="-open_home_menu"><strong>open_home_menu</strong></a>(interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;with&nbsp;the&nbsp;home&nbsp;menu&nbsp;itself&nbsp;(the&nbsp;back&nbsp;target&nbsp;of&nbsp;mod&nbsp;views).</span></dd></dl>
+ <dl><dt>async <a name="-open_home_view"><strong>open_home_view</strong></a>(interaction: 'discord.Interaction', view_key: 'str') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;home&nbsp;click&nbsp;with&nbsp;the&nbsp;matching&nbsp;ephemeral&nbsp;view.</span></dd></dl>
  <dl><dt><a name="-register_home_command"><strong>register_home_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', home: 'HomeService', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/home&nbsp;slash&nbsp;command&nbsp;and&nbsp;the&nbsp;persistent&nbsp;home&nbsp;buttons.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -1375,14 +1575,10 @@ through&nbsp;the&nbsp;same&nbsp;table&nbsp;as&nbsp;the&nbsp;home&nbsp;buttons).<
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>GAME_INSIGHTS_URL</strong> = 'https://www.aoe2insights.com/user/'<br>
-<strong>GAME_LABELS</strong> = {'aoe2': 'Age of Empires II'}<br>
-<strong>HOME_CHANNEL_CATEGORY</strong> = 'bot_home'<br>
-<strong>HOME_CHANNEL_NAME</strong> = '🏛-home'<br>
+<td class="singlecolumn"><strong>HOME_CHANNEL_CATEGORY</strong> = 'bot_home'<br>
+<strong>HOME_CHANNEL_NAME</strong> = '🏛-kingdoms-home'<br>
 <strong>HOME_MARKER</strong> = 'home:pin:'<br>
-<strong>HOME_MESSAGE_KEY</strong> = 'view:home'<br>
-<strong>HOME_MESSAGE_LEGACY_KEY</strong> = 'home-menu'<br>
+<strong>HOME_MESSAGE_KEY</strong> = 'home-menu'<br>
 <strong>HOME_MESSAGE_PLATFORM</strong> = 'discord'<br>
-<strong>PROFILE_PROVIDER</strong> = 'ext-librematch (aoe2)'<br>
-<strong>logger</strong> = &lt;Logger kingdoms.home (WARNING)&gt;</td></tr></table>
+<strong>logger</strong> = &lt;Logger kingdoms.home (INFO)&gt;</td></tr></table>
 </body></html>

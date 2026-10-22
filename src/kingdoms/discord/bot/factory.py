@@ -210,6 +210,9 @@ class KingdomsBot(discord.Client):
 
         register_admin_dm_items(self)
         register_admin_tree_items(self)
+        from kingdoms.discord.console import register_console_items
+
+        register_console_items(self)
         from kingdoms.discord.views_declared import declare_platform_views
         from kingdoms.discord.views_routing import register_view_router
 
@@ -319,6 +322,14 @@ class KingdomsBot(discord.Client):
             return
         for guild in list(self.guilds):
             guild_id = str(guild.id)
+            from kingdoms.discord.console_quiesce import guild_nuked, guild_quiesced
+
+            if await guild_quiesced(self, guild_id) or await guild_nuked(guild_id):
+                logger.info(
+                    "BOOT ROUTING skipped (guild %s) — quiesced or nuked by a console action",
+                    guild_id,
+                )
+                continue
             await self._route_managed_channels(guild_id)
             await self._sync_tree_surfaces(guild_id, guild)
             logger.info("BOOT ROUTING done (guild %s) — nothing created", guild_id)

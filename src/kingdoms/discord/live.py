@@ -312,6 +312,10 @@ async def ensure_live_dashboard(
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return False
+    from kingdoms.discord.console_quiesce import guild_nuked, guild_quiesced
+
+    if await guild_quiesced(bot, guild_id) or await guild_nuked(guild_id):
+        return False
     try:
         channel = await ensure_live_dashboard_channel(guild)
     except LookupError:

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.cli.console_ops</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.cli.html" class="white">cli</a>.console_ops</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/cli/console_ops.py">SOURCE_ROOT/cli/console_ops.py</a></td></tr></table>
+    <p><span class="code">Console&nbsp;ops&nbsp;CLI:&nbsp;run&nbsp;the&nbsp;/console&nbsp;actions&nbsp;headless,&nbsp;from&nbsp;GitHub&nbsp;Actions.<br>
+&nbsp;<br>
+The&nbsp;Discord&nbsp;surface&nbsp;(``kingdoms.discord.console``)&nbsp;and&nbsp;this&nbsp;CLI&nbsp;are&nbsp;the<br>
+**same&nbsp;actions&nbsp;through&nbsp;the&nbsp;same&nbsp;gates**:&nbsp;one&nbsp;capability,&nbsp;two&nbsp;entry<br>
+points.&nbsp;The&nbsp;Discord&nbsp;slash&nbsp;command&nbsp;runs&nbsp;interactively&nbsp;behind&nbsp;the<br>
+click-time&nbsp;guards;&nbsp;this&nbsp;CLI&nbsp;runs&nbsp;non-interactively&nbsp;(workflow_dispatch<br>
+from&nbsp;the&nbsp;PR&nbsp;keywords&nbsp;or&nbsp;the&nbsp;Actions&nbsp;UI)&nbsp;behind&nbsp;the&nbsp;workflow's&nbsp;own&nbsp;gates<br>
+(roster&nbsp;matrix&nbsp;on&nbsp;the&nbsp;keyword&nbsp;side,&nbsp;env&nbsp;allowlist&nbsp;here).<br>
+&nbsp;<br>
+Fail-closed&nbsp;invariants&nbsp;(mirrored&nbsp;from&nbsp;the&nbsp;Discord&nbsp;surface,&nbsp;enforced<br>
+again&nbsp;at&nbsp;the&nbsp;CLI&nbsp;boundary&nbsp;\\u2014&nbsp;the&nbsp;workflow&nbsp;is&nbsp;untrusted&nbsp;input):<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;deploy&nbsp;environment&nbsp;must&nbsp;not&nbsp;be&nbsp;prod<br>
+&nbsp;&nbsp;(``KINGDOMS_DEPLOY_ENV``);<br>
+-&nbsp;the&nbsp;target&nbsp;guild&nbsp;must&nbsp;be&nbsp;on&nbsp;the&nbsp;env-defined&nbsp;test-guild&nbsp;allowlist<br>
+&nbsp;&nbsp;(``KINGDOMS_TEST_GUILD_IDS``)&nbsp;\\u2014&nbsp;``all``&nbsp;iterates&nbsp;that&nbsp;allowlist&nbsp;and<br>
+&nbsp;&nbsp;nothing&nbsp;else,&nbsp;so&nbsp;a&nbsp;CLI&nbsp;run&nbsp;can&nbsp;never&nbsp;touch&nbsp;an&nbsp;undeclared&nbsp;guild;<br>
+-&nbsp;the&nbsp;allowlist&nbsp;is&nbsp;empty&nbsp;\\u2192&nbsp;the&nbsp;destructive&nbsp;actions&nbsp;refuse&nbsp;to&nbsp;run<br>
+&nbsp;&nbsp;anywhere&nbsp;(fail&nbsp;closed,&nbsp;same&nbsp;rule&nbsp;as&nbsp;the&nbsp;disabled&nbsp;buttons).<br>
+&nbsp;<br>
+Usage&nbsp;(inside&nbsp;the&nbsp;env's&nbsp;kingdoms-core&nbsp;container,&nbsp;by&nbsp;env-console.yml):<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;python&nbsp;-m&nbsp;kingdoms.cli.console_ops&nbsp;clean-managed&nbsp;--guild&nbsp;&lt;id|all&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;python&nbsp;-m&nbsp;kingdoms.cli.console_ops&nbsp;nuke&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--guild&nbsp;&lt;id|all&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;python&nbsp;-m&nbsp;kingdoms.cli.console_ops&nbsp;reset-data&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--guild&nbsp;&lt;id|all&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;python&nbsp;-m&nbsp;kingdoms.cli.console_ops&nbsp;install&nbsp;--guild&nbsp;&lt;id|all&gt;&nbsp;\\<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--mods&nbsp;mod1,mod2&nbsp;--games&nbsp;game1&nbsp;[--no-propagate]</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI&nbsp;main;&nbsp;return&nbsp;the&nbsp;process&nbsp;exit&nbsp;code.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PROD_ENV_NAMES</strong> = ('prod', 'production')<br>
+<strong>logger</strong> = &lt;Logger kingdoms.cli.console_ops (INFO)&gt;</td></tr></table>
+</body></html>

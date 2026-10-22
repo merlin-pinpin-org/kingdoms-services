@@ -397,7 +397,7 @@ class ContentRefreshButton(
             await interaction.followup.send(_dm_tr(interaction, dm_locale, "refresh_failed"), ephemeral=True)
             return
         raw_new_factions = counts.get("new_factions") or []
-        new_factions: list[str] = raw_new_factions if isinstance(raw_new_factions, list) else []
+        new_factions: list[str] = [str(f) for f in raw_new_factions] if isinstance(raw_new_factions, list) else []
         new_line = (
             _dm_tr(interaction, dm_locale, "new_civs_line", names=", ".join(new_factions))
             if new_factions else ""

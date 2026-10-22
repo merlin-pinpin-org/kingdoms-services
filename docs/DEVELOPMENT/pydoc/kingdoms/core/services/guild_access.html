@@ -11,11 +11,11 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/guild_access.py">SOURCE_ROOT/core/services/guild_access.py</a></td></tr></table>
     <p><span class="code"><a href="#GuildAccessService">GuildAccessService</a>:&nbsp;which&nbsp;guild&nbsp;may&nbsp;use&nbsp;which&nbsp;games&nbsp;and&nbsp;mods&nbsp;(core).<br>
 &nbsp;<br>
-A&nbsp;bot&nbsp;admin&nbsp;is&nbsp;cross-guild:&nbsp;they&nbsp;administer&nbsp;the&nbsp;platform&nbsp;from&nbsp;DMs,<br>
-not&nbsp;from&nbsp;any&nbsp;single&nbsp;guild's&nbsp;panel.&nbsp;By&nbsp;default&nbsp;**everything&nbsp;is&nbsp;active**:<br>
-a&nbsp;guild&nbsp;with&nbsp;no&nbsp;access&nbsp;document&nbsp;gets&nbsp;the&nbsp;whole&nbsp;platform&nbsp;catalog.&nbsp;An<br>
-access&nbsp;doc&nbsp;only&nbsp;ever&nbsp;*restricts*&nbsp;—&nbsp;the&nbsp;future&nbsp;private-mod&nbsp;seam&nbsp;(a&nbsp;mod<br>
-needing&nbsp;explicit&nbsp;activation,&nbsp;like&nbsp;kingdoms).<br>
+A&nbsp;bot&nbsp;admin&nbsp;is&nbsp;cross-guild:&nbsp;they&nbsp;administer&nbsp;the&nbsp;platform&nbsp;from&nbsp;DMs,&nbsp;not<br>
+from&nbsp;any&nbsp;single&nbsp;guild's&nbsp;panel.&nbsp;Conversely,&nbsp;a&nbsp;guild&nbsp;never&nbsp;gets&nbsp;a&nbsp;game&nbsp;or<br>
+mod&nbsp;by&nbsp;default&nbsp;—&nbsp;every&nbsp;registered&nbsp;guild&nbsp;must&nbsp;request&nbsp;access,&nbsp;and&nbsp;a&nbsp;bot<br>
+admin&nbsp;approves&nbsp;it&nbsp;from&nbsp;the&nbsp;admin&nbsp;DM&nbsp;panel.&nbsp;This&nbsp;is&nbsp;the&nbsp;platform's<br>
+isolation&nbsp;seam:&nbsp;nothing&nbsp;is&nbsp;active&nbsp;until&nbsp;explicitly&nbsp;granted.<br>
 &nbsp;<br>
 Storage:&nbsp;the&nbsp;``guild_access``&nbsp;Mongo&nbsp;collection,&nbsp;one&nbsp;document&nbsp;per&nbsp;guild<br>
 (``guild:&lt;id&gt;``)&nbsp;carrying&nbsp;``games``&nbsp;and&nbsp;``mods``&nbsp;(lists&nbsp;of&nbsp;granted<br>
@@ -200,22 +200,11 @@ keys&nbsp;the&nbsp;platform&nbsp;actually&nbsp;ships&nbsp;(config)&nbsp;can&nbsp
 
 <dl><dt>async <a name="GuildAccessService-deny"><strong>deny</strong></a>(self, guild_id: 'str', requested_at: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Drop&nbsp;one&nbsp;pending&nbsp;request&nbsp;without&nbsp;granting&nbsp;anything.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessService-enabled_games"><strong>enabled_games</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;games&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild.<br>
-&nbsp;<br>
-Default&nbsp;open:&nbsp;a&nbsp;guild&nbsp;with&nbsp;no&nbsp;access&nbsp;document&nbsp;(or&nbsp;no&nbsp;granted<br>
-game)&nbsp;gets&nbsp;the&nbsp;whole&nbsp;platform&nbsp;catalog&nbsp;—&nbsp;access&nbsp;docs&nbsp;only&nbsp;ever<br>
-*restrict*&nbsp;(the&nbsp;future&nbsp;private-mod&nbsp;seam).&nbsp;A&nbsp;stored&nbsp;non-empty<br>
-list&nbsp;keeps&nbsp;its&nbsp;meaning:&nbsp;exactly&nbsp;those&nbsp;games.</span></dd></dl>
+<dl><dt>async <a name="GuildAccessService-enabled_games"><strong>enabled_games</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;games&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessService-enabled_mods"><strong>enabled_mods</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;mods&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild&nbsp;(default:&nbsp;the&nbsp;whole&nbsp;catalog).</span></dd></dl>
+<dl><dt>async <a name="GuildAccessService-enabled_mods"><strong>enabled_mods</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;mods&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild.</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-get"><strong>get</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;one&nbsp;guild's&nbsp;access&nbsp;state&nbsp;(default:&nbsp;nothing&nbsp;active).</span></dd></dl>
-
-<dl><dt>async <a name="GuildAccessService-grant"><strong>grant</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Grant&nbsp;games/mods&nbsp;to&nbsp;a&nbsp;guild&nbsp;directly&nbsp;(bot&nbsp;admin,&nbsp;no&nbsp;request).<br>
-&nbsp;<br>
-Keys&nbsp;carry&nbsp;their&nbsp;kind&nbsp;(``game:&lt;key&gt;``&nbsp;/&nbsp;``mod:&lt;key&gt;``);&nbsp;a<br>
-mod's&nbsp;declared&nbsp;``required_games``&nbsp;ride&nbsp;along&nbsp;(same&nbsp;expansion<br>
-as&nbsp;the&nbsp;request&nbsp;path&nbsp;—&nbsp;a&nbsp;mod&nbsp;is&nbsp;never&nbsp;granted&nbsp;unusable).</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-list_all"><strong>list_all</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;guild's&nbsp;access&nbsp;document&nbsp;(the&nbsp;admin&nbsp;DM&nbsp;panel's&nbsp;data).</span></dd></dl>
 
@@ -228,7 +217,13 @@ or&nbsp;already-granted&nbsp;keys&nbsp;are&nbsp;refused&nbsp;loudly.</span></dd>
 
 <dl><dt>async <a name="GuildAccessService-revoke"><strong>revoke</strong></a>(self, guild_id: 'str', key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;one&nbsp;granted&nbsp;game&nbsp;or&nbsp;mod&nbsp;from&nbsp;a&nbsp;guild.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessService-revoke_keys"><strong>revoke_keys</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;games/mods&nbsp;from&nbsp;a&nbsp;guild&nbsp;directly&nbsp;(bot&nbsp;admin).</span></dd></dl>
+<dl><dt>async <a name="GuildAccessService-set_grants"><strong>set_grants</strong></a>(self, guild_id: 'str', games: 'list[str]', mods: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Replace&nbsp;one&nbsp;guild's&nbsp;grants&nbsp;wholesale&nbsp;(dev&nbsp;console&nbsp;only).<br>
+&nbsp;<br>
+Unlike&nbsp;approve/revoke&nbsp;(incremental,&nbsp;audit-driven),&nbsp;this&nbsp;is&nbsp;the<br>
+declarative&nbsp;seam&nbsp;the&nbsp;dev&nbsp;console&nbsp;uses&nbsp;after&nbsp;a&nbsp;modal&nbsp;submit:&nbsp;the<br>
+selection&nbsp;is&nbsp;the&nbsp;whole&nbsp;truth.&nbsp;Every&nbsp;key&nbsp;is&nbsp;validated&nbsp;against&nbsp;the<br>
+platform's&nbsp;known&nbsp;games/mods;&nbsp;unknown&nbsp;keys&nbsp;fail&nbsp;loudly&nbsp;and&nbsp;the<br>
+document&nbsp;is&nbsp;untouched.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -245,5 +240,5 @@ Data descriptors defined here:<br>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>GUILD_ACCESS_COLLECTION</strong> = 'guild_access'<br>
-<strong>logger</strong> = &lt;Logger kingdoms.core.guild_access (WARNING)&gt;</td></tr></table>
+<strong>logger</strong> = &lt;Logger kingdoms.core.guild_access (INFO)&gt;</td></tr></table>
 </body></html>

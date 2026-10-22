@@ -312,6 +312,15 @@ async def build_admin_menu(
     ensure_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     ensure_row.add_item(TreeEnsureButton("bot", await _label("admin_tree.ensure_btn", "Sync now")))
     view.add_item(ensure_row)
+    from kingdoms.discord.console import AdminConsoleButton
+    from kingdoms.discord.console_guilds import is_test_guild
+
+    # test guilds only (allowlist): the console's own guards re-check the
+    # invoker on every click — seeing the button never implies permission
+    if is_test_guild(guild_id):
+        console_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        console_row.add_item(AdminConsoleButton())
+        view.add_item(console_row)
     view.add_item(discord.ui.TextDisplay(footer("panel:bot:admin")))
     return view
 
