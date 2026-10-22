@@ -369,7 +369,12 @@ async def add_map_to_pool(interaction: discord.Interaction, map_id: str, pool_id
         from kingdoms.discord.pools_forum import sync_pools_forum
 
         if interaction.guild_id is not None:
-            await sync_pools_forum(str(interaction.guild_id), interaction.client)
+            guild_id = str(interaction.guild_id)
+            await sync_pools_forum(guild_id, interaction.client)
+            # the map's post carries the pool links — it re-renders too
+            from kingdoms.discord.maps_forum import refresh_map_posts
+
+            await refresh_map_posts(interaction.client, guild_id, [map_id])
     except Exception:
         logger.warning("POOL FLOW: pools forum sync failed — best-effort")
 
@@ -568,7 +573,13 @@ async def _apply_composition(
         from kingdoms.discord.pools_forum import sync_pools_forum
 
         if interaction.guild_id is not None:
-            await sync_pools_forum(str(interaction.guild_id), interaction.client)
+            guild_id = str(interaction.guild_id)
+            await sync_pools_forum(guild_id, interaction.client)
+            # every touched map's post carries the pool links — they all
+            # re-render (added and removed alike)
+            from kingdoms.discord.maps_forum import refresh_map_posts
+
+            await refresh_map_posts(interaction.client, guild_id, [*chosen_add, *chosen_remove])
     except Exception:
         logger.warning("POOL FLOW: pools forum sync after compose failed \u2014 best-effort")
 

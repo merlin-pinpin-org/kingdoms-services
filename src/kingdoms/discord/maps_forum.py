@@ -153,16 +153,35 @@ async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = No
     for pool in pools:
         if entry.id not in pool.map_ids:
             continue
-        # the pool's stored thread link is the source of truth: the
-        # thread titles carry the state emoji now (a name match missed)
+        # a BARE Discord link (<thread_id>): no label, nothing to update
+        # on a rename — Discord renders the thread's live title itself
         thread_id = str(getattr(pool, "forum_thread_id", "") or "")
         if thread_id:
-            lines.append(
-                f"- [{pool.name}](https://discord.com/channels/{guild_id}/{thread_id}/{thread_id})"
-            )
+            lines.append(f"- <{thread_id}>")
         else:
             lines.append(f"- {pool.name}")
     return lines
+
+
+async def refresh_map_posts(bot: Any, guild_id: str, map_ids: tuple[str, ...] | list[str]) -> None:
+    """Re-edit the given maps' forum posts (best-effort).
+
+    A pool composition change rewrites the pool-link lines on every
+    member map's post — add and remove both call this seam with the
+    maps they touched (the pool's own post follows the pools sync).
+    """
+    from kingdoms.discord.channels_platform import DiscordChannelsPlatform
+
+    service = _build_service()
+    platform = DiscordChannelsPlatform(bot)
+    for map_id in map_ids:
+        try:
+            entry = await service.get_map(map_id)
+            if entry is None or not getattr(entry, "forum_message_id", ""):
+                continue
+            await _refresh_map_post(bot, platform, guild_id, entry, service)
+        except Exception:
+            logger.warning("map post refresh failed (%s) — best-effort", map_id, exc_info=True)
 
 
 def _map_post_view(

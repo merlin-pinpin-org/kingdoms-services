@@ -42,6 +42,11 @@ admin&nbsp;surface&nbsp;lives&nbsp;in&nbsp;the&nbsp;games&nbsp;admin&nbsp;sectio
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-liquipedia_map_url"><strong>liquipedia_map_url</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;map's&nbsp;Liquipedia&nbsp;page&nbsp;URL&nbsp;(the&nbsp;post's&nbsp;default&nbsp;source&nbsp;link).</span></dd></dl>
  <dl><dt><a name="-maps_forum_wiring_ready"><strong>maps_forum_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;maps&nbsp;forum&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+ <dl><dt>async <a name="-refresh_map_posts"><strong>refresh_map_posts</strong></a>(bot: 'Any', guild_id: 'str', map_ids: 'tuple[str, ...] | list[str]') -&gt; 'None'</dt><dd><span class="code">Re-edit&nbsp;the&nbsp;given&nbsp;maps'&nbsp;forum&nbsp;posts&nbsp;(best-effort).<br>
+&nbsp;<br>
+A&nbsp;pool&nbsp;composition&nbsp;change&nbsp;rewrites&nbsp;the&nbsp;pool-link&nbsp;lines&nbsp;on&nbsp;every<br>
+member&nbsp;map's&nbsp;post&nbsp;—&nbsp;add&nbsp;and&nbsp;remove&nbsp;both&nbsp;call&nbsp;this&nbsp;seam&nbsp;with&nbsp;the<br>
+maps&nbsp;they&nbsp;touched&nbsp;(the&nbsp;pool's&nbsp;own&nbsp;post&nbsp;follows&nbsp;the&nbsp;pools&nbsp;sync).</span></dd></dl>
  <dl><dt><a name="-register_maps_forum_sync"><strong>register_maps_forum_sync</strong></a>() -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;the&nbsp;maps&nbsp;forums'&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
  <dl><dt>async <a name="-sync_maps_forum"><strong>sync_maps_forum</strong></a>(guild_id: 'str', game_key: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;game's&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;active&nbsp;map&nbsp;(idempotent).<br>
 &nbsp;<br>
