@@ -186,9 +186,12 @@ class MapAddToPoolModal(discord.ui.Modal):
         self.pools: discord.ui.Select[Any] = discord.ui.Select(
             options=options or [discord.SelectOption(label="Aucun pool en \u00e9dition", value="none")],
             placeholder="Pools en \u00e9dition...",
-            min_values=1,
+            min_values=0,
             max_values=max(1, len(options)),
         )
+        # an OPTIONAL select: min_values=0 + required=False (the skill
+        # rule) — an empty submit removes the map from every pool
+        self.pools._underlying.required = False
         for option in self.pools.options:
             if option.value in member_ids:
                 option.default = True

@@ -50,8 +50,8 @@ POOL_STATES = (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED, POOL_STATE_USED, POOL_STA
 POOL_STATE_LABELS = {
     POOL_STATE_DRAFT: "édition",
     POOL_STATE_PUBLISHED: "publié",
-    POOL_STATE_USED: "publié",
-    POOL_STATE_CLOSED: "supprimé",
+    POOL_STATE_USED: "utilisé",
+    POOL_STATE_CLOSED: "archivé",
 }
 def display_name(raw: str) -> str:
     """Title-case a display name once (Atacama, Team Islands)."""
@@ -82,7 +82,7 @@ POOL_TRANSITIONS: dict[str, tuple[str, ...]] = {
     POOL_STATE_DRAFT: (POOL_STATE_PUBLISHED,),
     POOL_STATE_PUBLISHED: (POOL_STATE_DRAFT, POOL_STATE_USED),
     POOL_STATE_USED: (POOL_STATE_CLOSED,),
-    POOL_STATE_CLOSED: (POOL_STATE_DRAFT,),
+    POOL_STATE_CLOSED: (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED),
 }
 
 
