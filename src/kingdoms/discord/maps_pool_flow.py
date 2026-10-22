@@ -89,75 +89,117 @@ class MapAddToPoolButton(
         service = _games_wiring()
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         options: list[discord.SelectOption] = []
+        member_ids: list[str] = []
         if service is not None and guild_id:
             entry = await service.get_map(self.map_id)
             game_key = entry.game_key if entry else "aoe2"
             pools = await service.list_map_pools(game_key, guild_id=guild_id)
-            # only the DRAFT pools accept a map — published/used/closed are
-            # frozen; and a pool already containing the map never lists
-            # (adding an existing member is a non-action)
+            # every DRAFT pool lists (member or not): the select carries
+            # the map's whole association, the pre-checked = the members
             editable = [
                 p
                 for p in pools
-                if p.state == "draft"
-                and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
-                and self.map_id not in (p.map_ids or ())
+                if p.state == "draft" and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
             ]
-            if not pools:
-                logger.info(
-                    "ADD TO POOL: no pool at all (map %s, game %s, guild %s)",
-                    self.map_id, game_key, guild_id,
-                )
-            elif not editable:
-                logger.info(
-                    "ADD TO POOL: pools exist but none draft (map %s): %s",
-                    self.map_id,
-                    [(p.name, p.state, p.owner_guild_id) for p in pools[:5]],
-                )
-            options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
-        from kingdoms.discord.commands_i18n import tr
+            options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:25]]
+            member_ids = [p.id for p in editable if self.map_id in (p.map_ids or ())]
+        await interaction.response.send_modal(MapAddToPoolModal(self.map_id, options, member_ids))
 
-        options.append(
-            discord.SelectOption(
-                label=await tr(interaction, "ui.games.new_pool_option", "+ New pool..."),
-                value="__new__",
-            )
+
+async def reconcile_map_pools(
+    interaction: discord.Interaction, map_id: str, chosen: set[str]
+) -> None:
+    """Add/remove the map across the guild's draft pools per the selection.
+
+    The pre-checked members that went unchecked leave their pool; the
+    newly checked ones join. The posts follow (pool + map), the answer
+    names every pool touched.
+    """
+    service = _games_wiring()
+    if service is None:
+        await interaction.followup.send(
+            await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
         )
-        await interaction.response.send_modal(MapAddToPoolModal(self.map_id, options))
+        return
+    entry = await service.get_map(map_id)
+    if entry is None:
+        await interaction.followup.send(
+            await reply(interaction, "replies_shared.map_not_found"), ephemeral=True
+        )
+        return
+    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+    added, removed = await _apply_pool_membership(service, map_id, entry.game_key, guild_id, chosen)
+    parts = [f"**{entry.name}** \u2014 associations mises \u00e0 jour."]
+    if added:
+        parts.append(f"Ajout\u00e9e \u00e0 : {', '.join(added)}.")
+    if removed:
+        parts.append(f"Retir\u00e9e de : {', '.join(removed)}.")
+    if not added and not removed:
+        parts.append("Aucun changement.")
+    await interaction.followup.send("\n".join(parts), ephemeral=True)
+    try:
+        from kingdoms.discord.pools_forum import sync_pools_forum
+
+        if interaction.guild_id is not None:
+            guild = str(interaction.guild_id)
+            await sync_pools_forum(guild, interaction.client)
+            from kingdoms.discord.maps_forum import refresh_map_posts
+
+            await refresh_map_posts(interaction.client, guild, [map_id])
+    except Exception:
+        logger.warning("POOL FLOW: pools forum sync after reconcile failed \u2014 best-effort")
+
+
+async def _apply_pool_membership(
+    service: Any, map_id: str, game_key: str, guild_id: str, chosen: set[str]
+) -> tuple[list[str], list[str]]:
+    """Write the membership deltas; (added pool names, removed pool names)."""
+    added: list[str] = []
+    removed: list[str] = []
+    pools = await service.list_map_pools(game_key, guild_id=guild_id)
+    for pool in pools:
+        if pool.state != "draft":
+            continue
+        has = map_id in (pool.map_ids or ())
+        if has and pool.id not in chosen:
+            await service.update_map_pool(pool.id, map_ids=tuple(m for m in pool.map_ids if m != map_id))
+            removed.append(pool.name)
+        elif not has and pool.id in chosen:
+            await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
+            added.append(pool.name)
+    return added, removed
 
 
 class MapAddToPoolModal(discord.ui.Modal):
-    """The map's add-to-pool form: the pools in edition, or the new branch.
+    """The map's association editor: one multi-select of the draft pools.
 
-    A select rides a modal wrapped in a Label (the components-v2 form
-    contract, the same shape as the profile's add-account form).
+    Every DRAFT pool of the guild lists; the ones already containing
+    the map are pre-checked. The submit reconciles them all: the map
+    joins the newly checked, leaves the unchecked — one form, the whole
+    association. (A multi-select in a modal is required by default;
+    the map with zero draft pool answers with the empty-state note.)
     """
 
-    def __init__(self, map_id: str, options: list[discord.SelectOption]) -> None:
+    def __init__(self, map_id: str, options: list[discord.SelectOption], member_ids: list[str]) -> None:
         super().__init__(title="Ajouter \u00e0 un map pool", timeout=300)
         self.map_id = map_id
         self.pools: discord.ui.Select[Any] = discord.ui.Select(
             options=options or [discord.SelectOption(label="Aucun pool en \u00e9dition", value="none")],
-            placeholder="Pools en \u00e9dition uniquement...",
+            placeholder="Pools en \u00e9dition...",
+            min_values=1,
+            max_values=max(1, len(options)),
         )
-        self.add_item(discord.ui.Label(text="Map pool", component=self.pools))
+        for option in self.pools.options:
+            if option.value in member_ids:
+                option.default = True
+        self.add_item(discord.ui.Label(text="Map pools", component=self.pools))
+
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Read the form's selection, delegate to the shared add step."""
-        chosen = (self.pools.values or [""])[0]
-        if chosen in ("", "none"):
-            await interaction.response.defer(ephemeral=True)
-            await interaction.followup.send("Aucun pool sélectionné.", ephemeral=True)
-            return
-        if chosen == "__new__":
-            # a modal can only be sent on a FRESH response — no defer here
-            service = _games_wiring()
-            entry = await service.get_map(self.map_id) if service is not None else None
-            await interaction.response.send_modal(
-                MapNewPoolModal(self.map_id, entry.game_key if entry else "aoe2")
-            )
-            return
+        """Reconcile the map's membership across every draft pool."""
         await interaction.response.defer(ephemeral=True)
-        await add_map_to_pool(interaction, self.map_id, chosen)
+        chosen = set(self.pools.values or [])
+        chosen.discard("none")
+        await reconcile_map_pools(interaction, self.map_id, chosen)
 
 
 def _text_answer(text: str) -> discord.ui.LayoutView:

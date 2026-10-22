@@ -285,6 +285,8 @@ CRUD&nbsp;+&nbsp;lifecycle&nbsp;for&nbsp;the&nbsp;game&nbsp;catalog,&nbsp;pools&
 
 <dl><dt>async <a name="GameDataService-archive_map_pack"><strong>archive_map_pack</strong></a>(self, entry_id: 'str') -&gt; 'MapPackModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;pack&nbsp;(archival-only).</span></dd></dl>
 
+<dl><dt>async <a name="GameDataService-archive_map_pool"><strong>archive_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;pool&nbsp;—&nbsp;never&nbsp;the&nbsp;pool&nbsp;active&nbsp;on&nbsp;some&nbsp;ladder.</span></dd></dl>
+
 <dl><dt>async <a name="GameDataService-archive_rule"><strong>archive_rule</strong></a>(self, entry_id: 'str') -&gt; 'RuleModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;rule&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-create_faction"><strong>create_faction</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None) -&gt; 'FactionModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
@@ -367,6 +369,12 @@ a&nbsp;``name``&nbsp;plus&nbsp;optional&nbsp;fields.&nbsp;Entries&nbsp;already&n
 are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.&nbsp;The&nbsp;platform&nbsp;carries<br>
 at&nbsp;most&nbsp;``MAX_GAMES``&nbsp;games&nbsp;—&nbsp;seeding&nbsp;a&nbsp;new&nbsp;game&nbsp;past&nbsp;the&nbsp;cap<br>
 fails&nbsp;loudly.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-send_map_pool_to_guild"><strong>send_map_pool_to_guild</strong></a>(self, entry_id: 'str', target_guild_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Send&nbsp;one&nbsp;pool&nbsp;to&nbsp;another&nbsp;guild:&nbsp;the&nbsp;received&nbsp;copy&nbsp;is&nbsp;locked.<br>
+&nbsp;<br>
+The&nbsp;receiving&nbsp;guild&nbsp;gets&nbsp;its&nbsp;own&nbsp;copy&nbsp;(own&nbsp;stable&nbsp;id,&nbsp;own&nbsp;forum<br>
+post)&nbsp;that&nbsp;it&nbsp;can&nbsp;use&nbsp;and&nbsp;activate&nbsp;but&nbsp;never&nbsp;modify:&nbsp;the&nbsp;copy&nbsp;is<br>
+created&nbsp;with&nbsp;``edition_mode=False``.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-set_map_forum_message"><strong>set_map_forum_message</strong></a>(self, entry_id: 'str', forum_message_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;map's&nbsp;forum&nbsp;post&nbsp;id&nbsp;(the&nbsp;map-message&nbsp;link).</span></dd></dl>
 

@@ -210,12 +210,15 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="MapAddToPoolModal">class <strong>MapAddToPoolModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MapAddToPoolModal">MapAddToPoolModal</a>(map_id:&nbsp;'str',&nbsp;options:&nbsp;'list[discord.SelectOption]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MapAddToPoolModal">MapAddToPoolModal</a>(map_id:&nbsp;'str',&nbsp;options:&nbsp;'list[discord.SelectOption]',&nbsp;member_ids:&nbsp;'list[str]')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;map's&nbsp;add-to-pool&nbsp;form:&nbsp;the&nbsp;pools&nbsp;in&nbsp;edition,&nbsp;or&nbsp;the&nbsp;new&nbsp;branch.<br>
+The&nbsp;map's&nbsp;association&nbsp;editor:&nbsp;one&nbsp;multi-select&nbsp;of&nbsp;the&nbsp;draft&nbsp;pools.<br>
 &nbsp;<br>
-A&nbsp;select&nbsp;rides&nbsp;a&nbsp;modal&nbsp;wrapped&nbsp;in&nbsp;a&nbsp;Label&nbsp;(the&nbsp;components-v2&nbsp;form<br>
-contract,&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;the&nbsp;profile's&nbsp;add-account&nbsp;form).<br>&nbsp;</span></td></tr>
+Every&nbsp;DRAFT&nbsp;pool&nbsp;of&nbsp;the&nbsp;guild&nbsp;lists;&nbsp;the&nbsp;ones&nbsp;already&nbsp;containing<br>
+the&nbsp;map&nbsp;are&nbsp;pre-checked.&nbsp;The&nbsp;submit&nbsp;reconciles&nbsp;them&nbsp;all:&nbsp;the&nbsp;map<br>
+joins&nbsp;the&nbsp;newly&nbsp;checked,&nbsp;leaves&nbsp;the&nbsp;unchecked&nbsp;—&nbsp;one&nbsp;form,&nbsp;the&nbsp;whole<br>
+association.&nbsp;(A&nbsp;multi-select&nbsp;in&nbsp;a&nbsp;modal&nbsp;is&nbsp;required&nbsp;by&nbsp;default;<br>
+the&nbsp;map&nbsp;with&nbsp;zero&nbsp;draft&nbsp;pool&nbsp;answers&nbsp;with&nbsp;the&nbsp;empty-state&nbsp;note.)<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.maps_pool_flow.html#MapAddToPoolModal">MapAddToPoolModal</a></dd>
@@ -225,9 +228,9 @@ contract,&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;the&nbsp;profile's&nbsp;add
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="MapAddToPoolModal-__init__"><strong>__init__</strong></a>(self, map_id: 'str', options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="MapAddToPoolModal-__init__"><strong>__init__</strong></a>(self, map_id: 'str', options: 'list[discord.SelectOption]', member_ids: 'list[str]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="MapAddToPoolModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Read&nbsp;the&nbsp;form's&nbsp;selection,&nbsp;delegate&nbsp;to&nbsp;the&nbsp;shared&nbsp;add&nbsp;step.</span></dd></dl>
+<dl><dt>async <a name="MapAddToPoolModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Reconcile&nbsp;the&nbsp;map's&nbsp;membership&nbsp;across&nbsp;every&nbsp;draft&nbsp;pool.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -2854,6 +2857,11 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 &nbsp;<br>
 Answers&nbsp;on&nbsp;the&nbsp;interaction:&nbsp;in&nbsp;place&nbsp;when&nbsp;the&nbsp;response&nbsp;is&nbsp;unused<br>
 (a&nbsp;component&nbsp;click),&nbsp;as&nbsp;a&nbsp;followup&nbsp;otherwise&nbsp;(a&nbsp;modal&nbsp;submit).</span></dd></dl>
+ <dl><dt>async <a name="-reconcile_map_pools"><strong>reconcile_map_pools</strong></a>(interaction: 'discord.Interaction', map_id: 'str', chosen: 'set[str]') -&gt; 'None'</dt><dd><span class="code">Add/remove&nbsp;the&nbsp;map&nbsp;across&nbsp;the&nbsp;guild's&nbsp;draft&nbsp;pools&nbsp;per&nbsp;the&nbsp;selection.<br>
+&nbsp;<br>
+The&nbsp;pre-checked&nbsp;members&nbsp;that&nbsp;went&nbsp;unchecked&nbsp;leave&nbsp;their&nbsp;pool;&nbsp;the<br>
+newly&nbsp;checked&nbsp;ones&nbsp;join.&nbsp;The&nbsp;posts&nbsp;follow&nbsp;(pool&nbsp;+&nbsp;map),&nbsp;the&nbsp;answer<br>
+names&nbsp;every&nbsp;pool&nbsp;touched.</span></dd></dl>
  <dl><dt><a name="-register_pool_flow_items"><strong>register_pool_flow_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;flow's&nbsp;DynamicItems&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

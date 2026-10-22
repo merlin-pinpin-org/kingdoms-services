@@ -186,6 +186,25 @@ async def _sync_pools_forum_locked(guild_id: str, bot: Any, service: Any = None)
 
 
 
+async def _refresh_member_map_posts(bot: Any, guild_id: str, wanted: dict[str, Any]) -> None:
+    """Re-render the member maps' posts after a pools change (best-effort).
+
+    The cross-references: every member map's post carries the pool
+    links, and the pools' threads were just created/renamed — the
+    member maps' posts re-render so a fresh forum gets valid links
+    everywhere (the pools first, then the maps that reference them).
+    """
+    if not any(getattr(p, "forum_thread_id", "") for p in wanted.values()):
+        return
+    member_maps = sorted({m for p in wanted.values() for m in (p.map_ids or ())})
+    try:
+        from kingdoms.discord.maps_forum import refresh_map_posts
+
+        await refresh_map_posts(bot, guild_id, member_maps)
+    except Exception:
+        logger.warning("pools forum: member map posts refresh failed — best-effort", exc_info=True)
+
+
 async def _sync_game_pools(
     guild: discord.Guild,
     guild_id: str,
@@ -233,6 +252,8 @@ async def _sync_game_pools(
         if name not in wanted and not linked:
             await thread.delete(reason=f"kingdoms: pool {name} no longer visible")
             actions += 1
+    if actions:
+        await _refresh_member_map_posts(bot, guild_id, wanted)
     return actions
 
 

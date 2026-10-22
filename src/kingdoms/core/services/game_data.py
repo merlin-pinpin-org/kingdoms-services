@@ -595,6 +595,46 @@ class GameDataService:
         return tuple(dict.fromkeys(ids))
 
 
+    async def archive_map_pool(self, entry_id: str) -> MapPoolModel:
+        """Archive a pool — never the pool active on some ladder."""
+        entry = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        if entry.archived_at is not None:
+            raise ArchivedEntryError(f"map pool {entry_id!r} is already archived")
+        # archiving IS a state change: closed (unusable, still visible)
+        # — the badge and the lifecycle buttons follow the state, so the
+        # archive must persist it, not only the timestamp
+        entry = entry.model_copy(update={"archived_at": _now_ms(), "state": POOL_STATE_CLOSED, "edition_mode": False})
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, entry.to_mongo())
+        await self._audit_record("map_pool.archive", {"entry_id": entry_id})
+        return entry
+    async def send_map_pool_to_guild(self, entry_id: str, target_guild_id: str, new_name: str) -> MapPoolModel:
+        """Send one pool to another guild: the received copy is locked.
+
+        The receiving guild gets its own copy (own stable id, own forum
+        post) that it can use and activate but never modify: the copy is
+        created with ``edition_mode=False``.
+        """
+        copy = await self.duplicate_map_pool(entry_id, new_name, owner_guild_id=target_guild_id)
+        locked = copy.model_copy(update={"edition_mode": False})
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, locked.to_mongo())
+        await self._audit_record(
+            "map_pool.sent",
+            {"pool_id": entry_id, "target_guild_id": target_guild_id, "copy_id": locked.id},
+        )
+        return locked
+
+    async def _force_pool_state(self, pool: MapPoolModel, new_state: str) -> MapPoolModel:
+        """Force a pool's state along activation (usage is a fact, not a choice).
+
+        Activating a pool on a ladder moves it to ``used`` whatever its
+        current state — a draft pool that gets used is used.
+        """
+        updates: dict[str, Any] = {"state": new_state, "edition_mode": False, "ever_activated": True}
+        updated = pool.model_copy(update=updates)
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
+        await self._audit_record("map_pool.transition", {"entry_id": pool.id, "from": pool.state, "to": new_state})
+        return updated
+
     async def transition_map_pool(self, entry_id: str, new_state: str) -> MapPoolModel:
         """Move a pool along its lifecycle (draft->published->used->closed).
 
@@ -671,7 +711,7 @@ class GameDataService:
         entry = await self._require(FACTIONS_COLLECTION, entry_id, FactionModel.from_mongo)
         if entry.archived_at is not None:
             raise ArchivedEntryError(f"faction {entry_id!r} is already archived")
-        entry = entry.model_copy(update={"archived_at": _now_ms()})
+        entry = entry.model_copy(update={"archived_at": _now_ms(), "state": POOL_STATE_CLOSED, "edition_mode": False})
         await self._db.upsert_entry(FACTIONS_COLLECTION, entry.to_mongo())
         await self._audit_record("faction.archive", {"entry_id": entry_id})
         return entry
