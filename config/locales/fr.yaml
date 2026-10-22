@@ -1,161 +1,592 @@
 fr:
+  profile_dm:
+    account_added: "✅ Compte {account} lié — ton profil est à jour."
+    accounts_removed: "✅ Comptes retirés : {listed} — ton profil est à jour."
+    pseudo_updated: "✅ Pseudo mis à jour : {name}"
   common:
-    greeting: "Bienvenue sur Kingdoms !"
-    error: "Une erreur est survenue. Veuillez réessayer."
-    cancel: "Annuler"
-    confirm: "Confirmer"
+    greeting: Bienvenue sur Kingdoms !
+    error: Une erreur est survenue. Veuillez réessayer.
+    cancel: Annuler
+    confirm: Confirmer
   announce:
-    commands_label: "Commandes (sync : {scope})"
-    sync_none_label: "aucune (DM)"
-    title: "Kingdoms — Déploiement"
-    services_label: "Services"
-    infra_label: "Infra"
-    bot_label: "Bot"
-    version_label: "Version"
-    prerelease_label: "Pré-version"
-    branch_label: "Branche"
-    commit_label: "Commit"
-    tag_label: "Tag"
-    image_label: "Image"
-    job_ci_label: "Job C/I"
-    job_deploy_label: "Job déploiement"
-    deployment_label: "Déploiement"
-    uptime_label: "Uptime"
-    admins_label: "Admins"
-    games_label: "Jeux"
-    mods_label: "Mods"
-    latency_label: "Latence"
-    none_label: "*(aucun configuré)*"
-    files_label: "Fichiers"
-    link_label: "Lien"
-    ci_label: "Job"
-    deploy_label: "Job"
+    commands_label: 'Commandes (sync : {scope})'
+    sync_none_label: aucune (DM)
+    title: Kingdoms — Déploiement
+    services_label: Services
+    infra_label: Infra
+    bot_label: Bot
+    version_label: Version
+    prerelease_label: Pré-version
+    branch_label: Branche
+    commit_label: Commit
+    tag_label: Tag
+    image_label: Image
+    job_ci_label: Job C/I
+    job_deploy_label: Job déploiement
+    deployment_label: Déploiement
+    uptime_label: Uptime
+    admins_label: Admins
+    games_label: Jeux
+    mods_label: Mods
+    latency_label: Latence
+    none_label: '*(aucun configuré)*'
+    files_label: Fichiers
+    link_label: Lien
+    ci_label: Job
+    deploy_label: Job
   lifecycle:
-    stop: "Arrêt du bot."
+    stop: Arrêt du bot.
     policy:
-      grant: "Politique d'accès mise à jour : le rôle <@&{role_id}> peut lire les logs, par <@{by}>."
-      reset: "Politique d'accès réinitialisée (admins uniquement), par <@{by}>."
-      route: "Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>."
-      visibility: "Visibilité des logs : {state}, par <@{by}>."
-      language: "Langue définie sur {lang}, par <@{by}>."
+      grant: 'Politique d''accès mise à jour : le rôle <@&{role_id}> peut lire les logs, par <@{by}>.'
+      reset: Politique d'accès réinitialisée (admins uniquement), par <@{by}>.
+      route: Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>.
+      visibility: 'Visibilité des logs : {state}, par <@{by}>.'
+      language: 'Langue du serveur : {lang}, par <@{by}>.'
   replies:
-    unavailable: "Inscription indisponible."
-    unavailable_deploy: "Inscription indisponible sur ce déploiement."
-    not_configured: "L'inscription n'est pas configurée."
-    profile_required: "Un id de profil est requis."
-    profile_linked: "Compte lié."
-    profile_unlinked: "Compte détaché."
-    no_account: "Aucun compte à retirer."
-    remove_failed: "Retrait échoué."
-    menu_unavailable: "Menu indisponible."
-    unknown_view: "Vue inconnue."
-    no_home_view: "Ce mod n'a pas de vue d'accueil."
+    unavailable: Inscription indisponible.
+    unavailable_deploy: Inscription indisponible sur ce déploiement.
+    not_configured: L'inscription n'est pas configurée.
+    profile_required: Un id de profil est requis.
+    profile_linked: Compte lié.
+    profile_unlinked: Compte détaché.
+    no_account: Aucun compte à retirer.
+    remove_failed: Retrait échoué.
+    menu_unavailable: Menu indisponible.
+    unknown_view: Vue inconnue.
+    no_home_view: Ce mod n'a pas de vue d'accueil.
+    profile:
+      no_account: Aucun compte de jeu lié — ajoute-en un ci-dessous.
+      account_removed: Compte retiré — la vue profil se rouvre.
+      accounts_removed: 'Comptes retirés : {listed}.'
+      updated: Profil mis à jour.
+      removal_failed_for: 'Retrait échoué pour : {failed}'
+      add_title: Ajouter un compte
+      add_success: ✅ Compte lié — voilà ton profil à jour.
+      add_taken: Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil.
+      add_game_unconfigured: 'Ajout échoué : le jeu {game} n''est pas configuré pour l''inscription.'
+      add_unknown: 'Ajout échoué : aucun profil trouvé pour {profile}. Colle l''URL de ta page aoe2insights (ou l''id qu''elle contient) — le bon id sera récupéré automatiquement.'
+      add_provider_error: 'Ajout échoué : le provider {provider} ne répond pas correctement — le détail part aux admins (vois les logs du bot).'
+      add_not_configured: 'Ajout échoué : le provider {provider} ne sert pas les stats de profil — vois les logs du bot.'
+      remove_title: Retirer des comptes
+      remove_placeholder: Comptes à retirer...
+      remove_label: Comptes à retirer
+      add_label: Ton id aoe2insights ou ton relic id
+      add_placeholder: Ex. 17190369 ou https://www.aoe2insights.com/user/12488557/
+      game_label: Jeu du compte
+      game_placeholder: Jeu du compte...
+      rename_title: Ton pseudo
+      rename_label: Pseudo (16 caractères max)
+      rename_bad_length: Le pseudo doit faire entre 1 et 16 caractères.
+      rename_failed: Renommage impossible pour le moment.
+      rename_success: '✅ Pseudo mis à jour : {name}'
+      remove_button: Retirer un compte
+      add_button: Ajouter un compte
+      rename_button: Changer de pseudo
+      header_no_name: '# 👤 Ton profil
 
+        Pseudo : *(non défini)*'
+      header_with_name: '# 👤 Ton profil
+
+        Pseudo : **{name}**'
+      remove_empty: Quel compte retirer ?
+      remove_open_failed: 'Retrait échoué pour : {failed} — le détail part aux admins.'
+      remove_not_found: introuvable
+      games_title: '# 🎮 Jeux'
+      games_subtitle: Les jeux disponibles sur ce serveur, leurs données et leurs salons.
+      games_available: 'Jeux disponibles :'
+      general_label: Général
+      civs_label: Civilisations
+      maps_label: Maps
+      pools_label: Map pools
+      mods_title: '# 🧩 Mods'
+      mods_subtitle: Les mods disponibles pour ce serveur.
+      mods_available: 'Mods disponibles :'
+      games_none: Aucun jeu actif — demande à un <@&{admin_role}> ou à un bot-admin d'en activer un.
+      users_title: '# 👥 Joueurs enregistrés ({count})'
+      users_server: '## {server}'
+      mods_none: Aucun mod actif pour ce serveur.
+      mods_admin_only: ' *(installable par les bot-admins uniquement)*'
+      admin_btn_channels: Salons
+      admin_btn_roles: Rôles
+      admin_btn_games: Jeux
+      admin_btn_mods: Mods
+      status_unavailable: Status indisponible.
+      roster_unavailable: Roster indisponible (store non configuré).
+      guild_not_found: Serveur introuvable.
+      no_members_bound: Aucun membre de ce serveur n'a de compte lié.
+      game_section_stats: '{civs} civs · {maps} maps · {pools} map pools'
+    admin_tree:
+      title: 🛠️ Admin
+      subtitle: Langue, salons et rôles du serveur.
+      channels: 📋 Salons du bot
+      roles: 🧩 Rôles
+      no_channel: Aucun salon
+      channel_to_manage: Salon à gérer...
+      route_placeholder: Nouveau salon pour ce point de gestion...
+      route_failed: Reroutage impossible (voir les logs).
+      rerouted: Salon rerouté sur <#{channel}> — les menus épinglés suivront à la prochaine vérification.
+      back: Retour
+      back_to_admin: Retour au menu admin
+      admin_failed: Le panneau des rôles a échoué — voir les logs du bot.
+      games_btn: Jeux
+      mods_btn: Mods
+      ensure_btn: Synchroniser
+      channel_access_everyone: '👁️ Lecture : @everyone
+
+        ✍️ Écriture : @everyone'
+      channel_access_readonly: '👁️ Lecture : @everyone
+
+        🔒 Écriture : personne — menus épinglés uniquement'
+      channel_access_admin: '👁️ Lecture : bot-admins
+
+        ✍️ Écriture : bot-admins'
+      current: 'Salon actuel : {channel}'
+      role_line: 'Rôle : {role}'
+      channel_menu_title: Salon géré
+      footer_hint: Chaque salon géré par le bot, par périmètre.
+      section_bot: Bot
+      section_admin: Admin
+      section_mod: Mods
+      section_game: Jeux
   admin_replies:
-    panel_unavailable: "Le panneau admin n'est pas disponible."
-    language_changed: "Langue mise à jour."
-    language_change_failed: "Échec du changement de langue."
-
+    panel_unavailable: Le panneau admin n'est pas disponible.
+    language_changed: Langue mise à jour.
   commands:
-    status_name: "statut"
-    staff_nominate_name: "Nommer staff"
-    staff_nominate_description: "Nommer ce membre au staff (admin)"
-    status_description: "Statut du bot : uptime, mods, jeux, admins"
-    admin_name: "admin"
-    admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"
-    register_name: "inscription"
-    register_description: "Lier votre profil AoE2 à votre compte (inscription en DM)"
-    live_name: "live"
-    live_description: "Dashboard de test en direct : joueurs liés, lobbys et parties"
-    game_link_name: "game-link"
-    game_link_description: "Lier votre profil AoE2 à votre compte (portée test)"
-    game_unlink_name: "game-unlink"
-    game_unlink_description: "Détachez votre profil AoE2 de votre compte"
-    home_name: "home"
-    home_description: "Le menu d'accueil de la guilde"
-    ladder_name: "ladder"
-    ladder_description: "Ladder : file d'attente, matchs, classement"
+    status_name: statut
+    staff_nominate_name: Nommer staff
+    staff_nominate_description: Nommer ce membre au staff (admin)
+    status_description: 'Statut du bot : uptime, mods, jeux, admins'
+    admin_name: admin
+    admin_description: Panneau admin (opérateurs du bot et admins du serveur uniquement)
+    register_name: inscription
+    register_description: Lier votre profil AoE2 à votre compte (inscription en DM)
+    live_name: live
+    live_description: 'Dashboard de test en direct : joueurs liés, lobbys et parties'
+    game_link_name: game-link
+    game_link_description: Lier votre profil AoE2 à votre compte (portée test)
+    game_unlink_name: game-unlink
+    game_unlink_description: Détachez votre profil AoE2 de votre compte
+    home_name: home
+    home_description: Le menu d'accueil du serveur
+    ladder_name: ladder
+    ladder_description: 'Ladder : file d''attente, matchs, classement'
   ladder:
-    queue_empty: "La file d'attente est vide."
-    left_queue: "Tu as quitté la file."
-    leave_failed: "Impossible de quitter : {reason}"
-    leaderboard_empty: "Aucun joueur pour l'instant."
-    joined_queue: "Tu as rejoint la file."
-    join_failed: "Impossible de rejoindre : {reason}"
-    join_unconfigured: "L'inscription n'est pas configurée — les profils ne peuvent pas être vérifiés."
-    join_no_profile: "Aucun profil AoE2 lié — utilise /inscription d'abord."
+    queue_empty: La file d'attente est vide.
+    left_queue: Tu as quitté la file.
+    leave_failed: 'Impossible de quitter : {reason}'
+    leaderboard_empty: Aucun joueur pour l'instant.
+    joined_queue: Tu as rejoint la file.
+    join_failed: 'Impossible de rejoindre : {reason}'
+    join_unconfigured: L'inscription n'est pas configurée — les profils ne peuvent pas être vérifiés.
+    join_no_profile: Aucun profil AoE2 lié — utilise /inscription d'abord.
     season_state:
-      scheduled: "planifiée"
-      active: "en cours"
-      ended: "terminée"
-    season_active: "Saison active"
-    season_none: "aucune"
-    season_empty: "Aucune saison — crée la première."
-    season_list_hint: "Les saisons sont créées, activées et arrêtées ici."
-    season_active_hint: "Saison active : {name}"
-    enrollments_open: "ouvertes"
-    enrollments_closed: "fermées"
-    admin_wiring_unavailable: "Ladder indisponible : MongoDB/Redis ne sont pas configurés."
-    admin_no_ladder: "Aucun ladder — le noyau le créera au premier usage."
-    admin_no_ladder_action: "Aucun ladder pour ce guild."
-    admin_season_created: "Saison **{name}** créée — active-la depuis la liste."
-    admin_season_activated: "Saison **{name}** activée."
-    admin_season_ended: "Saison **{name}** arrêtée."
-    admin_season_end_none: "Aucune saison active."
-    admin_season_create_failed: "Création échouée (nom déjà pris ?)."
-    admin_season_activate_failed: "Activation échouée (voir les logs)."
-    admin_season_bad_days: "Durée invalide (un nombre de jours)."
-    admin_season_name_required: "Le nom est obligatoire."
-    admin_title_seasons: "Ladder admin — saisons"
+      scheduled: planifiée
+      active: en cours
+      ended: terminée
+    season_active: Saison active
+    season_none: aucune
+    season_empty: Aucune saison — crée la première.
+    season_list_hint: Les saisons sont créées, activées et arrêtées ici.
+    season_active_hint: 'Saison active : {name}'
+    enrollments_open: ouvertes
+    enrollments_closed: fermées
+    admin_wiring_unavailable: 'Ladder indisponible : MongoDB/Redis ne sont pas configurés.'
+    admin_no_ladder: Aucun ladder — le noyau le créera au premier usage.
+    admin_no_ladder_action: Aucun ladder pour ce guild.
+    admin_season_created: Saison **{name}** créée — active-la depuis la liste.
+    admin_season_activated: Saison **{name}** activée.
+    admin_season_ended: Saison **{name}** arrêtée.
+    admin_season_end_none: Aucune saison active.
+    admin_season_create_failed: Création échouée (nom déjà pris ?).
+    admin_season_activate_failed: Activation échouée (voir les logs).
+    admin_season_bad_days: Durée invalide (un nombre de jours).
+    admin_season_name_required: Le nom est obligatoire.
+    admin_title_seasons: Ladder admin — saisons
   errors:
-    validation: "Entrée invalide. Vérifiez vos valeurs et réessayez."
-    configuration: "Erreur de configuration. Contactez un administrateur."
-    not_found: "La ressource demandée est introuvable."
-    permission: "Vous n'avez pas la permission d'effectuer cette action."
-    rate_limited: "Vous êtes limité par le rate limit. Réessayez plus tard."
-    workflow: "Une erreur est survenue pendant le workflow. Réessayez."
-    platform: "Une erreur de plateforme est survenue. Réessayez."
-    database: "Une erreur de base de données est survenue. Réessayez plus tard."
-    unexpected: "Une erreur inattendue est survenue. Réessayez."
+    validation: Entrée invalide. Vérifiez vos valeurs et réessayez.
+    configuration: Erreur de configuration. Contactez un administrateur.
+    not_found: La ressource demandée est introuvable.
+    permission: Vous n'avez pas la permission d'effectuer cette action.
+    rate_limited: Vous êtes limité par le rate limit. Réessayez plus tard.
+    workflow: Une erreur est survenue pendant le workflow. Réessayez.
+    platform: Une erreur de plateforme est survenue. Réessayez.
+    database: Une erreur de base de données est survenue. Réessayez plus tard.
+    unexpected: Une erreur inattendue est survenue. Réessayez.
   permissions:
-    denied: "Vous n'êtes pas autorisé à faire cela — cette action requiert un rôle que vous n'avez pas."
+    denied: Vous n'êtes pas autorisé à faire cela — cette action requiert un rôle que vous n'avez pas.
   guards:
-    denied: "Vous n'êtes pas autorisé à faire cela — cette action est réservée aux admins du bot."
+    denied: Vous n'êtes pas autorisé à faire cela — cette action est réservée aux admins du bot.
   admin:
-    title: "Kingdoms — Admin"
-    channel_bot_logs: "Logs du bot"
-    channel_bot_admins: "Admins du bot"
-    visibility_admin_label: "Admins uniquement"
-    visibility_admin_hint: "Admins de la guilde et BOT_ADMINS uniquement"
-    visibility_public_label: "Public"
-    visibility_public_hint: "Tout le monde peut lire les logs"
-    language: "Langue de la guilde"
-    language_hint: "Actuelle : {value} — utilisée pour tous les messages de channel."
-    language_placeholder: "Langue de la guilde — {value}"
-    channels: "Channels"
-    channels_placeholder: "Gérer un channel…"
-    mods_placeholder: "Section d'un mod…"
-    roles_button: "Voir les rôles"
-    read_only_hint: "Lecture seule des salons épinglés (par défaut : active)"
-    back: "← Retour"
-    channel: "Channel"
-    visibility: "Visibilité"
-    visibility_public: "public 🔓"
-    visibility_admin_only: "admins 🔒"
-    visibility_placeholder: "Visibilité…"
-    route_placeholder: "Router vers un channel…"
-    not_provisioned: "pas encore provisionné"
-    admin_channel_note: "La visibilité du channel admin est gouvernée par le rôle bot-admins (règle de transparence)."
-    dm_title: "Kingdoms — Admin (DM)"
-    dm_language: "Langue des DM"
-    dm_language_hint: "Cette langue s'applique à tous les DM que le bot vous envoie : rapports d'erreur, inscription, rapports de match."
-    dm_placeholder: "Votre langue de DM…"
-    dm_change_failed: "Échec du changement de langue — réessayez."
-    route_failed: "Échec du routage — voir les logs du bot."
-    visibility_failed: "Échec du changement de visibilité — voir les logs du bot."
-    no_service: "Les réglages admin sont indisponibles (pas de LogService câblé)."
-    panel_failed: "La gestion des logs a échoué — `{detail}`"
+    title: Kingdoms — Admin
+    channel_bot_logs: Logs du bot
+    channel_bot_admins: Admins du bot
+    visibility_admin_label: Admins uniquement
+    visibility_admin_hint: Admins du serveur et BOT_ADMINS uniquement
+    visibility_public_label: Public
+    visibility_public_hint: Tout le monde peut lire les logs
+    channels: Channels
+    channels_placeholder: Gérer un channel…
+    mods_placeholder: Section d'un mod…
+    roles_button: Voir les rôles
+    read_only_hint: 'Lecture seule des salons épinglés (par défaut : active)'
+    back: ← Retour
+    channel: Channel
+    visibility: Visibilité
+    visibility_public: public 🔓
+    visibility_admin_only: admins 🔒
+    visibility_placeholder: Visibilité…
+    route_placeholder: Router vers un channel…
+    not_provisioned: pas encore provisionné
+    admin_channel_note: La visibilité du channel admin est gouvernée par le rôle bot-admins (règle de transparence). inscription, rapports de match.'
+    route_failed: Échec du routage — voir les logs du bot.
+    visibility_failed: Échec du changement de visibilité — voir les logs du bot.
+    no_service: Les réglages admin sont indisponibles (pas de LogService câblé).
+    panel_failed: La gestion des logs a échoué — `{detail}`
+  admin_dm:
+    title: Kingdoms — Bot admin
+    wiring_unavailable: Wiring indisponible.
+    pending_title: 📩 Demandes d'accès en attente
+    language_title: 🌐 Langue des DM
+    pending_line: '- Serveur `{guild_id}` : {keys}'
+    unknown_server: Serveur inconnu
+    btn_approve: Approuver
+    btn_approve_pending: Approuver ({pending} en attente)
+    btn_deny: Refuser
+    btn_refresh: Rafraîchir le contenu
+    btn_manage_access: Gérer les accès
+    access_title: Gérer les accès
+    access_subtitle: Choisis un serveur, puis les jeux/mods à accorder ou retirer.
+    access_guild_placeholder: Serveur à gérer...
+    access_no_server: Aucun serveur enregistré.
+    access_list_failed: Échec du listing des serveurs (voir les logs).
+    access_server_label: Serveur {guild_id}
+    access_none_server: Aucun serveur
+    access_server_title: Accès du serveur `{guild_id}`
+    access_server_note: 'Serveur `{guild_id}` — jeux : {games} · mods : {mods}'
+    access_keys_placeholder: Jeux/mods à accorder ou retirer...
+    access_no_keys: Aucun jeu/mod actif
+    access_apply: Accorder
+    access_revoke: Retirer
+    access_select_first: Sélectionne d'abord des jeux/mods.
+    access_granted: 'Accès accordés au serveur `{guild_id}`.
+
+      Jeux : {games}
+
+      Mods : {mods}'
+    access_revoked: 'Accès retirés au serveur `{guild_id}`.
+
+      Jeux : {games}
+
+      Mods : {mods}'
+    access_failed: Échec (voir les logs).
+    access_denied: 'Refus : {error}'
+    approved: Accès accordé au serveur `{guild_id}`.
+    denied: Accès refusé au serveur `{guild_id}`.
+    refresh_failed: Refresh échoué (voir les logs).
+    refresh_done: 'Contenu rafraîchi : {factions} civs ({new} nouvelles), {docs} documents de contenu.
+
+      {new_line}'
+    new_civs_line: 'Nouvelles civs : {names}
+
+      '
+    bot_admin_only: Réservé aux bot admins.
+    access_nothing_to_add: Rien à accorder — tout est déjà actif.
+    access_nothing_to_remove: Rien à retirer — aucun jeu/mod actif.
+    menu_status: 🌍 {servers} serveur(s)
+    menu_btn_requests: Demandes
+    menu_btn_servers: Serveurs
+    menu_btn_sync: Synchroniser
+    sync_title: Synchronisation cross-guild
+    sync_subtitle: 'Les actions de synchronisation au niveau du bot : chaque bouton met à jour les données partagées par tous les serveurs.'
+    btn_refresh_aoe2_civs: Refresh aoe2 civs
+    menu_current_language: '🌐 Langue : {current}'
+    access_btn_manage: Gérer les accès
+    menu_btn_language: Langue
+    servers_title: 🖥 Serveurs
+    servers_line: '- **{name}** `{guild_id}`'
   channel_audit:
-    clean: "Audit des canaux : aucun écart détecté."
-    header: "Audit des canaux — {count} écart(s) :"
-    finding: "[{severity}] {category} : {kind} (attendu {expected}, constaté {actual})"
+    clean: 'Audit des canaux : aucun écart détecté.'
+    header: 'Audit des canaux — {count} écart(s) :'
+    finding: '[{severity}] {category} : {kind} (attendu {expected}, constaté {actual})'
+  live:
+    title: 🎮 Dashboard en direct
+    offline_separator: — hors ligne —
+    no_players: Aucun joueur lié — liez un profil avec /game-link.
+    all_offline: Tout le monde est hors ligne depuis plus d'une heure.
+    unavailable: 'Dashboard indisponible : CORE_URI n''est pas configuré.'
+    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez /game-link pour lier d'autres profils.
+    unlinked: Profil `{profile}` délié.
+    no_link: Aucun lien pour le profil `{profile}`.
+    degraded: ⚠️ Fournisseurs injoignables — états potentiellement périmés, tout le monde hors ligne.
+  replies_shared:
+    wiring_unavailable: Wiring indisponible.
+    map_not_found: Map introuvable.
+    pool_not_found: Pool introuvable.
+    action_failed: Ajout impossible (voir les logs).
+    creation_failed: Création impossible (nom déjà pris ?).
+    edit_failed: Modification impossible (voir les logs).
+    import_failed: Import échoué (nom déjà pris ? voir les logs).
+    liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur l’environnement.'
+    pool_locked: Ce pool est verrouillé — dupliquez-le pour l'éditer.
+    guild_maps_only: Seules les maps du serveur sont modifiables.
+    transition_failed: Transition impossible (voir les logs).
+    name_required: Le nom est obligatoire.
+    selection_invalid: Sélection invalide.
+  ui:
+    tree:
+      channels_heading: '**Salons** (générés par le bot) :'
+      roles_heading: '**Rôles** (générés par le bot) :'
+      bot_admins_role: "les opérateurs du bot : administrent la plateforme"
+      bot_admins_role_pending: "les opérateurs du bot (le rôle est créé au premier sync)"
+    games:
+      no_game: Aucun jeu
+      no_game_granted: Aucun jeu autorise
+      no_map: Aucune map
+      no_pool: Aucun pool
+      description: Description
+      duplicate: Dupliquer
+      send_to_guild: Envoyer à un serveur
+      file_label: Fichier (nom de fichier rms/txt)
+      games: Games
+      maps: Maps
+      map_pools: Map pools
+      target_guild_id: ID du serveur destinataire
+      source_pool_id: Id du pool source (ex. map_pool:aoe2:ladder_cf_s1_r1)
+      import_map: Importer une map
+      import_pool: Importer un map pool
+      copy_name: Nom de la copie
+      map_name: Nom de la map
+      map_page_name: Nom de la map (page Liquipedia)
+      pool_name: Nom du pool
+      received_pool_name: Nom du pool recu
+      new_name: Nouveau nom
+      add_pool: + Pool
+      first_map: Premiere map (nom, optionnel)
+      rename: Renommer
+      back: Retour
+      back_to_game: Retour au jeu
+      delete: Supprimer
+      archive_map_placeholder: Activer / desactiver une map...
+      toggle_map_placeholder: Ajouter / retirer une map...
+      edit_pool_placeholder: Editer un pool...
+      manage_game_placeholder: Gerer un jeu...
+      page_placeholder: Page du selecteur de maps...
+      create_global_map_title: Creer une map globale
+      create_pool_title: Creer un map pool
+      duplicate_pool_title: Dupliquer le pool
+      send_pool_title: Envoyer le pool
+      import_map_title: Importer une map (Liquipedia)
+      import_pool_title: Importer un map pool
+      rename_pool_title: Renommer le pool
+      edit_map_title: Modifier la map
+      edit_map: Modifier la map
+      add_to_pool: Ajouter à un map pool
+      new_pool_option: + Nouveau pool...
+      public_yes_no: Public ? (oui / non)
+      liquipedia_url: URL de la fiche (liquipedia)
+      pick_pool_placeholder: Choisis un map pool...
+      no_map_available: Aucune map disponible
+      new_state_placeholder: Nouvel etat du pool...
+      name: Nom
+      civs_section: Civs
+      maps_section: Maps
+      pools_section: Map pools
+      maps_active: actives
+      manage_maps: Gérer les maps
+      manage_pools: Gérer les pools
+      create_map: Créer une map
+      create_pool: Créer un map pool
+      bulk_import_map: Importer des maps (liste)
+      copy_pool: Copier un map pool
+      delete_pool_placeholder: Supprimer un pool...
+      remove_maps_placeholder: Retirer des maps du pool...
+      add_by_id: Ajouter une map (id)
+      map_id_label: Map id (ex. map:public:arena)
+      source_pool_footer: Id du pool à copier (footer du post, ex. pool:public:s1_r1)
+      copy_pool_title: Copier un map pool
+      bulk_import_title: Importer des maps (liste)
+      bulk_lines_label: Maps (id, nom ou URL, une par ligne)
+      map_deleted: Map supprimée
+      map_disabled: Map désactivée (archivée) - réactivable
+      pool_deleted: Pool supprimé
+      homes:
+        aoe2: Age of Empires II
+    panels:
+      channels:
+        general: 🗺️ général
+        general_description: "l'accueil : le menu du serveur, chaque bouton ouvre une vue"
+        discussions: 💬 discussions
+        discussions_description: "les discussions libres du serveur"
+        decisions: ⚖️ décisions
+        decisions_description: "les décisions d'exploitation du serveur"
+        logs: 📜 logs
+        logs_description: "le journal du bot : démarrages, déploiements, erreurs"
+        admin: 🛠️ admin
+        admin_description: "le poste de pilotage : le menu d'administration épinglé"
+        live: 📡 live
+        live_description: "qui joue en direct, rafraîchi en continu"
+        civs: 🏛️ civilisations
+        civs_description: "une fiche par civilisation : bonus, unités, arbres technologiques"
+        maps: 🌍 maps
+        maps_description: "une fiche par carte : image, description, pools"
+        map_pools: 🧱 map pools
+        map_pools_description: "une fiche par map pool : composition et état"
+      categories:
+        bot: 🤖 bot
+        games: 🎮 games
+        games_aoe2: ⚔️ games/aoe2
+        mods: 🧩 mods
+    homes:
+      root_home_title: 🏰 Kingdoms
+      root_home_description: Bienvenue — chaque bouton ouvre une vue réservée à toi. Les échanges vont dans 💬 discussions.
+      games_home_title: 🎮 Games
+      games_home_description: 'Les jeux du serveur : forums de données, discussions et gestion.'
+      games_aoe2_home_title: ⚔️ Age of Empires II
+      games_aoe2_home_description: Les données du jeu — civilisations, maps et map pools — et son suivi live.
+      mods_home_title: 🧩 Mods
+      mods_home_description: 'Les mods du serveur : données, discussions et gestion.'
+      bot_home_title: 🤖 Bot
+      btn_status: Statut
+      btn_profile: Profil
+      btn_games: Jeux
+      btn_admin: Admin
+      btn_aoe2: AoE2
+      btn_aoe2_admin: Gérer AoE2
+      btn_live: Live
+      heading_navigate: 🧭 Navigation
+      heading_data: 📚 Données
+      btn_civs: Civs
+      btn_maps: Maps
+      btn_pools: Map pools
+      games_aoe2_admin_title: ⚔️ Age of Empires II — admin
+      games_aoe2_admin_description: 'Les données du jeu : civilisations, maps et map pools.'
+      games_admin_title: 🎮 Games — admin
+      games_admin_description: Les jeux autorisés et l'octroi d'accès.
+      mods_admin_title: 🧩 Mods — admin
+      mods_admin_description: Les mods du serveur et l'octroi d'accès.
+      bot_admin_title: 🤖 Bot — admin
+      bot_admin_description: 'L''exploitation du bot : langue, salons, rôles, jeux et mods.'
+      heading_perimeters: 📦 Périmètres
+      heading_configuration: ⚙️ Configuration
+      btn_list: Liste
+      available_games: 'Jeux disponibles :'
+      available_mods: 'Mods disponibles :'
+      btn_mods: Mods
+      btn_users: Joueurs
+      heading_actions: 🎩 Actions
+      btn_add_map: Ajouter une map
+      btn_create_pool: Créer un map pool
+      btn_ensure: Créer les salons manquants
+      bot_home_description: L'exploitation du bot — logs, administration, décisions.
+      btn_sync: Synchroniser
+      btn_language: Langue
+    views:
+      menu.home:
+        title: 🏰 Kingdoms
+        description: 'Le point de départ : ton profil, les jeux, les mods et l''admin.'
+      menu.admin:
+        title: 🛠️ Admin
+        description: 'L''exploitation du bot : statut, jeux, mods, et la synchronisation des salons et rôles.'
+        current_language: '**Langue du serveur** : {current}'
+
+      menu.games.home:
+        title: 🎮 Jeux
+        description: Les jeux disponibles sur ce serveur.
+      menu.games.admin:
+        title: 🎮 Jeux
+        description: Gérer les jeux du serveur.
+      menu.games.aoe2:
+        title: ⚔️ Age of Empires II
+        description: 'Les ressources du jeu : salons, rôles, live, joueurs.'
+      menu.game.aoe2.admin:
+        title: ⚔️ Age of Empires II
+        description: 'Gérer les données du jeu : maps, map pools, synchronisation.'
+      menu.mods.home:
+        title: 🧩 Mods
+        description: Les mods disponibles sur ce serveur.
+      menu.mods.admin:
+        title: 🧩 Mods
+        description: Gérer les mods du serveur.
+    mods:
+      homes:
+        ladder: Ladder
+        tournament: Tournoi
+        kingdom: Kingdom
+    flows:
+      wiring_unavailable: Wiring indisponible.
+      pool_not_found: Pool introuvable.
+      map_not_found: Map introuvable.
+      entry_not_found: Entrée introuvable.
+      pool_full: Le pool est plein ({max} maps max) — retire une map pour en ajouter une autre.
+      empty_pool: Le pool est vide.
+      no_map_in_list: Aucune map dans la liste.
+      no_liquipedia_page: Aucune page Liquipedia pour "{name}" — crée la map localement.
+      rename_failed: Renommage échoué (voir les logs).
+      archive_failed: Archivage échoué (pool actif ? voir les logs).
+      duplicate_failed: Duplication échouée (voir les logs).
+      send_failed: Envoi échoué (nom déjà pris ? voir les logs).
+      import_failed_step: Import échoué à l'étape « {step} » — la map a été supprimée.
+      import_failed_step_cleanup: Import échoué à l'étape « {step} » et le nettoyage a aussi échoué.
+      import_taken: Import refusé — {detail} Supprime ou archive la map existante d'abord.
+      import_create_failed: 'Import échoué à l''étape « création » :'
+      bulk_partial: '{count} maps importées mais l''association au pool a échoué (voir les logs).'
+      copy_failed: 'Échec de la copie : {detail}'
+      hard_delete_only_draft: Seul un pool en édition jamais utilisé peut être supprimé totalement.
+      published_only: Seuls les pools publiés peuvent être importés.
+      already_owned: Ce pool appartient déjà à ce serveur.
+      numeric_guild_id: L'ID du serveur doit être numérique.
+      pool_deleted: Pool **{name}** supprimé — son post disparaît au prochain sync.
+      pool_duplicated: Pool dupliqué en **{name}** (éditable).
+      pool_sent: Pool **{name}** envoyé au serveur **{guild}** — il y sera verrouillé (non modifiable).
+      pool_copied: Pool **{name}** copié (`{id}`) — {count} maps, son post est dans le forum des pools.
+      pool_imported: Pool **{name}** importé (verrouillé, non modifiable).
+      map_updated: Map **{name}** mise à jour — la fiche se rafraîchit à la prochaine sync.
+      map_added_to_pool: '**{map}** ajoutée à **{pool}**.'
+      already_in_pool: '**{map}** est déjà dans **{pool}**.'
+      pool_created_with_map: Pool **{name}** créé — la map a été ajoutée.
+      pool_created: Pool **{name}** créé — synchronisation du forum…
+      pool_renamed: Pool renommé **{name}**.
+      pool_archived: Pool archivé.
+      pool_hard_deleted: Pool **{name}** supprimé totalement (aucune référence ne pointait vers lui).
+      pool_published_line: Pool publié.
+      maps_removed: '{count} map(s) retirée(s).'
+      bulk_imported: '{count} maps importées — les posts arrivent dans le forum maps.'
+      map_imported: Map **{name}** importée.
+      map_created: Map **{name}** créée — elle apparaîtra dans le forum maps.
+      transition_impossible: Ce pool est **{state}** — aucune transition possible.
+      transition_applied: 'Pool **{name}** : {state} — la fiche se met à jour à la prochaine sync.'
+      add_map_to_which_pool: '## Ajouter à quel map pool ?'
+      add_map_to_pool_title: Ajouter une map à **{pool}**
+      remove_maps_of: Retirer des maps de **{pool}**
+      catalog_too_big: Le catalogue dépasse 25 maps — pas de sélecteur ici. Ajoute la map depuis sa fiche.
+      name_mismatch: 'Nom ne correspond pas — abandon. Attendu : **{expected}**.'
+      cannot_delete_in_use: Impossible de supprimer **{map}** — elle fait partie d'un map pool.
+      delete_impossible: Suppression impossible — {detail}
+      failure_prefix: 'Échec : {detail}'
+      pool_editor_title: '# Éditer le pool'
+      no_pool: _Aucun map pool._
+      no_map_seed: _No map — seed the catalog._
+      game_menu_failed: Le menu du jeu a échoué à s'ouvrir (voir les logs).
+      game_menu_not_sent: Le menu du jeu n'a pas pu être envoyé (voir les logs).
+      global_maps_admins: Les maps globales sont réservées aux bot admins.
+      unexpected_state: État inattendu — recommence avec /register.
+      no_enrollment: Aucune inscription en cours — recommence avec /register.
+      enrolled: Inscription terminée ! Ton profil AoE2 `{profile}` est lié — tu peux rejoindre le ladder.
+      enrolled_cancelled: Inscription annulée — /register quand tu veux.
+      enrolled_cancelled_short: Inscription annulée.
+      unknown_panel: Panneau inconnu
+      registered: Inscrit ({value}).
+      error_processing_registration: Une erreur est survenue pendant le traitement de ton inscription. Réessaie.
+      error_processing_feedback: Une erreur est survenue pendant le traitement de ton retour. Réessaie.
+      not_bot_operator: Tu n'es ni opérateur du bot (BOT_ADMINS) ni administrateur du serveur.
+      dm_settings_follow_client: 'Réglages personnels : la langue suit celle de ton client Discord.'
+  admin_tree:
+    language: 🌐 Langue
+  staff:
+    unconfigured: Le staff n'est pas configuré ici.
+    apply_registered: Candidature staff **{mod}** enregistrée — les admins sont notifiés.
+    nominated: <@{user_id}> est nommé staff {mod}.
+    no_pending: Aucune candidature en attente pour ce membre.
+    decided: '## 🛡 Candidature staff **{mod}**
+
+      <@{user_id}> — **{verb}** par <@{decided_by}>.'

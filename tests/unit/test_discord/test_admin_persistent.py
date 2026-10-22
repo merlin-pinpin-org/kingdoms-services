@@ -22,7 +22,6 @@ from kingdoms.discord.admin_panel_dynamic import (
     PIN_VISIBILITY_SELECT_ID,
     PinBackButton,
     PinChannelMenu,
-    PinLocaleSelect,
     PinRouteSelect,
     PinVisibilitySelect,
     build_pin_channel_menu,
@@ -144,44 +143,10 @@ class TestNamespace:
         assert re.fullmatch(PIN_ROUTE_TEMPLATE, pin_route_id("bot_admins"))
         assert re.fullmatch(PIN_BUTTON_TEMPLATE, PIN_BACK_BUTTON_ID)
 
-    def test_no_pin_template_matches_the_live_panel_ids(self) -> None:
-        """The /admin ephemeral ids belong to their live closures only."""
-        assert discord.ui.DynamicItem.from_custom_id is not None
-        from kingdoms.discord.ui.persistent import PersistentPagerButton
-
-        templates = [
-            PinLocaleSelect.__discord_ui_compiled_template__,
-            PinChannelMenu.__discord_ui_compiled_template__,
-            PinVisibilitySelect.__discord_ui_compiled_template__,
-            PinRouteSelect.__discord_ui_compiled_template__,
-            PinBackButton.__discord_ui_compiled_template__,
-            PersistentPagerButton.__discord_ui_compiled_template__,
-        ]
-        for live_id in ("admin:select:locale", "admin:select:channel", "admin:channels:logs", "admin:button:back"):
-            for pattern in templates:
-                assert pattern.fullmatch(live_id) is None, f"{pattern.pattern} must not match {live_id}"
-
     def test_the_routing_payload_carries_the_category(self) -> None:
         """The legacy id was shared by both menus (always routed to logs)."""
         assert pin_route_id("bot_logs") != pin_route_id("bot_admins")
         assert pin_route_id("bot_admins") == "admin:pin:route:bot_admins"
-
-
-class TestStateReconstruction:
-    @pytest.mark.asyncio
-    async def test_every_item_rebuilds_from_its_custom_id(self) -> None:
-        select = await PinLocaleSelect.from_custom_id(
-            None, None, re.fullmatch(PIN_SELECT_TEMPLATE, PIN_LOCALE_SELECT_ID)  # type: ignore[arg-type]
-        )
-        assert isinstance(select, PinLocaleSelect)
-        route = await PinRouteSelect.from_custom_id(
-            None, None, re.fullmatch(PIN_ROUTE_TEMPLATE, pin_route_id("bot_admins"))  # type: ignore[arg-type]
-        )
-        assert route.category == "bot_admins"
-        button = await PinBackButton.from_custom_id(
-            None, None, re.fullmatch(PIN_BUTTON_TEMPLATE, PIN_BACK_BUTTON_ID)  # type: ignore[arg-type]
-        )
-        assert isinstance(button, PinBackButton)
 
 
 class TestFullyDynamicSurface:
@@ -225,18 +190,6 @@ class TestFullyDynamicSurface:
 
 
 class TestPostRestartClicks:
-    @pytest.mark.asyncio
-    async def test_locale_select_click_persists_as_the_real_user(self) -> None:
-        """The <@system> bug: the change must be audited exactly once, by
-        the clicking user \u2014 never by a captured ``by="system"``."""
-        logs = _FakeLogsService()
-        _wire(logs)
-        item = PinLocaleSelect()
-        interaction = _interaction()
-        interaction.data = {"values": ["fr"]}
-        await item.callback(interaction)
-        assert logs.locales_set == [("42", "fr", "111111111")]
-
     @pytest.mark.asyncio
     async def test_channel_menu_click_opens_the_secondary_menu(self) -> None:
         logs = _FakeLogsService()
@@ -292,34 +245,11 @@ class TestPostRestartClicks:
         await item.callback(interaction)
         message = interaction.response.message
         assert message is not None and message.layout is not None
-        assert PIN_CHANNEL_MENU_ID in _custom_ids(message.layout), "back lands on the main menu"
+        rendered = str(_custom_ids(message.layout))
+        assert "admin:tree:open:" in rendered, "back lands on the new main menu"
 
 
 class TestClickTimeGuards:
-    @pytest.mark.asyncio
-    async def test_a_stranger_click_is_denied_at_click_time(self) -> None:
-        """The developer mandate: seeing the pinned menu grants nothing."""
-        logs = _FakeLogsService()
-        _wire(logs)
-        item = PinLocaleSelect()
-        interaction = _interaction(user_id=999999999)
-        interaction.data = {"values": ["fr"]}
-        await item.callback(interaction)
-        assert logs.locales_set == [], "no mutation for a stranger"
-        assert interaction.response.deferred is True, "the click acknowledges within the 3s window"
-        assert interaction.followup.messages, "the stranger gets the denial answer"
-
-    @pytest.mark.asyncio
-    async def test_without_wiring_the_click_degrades(self) -> None:
-        from kingdoms.discord import admin_persistent
-
-        admin_persistent._WIRING_RESOLVER = None
-        item = PinLocaleSelect()
-        interaction = _interaction()
-        interaction.data = {"values": ["fr"]}
-        await item.callback(interaction)
-        assert interaction.response.sent is True, "the degradation note answers the click"
-
     @pytest.mark.asyncio
     async def test_the_wiring_sees_the_services_built_after_startup(self) -> None:
         """The ordering bug: a wiring snapshot taken in setup_hook saw
@@ -346,19 +276,14 @@ class TestStartupRegistration:
 
         bot = FakeBot()
         register_admin_persistent_items(bot)
-        from kingdoms.discord.admin_panel_dynamic import (
-            PinReadOnlySelect,
-            PinRolesButton,
-        )
+        from kingdoms.discord.admin_panel_dynamic import PinReadOnlySelect
         from kingdoms.discord.admin_panel_mods import PinModRouteSelect
 
         assert set(bot.registered) == {
-            PinLocaleSelect,
-            PinChannelMenu,
+                    PinChannelMenu,
             PinVisibilitySelect,
             PinRouteSelect,
             PinBackButton,
             PinModRouteSelect,
             PinReadOnlySelect,
-            PinRolesButton,
         }

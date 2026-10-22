@@ -97,11 +97,11 @@ class _MessageSink(Protocol):
     """The subset of a Discord channel/thread used by the registry."""
 
     async def send(self, content: str, **kwargs: Any) -> Any:
-        """Send one message to the channel/thread."""
+        """Send one message page to the sink."""
         ...
 
     async def fetch_message(self, message_id: int) -> Any:
-        """Fetch a previously sent message by id."""
+        """Fetch one previously sent page by its message id."""
         ...
 
 
@@ -159,7 +159,11 @@ class MultiMessageRegistry:
             for page in pages[len(messages) :]:
                 messages.append(await channel.send(page))
         elif len(messages) > len(pages):  # shrank: delete the surplus
+            from kingdoms.discord.pinned_marks import is_pinned_view
+
             for message in messages[len(pages) :]:
+                if is_pinned_view(message):
+                    continue
                 await message.delete()
             messages = messages[: len(pages)]
         ids = [str(m.id) for m in messages]

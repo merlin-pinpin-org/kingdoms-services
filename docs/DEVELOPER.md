@@ -19,6 +19,7 @@ this repo*.
 | `src/kingdoms/core/` | Platform-agnostic core — **no discord.py imports** |
 | `src/kingdoms/discord/` | Discord platform (implements `IPlatform`) |
 | `src/kingdoms/mods/` | Mods (channels categories and roles declared via `ModRegistry`) |
+| `src/kingdoms/modsdk/` | The modder SDK — declarative entities/actions/menus ([docs/DEVELOPMENT/MODSDK.md](DEVELOPMENT/MODSDK.md)) |
 | `config/` | YAML configs, `config/locales/` (i18n), `config/mods/` |
 | `docs/DEVELOPMENT/pydoc/` | Generated technical docs — regenerate with `make docs` (freshness-checked on every PR) |
 | `contracts/` | gRPC contracts between processes (ADR-0020); stubs in `src/kingdoms/rpc_generated/`, regenerated with `make contracts` |

@@ -37,6 +37,7 @@ from typing import Any, cast
 import discord
 
 from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
+from kingdoms.discord.ui.view_footer import add_view_footer
 
 logger = logging.getLogger("kingdoms.mod_admin_channels")
 
@@ -64,13 +65,15 @@ class ModAdminChannelSpec:
     build_season_layout: SeasonLayoutBuilder | None = None
     season_channel_name: str = "🛡-season-admin"
     root_message_key: str = ""
+    root_message_legacy_key: str = ""
     root_marker: str = ""
     root_category: str = ""
 
     def __post_init__(self) -> None:
         """Fill the derived keys (message key, marker, category) when unset."""
         keys = {
-            "root_message_key": f"mod-{self.mod}-admin-menu",
+            "root_message_key": f"view:{self.mod}-admin",
+            "root_message_legacy_key": f"mod-{self.mod}-admin-menu",
             "root_marker": f"admin:{self.mod}:pin:",
             "root_category": f"mod_{self.mod}_admin",
         }
@@ -86,6 +89,7 @@ class ModAdminChannelSpec:
         return f"mod_{self.mod}_guild_category"
 
 
+
 def spec_registry(bot: discord.Client) -> dict[str, ModAdminChannelSpec]:
     """Return the bot's mod spec registry, created on demand."""
     registry = getattr(bot, "mod_admin_channel_specs", None)
@@ -93,11 +97,6 @@ def spec_registry(bot: discord.Client) -> dict[str, ModAdminChannelSpec]:
         registry = {}
         bot.mod_admin_channel_specs = registry  # type: ignore[attr-defined]
     return registry
-
-
-def register_mod_admin_channel(bot: discord.Client, spec: ModAdminChannelSpec) -> None:
-    """Register a mod's admin surfaces; the last registration wins."""
-    spec_registry(bot)[spec.mod] = spec
 
 
 def _root_pin_store(bot: discord.Client) -> dict[tuple[str, str], str]:
@@ -225,38 +224,14 @@ class ModAdminChannelPlatform:
         return str(message.id)
 
 
-def build_mod_admin_channel_service(
-    bot: discord.Client, spec: ModAdminChannelSpec, mongo_uri: str, redis_uri: str
-) -> Any | None:
-    """Wire one mod's root admin channel; None when stores are absent."""
-    if not mongo_uri or not redis_uri:
-        return None
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.managed_channel import ManagedChannelService
-        from kingdoms.core.services.state import StateService
-        from kingdoms.discord.logs_platform import MongoLogsDatabase
-
-        return ManagedChannelService(
-            platform=ModAdminChannelPlatform(bot, spec),
-            database=MongoLogsDatabase(get_async_database()),
-            category=spec.category_label,
-            name=spec.channel_name,
-            state=StateService(redis_uri=redis_uri),
-        )
-    except Exception:
-        logger.exception("%s admin channel wiring failed — panel stays in the bot admin channel", spec.mod)
-        return None
-
-
-async def _resolve_root_message_id(
-    bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str
-) -> str | None:
+async def _resolve_root_message_id(bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str) -> str | None:
     """Resolve the registered root menu id (registry first, memory fallback)."""
     registry = getattr(bot, "message_registry", None)
     if registry is not None:
         try:
             registered = await registry.resolve("discord", spec.root_message_key, guild_id)
+            if registered is None and spec.root_message_legacy_key:
+                registered = await registry.resolve("discord", spec.root_message_legacy_key, guild_id)
             if registered is not None:
                 return str(registered.message_id)
         except Exception:
@@ -287,7 +262,12 @@ async def _register_root_message(
 
 
 async def _registered_menu_lives(bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str, channel: Any) -> bool:
-    """Whether the registered root menu still exists; re-pin when unpinned."""
+    """Whether the registered root menu still exists **and is current**.
+
+    An existing message is edited in place to the current layout revision
+    (a boot with a changed surface must update the pin, not keep the old
+    version); the message id stays stable. Re-pins best-effort.
+    """
     message_id = await _resolve_root_message_id(bot, spec, guild_id)
     if message_id is None:
         return False
@@ -295,6 +275,16 @@ async def _registered_menu_lives(bot: discord.Client, spec: ModAdminChannelSpec,
         message = await channel.fetch_message(int(message_id))
     except Exception:
         return False
+    try:
+        layout = await _build_root_layout(bot, spec, guild_id)
+        await message.edit(view=layout)
+    except Exception:
+        logger.warning(
+            "%s admin menu in-place update failed (message %s) — keeping the old pin",
+            spec.mod,
+            message_id,
+            exc_info=True,
+        )
     try:
         await message.pin(reason=f"kingdoms: pinned {spec.mod} admin menu (mod staff home)")
     except Exception:
@@ -350,7 +340,7 @@ async def _build_root_layout(bot: discord.Client, spec: ModAdminChannelSpec, gui
     """Build the pinned root layout through the mod's registered builder."""
     if spec.build_root_layout is None:
         view: discord.ui.LayoutView = discord.ui.LayoutView(timeout=None)
-        return view
+        return add_view_footer(view, "panel:mod:admin")
     return await spec.build_root_layout(bot, guild_id)
 
 
@@ -374,41 +364,6 @@ async def maintain_pinned_mod_admin_menus(bot: discord.Client) -> None:
         await asyncio.sleep(300)
 
 
-async def ensure_pinned_season_admin_panel(
-    spec: ModAdminChannelSpec, guild: Any, scope: str, channel: Any
-) -> None:
-    """Keep the pinned per-season config panel alive in the season's salon.
-
-    The season admin channel is provisioned by the mod's channels sync
-    (it lives inside the season's category); this helper only keeps the
-    pinned panel alive in it, under a scope-addressed registry key.
-    """
-    if spec.build_season_layout is None or channel is None:
-        return
-
-    class _Delivery:
-        async def deliver(self, channel: object, layout: object) -> str:
-            """Send the layout and return the delivered message id."""
-            message = await channel.send(view=layout)  # type: ignore[attr-defined]
-            return str(message.id)
-
-    async def _build(guild_id: str) -> object:
-        builder = spec.build_season_layout
-        if builder is None:
-            return discord.ui.LayoutView(timeout=None)
-        return await builder(guild.client, guild_id, scope)
-
-    service = PinnedMenuService(cast("Any", _Delivery()))
-    await service.ensure(
-        f"{guild.id}:{scope}",
-        cast("PinnedMenuChannel", channel),
-        marker=f"{spec.root_marker}season:",
-        build_layout=_build,
-        pin_reason=f"kingdoms: pinned {spec.mod} season admin panel (season {scope})",
-    )
-
-
-@dataclass
 class SeasonAdminPanelRef:
     """A resolved season admin channel reference (id-based, never names)."""
 

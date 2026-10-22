@@ -27,6 +27,12 @@ class _FakeMessage:
     content: str = ""
     edits: list[str] = field(default_factory=list)
     embeds: list[object] = field(default_factory=list)
+    author_id: int = 999
+    pinned: bool = False
+
+    async def pin(self, reason: str = "") -> None:
+        """Pin the message (fake)."""
+        self.pinned = True
 
 
 class _FakePartialMessage:
@@ -55,9 +61,14 @@ class _FakeChannel:
         self.name = "📡-live-dashboard"
         self.messages: dict[int, _FakeMessage] = {}
         self.sent: list[_FakeMessage] = []
+        self.guild = _FakeGuildRef(self)
 
     def get_partial_message(self, message_id: int) -> _FakePartialMessage:
         return _FakePartialMessage(self, message_id)
+
+    async def pins(self) -> list[_FakeMessage]:
+        """Return the channel's pinned messages (fake)."""
+        return [m for m in self.messages.values() if m.pinned]
 
     async def send(self, content: str = "", embed: object = None) -> _FakeMessage:
         message = _FakeMessage(id=1000 + len(self.sent), content=content)
@@ -68,16 +79,39 @@ class _FakeChannel:
         return message
 
 
+class _FakeGuildRef:
+    """Minimal guild reference for the channel (me, for author checks)."""
+
+    def __init__(self, channel: _FakeChannel) -> None:
+        self._channel = channel
+        self.me = _FakeMember()
+
+
+class _FakeMember:
+    """Guild.me stand-in (the bot's own member)."""
+
+    id = 999
+
+
 class _FakeGuild:
-    """Guild stand-in resolving the dashboard channel."""
+    """Guild stand-in resolving the dashboard channel by its id."""
 
     def __init__(self, id: int, channel: _FakeChannel) -> None:
         self.id = id
         self._channel = channel
         self.text_channels = [channel]
 
-    async def create_text_channel(self, name: str, reason: str = "") -> _FakeChannel:
-        raise AssertionError("the dashboard channel already exists — must not be recreated")
+    def get_channel(self, channel_id: int) -> _FakeChannel | None:
+        return self._channel if channel_id == self._channel.id else None
+
+
+@pytest.fixture
+def stored_live_channel(monkeypatch: Any) -> None:
+    """Wire the tree's stored id (games/aoe2:live) to the fake channel."""
+    monkeypatch.setattr(
+        "kingdoms.discord.ui.panels_provisioning.stored_channel_id",
+        lambda guild_id, scope, key: _stored(str(guild_id)),
+    )
 
 
 class _FakeBot:
@@ -136,6 +170,19 @@ class _FakeRegistry:
         self.registrations.append(message)
 
 
+_STORED: dict[str, str] = {}
+
+
+def _stored(guild_id: str) -> Any:
+    class _Awaitable:
+        def __await__(self):
+            if False:  # pragma: no cover — keeps this a generator
+                yield
+            return _STORED.get(guild_id)
+
+    return _Awaitable()
+
+
 def _snapshot(state: str) -> dict[str, Any]:
     return {
         "players": [{"user_id": "10", "profile_id": "A", "state": state, "match_ref": "", "since": 0}],
@@ -145,9 +192,10 @@ def _snapshot(state: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_first_refresh_creates_and_registers_the_message() -> None:
+async def test_first_refresh_creates_and_registers_the_message(stored_live_channel) -> None:
     """Without a registered message, one is sent and registered by logical key."""
     channel = _FakeChannel(555)
+    _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     client = _FakeLiveClient(_snapshot("offline"))
     registry = _FakeRegistry()
@@ -162,9 +210,10 @@ async def test_first_refresh_creates_and_registers_the_message() -> None:
 
 
 @pytest.mark.asyncio
-async def test_refresh_edits_in_place_without_spam() -> None:
+async def test_refresh_edits_in_place_without_spam(stored_live_channel) -> None:
     """A registered message is edited in place — no new message is sent."""
     channel = _FakeChannel(555)
+    _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
     await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry)  # type: ignore[arg-type]
@@ -174,13 +223,14 @@ async def test_refresh_edits_in_place_without_spam() -> None:
     assert created is False
     assert len(channel.sent) == 1, "the refresh never adds a message"
     assert channel.sent[0].edits, "the existing message is edited in place"
-    assert "in_lobby" in channel.sent[0].edits[-1]
+    assert "<@10>" in channel.sent[0].edits[-1], "the user line is still rendered"
 
 
 @pytest.mark.asyncio
-async def test_deleted_message_is_recreated_and_reregistered() -> None:
+async def test_deleted_message_is_recreated_and_reregistered(stored_live_channel) -> None:
     """A deleted registered message self-heals: recreated and re-registered."""
     channel = _FakeChannel(555)
+    _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
     await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry)  # type: ignore[arg-type]
@@ -194,7 +244,7 @@ async def test_deleted_message_is_recreated_and_reregistered() -> None:
 
 
 @pytest.mark.asyncio
-async def test_provider_failure_degrades_to_offline_dashboard() -> None:
+async def test_provider_failure_degrades_to_offline_dashboard(stored_live_channel) -> None:
     """With the provider down, the dashboard still renders (degraded)."""
 
     class _BrokenClient:
@@ -202,6 +252,7 @@ async def test_provider_failure_degrades_to_offline_dashboard() -> None:
             raise RuntimeError("core down")
 
     channel = _FakeChannel(555)
+    _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
 

@@ -25,18 +25,34 @@ _GUILD_ACCESS_SERVICE: Any | None = None
 _GUILD_ACCESS_READY = False
 _GUILD_ACCESS_PLATFORM: tuple[str, ...] = ()
 _GUILD_ACCESS_MODS: tuple[str, ...] = ()
+_MOD_REQUIRED_GAMES: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
-def set_guild_access_platform(games: tuple[str, ...], mods: tuple[str, ...]) -> None:
+def set_guild_access_platform(
+    games: tuple[str, ...],
+    mods: tuple[str, ...],
+    mod_required_games: tuple[tuple[str, tuple[str, ...]], ...] = (),
+) -> None:
     """Record the platform's known games and mods (bot build time)."""
-    global _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS
+    global _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS, _MOD_REQUIRED_GAMES
     _GUILD_ACCESS_PLATFORM = tuple(games)
     _GUILD_ACCESS_MODS = tuple(mods)
+    _MOD_REQUIRED_GAMES = tuple(mod_required_games)
 
 
 def guild_access_platform() -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Return the platform's known games and mods (for request pickers)."""
     return _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS
+
+
+def mod_required_games(mod_name: str) -> tuple[str, ...]:
+    """Return the games a mod declared as required (empty when none).
+
+    Recorded at bot build time from the mod registry, next to the
+    platform's games/mods — the request picker uses it to add a mod's
+    games to the guild's request automatically.
+    """
+    return dict(_MOD_REQUIRED_GAMES).get(mod_name, ())
 
 
 def build_guild_access_service() -> Any | None:
@@ -88,6 +104,22 @@ def build_games_service() -> Any | None:
     return _GAMES_SERVICE
 
 
+async def guard_bot_admin(
+    interaction: discord.Interaction,
+    denied_message: str = "Réservé aux bot admins.",
+) -> bool:
+    """Deny non-bot-admins ephemerally; True when the clicker may proceed.
+
+    Strictly the BOT_ADMINS operators — not the guild administrators;
+    for platform-wide catalog surfaces (maps, map pools).
+    """
+    bot = interaction.client
+    admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
+    from kingdoms.discord.guards import require_admin
+
+    return await require_admin(interaction, admins, None, denied_message=denied_message)
+
+
 async def guard_admin(interaction: discord.Interaction, denied_message: str = "Réservé aux admins.") -> bool:
     """Deny non-admins ephemerally; True when the clicker may proceed."""
     from kingdoms.discord.guards import require_admin
@@ -108,37 +140,30 @@ async def guild_category(guild: discord.Guild, name: str, *, create_reason: str 
     category = discord.utils.get(guild.categories, name=name)
     if category is None:
         try:
-            category = await guild.create_category(
-                name, reason=create_reason or f"kingdoms: {name} category"
-            )
+            category = await guild.create_category(name, reason=create_reason or f"kingdoms: {name} category")
         except Exception:
             logger.warning("category creation failed (%s) — best-effort", name, exc_info=True)
             return None
     return category
 
 
-_PROVIDER_MAPPING_SERVICE: Any | None = None
-_PROVIDER_MAPPING_READY = False
+async def granted_game_keys(guild_id: str, catalog_keys: tuple[str, ...] = ()) -> tuple[str, ...]:
+    """List the game keys a guild may provision (access-first).
 
-
-def build_provider_mapping_service() -> Any | None:
-    """Build (and memoize) the ProviderMappingService; None without Mongo."""
-    global _PROVIDER_MAPPING_SERVICE, _PROVIDER_MAPPING_READY
-    if _PROVIDER_MAPPING_READY:
-        return _PROVIDER_MAPPING_SERVICE
-    _PROVIDER_MAPPING_READY = True
-    if not os.environ.get("MONGO_URI"):
-        return None
+    The granted keys drive the channel provisioning: forums are created
+    on the grant even when the catalog is still empty, and fill up as
+    the content arrives. When the access service is unwired the
+    catalog's keys stand in (the open-degradation seam).
+    """
+    service = build_guild_access_service()
+    if service is None:
+        return catalog_keys
     try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.provider_mapping import ProviderMappingService
-        from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
-
-        _PROVIDER_MAPPING_SERVICE = ProviderMappingService(MongoProviderMappingDatabase(get_async_database()))
+        granted = await service.enabled_games(guild_id)
+        return granted if granted else catalog_keys
     except Exception:
-        logger.warning("PROVIDER MAPPING wiring build failed", exc_info=True)
-        return None
-    return _PROVIDER_MAPPING_SERVICE
+        logger.warning("GUILD ACCESS keys read failed (guild %s)", guild_id, exc_info=True)
+        return catalog_keys
 
 
 async def guild_has_game(guild_id: str, game_key: str) -> bool:

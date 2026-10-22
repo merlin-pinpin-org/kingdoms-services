@@ -11,6 +11,11 @@
 #   workflows     list of workflow names implemented by the mod
 #   commands      list of command names implemented by the mod
 #   dependencies  list of mod ids this mod depends on
+#   private       bool (default false); a private mod is provisioned and
+#                 visible only to its owners and the bot admins
+#   owner_discord_ids  list of Discord user ids (mandatory when private:
+#                 the mod's owners, resolved against the roster's
+#                 contributors Discord ids)
 # Channels are addressed at runtime as "mod:key" (e.g. "example:announce").
 id: example
 enabled: false

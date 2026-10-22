@@ -60,16 +60,10 @@ class CatalogTranslator(app_commands.Translator):
 
 
 async def reply_locale(interaction: discord.Interaction) -> str:
-    """Resolve the guild's configured locale for one interaction."""
-    bot = getattr(interaction, "client", None)
-    logs = getattr(bot, "logs_service", None)
-    guild_id = str(getattr(interaction, "guild_id", "") or "")
-    if logs is None or not guild_id:
-        return "en"
-    try:
-        return str(await logs.get_locale(guild_id) or "en")
-    except Exception:
-        return "en"
+    """Resolve the interaction's native Discord locale (guild, else client)."""
+    from kingdoms.discord.locales import interaction_locale
+
+    return interaction_locale(interaction)
 
 
 async def reply(interaction: discord.Interaction, key: str, **kwargs: object) -> str:
@@ -78,5 +72,41 @@ async def reply(interaction: discord.Interaction, key: str, **kwargs: object) ->
     locale = await reply_locale(interaction)
     if catalog is None:
         return key
+    # `replies_shared.*` lives at the catalog root, every other reply key
+    # under `replies` — try the prefixed key first, then the bare one, so
+    # a misplaced section never leaks a dotted key to the user.
     rendered: str = catalog.render(f"replies.{key}", locale, **kwargs)
+    if rendered == f"replies.{key}":
+        rendered = catalog.render(key, locale, **kwargs)
     return rendered
+
+
+async def tr(interaction: discord.Interaction, key: str, fallback: str = "") -> str:
+    """Render one UI label (buttons, selects, titles) in the guild's locale.
+
+    The ``ui.*`` keys carry every component label; the fallback is the
+    English wording, used when the catalog or the key is missing.
+    """
+    catalog = getattr(getattr(interaction, "client", None), "messages", None)
+    if catalog is None:
+        return fallback
+    locale = await reply_locale(interaction)
+    rendered = catalog.render(key, locale)
+    return rendered if rendered != key else fallback
+
+
+async def tr_guild(guild_id: str, bot: object, key: str, fallback: str = "") -> str:
+    """Render one UI label in a guild's native Discord locale.
+
+    The forum syncs and pinned panels build components outside any
+    interaction: the guild's ``preferred_locale`` (Server Settings →
+    Language) drives the render, the English wording is the fallback.
+    """
+    from kingdoms.discord.locales import guild_locale_by_id
+
+    catalog = getattr(bot, "messages", None)
+    if catalog is None or not guild_id:
+        return fallback
+    locale = guild_locale_by_id(bot, str(guild_id))
+    rendered = catalog.render(key, locale)
+    return rendered if rendered != key else fallback

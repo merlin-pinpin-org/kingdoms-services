@@ -52,7 +52,6 @@ logger = logging.getLogger("kingdoms.bot")
 
 READY_LOG_LINE = "KINGDOMS_BOT_READY"
 
-PINNED_MENU_CHECK_INTERVAL = 3600
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +143,8 @@ class KingdomsBot(discord.Client):
         self.status_service = status
         self.registry = registry
         self.logs_service = logs
+        if logs is not None:
+            logs.set_locale_resolver(self._native_guild_locale)
         self.messages = MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
@@ -153,17 +154,13 @@ class KingdomsBot(discord.Client):
         self.permission_service: PermissionService | None = None
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
-        self._pin_task: asyncio.Task[None] | None = None
         self._live_dashboard_task: asyncio.Future[None] | None = None
-        self._maps_forum_task: asyncio.Task[None] | None = None
-        self._pools_forum_task: asyncio.Task[None] | None = None
-        self._factions_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
+        self.role_grants_service: Any | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
         self.identity_service: IdentityService | None = None
         self.home_channel_service: Any | None = None
-        self.staff_service: Any | None = None
         self.home_service: Any | None = None
         self.message_registry: Any | None = None
         self.mod_home_builders: dict[str, Any] = {}
@@ -173,7 +170,7 @@ class KingdomsBot(discord.Client):
         self.season_service: Any | None = None
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
-        self._home_pin_task: asyncio.Task[None] | None = None
+        self.live_client: Any = None
         self.state_service: StateService | None = None
 
     async def setup_hook(self) -> None:
@@ -200,16 +197,27 @@ class KingdomsBot(discord.Client):
         self.add_dynamic_items(ProfileAddAccountButton)
         self.add_dynamic_items(ProfileRemoveAccountButton)
         self.add_dynamic_items(ProfileRenameButton)
-        from kingdoms.discord.admin_panel_games import register_games_admin_items, register_games_admin_section
+        from kingdoms.discord.admin_panel_games import register_games_admin_items
 
-        register_games_admin_section()
         register_games_admin_items(self)
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
-        from kingdoms.discord.guild_access_request import register_guild_access_request_items
+        from kingdoms.discord.admin_tree import register_admin_tree_items
+        from kingdoms.discord.entity_admin_menu import register_entity_admin_items
+        from kingdoms.discord.guild_context import register_guild_context_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
+
         register_pool_flow_items(self)
+        register_entity_admin_items(self)
+        register_guild_context_items(self)
+
         register_admin_dm_items(self)
-        register_guild_access_request_items(self)
+        register_admin_tree_items(self)
+        from kingdoms.discord.views_declared import declare_platform_views
+        from kingdoms.discord.views_routing import register_view_router
+
+        declare_platform_views()
+        self._wire_declared_views()
+        register_view_router(self)
 
         if self.state_service is not None:
             await self.state_service.start()
@@ -219,7 +227,7 @@ class KingdomsBot(discord.Client):
             logger.info("REGISTRATION ENGINE STARTED (workflow store connected)")
         if getattr(self, "_home_pin_pending", False):
             self._home_pin_pending = False
-            self._home_pin_task = asyncio.create_task(_maintain_pinned_home_menu(self))
+    
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -242,7 +250,7 @@ class KingdomsBot(discord.Client):
             deploy_env=self.config.deploy_env,
             enabled=announce_enabled,
             thumbnail_url=self.user.display_avatar.url if self.user else "",
-            locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
+            locale_resolver=self._native_guild_locale if self.logs_service is not None else None,
             commands=self.tree.get_commands(),
             sync_scope=self._sync_scope(),
         )
@@ -257,19 +265,16 @@ class KingdomsBot(discord.Client):
 
         register_pin_refreshers(self)
         if announce_enabled:
-            self._provision_task = asyncio.create_task(self._provision_default_channels())
-            self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
-            from kingdoms.core.services.entity_forum import start_entity_forum_sync
+            self._provision_task = asyncio.create_task(self._boot_route_channels())
+            from kingdoms.core.services.entity_forum import register_entity_forum_sync
             from kingdoms.discord.factions_forum import factions_forum_spec
-            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
-            from kingdoms.discord.pools_forum import start_pools_forum_sync
+            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, register_maps_forum_sync
+            from kingdoms.discord.pools_forum import register_pools_forum_sync
 
             if maps_forum_wiring_ready():
-                self._maps_forum_task = start_maps_forum_sync(self)
-                self._pools_forum_task = start_pools_forum_sync(self)
-                self._factions_forum_task = start_entity_forum_sync(
-                    self, factions_forum_spec(self), startup_delay_s=20
-                )
+                register_maps_forum_sync()
+                register_pools_forum_sync()
+                register_entity_forum_sync(factions_forum_spec(self))
             from kingdoms.core.services.mod_entrypoint import run_mod_hook
 
             if self.registry is not None:
@@ -296,47 +301,112 @@ class KingdomsBot(discord.Client):
         guild_id = self.config.sync_guild_id.strip()
         return f"guild {guild_id}" if guild_id.isdigit() else "global"
 
-    async def _provision_default_channels(self) -> None:
-        """Create the default channels (🛰-bot-logs, 🛡-bot-admins) where missing.
+    async def _boot_route_channels(self) -> None:
+        """Route the managed services onto the tree's stored ids (no creation).
 
-        Both resolutions are idempotent (cache-aside: Redis → MongoDB →
-        adoption → creation), so a guild already provisioned costs one
-        cache read. The transparency contract rides along on the admin
-        channel (role provisioned, BOT_ADMINS synced in). Silenced by
-        KINGDOMS_ANNOUNCE_ENABLED=0: the CI/CD smoke bot boots against
-        the shared guilds and must never touch their channels.
+        The boot never creates or recreates a channel: a guild member
+        who deletes a salon owns that decision. The stored resolutions
+        route the services; a deleted salon simply degrades (its id is
+        stale) until an admin runs the scope's Synchroniser — the only
+        provisioning entry point.
         """
         if self._provisioned:
             return
-        if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
-            logger.info("DEFAULT CHANNEL provisioning skipped: announcements disabled (CI/CD smoke bot?)")
-            self._provisioned = True
-            return
         self._provisioned = True
-        admin_ids = self.status_service.bot_admins
+        # declare the scopes (views.yaml): the registry drives the sync
+        # buttons and the pins — a declaration, never a creation
+        try:
+            from kingdoms.discord.ui.panels_scopes import register_platform_scopes
+
+            register_platform_scopes()
+        except Exception:
+            logger.warning("SCOPE REGISTRATION failed — best-effort", exc_info=True)
+        if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
+            logger.info("BOOT ROUTING skipped: announcements disabled (CI/CD smoke bot?)")
+            return
         for guild in list(self.guilds):
             guild_id = str(guild.id)
-            if self.logs_service is not None:
-                try:
-                    await self.logs_service.resolve_channel(guild_id)
-                except Exception:
-                    logger.warning("LOGS CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True)
-            if self.admin_channel_service is not None:
-                try:
-                    await self.admin_channel_service.resolve_channel(guild_id, admin_ids)
-                except Exception:
-                    logger.warning(
-                        "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
-                    )
-            if self.channel_service is not None and self.mod_roles_service is not None and self.registry is not None:
-                await self._provision_mods(
-                    guild_id,
-                    channel_service=self.channel_service,
-                    mod_roles_service=self.mod_roles_service,
-                    registry=self.registry,
-                )
-            logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
-            await self._audit_channel_drift(guild_id)
+            await self._route_managed_channels(guild_id)
+            await self._sync_tree_surfaces(guild_id, guild)
+            logger.info("BOOT ROUTING done (guild %s) — nothing created", guild_id)
+
+    async def _route_managed_channels(self, guild_id: str) -> None:
+        """Route the managed services onto the tree's stored channel ids.
+
+        The tree is the source of truth: once it provisioned ``bot/logs``
+        and ``bot/admin``, the managed services (logs, admin) must point
+        at those channels — their name-based adoption/creation fallback
+        would otherwise keep resurrecting the pre-tree channels (the
+        autoheal loop). Best-effort: a service without a tree channel
+        keeps its own resolution (the degraded, tree-less path).
+        """
+        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+        try:
+            logs_id = await stored_channel_id(guild_id, "bot", "logs")
+            if logs_id and self.logs_service is not None:
+                await self.logs_service.set_channel(guild_id, logs_id, by="channel-tree")
+            admin_id = await stored_channel_id(guild_id, "bot", "admin")
+            if admin_id and self.admin_channel_service is not None:
+                await self.admin_channel_service.set_channel(guild_id, admin_id, self.status_service.bot_admins)
+            home_id = await stored_channel_id(guild_id, "root", "general")
+            home_service = getattr(self, "home_channel_service", None)
+            if home_id and home_service is not None:
+                await home_service.set_channel(guild_id, home_id)
+        except Exception:
+            logger.warning(
+                "MANAGED CHANNEL routing failed (guild %s) — best-effort",
+                guild_id,
+                exc_info=True,
+            )
+
+    async def _sync_tree_surfaces(self, guild_id: str, guild: discord.Guild) -> None:
+        """Fill the freshly provisioned tree: forums sync, pins land, now.
+
+        The provisioning owns the channels; this pass owns the content:
+        the forum syncs (maps, pools, civs) and the section pins run
+        right after the tree exists, on a virgin guild. Best-effort throughout.
+        """
+        del guild
+        try:
+            from kingdoms.core.services.entity_forum import sync_entity_forum
+            from kingdoms.discord.factions_forum import factions_forum_spec
+            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, sync_maps_forum
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            self._register_scope_pins()
+            await self._ensure_all_pins(guild_id)
+            if not maps_forum_wiring_ready():
+                return
+            from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
+
+            try:
+                await refresh_aoe2_content()
+            except Exception:
+                logger.warning("CONTENT REFRESH at boot failed — best-effort", exc_info=True)
+            await sync_maps_forum(guild_id, "aoe2", self)
+            await sync_pools_forum(guild_id, self)
+            await sync_entity_forum(guild_id, self, factions_forum_spec(self))
+            logger.info("CHANNEL TREE surfaces synced (guild %s)", guild_id)
+        except Exception:
+            logger.warning(
+                "CHANNEL TREE surface sync failed (guild %s) — best-effort",
+                guild_id,
+                exc_info=True,
+            )
+
+    def _native_guild_locale(self, guild_id: str) -> str:
+        """Resolve a guild's native Discord locale (Server Settings language)."""
+        from kingdoms.discord.locales import guild_locale_by_id
+
+        return guild_locale_by_id(self, str(guild_id))
+
+    def _translate_panel_label(self, key: str, locale: str) -> str:
+        """Render one panels label key in the guild's locale (fallback EN)."""
+        if self.messages is None:
+            return key
+        rendered = self.messages.render(key, locale)
+        return rendered if rendered != key else self.messages.render(key, "en")
 
     async def _audit_channel_drift(self, guild_id: str) -> None:
         """Audit declared policies vs runtime overwrites; log the drift (#57).
@@ -363,76 +433,240 @@ class KingdomsBot(discord.Client):
         except Exception:
             logger.warning("CHANNEL AUDIT failed (guild %s) — best-effort", guild_id, exc_info=True)
 
-    async def _maintain_pinned_menus(self) -> None:
-        """Keep the pinned admin menu alive in every guild (self-healing).
+    async def _resolve_admin_pin_channel(self, guild_id: str) -> str | None:
+        """Resolve the tree's ``bot/admin`` (stored id only)."""
+        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
-        The admin channel hosts a permanent pinned menu: the same
-        panel as /admin, guarded at click time. The periodic check
-        re-creates it when it disappears (unpinned, deleted, channel
-        re-provisioned) — the surface never depends on an admin
-        remembering to type the command.
+        return await stored_channel_id(guild_id, "bot", "admin")
+
+    async def _register_pinned_menus(self: KingdomsBot) -> None:
+        """Declare every pinned menu once at boot.
+
+        Every menu (home, admin, scopes) is declared through the views
+        registry (config/views.yaml): the scope pins own root/general,
+        bot/admin and every scope folder. No legacy pinned menu
+        remains — one declaration source, one builder.
         """
-        from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
+    def _games_section_pin_specs(self: KingdomsBot, game_key: str) -> list[Any]:
+        """Build the per-forum section pins for one game (aoe2).
 
-        await asyncio.sleep(5)
-        while True:
-            for guild in list(self.guilds):
-                if self.logs_service is None:
-                    break
-                try:
-                    await ensure_pinned_admin_menu(
-                        self,
-                        str(guild.id),
-                        self.logs_service,
-                        self.roles_service,
-                        self.admin_channel_service,
-                        self.status_service.bot_admins,
-                        self.messages,
-                    )
-                except Exception:
-                    logger.warning("PINNED ADMIN MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
-            await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
-
-    async def _provision_mods(
-        self,
-        guild_id: str,
-        channel_service: ChannelService,
-        mod_roles_service: ModRolesService,
-        registry: ModRegistry,
-    ) -> None:
-        """Provision channels and roles for the guild's granted mods (best-effort, idempotent).
-
-        Nothing is active by default: only the mods the guild was
-        granted through the access service (bot-admin DM approval) are
-        provisioned — the per-guild activation seam.
+        One pinned post per forum — civs, maps, map pools — each
+        carrying its section's own buttons (the same views the admin
+        panel renders inline). The pins follow the view:<game>-<section>
+        registry keys; a deleted forum is recreated by the sync button
+        and the pin follows in the same pass.
         """
-        from kingdoms.discord.wiring import build_guild_access_service
+        from kingdoms.discord.static_pins import StaticPinnedView
 
-        access = build_guild_access_service()
-        if access is not None:
+        def _resolve_forum(channel_key: str) -> Any:
+            async def _resolve(guild_id: str) -> str | None:
+                from kingdoms.discord.admin_panel_dynamic import _panel_client_ref
+                from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+                client = _panel_client_ref()
+                guild = client.get_guild(int(guild_id)) if client and guild_id.isdigit() else None
+                if guild is None:
+                    return None
+                stored = await stored_channel_id(guild_id, f"games/{game_key}", channel_key)
+                if stored and stored.isdigit():
+                    channel = guild.get_channel(int(stored))
+                    if channel is not None:
+                        return str(channel.id)
+                return None
+
+            return _resolve
+
+        async def _build_civs(guild_id: str) -> Any:
+            from kingdoms.discord.admin_panel_games import civs_section_layout
+
+            return await civs_section_layout(game_key, guild_id)
+
+        async def _build_maps(guild_id: str) -> Any:
+            from kingdoms.discord.admin_panel_games import maps_section_layout
+
+            return await maps_section_layout(game_key, guild_id)
+
+        async def _build_pools(guild_id: str) -> Any:
+            from kingdoms.discord.admin_panel_games import pools_section_layout
+
+            return await pools_section_layout(game_key, guild_id)
+
+        return [
+            StaticPinnedView(
+                key=f"view:{game_key}:civs",
+                mark_suffix=f"view:{game_key}:civs",
+                resolve_channel=_resolve_forum("civs"),
+                build_layout=_build_civs,
+                registry=getattr(self, "message_registry", None),
+                scope=f"games/{game_key}",
+            ),
+            StaticPinnedView(
+                key=f"view:{game_key}:maps",
+                mark_suffix=f"view:{game_key}:maps",
+                resolve_channel=_resolve_forum("maps"),
+                build_layout=_build_maps,
+                registry=getattr(self, "message_registry", None),
+                scope=f"games/{game_key}",
+            ),
+            StaticPinnedView(
+                key=f"view:{game_key}:pools",
+                mark_suffix=f"view:{game_key}:pools",
+                resolve_channel=_resolve_forum("map-pools"),
+                build_layout=_build_pools,
+                registry=getattr(self, "message_registry", None),
+                scope=f"games/{game_key}",
+            ),
+        ]
+
+    async def _ensure_pinned_menus(self: KingdomsBot, guild_id: str) -> None:
+        """Ensure every declared pinned menu exists (the game sections).
+
+        The home/admin/scope menus ensure through the declared pins
+        (the registry); this pass covers the per-forum game sections.
+        """
+        await self._ensure_section_pins(guild_id)
+
+    def _register_scope_pins(self: KingdomsBot) -> None:
+        """Declare every scope's home and admin pins (idempotent)."""
+        from kingdoms.discord.scope_pins import register_scope_pins
+
+        self._scope_pins = register_scope_pins(self, ("root", "bot", "games", "games/aoe2", "mods"))
+
+    async def _ensure_all_pins(self: KingdomsBot, guild_id: str) -> None:
+        """Ensure every registered static pin lives in its channel (now).
+
+        The boot's surface pass: home pins, admin pins, section pins —
+        all created or refreshed synchronously, best-effort each.
+        """
+        from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+        for spec in registered_static_pins():
             try:
-                granted = await access.enabled_mods(guild_id)
+                await ensure_static_pin(self, spec, guild_id)
             except Exception:
-                logger.warning("GUILD ACCESS read failed (guild %s) — best-effort", guild_id, exc_info=True)
-                return
-            if not granted:
-                logger.info("MODS SKIPPED (guild %s) — no access granted yet", guild_id)
-                return
-        for mod_name, definition in registry.enabled().items():
-            if access is not None and mod_name not in granted:
-                continue
-            try:
-                await channel_service.setup_mod_channels(guild_id, mod_name)
-                await mod_roles_service.setup_mod_roles(guild_id, mod_name)
-                logger.info(
-                    "MOD %s provisioned (guild %s, %d channels, %d roles)",
-                    mod_name,
+                logger.warning(
+                    "PIN ensure failed (%s, guild %s) — best-effort",
+                    spec.key,
                     guild_id,
-                    len(definition.channel_categories),
-                    len(definition.roles),
+                    exc_info=True,
                 )
+
+    async def _ensure_section_pins(self: KingdomsBot, guild_id: str) -> None:
+        """Ensure the games section pins exist in their forums (best-effort)."""
+        from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+        for spec in registered_static_pins():
+            if spec.key.startswith("view:aoe2:"):
+                try:
+                    await ensure_static_pin(self, spec, guild_id)
+                except Exception:
+                    logger.warning(
+                        "GAMES SECTION PIN check failed (%s, guild %s) — best-effort",
+                        spec.key,
+                        guild_id,
+                        exc_info=True,
+                    )
+
+    async def _mod_privacy_satisfied(self, definition: Any, guild: discord.Guild | None) -> bool:
+        """Place a private mod only where an owner or a bot admin is a member."""
+        if guild is None:
+            return False
+        bot_admins = set(getattr(self.status_service, "bot_admins", ()) or ())
+        allowed = bot_admins | set(definition.owner_ids)
+        try:
+            members = await guild.chunk() if not guild.chunked else guild.members
+        except Exception:
+            members = guild.members
+        return any(str(m.id) in allowed for m in members)
+
+    # Real-time watching of channels/posts/pins is gone: the sync
+    # buttons own the healing (on demand, one click). Deleted channels,
+    # posts and pinned views come back on the next "Synchroniser" of
+    # their scope — no background sweep, nothing in a loop.
+
+    def _wire_declared_views(self) -> None:
+        """Wire the declared views and actions (the router's targets).
+
+        Navigation: one handler per declared panel; menus render from
+        the registry alone. Actions: the declared behavior ids map to
+        the existing DynamicItem flows (the map/pool creation modals),
+        guarded exactly like their original buttons.
+        """
+        from kingdoms.discord import home
+        from kingdoms.discord.views_routing import wire_action, wire_view
+
+        wire_view("panel:profile", home._view_profile)
+        wire_view("panel:status", home._view_status)
+        wire_view("panel:game:aoe2:live", home._view_live)
+        wire_view("panel:game:aoe2:players", home._view_users_for_game("aoe2"))
+
+        async def _import_map(interaction: discord.Interaction) -> None:
+            """Open the Liquipedia import (name/URL/ID, local fallback)."""
+            from kingdoms.discord.admin_panel_games import GamesMapImportButton
+
+            item = GamesMapImportButton("aoe2")
+            await item.callback(interaction)
+
+        async def _bulk_import_map(interaction: discord.Interaction) -> None:
+            """Open the multiline bulk import (one map per line)."""
+            from kingdoms.discord.maps_pool_flow import _guard_admin
+
+            if not await _guard_admin(interaction):
+                return
+            from kingdoms.discord.admin_panel_games import GamesBulkImportModal
+
+            await interaction.response.send_modal(GamesBulkImportModal("aoe2"))
+
+        async def _create_pool(interaction: discord.Interaction) -> None:
+            from kingdoms.discord.admin_panel_games import GamesPoolCreateButton
+
+            item = GamesPoolCreateButton("aoe2")
+            await item.callback(interaction)
+
+        async def _set_language(interaction: discord.Interaction) -> None:
+            """Open the guild language picker (the stored choice wins)."""
+            from kingdoms.discord.views_routing import LanguageModal
+
+            current = ""
+            if interaction.guild_id is not None and self.logs_service is not None:
+                try:
+                    current = await self.logs_service.get_locale(str(interaction.guild_id))
+                except Exception:
+                    current = ""
+            await interaction.response.send_modal(
+                LanguageModal("Langue / Language", guild_scoped=True, current=current)
+            )
+
+        wire_action("menu:admin", "set-language", _set_language)
+        wire_action("menu:game:aoe2:admin", "import-map", _import_map)
+        wire_action("menu:game:aoe2:admin", "bulk-import-map", _bulk_import_map)
+        wire_action("menu:game:aoe2:admin", "create-pool", _create_pool)
+
+    async def on_interaction(self, interaction: discord.Interaction) -> None:
+        """Observe the clicker's Discord client language (best-effort).
+
+        Discord exposes a user's language only inside interactions;
+        the interaction-free DMs (boot status, crash reports) render
+        in the language the user was last seen using.
+        """
+        if self.logs_service is None:
+            return
+        from kingdoms.discord.locales import normalize
+
+        locale = normalize(getattr(interaction, "locale", None))
+        user_id = str(getattr(getattr(interaction, "user", None), "id", "") or "")
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        except_logger = logger.debug
+        if user_id:
+            try:
+                await self.logs_service.observe_user_locale(user_id, locale)
             except Exception:
-                logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
+                except_logger("user locale observation failed (user %s)", user_id, exc_info=True)
+        if guild_id and user_id:
+            try:
+                await self.logs_service.observe_guild_member_locale(guild_id, user_id, locale)
+            except Exception:
+                except_logger("guild member locale observation failed (guild %s)", guild_id, exc_info=True)
 
     async def on_tree_error(
         self,
@@ -470,12 +704,10 @@ class KingdomsBot(discord.Client):
         )
 
     async def _locale_for(self, interaction: discord.Interaction) -> str:
-        """Resolve the answering locale: the guild's, or the user's in DM."""
-        if self.logs_service is None:
-            return "en"
-        if interaction.guild_id is not None:
-            return await self.logs_service.get_locale(str(interaction.guild_id))
-        return await self.logs_service.get_user_locale(str(interaction.user.id))
+        """Resolve the answering locale: the guild's, or the client's in DM."""
+        from kingdoms.discord.locales import interaction_locale
+
+        return interaction_locale(interaction)
 
     async def crash_report(self, interaction: discord.Interaction, exc: BaseException) -> None:
         """Report a component-callback failure to bot-logs + BOT_ADMINS DMs.
@@ -515,7 +747,9 @@ class KingdomsBot(discord.Client):
         """Log the stop lifecycle event, then close the gateway connection."""
         if self.logs_service is not None:
             for guild in self.guilds:
-                locale = await self.logs_service.get_locale(str(guild.id))
+                from kingdoms.discord.locales import guild_locale
+
+                locale = guild_locale(guild)
                 event = LifecycleEvent(
                     kind="stop",
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
@@ -528,9 +762,6 @@ class KingdomsBot(discord.Client):
                 run_mod_hook(self, mod_name, "close")
         for task in (
             self._live_dashboard_task,
-            self._maps_forum_task,
-            self._pools_forum_task,
-            self._factions_forum_task,
         ):
             if task is not None:
                 task.cancel()
@@ -576,8 +807,14 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
     bot.state_service = shared_state
     bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
+    # the freshly built service carries the native-locale resolver: the
+    # constructor's wiring died with the placeholder service (the 2026-10-20
+    # English-autopin bug — the resolver must bind the real service).
+    if bot.logs_service is not None:
+        bot.logs_service.set_locale_resolver(bot._native_guild_locale)
     roles_service = _build_roles_service(resolved, bot, state=shared_state)
     bot.roles_service = roles_service
+    bot.role_grants_service = _build_role_grants_service(resolved)
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service, state=shared_state)
     bot.admin_channel_service = admin_channel_service
     channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry, state=shared_state)
@@ -592,9 +829,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
-    register_status_command(
-        bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
-    )
+    register_status_command(bot.tree, status, sync_target=sync_target, catalog=bot.messages)
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine
@@ -607,7 +842,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
-
 
     class _DiscordModHomeViews:
         """Bridge the bot's mod home builders onto the HomeService seam."""
@@ -622,12 +856,16 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.home_service = HomeService(registry, _DiscordModHomeViews(bot.mod_home_builders))
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
-    register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
-    bot.staff_service = _build_staff_service(resolved, bot, admin_channel_service)
-    if bot.staff_service is not None:
-        from kingdoms.discord.staff import register_staff_surface
+    import os as _os
 
-        register_staff_surface(bot.tree, bot)
+    _core_uri = _os.environ.get("CORE_URI", "")
+    if _core_uri:
+        from kingdoms.core.rpc.live import LiveClient
+
+        bot.live_client = LiveClient(_core_uri)
+    else:
+        bot.live_client = None
+    register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
     if home_channel_service is not None:
         bot._home_pin_pending = True
     register_registration_command(
@@ -649,7 +887,11 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     from kingdoms.core.services.mod_entrypoint import register_mod
     from kingdoms.discord.wiring import set_guild_access_platform
 
-    set_guild_access_platform(games, tuple(registry.enabled()))
+    set_guild_access_platform(
+        games,
+        tuple(registry.enabled()),
+        tuple((name, definition.required_games) for name, definition in registry.enabled().items()),
+    )
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
     return bot
@@ -672,56 +914,12 @@ def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
     return asyncio.create_task(_run())
 
 
-def _build_staff_database(config: BotConfig) -> Any | None:
-    """Wire the staff persistence (Mongo); None unwired."""
-    if not config.mongo_uri:
-        return None
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.discord.staff_platform import MongoStaffDatabase
-
-        return MongoStaffDatabase(get_async_database())
-    except Exception:
-        return None
-
-
-def _build_staff_service(
-    config: BotConfig,
-    bot: KingdomsBot,
-    admin_channel_service: AdminChannelService | None,
-) -> Any | None:
-    """Wire the staff service: persistence + the admin-channel notice seam."""
-    database = _build_staff_database(config)
-    if database is None:
-        return None
-    from kingdoms.core.services.staff import StaffEvents, StaffService
-    from kingdoms.discord.staff import build_staff_notice
-
-    class _AdminNoticeEvents(StaffEvents):
-        """Deliver the staff notices to the guild's admin channel."""
-
-        async def notify_admins(self, message: str, payload: dict[str, Any]) -> None:
-            """Forward an admin notification into the guild admin salon."""
-            guild_id = str(payload.get("guild_id", ""))
-            if not guild_id or admin_channel_service is None:
-                return
-            user_id = str(payload.get("user_id", ""))
-            mod = str(payload.get("mod", ""))
-            if payload.get("kind") == "staff.applied" and user_id:
-                await admin_channel_service.deliver(
-                    guild_id,
-                    build_staff_notice(mod, user_id, str(payload.get("message", ""))),
-                    tuple(bot.status_service.bot_admins),
-                )
-
-    return StaffService(database, _AdminNoticeEvents())
-
 
 def _build_home_channel_service(
     config: BotConfig,
     bot: KingdomsBot,
 ) -> Any | None:
-    """Wire the 🏛-kingdoms-home managed channel (cache-aside like the admin channel).
+    """Wire the 🏛-home managed channel (cache-aside like the admin channel).
 
     Returns None when the stores are not configured: the home degrades
     to the /home command only.
@@ -739,7 +937,7 @@ def _build_home_channel_service(
             platform=DiscordHomeChannelPlatform(bot),
             database=MongoLogsDatabase(get_async_database()),
             category="bot_home",
-            name="🏛-kingdoms-home",
+            name="🏛-home",
             state=StateService(redis_uri=config.redis_uri),
         )
     except Exception:
@@ -770,20 +968,6 @@ def _build_home_provider(config: BotConfig) -> Any | None:
         return LibrematchAdapter(api_key=os.environ.get("AOE2_API_KEY", ""))
     except Exception:
         return None
-
-
-async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
-    """Keep the pinned home menu alive in every guild (self-healing)."""
-    from kingdoms.discord.home import ensure_pinned_home_menu
-
-    await asyncio.sleep(5)
-    while True:
-        for guild in list(bot.guilds):
-            try:
-                await ensure_pinned_home_menu(bot, str(guild.id))
-            except Exception:
-                logger.warning("PINNED HOME MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
-        await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
 
 def _build_permission_service(
@@ -891,6 +1075,23 @@ def _build_shared_state(config: BotConfig) -> StateService | None:
     if not config.redis_uri:
         return None
     return StateService(redis_uri=config.redis_uri)
+
+
+def _build_role_grants_service(config: BotConfig) -> Any | None:
+    """Wire the per-guild role-grant mappings; None without Mongo."""
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.role_grants import (
+            MongoRoleGrantsDatabase,
+            RoleGrantsService,
+        )
+
+        return RoleGrantsService(MongoRoleGrantsDatabase(get_async_database()))
+    except Exception:
+        logger.exception("ROLE GRANTS SERVICE WIRING FAILED — role mapping disabled")
+        return None
 
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:

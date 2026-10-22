@@ -20,7 +20,7 @@ from discord import app_commands
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.registration import RegistrationService
 from kingdoms.core.services.workflow import WorkflowEngine
-from kingdoms.discord.commands_i18n import localized, reply
+from kingdoms.discord.commands_i18n import reply
 
 logger = logging.getLogger("kingdoms.registration")
 
@@ -64,7 +64,7 @@ class RegistrationConfirmButton(
         workflow_id = _active_workflow_id(interaction.user.id)
         if workflow_id is None:
             await interaction.response.send_message(
-                "No enrollment in progress — start again with /register.", ephemeral=True
+                "Aucune inscription en cours — recommence avec /register.", ephemeral=True
             )
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -102,7 +102,7 @@ class ProfileIdModal(discord.ui.Modal, title="AoE2 profile"):
         workflow_id = _active_workflow_id(interaction.user.id)
         if workflow_id is None:
             await interaction.response.send_message(
-                "No enrollment in progress — start again with /register.", ephemeral=True
+                "Aucune inscription en cours — recommence avec /register.", ephemeral=True
             )
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -117,11 +117,11 @@ class ProfileIdModal(discord.ui.Modal, title="AoE2 profile"):
         if state.status == "COMPLETED":
             _clear_active(interaction.user.id)
             await interaction.followup.send(
-                f"Enrolled! Your AoE2 profile `{state.payload.get('binding', '')}` is linked — you can join the ladder.",  # noqa: E501
+                f"Inscription terminée ! Ton profil AoE2 `{state.payload.get('binding', '')}` est lié — tu peux rejoindre le ladder.",  # noqa: E501
                 ephemeral=True,
             )
             return
-        await interaction.followup.send("Unexpected flow state — restart with /register.", ephemeral=True)
+        await interaction.followup.send("État inattendu — recommence avec /register.", ephemeral=True)
 
 
 def _profile_prompt_view() -> discord.ui.View:
@@ -171,7 +171,11 @@ def register_registration_command(
     catalog: MessageCatalog | None = None,
     bot: discord.Client | None = None,
 ) -> None:
-    """Register /register and the persistent confirm buttons.
+    """Register the persistent confirm buttons (no /register command).
+
+    The profile binding lives in the home profile menu since 2026-10-16
+    (/home > Profil) — the DM enrollment workflow and its confirm buttons
+    stay for the sessions that still ride them.
 
     ``engine``/``registration`` may be None in local runs — the command
     then answers with a note instead of failing.
@@ -179,46 +183,6 @@ def register_registration_command(
     set_registration_wiring(engine, registration)
     if bot is not None:
         bot.add_dynamic_items(RegistrationConfirmButton)
-
-    @tree.command(
-        name=localized("commands.register_name", "register"),
-        description=localized(
-            "commands.register_description", "Link your AoE2 profile to your account (DM enrollment)"
-        ),
-    )
-    async def register_command(interaction: discord.Interaction) -> None:
-        """Start the DM enrollment workflow."""
-        if engine is None or registration is None:
-            await interaction.response.send_message(await reply(interaction, "unavailable_deploy"), ephemeral=True)
-            return
-        existing = await registration.get_binding(str(interaction.user.id), "aoe2")
-        if existing is not None:
-            await interaction.response.send_message(
-                f"You are already enrolled — profile `{existing.get('profile_id')}` is linked.",
-                ephemeral=True,
-            )
-            return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        workflow_id = await engine.start_workflow(
-            "registration",
-            guild_id=str(interaction.guild_id or "dm"),
-            user_id=str(interaction.user.id),
-            context={"user_id": str(interaction.user.id)},
-        )
-        _ACTIVE[interaction.user.id] = workflow_id
-        dm = await interaction.user.create_dm()
-        view = discord.ui.View(timeout=None)
-        view.add_item(RegistrationConfirmButton("accept"))
-        view.add_item(RegistrationConfirmButton("decline"))
-        await dm.send(
-            content=(
-                "🏰 **Kingdoms enrollment**\n"
-                "Link your game profile to join.\n\n"
-                "Confirm to continue, or cancel. You can restart anytime with /register."
-            ),
-            view=view,
-        )
-        await interaction.followup.send("I sent you a DM — confirm your enrollment there.", ephemeral=True)
 
 
 _ERROR_MESSAGES = {
