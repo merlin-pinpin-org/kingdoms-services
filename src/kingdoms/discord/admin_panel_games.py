@@ -433,42 +433,20 @@ async def _finish_pool_transition(
     interaction: discord.Interaction,
     pool: Any,
     *,
-    answer_menu: bool = True,
-    origin: Any = None,
     sync_members: bool = True,
 ) -> None:
-    """After a pool mutation: edit the ORIGINAL menu in place, sync after.
+    """After a pool mutation: refresh the pool's mirror post.
 
-    The ephemeral contract: the lifecycle buttons capture the menu's
-    (webhook, message id) at click time (or their modal does) and THAT
-    message is edited with the fresh view through the interaction
-    webhook — an ephemeral answers 404 to the REST channel route, and
-    a followup copy is the forbidden shape. The forum post follows
-    through the refresh (the post is only a mirror of the database
-    record), after the ack.
+    The menu was already edited in place by the caller (the ephemeral
+    contract: the click's own response edits it — a followup copy is
+    the forbidden shape). The forum post follows through the targeted
+    refresh (the post is only a mirror of the database record), after
+    the ack.
 
     ``sync_members=False`` skips the member map posts' refresh: a
     rename changes nothing on them (the pool links are raw URLs, no
     frozen label), so their PATCH would burn budget for nothing.
     """
-    if answer_menu:
-        view = await _pool_admin_menu(pool.id, pool.game_key)
-        if origin is not None:
-            from kingdoms.discord.ephemeral import edit_ephemeral
-
-            landed = await edit_ephemeral(origin, view)
-            if not landed:
-                try:
-                    await interaction.followup.send(
-                        "Menu non rafraîchi — rouvre-le pour voir l'état actuel.",
-                        ephemeral=True,
-                    )
-                except Exception:
-                    logger.warning("pool menu fallback answer failed — best-effort", exc_info=True)
-        elif interaction.response.is_done():
-            await interaction.followup.send(view=view, ephemeral=True)
-        else:
-            await interaction.response.edit_message(view=view)
     if interaction.guild_id is not None:
         try:
             from kingdoms.discord.pools_forum import refresh_pool_post
@@ -514,29 +492,23 @@ class GamesPoolRenameButton(
         if not self.pool_id:
             await interaction.response.send_message("Pool introuvable - rouvre l'editeur.", ephemeral=True)
             return
-        from kingdoms.discord.ephemeral import EphemeralOrigin
-
-        await interaction.response.send_modal(
-            GamesPoolRenameModal(self.pool_id, origin=EphemeralOrigin.capture(interaction))
-        )
+        await interaction.response.send_modal(GamesPoolRenameModal(self.pool_id))
 
 
 class GamesPoolRenameModal(discord.ui.Modal):
     """The pool rename form."""
 
-    def __init__(self, pool_id: str, origin: Any = None) -> None:
+    def __init__(self, pool_id: str) -> None:
         self.pool_id = pool_id
-        self.origin = origin
         super().__init__(title="Renommer le pool", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="New name", max_length=64, required=True)
         self.add_item(self.name)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Ack first, rename, sync, confirm (the sync is slow — never past the 3s window)."""
-        await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
@@ -544,15 +516,16 @@ class GamesPoolRenameModal(discord.ui.Modal):
             pool = await service.update_map_pool(self.pool_id, name=str(self.name.value).strip())
         except Exception:
             logger.exception("GAMES ADMIN: pool rename failed")
-            await interaction.followup.send("Renommage échoué (voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                "Renommage échoué (voir les logs).", ephemeral=True
+            )
             return
-        # confirm FIRST (the answer never waits on the channel's budget),
-        # then the sync edits the post's title and layout right behind —
-        # the rename is visible on the post within the same breath
+        # the modal was launched from the menu's component: edit_message
+        # edits THE MENU (the only route to an ephemeral), the confirm
+        # rides the followup, the slow mirror work comes last
+        await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
         await interaction.followup.send(f"Pool renommé **{pool.name}**.", ephemeral=True)
-        await _finish_pool_transition(
-            interaction, pool, origin=self.origin, sync_members=False
-        )
+        await _finish_pool_transition(interaction, pool, sync_members=False)
 
 
 class GamesPoolArchiveButton(
@@ -607,29 +580,24 @@ class GamesPoolArchiveButton(
                 f"**{pool.name}** est d\u00e9j\u00e0 archiv\u00e9.", ephemeral=True
             )
             return
-        # capture BEFORE the defer: the thinking answer is a NEW
-        # ephemeral \u2014 the menu's (webhook, id) pair is the only way
-        # back to the original message
-        from kingdoms.discord.ephemeral import EphemeralOrigin
-
-        origin = EphemeralOrigin.capture(interaction)
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        # the ephemeral contract, the reliable shape: the click's own
+        # response edits the menu (a webhook from ANOTHER interaction
+        # cannot \u2014 404). The archive is one Mongo write, well inside
+        # the 3s window; the slow mirror work rides the followups.
         try:
             pool = await service.archive_map_pool(self.pool_id)
         except Exception as exc:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"Archivage \u00e9chou\u00e9 \u2014 {exc}", ephemeral=True
             )
             return
-        # the ephemeral contract: the ORIGINAL menu edits in place with
-        # the archived state's buttons \u2014 the confirm is a plain text
-        # followup, never a copy of the view
+        await interaction.response.edit_message(view=await _pool_admin_menu(pool.id, pool.game_key))
         await interaction.followup.send(
             f"Pool **{pool.name}** archiv\u00e9 \u2014 inutilisable mais toujours visible. "
             "Son id reste r\u00e9serv\u00e9 tant qu'il n'est pas supprim\u00e9 totalement.",
             ephemeral=True,
         )
-        await _finish_pool_transition(interaction, pool, answer_menu=True, origin=origin)
+        await _finish_pool_transition(interaction, pool)
 
 
 
@@ -697,7 +665,7 @@ class GamesPoolToDraftButton(
         await interaction.followup.send(
             f"Pool **{pool.name}** repassé en édition.", ephemeral=True
         )
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await _finish_pool_transition(interaction, pool)
 
 
 class GamesPoolPublishButton(
@@ -773,7 +741,7 @@ class GamesPoolPublishButton(
         await interaction.followup.send(
             f"Pool **{pool.name}** publié.", ephemeral=True
         )
-        await _finish_pool_transition(interaction, pool, answer_menu=False)
+        await _finish_pool_transition(interaction, pool)
 
 
 class GamesPoolHardDeleteButton(
@@ -823,11 +791,7 @@ class GamesPoolHardDeleteButton(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
-        from kingdoms.discord.ephemeral import EphemeralOrigin
-
-        await interaction.response.send_modal(
-            PoolHardDeleteModal(pool, origin=EphemeralOrigin.capture(interaction))
-        )
+        await interaction.response.send_modal(PoolHardDeleteModal(pool))
 
 
 class PoolHardDeleteModal(discord.ui.Modal):
@@ -837,9 +801,8 @@ class PoolHardDeleteModal(discord.ui.Modal):
     (at the next sync) and the reserved id all go away.
     """
 
-    def __init__(self, pool: Any, origin: Any = None) -> None:
+    def __init__(self, pool: Any) -> None:
         self.pool = pool
-        self.origin = origin
         # the modal title carries the pool id; the label stays under
         # Discord's 45-char cap
         super().__init__(title=f"Supprimer {pool.id[:24]}", timeout=300)
@@ -877,10 +840,9 @@ class PoolHardDeleteModal(discord.ui.Modal):
                 ephemeral=True,
             )
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
         service = _games_wiring()
         if service is None:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
@@ -888,26 +850,55 @@ class PoolHardDeleteModal(discord.ui.Modal):
             await service.hard_delete_map_pool(self.pool.id)
         except Exception:
             logger.exception("GAMES ADMIN: pool hard delete failed")
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 await reply(interaction, "replies_shared.action_failed"), ephemeral=True
             )
             return
-        # confirm FIRST — the sync is best-effort and never eats the answer
+        # the modal was launched from the menu's component: edit_message
+        # closes THE MENU (its buttons are dead \u2014 the pool is gone)
+        from kingdoms.discord.maps_pool_flow import _text_answer
+
+        await interaction.response.edit_message(
+            view=_text_answer(f"`{self.pool.id}` \u2014 supprim\u00e9.")
+        )
         await interaction.followup.send(
             f"Pool **{self.pool.name}** supprim\u00e9 d\u00e9finitivement \u2014 l'id "
             f"`{self.pool.id}` redevient utilisable.",
             ephemeral=True,
         )
-        # the origin menu's buttons are dead (the pool is gone): edit it
-        # to a plain closed note \u2014 never a copy of the view, and never
-        # a menu of actions on a deleted pool
-        if self.origin is not None:
-            from kingdoms.discord.ephemeral import edit_ephemeral
-            from kingdoms.discord.maps_pool_flow import _text_answer
+        # the post is a mirror \u2014 but the pool no longer resolves, so the
+        # sync cannot find it: delete the thread explicitly (the stored
+        # link knows it), best-effort
+        if interaction.guild_id is not None and str(getattr(self.pool, "forum_thread_id", "") or ""):
+            try:
+                guild = interaction.client.get_guild(interaction.guild_id)
+                thread = guild.get_channel(int(self.pool.forum_thread_id)) if guild else None
+                if thread is not None:
+                    await thread.delete(reason=f"kingdoms: pool {self.pool.id} hard-deleted")
+            except Exception:
+                logger.warning("pool post delete after hard delete failed \u2014 best-effort", exc_info=True)
+        await _refresh_member_map_posts_after_delete(interaction, self.pool)
 
-            await edit_ephemeral(self.origin, _text_answer(f"`{self.pool.id}` \u2014 supprim\u00e9."))
-        await _finish_pool_transition(interaction, self.pool, answer_menu=False)
 
+
+async def _refresh_member_map_posts_after_delete(
+    interaction: discord.Interaction, pool: Any
+) -> None:
+    """Re-render the member maps' posts after a hard delete (best-effort).
+
+    The deleted pool's links must leave the map posts; the maps
+    themselves may belong to other pools \u2014 their posts re-render.
+    """
+    if interaction.guild_id is None:
+        return
+    try:
+        from kingdoms.discord.maps_forum import refresh_map_posts
+
+        await refresh_map_posts(
+            interaction.client, str(interaction.guild_id), list(pool.map_ids or ())
+        )
+    except Exception:
+        logger.warning("member map refresh after pool delete failed \u2014 best-effort", exc_info=True)
 
 
 PAGE_SIZE = 25  # Discord's hard cap on select options
