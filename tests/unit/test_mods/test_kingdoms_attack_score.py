@@ -502,3 +502,34 @@ async def test_lobby_url_shared_at_the_meeting_not_the_declaration() -> None:
         await bundle.attacks.set_lobby_url(fresh.id, "intrus", "aoe2de://x")
     with pytest.raises(AttackError):
         await bundle.attacks.set_lobby_url(fresh.id, str(fresh.attacker_lord_id), "  ")
+
+
+async def test_a_changed_lobby_url_resets_both_readiness_flags() -> None:
+    """battle-room-id-v1 (Drasah 22/10): a CHANGED ID resets both
+    Prêts — a relaunched game (wrong map, forgotten settings) restarts
+    the readiness from zero, while re-sharing the SAME ID resets
+    nothing."""
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.attacks.score_due(now=_T)
+    attack = await bundle.attacks.set_lobby_url(
+        attack.id, str(attack.attacker_lord_id), "aoe2de://lobby/1"
+    )
+    ready = await bundle.attacks.mark_ready(attack.id, str(attack.attacker_lord_id))
+    ready = await bundle.attacks.mark_ready(ready.id, str(ready.defender_lord_id))
+    assert ready.score.get("all_ready")
+    # The defender shares a NEW ID — both Prêts fall back to zero.
+    changed = await bundle.attacks.set_lobby_url(
+        ready.id, str(ready.defender_lord_id), "aoe2de://lobby/2"
+    )
+    assert changed.lobby_url == "aoe2de://lobby/2"
+    assert changed.score.get("ready") == []
+    assert "all_ready" not in changed.score
+    # Re-sharing the SAME (already stored) ID never resets anything.
+    same = await bundle.attacks.mark_ready(changed.id, str(changed.attacker_lord_id))
+    same = await bundle.attacks.set_lobby_url(
+        same.id, str(same.defender_lord_id), "aoe2de://lobby/2"
+    )
+    assert same.score.get("ready") == [str(same.attacker_lord_id)]

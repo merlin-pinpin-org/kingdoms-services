@@ -1132,7 +1132,22 @@ class AttackService:
             allowed.add(str(attack.defender_lord_id))
         if player_id not in allowed:
             raise AttackStateError("only a player of the meeting may share the lobby link")
-        attack.lobby_url = lobby_url.strip()
+        new_url = lobby_url.strip()
+        previous = str(attack.lobby_url or "").strip()
+        # battle-room-id-v1 (Drasah 22/10): a CHANGED ID resets both
+        # Prêts — a relaunched game (wrong map, forgotten settings)
+        # restarts the readiness of the two players from zero.
+        if previous and new_url != previous:
+            score = dict(attack.score or {})
+            if score.get("ready") or score.get("all_ready"):
+                score["ready"] = []
+                score.pop("all_ready", None)
+                attack.score = score
+                logger.info(
+                    "kingdoms: lobby url changed on %s — both readiness flags reset",
+                    attack.map_key,
+                )
+        attack.lobby_url = new_url
         await self._store.upsert_attack(attack.to_mongo())
         logger.info("kingdoms: lobby url shared on %s by %s", attack.map_key, player_id)
         return attack

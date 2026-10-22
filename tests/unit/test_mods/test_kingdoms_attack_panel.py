@@ -1219,7 +1219,13 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
     room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
     strings = _strings("fr")
-    button = KingdomRoomReadyButton(attack.id, strings["room_ready_button"])
+    # battle-room-id-v1: one Prêt button PER SIDE (attacker/defender).
+    button = KingdomRoomReadyButton(
+        attack.id, strings["room_ready_side_button"].format(player="king-a"), side="attacker"
+    )
+    other_side = KingdomRoomReadyButton(
+        attack.id, strings["room_ready_side_button"].format(player="lord-b"), side="defender"
+    )
 
     # Drasah 18/10 v4: no lobby URL yet — the Prêt is politely refused.
     raw = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
@@ -1234,6 +1240,18 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     assert not (fresh.score or {}).get("ready")
     # The attacker shares the lobby URL — the gate opens.
     await bundle.attacks.set_lobby_url(attack.id, "king-a", "aoe2de://lobby/42")
+
+    # battle-room-id-v1: the WRONG side is refused cleanly (each Prêt
+    # button belongs to ONE side of the scoreboard).
+    wrong = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    # type: ignore[arg-type]
+    await button.callback(wrong)  # type: ignore[arg-type]
+    assert wrong.response.message is not None
+    assert "pas de ton côté" in str(wrong.response.message.content or "")
+    fresh_wrong = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert not (fresh_wrong.score or {}).get("ready")
 
     created: list[dict[str, Any]] = []
 
@@ -1251,15 +1269,19 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     )
     # type: ignore[arg-type]
     await button.callback(first)  # type: ignore[arg-type]
-    # First click: waiting for the other player — no event yet.
-    assert first.response.message is not None
-    assert "attente" in str(first.response.message.content or "")
+    # battle-room-id-v1: NO ephemeral bubble — the interaction defers
+    # silently and the SCOREBOARD (the salon's single message) shows
+    # the Prêt on the attacker's side, the defender still waiting.
+    assert first.response.deferred
+    scoreboard = str(salon.messages[0].content or "")
+    assert "✅ Prêt" in scoreboard
+    assert "en attente du Prêt" in scoreboard
     assert not created
     second = MockInteraction(
         user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
     )
     # type: ignore[arg-type]
-    await button.callback(second)  # type: ignore[arg-type]
+    await other_side.callback(second)  # type: ignore[arg-type]
     # Both ready: the match event is created once, the ref is stored.
     assert len(created) == 1
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
@@ -1276,8 +1298,75 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
         user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
     )
     # type: ignore[arg-type]
-    await button.callback(again)  # type: ignore[arg-type]
+    await other_side.callback(again)  # type: ignore[arg-type]
     assert len(created) == 1
+
+
+async def test_room_url_button_locks_the_entry_then_a_changed_id_resets_the_ready() -> None:
+    """battle-room-id-v1: the 🔗 click instantly locks the shared view
+    (« saisie de l'ID en cours », disabled) and opens the modal — and a
+    CHANGED ID submitted through the modal resets both Prêts with the
+    dedicated ephemeral note."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomRoomUrlButton,
+        KingdomRoomUrlModal,
+        _open_battle_room,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
+    strings = _strings("fr")
+    # An ID is already shared and both players are Prêt.
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "aoe2de://lobby/1")
+    ready = await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(ready.id, "lord-b")
+    # The attacker asks for a modification — the shared view LOCKS.
+    button = KingdomRoomUrlButton(attack.id, strings["room_id_modify_button"])
+    click = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await button.callback(click)  # type: ignore[arg-type]
+    assert click.response.modal is not None
+    assert isinstance(click.response.modal, KingdomRoomUrlModal)
+    locked = salon.messages[0].view.children
+    url_buttons = [b for b in locked if str(b.custom_id or "").startswith("kingdoms:attack:room:url:")]
+    assert len(url_buttons) == 1
+    assert url_buttons[0].item.label == strings["room_id_pending_button"]  # type: ignore[attr-defined]
+    assert url_buttons[0].item.disabled is True  # type: ignore[attr-defined]
+    # A CHANGED ID through the modal resets both Prêts (ephemeral note).
+    modal = click.response.modal
+    modal.url_input._value = "aoe2de://lobby/2"  # type: ignore[attr-defined]
+    submit = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await modal.on_submit(submit)  # type: ignore[arg-type]
+    note = str(submit.response.message.content or "")
+    assert "remis à zéro" in note
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.lobby_url == "aoe2de://lobby/2"
+    assert (fresh.score or {}).get("ready") == []
+    assert "all_ready" not in (fresh.score or {})
+    scoreboard = str(salon.messages[0].content or "")
+    assert "aoe2de://lobby/2" in scoreboard
+    # The pending unlock task (grace timer) never blocks the suite.
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
 
 
 async def test_sabotage_phase_service_both_sides_and_resolution() -> None:

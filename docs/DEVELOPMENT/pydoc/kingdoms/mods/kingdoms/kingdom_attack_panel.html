@@ -30,11 +30,12 @@ strings&nbsp;(FR/EN&nbsp;mirrors&nbsp;below).</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+<a href="discord.html">discord</a><br>
 </td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
-</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+<a href="logging.html">logging</a><br>
 </td><td class="multicolumn"><a href="re.html">re</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -1816,13 +1817,17 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><a name="KingdomRoomReadyButton">class <strong>KingdomRoomReadyButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomRoomReadyButton">KingdomRoomReadyButton</a>(attack_id:&nbsp;'str',&nbsp;label:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomRoomReadyButton">KingdomRoomReadyButton</a>(attack_id:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;*,&nbsp;side:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;persistent&nbsp;✅&nbsp;Prêt&nbsp;button&nbsp;of&nbsp;the&nbsp;battle&nbsp;room&nbsp;(Drasah&nbsp;18/10).<br>
 &nbsp;<br>
-The&nbsp;click&nbsp;records&nbsp;the&nbsp;readiness;&nbsp;when&nbsp;BOTH&nbsp;players&nbsp;are&nbsp;ready&nbsp;the<br>
-match&nbsp;is&nbsp;announced:&nbsp;a&nbsp;Discord&nbsp;scheduled&nbsp;event&nbsp;carrying&nbsp;the&nbsp;match<br>
-infos&nbsp;is&nbsp;created&nbsp;and&nbsp;the&nbsp;room&nbsp;tells&nbsp;the&nbsp;players&nbsp;to&nbsp;start.<br>&nbsp;</span></td></tr>
+battle-room-id-v1&nbsp;(Drasah&nbsp;22/10):&nbsp;the&nbsp;symmetric&nbsp;scoreboard&nbsp;carries<br>
+ONE&nbsp;Prêt&nbsp;button&nbsp;PER&nbsp;SIDE&nbsp;(attacker&nbsp;left,&nbsp;defender&nbsp;right)&nbsp;—&nbsp;the<br>
+clicker&nbsp;must&nbsp;be&nbsp;that&nbsp;side's&nbsp;player.&nbsp;The&nbsp;click&nbsp;records&nbsp;the<br>
+readiness&nbsp;and&nbsp;edits&nbsp;the&nbsp;player's&nbsp;half&nbsp;of&nbsp;the&nbsp;scoreboard&nbsp;in&nbsp;place<br>
+(NO&nbsp;ephemeral&nbsp;bubble);&nbsp;when&nbsp;BOTH&nbsp;players&nbsp;are&nbsp;ready&nbsp;the&nbsp;match&nbsp;is<br>
+announced:&nbsp;a&nbsp;Discord&nbsp;scheduled&nbsp;event&nbsp;carrying&nbsp;the&nbsp;match&nbsp;infos&nbsp;is<br>
+created&nbsp;and&nbsp;the&nbsp;room&nbsp;tells&nbsp;the&nbsp;players&nbsp;to&nbsp;start.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.mods.kingdoms.kingdom_attack_panel.html#KingdomRoomReadyButton">KingdomRoomReadyButton</a></dd>
@@ -1833,12 +1838,14 @@ infos&nbsp;is&nbsp;created&nbsp;and&nbsp;the&nbsp;room&nbsp;tells&nbsp;the&nbsp;
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="KingdomRoomReadyButton-__init__"><strong>__init__</strong></a>(self, attack_id: 'str', label: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomRoomReadyButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="KingdomRoomReadyButton-__init__"><strong>__init__</strong></a>(self, attack_id: 'str', label: 'str', *, side: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomRoomReadyButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomRoomReadyButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;readiness&nbsp;—&nbsp;both&nbsp;ready&nbsp;creates&nbsp;the&nbsp;match&nbsp;event.<br>
 &nbsp;<br>
 Drasah&nbsp;18/10&nbsp;v4:&nbsp;the&nbsp;Prêt&nbsp;unlocks&nbsp;only&nbsp;once&nbsp;the&nbsp;lobby&nbsp;URL&nbsp;is<br>
-shared&nbsp;(the&nbsp;🔗&nbsp;button)&nbsp;—&nbsp;no&nbsp;URL,&nbsp;no&nbsp;ready.</span></dd></dl>
+shared&nbsp;(the&nbsp;🔗&nbsp;button)&nbsp;—&nbsp;no&nbsp;URL,&nbsp;no&nbsp;ready.&nbsp;battle-room-id-v1:<br>
+the&nbsp;scoreboard&nbsp;shows&nbsp;the&nbsp;Prêt&nbsp;on&nbsp;the&nbsp;player's&nbsp;own&nbsp;side&nbsp;(edit<br>
+in&nbsp;place,&nbsp;no&nbsp;ephemeral&nbsp;bubble).</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -1848,7 +1855,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('kingdoms:attack:room:ready:(?P&lt;key&gt;[0-9a-f]{16})')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('kingdoms:attack:room:ready:(?P&lt;key&gt;[0-9a-f]{16})(?::(?P&lt;side&gt;attacker|defender))?')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 
@@ -2103,7 +2110,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="KingdomRoomUrlButton">class <strong>KingdomRoomUrlButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomRoomUrlButton">KingdomRoomUrlButton</a>(attack_id:&nbsp;'str',&nbsp;label:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomRoomUrlButton">KingdomRoomUrlButton</a>(attack_id:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;*,&nbsp;style:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;persistent&nbsp;🔗&nbsp;button&nbsp;of&nbsp;the&nbsp;battle&nbsp;room&nbsp;(URL&nbsp;share).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -2116,13 +2123,22 @@ The&nbsp;persistent&nbsp;🔗&nbsp;button&nbsp;of&nbsp;the&nbsp;battle&nbsp;room
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="KingdomRoomUrlButton-__init__"><strong>__init__</strong></a>(self, attack_id: 'str', label: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomRoomUrlButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="KingdomRoomUrlButton-__init__"><strong>__init__</strong></a>(self, attack_id: 'str', label: 'str', *, style: 'Any' = None, disabled: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomRoomUrlButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="KingdomRoomUrlButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;game&nbsp;URL&nbsp;modal&nbsp;of&nbsp;this&nbsp;battle&nbsp;room.</span></dd></dl>
+<dl><dt>async <a name="KingdomRoomUrlButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;game&nbsp;URL&nbsp;modal&nbsp;—&nbsp;and&nbsp;LOCK&nbsp;the&nbsp;entry&nbsp;for&nbsp;the&nbsp;other&nbsp;player.<br>
+&nbsp;<br>
+battle-room-id-v1&nbsp;(Drasah&nbsp;22/10):&nbsp;the&nbsp;moment&nbsp;one&nbsp;player&nbsp;clicks,<br>
+the&nbsp;shared&nbsp;view&nbsp;refreshes&nbsp;with&nbsp;the&nbsp;ID&nbsp;button&nbsp;locked&nbsp;(«&nbsp;saisie<br>
+en&nbsp;cours&nbsp;»)&nbsp;so&nbsp;the&nbsp;other&nbsp;player&nbsp;cannot&nbsp;open&nbsp;a&nbsp;conflicting<br>
+modal.&nbsp;If&nbsp;the&nbsp;player&nbsp;cancels&nbsp;the&nbsp;modal,&nbsp;a&nbsp;background&nbsp;grace<br>
+task&nbsp;unlocks&nbsp;the&nbsp;entry&nbsp;again.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
-<dl><dt>async <a name="KingdomRoomUrlButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'KingdomRoomUrlButton'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;room&nbsp;key&nbsp;back&nbsp;to&nbsp;an&nbsp;attack&nbsp;id&nbsp;(restart-safe).</span></dd></dl>
+<dl><dt>async <a name="KingdomRoomUrlButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'KingdomRoomUrlButton'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;room&nbsp;key&nbsp;back&nbsp;to&nbsp;an&nbsp;attack&nbsp;id&nbsp;(restart-safe).<br>
+&nbsp;<br>
+battle-room-id-v1:&nbsp;a&nbsp;room&nbsp;whose&nbsp;ID&nbsp;is&nbsp;already&nbsp;set&nbsp;rebuilds&nbsp;the<br>
+button&nbsp;as&nbsp;the&nbsp;RED&nbsp;«&nbsp;Modifier&nbsp;l'ID&nbsp;»&nbsp;action.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -2800,6 +2816,6 @@ resolved&nbsp;rooms&nbsp;are&nbsp;cleaned&nbsp;up&nbsp;by&nbsp;the&nbsp;tick.</s
 <strong>DECLARE_CHANNEL_NAME</strong> = 'Déclarer une attaque'<br>
 <strong>GEOPOLITICS_CHANNEL_NAME</strong> = 'Géopolitique'<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
-<strong>__annotations__</strong> = {'_MAP_TAG_KEYS': 'tuple[tuple[str, str], ...]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>__annotations__</strong> = {'_BATTLE_ROLE_NAME_PREFIXES': 'tuple[str, ...]', '_MAP_TAG_KEYS': 'tuple[tuple[str, str], ...]', '_ROOM_UNLOCK_TASKS': 'set[asyncio.Task[None]]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.mods.kingdoms.kingdom_attack_panel (WARNING)&gt;</td></tr></table>
 </body></html>

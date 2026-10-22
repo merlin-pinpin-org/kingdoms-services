@@ -17,6 +17,7 @@ strings (FR/EN mirrors below).
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import re
@@ -30,6 +31,10 @@ from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
 from kingdoms.mods.kingdoms.game_clock import game_now
 
 logger = logging.getLogger(__name__)
+
+# battle-room-id-v1: strong refs to the background unlock tasks (the
+# grace sweep that re-opens the ID entry after a cancelled modal).
+_ROOM_UNLOCK_TASKS: set[asyncio.Task[None]] = set()
 
 ATTACK_PANEL_MARKER = "<!-- kingdoms-attack -->"
 _PARIS = ZoneInfo("Europe/Paris")
@@ -220,25 +225,28 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ready_done": "✅ Présence confirmée — rejoins le salon de la bataille à l'heure du RDV.",
         "room_title": "{map} — {attacker} 🆚 {defender}",
         "room_role": "Bataille {map}",
-        "room_body": (
-            "🏟️ **Préparez-vous à la bataille — {map}**\n"
-            "{lines}\n"
-            "{footer}"
+        "room_scoreboard_map": "⚔️ {map}",
+        "room_scoreboard_id": "🆔 ID : {id}",
+        "room_scoreboard_id_missing": "🆔 ID à renseigner (bouton ci-dessous)",
+        "room_vs": "VS",
+        "room_side_attacker": "Attaquant",
+        "room_side_defender": "Défenseur",
+        "room_side_ready": "✅ Prêt",
+        "room_side_wait": "⏳ en attente du Prêt",
+        "room_side_none": "🔗 en attente de l'ID",
+        "room_side_ai": "🤖 IA",
+        "room_id_button": "🔗 Renseigner l'ID",
+        "room_id_modify_button": "🔴 Modifier l'ID",
+        "room_id_pending_button": "⏳ Saisie de l'ID en cours…",
+        "room_ready_side_button": "✅ Prêt — {player}",
+        "room_not_your_side": (
+            "⛔ Ce bouton Prêt n'est pas de ton côté de la bataille."
         ),
-        "room_footer_wait_id": (
-            "🔗 Renseignez l'**ID de la partie** (bouton ci-dessus) —"
-            " le bouton ✅ Prêt apparaîtra ensuite."
+        "room_scoreboard_footer": (
+            "🎮 Les deux joueurs sont prêts — bonne game !"
+            " Déclarez le vainqueur avec 🏆."
         ),
-        "room_footer_wait_ready": (
-            "🔗 ID de la partie : **{url}**\n"
-            "✅ Mettez-vous **Prêt** — le bouton 🏆 Déclarer le vainqueur"
-            " apparaît quand les deux joueurs sont prêts."
-        ),
-        "room_footer_go": (
-            "🔗 ID de la partie : **{url}**\n"
-            "🎮 Les deux joueurs sont prêts — bonne game ! Déclarez le"
-            " vainqueur à la fin avec 🏆."
-        ),
+        "room_id_changed_reset": "🔁 ID modifié — les deux Prêts sont remis à zéro.",
         "room_dm": (
             "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
             "Rejoins ton adversaire : {room} — le déroulé (ID de la partie, ✅ Prêt,"
@@ -268,7 +276,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             " résultat de la game avec le bouton 🏆 du salon de la bataille !"
         ),
         "room_ready_button": "✅ Prêt",
-        "room_ready_wait": "✅ Prêt enregistré — en attente de l'autre joueur…",
         "room_start": (
             "🎮 **La partie commence — {map}** !\n"
             "{mentions} — retrouvez-vous dans le salon vocal et bonne game ! 🍀"
@@ -278,7 +285,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ Bataille Kingdoms en direct — {attacker} 🆚 {defender}.\n"
             "Civilisations et boutons de jeu : dans le salon vocal de la bataille."
         ),
-        "room_civ_line": "• **{player}** joue **{civ}**",
         "room_ready_needs_url": (
             "🔗 Renseigne d'abord l'ID de la partie (bouton 🔗) — le"
             " bouton ✅ Prêt n'apparaît qu'après."
@@ -505,25 +511,28 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ready_done": "✅ Presence confirmed — join the battle room at the meeting time.",
         "room_title": "{map} — {attacker} 🆚 {defender}",
         "room_role": "Battle {map}",
-        "room_body": (
-            "🏟️ **Prepare for battle — {map}**\n"
-            "{lines}\n"
-            "{footer}"
+        "room_scoreboard_map": "⚔️ {map}",
+        "room_scoreboard_id": "🆔 Game ID: {id}",
+        "room_scoreboard_id_missing": "🆔 Game ID to enter (button below)",
+        "room_vs": "VS",
+        "room_side_attacker": "Attacker",
+        "room_side_defender": "Defender",
+        "room_side_ready": "✅ Ready",
+        "room_side_wait": "⏳ waiting for Ready",
+        "room_side_none": "🔗 waiting for the game ID",
+        "room_side_ai": "🤖 AI",
+        "room_id_button": "🔗 Enter the game ID",
+        "room_id_modify_button": "🔴 Change the game ID",
+        "room_id_pending_button": "⏳ Game ID being entered…",
+        "room_ready_side_button": "✅ Ready — {player}",
+        "room_not_your_side": (
+            "⛔ This Ready button is not on your side of the battle."
         ),
-        "room_footer_wait_id": (
-            "🔗 Enter the **game ID** (button above) — the ✅ Ready"
-            " button appears afterwards."
+        "room_scoreboard_footer": (
+            "🎮 Both players are ready — good luck!"
+            " Declare the winner with 🏆."
         ),
-        "room_footer_wait_ready": (
-            "🔗 Game ID: **{url}**\n"
-            "✅ Get **Ready** — the 🏆 Declare-the-winner button appears"
-            " once both players are ready."
-        ),
-        "room_footer_go": (
-            "🔗 Game ID: **{url}**\n"
-            "🎮 Both players are ready — good luck! Declare the winner"
-            " at the end with 🏆."
-        ),
+        "room_id_changed_reset": "🔁 Game ID changed — both Ready flags reset.",
         "room_dm": (
             "🏟️ **The battle room is open — {map}**\n"
             "Join your adversary: {room} — the rundown (game ID, ✅ Ready, result)"
@@ -553,7 +562,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             " game result with the 🏆 button of the battle room!"
         ),
         "room_ready_button": "✅ Ready",
-        "room_ready_wait": "✅ Readiness recorded — waiting for the other player…",
         "room_start": (
             "🎮 **The game starts — {map}**!\n"
             "{mentions} — meet in the voice channel and good luck! 🍀"
@@ -563,7 +571,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ Live Kingdoms battle — {attacker} 🆚 {defender}.\n"
             "Civilizations and game buttons: in the battle's voice channel."
         ),
-        "room_civ_line": "• **{player}** plays **{civ}**",
         "room_ready_needs_url": (
             "🔗 Enter the game ID first (🔗 button) — the ✅ Ready"
             " button appears afterwards."
@@ -2846,44 +2853,130 @@ async def _grant_battle_room_role_safe(guild: Any, role: Any, player_id: str) ->
             logger.warning("KINGDOM ATTACK: battle room role grant failed", exc_info=True)
 
 
-def _room_view(attack: Any, strings: dict[str, str]) -> discord.ui.View:
-    """Build the battle-room button set of the current state (v5).
+async def _room_view(
+    attack: Any,
+    kingdoms_service: Any,
+    strings: dict[str, str],
+    *,
+    id_pending: bool = False,
+) -> discord.ui.View:
+    """Build the battle-room button set (battle-room-id-v1, Drasah 22/10).
 
-    Drasah 18/10 v5: the room lives on ONE message — 🔗 ID always
-    visible; ✅ Prêt appears once the ID is set; 🏆 Déclarer le
-    vainqueur appears once BOTH players are Prêt.
+    Symmetric scoreboard flow on the single shared message: 🔗
+    Renseigner l'ID (or 🔴 Modifier l'ID once it is set) first; one ✅
+    Prêt button per SIDE once the ID is set (the clicker must be that
+    side's player); 🏆 Déclarer le vainqueur once BOTH players are
+    Prêt. ``id_pending`` locks the ID entry while a player types —
+    the button instantly disappears for the other player (anti
+    double-saisie of conflicting IDs).
     """
     score = dict(attack.score or {})
     view = discord.ui.View(timeout=None)
-    view.add_item(KingdomRoomUrlButton(str(attack.id), strings["score_url_button"]))
-    if str(attack.lobby_url or "").strip():
-        view.add_item(KingdomRoomReadyButton(str(attack.id), strings["room_ready_button"]))
+    url_set = bool(str(attack.lobby_url or "").strip())
+    if id_pending:
+        view.add_item(
+            KingdomRoomUrlButton(
+                str(attack.id), strings["room_id_pending_button"], disabled=True
+            )
+        )
+    else:
+        label = strings["room_id_modify_button"] if url_set else strings["room_id_button"]
+        style = (
+            discord.ButtonStyle.danger if url_set else discord.ButtonStyle.secondary
+        )
+        view.add_item(KingdomRoomUrlButton(str(attack.id), label, style=style))
+    if url_set:
+        attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
+        view.add_item(
+            KingdomRoomReadyButton(
+                str(attack.id),
+                strings["room_ready_side_button"].format(player=attacker),
+                side="attacker",
+            )
+        )
+        if attack.defender_lord_id and not attack.ai_defender:
+            defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
+            view.add_item(
+                KingdomRoomReadyButton(
+                    str(attack.id),
+                    strings["room_ready_side_button"].format(player=defender),
+                    side="defender",
+                )
+            )
     if score.get("all_ready"):
         view.add_item(KingdomRoomResultButton(str(attack.id), strings["result_button"]))
     return view
 
 
+_ROOM_SCORE_WIDTH = 46
+
+
+def _score_center(text: str) -> str:
+    """Center a neutral line of the scoreboard (monospace block)."""
+    text = text[:_ROOM_SCORE_WIDTH]
+    pad = _ROOM_SCORE_WIDTH - len(text)
+    return " " * (pad // 2) + text + " " * (pad - pad // 2)
+
+
+def _score_row(left: str, right: str, vs: str) -> str:
+    """One symmetric scoreboard row — left field, centered VS, right field."""
+    half = _ROOM_SCORE_WIDTH // 2
+    left = left[: half - 2]
+    right = right[: half - 2]
+    vs_field = f" {vs} ".center(4) if vs else " " * 4
+    return left.ljust(half - 2) + vs_field + right.rjust(half - 2)
+
+
 async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> str:
-    """Build the battle-room message body (civs + state footer)."""
+    """Build the battle-room scoreboard (battle-room-id-v1, Drasah 22/10).
+
+    Symmetric view: the neutral infos (map, game ID) centered on top,
+    the attacker on the LEFT and the defender on the RIGHT, each with
+    their civilization and their OWN Prêt state. A monospace block
+    keeps the alignment stable whatever the name lengths — a Prêt
+    click edits the player's half in place, never a new message.
+    """
     pickban: dict[str, Any] = dict(attack.pickban or {})
     score = dict(attack.score or {})
+    ready = {str(player) for player in (score.get("ready") or [])}
+    url = str(attack.lobby_url or "").strip()
     attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
     defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
-    lines = [
-        strings["room_civ_line"].format(player=attacker, civ=_final_civ(pickban, "attacker")),
-        strings["room_civ_line"].format(player=defender, civ=_final_civ(pickban, "defender")),
-    ]
-    url = str(attack.lobby_url or "").strip()
-    if score.get("all_ready"):
-        footer = strings["room_footer_go"].format(url=url)
-    elif url:
-        footer = strings["room_footer_wait_ready"].format(url=url)
+
+    def _status(player_id: str | None) -> str:
+        if not url:
+            return strings["room_side_none"]
+        if player_id and str(player_id) in ready:
+            return strings["room_side_ready"]
+        return strings["room_side_wait"]
+
+    attacker_status = _status(attack.attacker_lord_id)
+    if attack.ai_defender:
+        defender_status = strings["room_side_ai"]
     else:
-        footer = strings["room_footer_wait_id"]
-    return strings["room_body"].format(map=attack.map_key, lines="\n".join(lines), footer=footer)
+        defender_status = _status(attack.defender_lord_id)
+    id_line = (
+        strings["room_scoreboard_id"].format(id=url)
+        if url
+        else strings["room_scoreboard_id_missing"]
+    )
+    rows = [
+        _score_center(strings["room_scoreboard_map"].format(map=attack.map_key)),
+        _score_center(id_line),
+        "",
+        _score_row(attacker, defender, strings["room_vs"]),
+        _score_row(_final_civ(pickban, "attacker"), _final_civ(pickban, "defender"), ""),
+        _score_row(attacker_status, defender_status, ""),
+    ]
+    body = "```\n" + "\n".join(rows) + "\n```"
+    if score.get("all_ready"):
+        body += "\n" + strings["room_scoreboard_footer"]
+    return body
 
 
-async def _refresh_room_message_safe(bot: Any, attack: Any, locale: str) -> None:
+async def _refresh_room_message_safe(
+    bot: Any, attack: Any, locale: str, *, id_pending: bool = False
+) -> None:
     """Best-effort refresh of the room's single message (ID → Prêt → 🏆)."""
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
@@ -2916,7 +3009,9 @@ async def _refresh_room_message_safe(bot: Any, attack: Any, locale: str) -> None
             if message is not None:
                 await message.edit(
                     content=await _room_body_text(attack, wiring.kingdoms_service, strings),
-                    view=_room_view(attack, strings),
+                    view=await _room_view(
+                        attack, wiring.kingdoms_service, strings, id_pending=id_pending
+                    ),
                 )
         except Exception:
             logger.warning("KINGDOM ATTACK: battle room refresh failed", exc_info=True)
@@ -3075,7 +3170,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 pickban = dict(attack.pickban or {})
                 message = await salon.send(
                     await _room_body_text(attack, kingdoms_service, strings),
-                    view=_room_view(attack, strings),
+                    view=await _room_view(attack, kingdoms_service, strings),
                     files=await civ_crest_files(
                         [
                             _final_civ(pickban, "attacker"),
@@ -3340,12 +3435,20 @@ class KingdomRoomUrlButton(
 ):
     """The persistent 🔗 button of the battle room (URL share)."""
 
-    def __init__(self, attack_id: str, label: str) -> None:
+    def __init__(
+        self,
+        attack_id: str,
+        label: str,
+        *,
+        style: Any = None,
+        disabled: bool = False,
+    ) -> None:
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
                 custom_id=f"kingdoms:attack:room:url:{_room_key(attack_id)}",
-                style=discord.ButtonStyle.secondary,
+                style=style or discord.ButtonStyle.secondary,
+                disabled=disabled,
             )
         )
         self.attack_id = attack_id
@@ -3358,12 +3461,41 @@ class KingdomRoomUrlButton(
         match: re.Match[str],
         /,
     ) -> KingdomRoomUrlButton:
-        """Resolve the room key back to an attack id (restart-safe)."""
-        label = _strings(_locale(interaction))["score_url_button"]
-        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+        """Resolve the room key back to an attack id (restart-safe).
+
+        battle-room-id-v1: a room whose ID is already set rebuilds the
+        button as the RED « Modifier l'ID » action.
+        """
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        attack_id = await _resolve_room_attack_id_async(match["key"])
+        label = strings["room_id_button"]
+        style: Any = discord.ButtonStyle.secondary
+        wiring = _wiring()
+        if wiring.attacks_service is not None and attack_id:
+            try:
+                current = next(
+                    item_
+                    for item_ in await wiring.attacks_service.attacks()
+                    if str(item_.id) == attack_id
+                )
+            except Exception:
+                current = None
+            if current is not None and str(current.lobby_url or "").strip():
+                label = strings["room_id_modify_button"]
+                style = discord.ButtonStyle.danger
+        return cls(attack_id, label, style=style)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the game URL modal of this battle room."""
+        """Open the game URL modal — and LOCK the entry for the other player.
+
+        battle-room-id-v1 (Drasah 22/10): the moment one player clicks,
+        the shared view refreshes with the ID button locked (« saisie
+        en cours ») so the other player cannot open a conflicting
+        modal. If the player cancels the modal, a background grace
+        task unlocks the entry again.
+        """
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = _strings(_locale(interaction))
@@ -3384,6 +3516,34 @@ class KingdomRoomUrlButton(
         if current is None or _room_side_of(current, str(interaction.user.id)) == "":
             await interaction.response.send_message(strings["room_not_player"], ephemeral=True)
             return
+        # Instant lock: the ID button disappears for the other player.
+        await _refresh_room_message_safe(
+            interaction.client, current, _locale(interaction), id_pending=True
+        )
+
+        async def _unlock_later() -> None:
+            try:
+                await asyncio.sleep(300)
+                fresh = next(
+                    (
+                        item
+                        for item in await wiring.attacks_service.attacks()
+                        if str(item.id) == self.attack_id
+                    ),
+                    None,
+                )
+                if (
+                    fresh is not None
+                    and not fresh.is_over
+                    and not str(fresh.lobby_url or "").strip()
+                ):
+                    await _refresh_room_message_safe(interaction.client, fresh, _locale(interaction))
+            except Exception:
+                logger.debug("kingdoms: room ID unlock sweep skipped", exc_info=True)
+
+        unlock_task = asyncio.create_task(_unlock_later())
+        _ROOM_UNLOCK_TASKS.add(unlock_task)
+        unlock_task.add_done_callback(_ROOM_UNLOCK_TASKS.discard)
         await interaction.response.send_modal(KingdomRoomUrlModal(self.attack_id, str(interaction.user.id)))
 
 
@@ -3415,6 +3575,15 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             return
         url = str(self.url_input.value or "").strip()
         try:
+            before = next(
+                (
+                    item
+                    for item in await wiring.attacks_service.attacks()
+                    if str(item.id) == self.attack_id
+                ),
+                None,
+            )
+            before_ready = set((before.score or {}).get("ready") or []) if before else set()
             attack = await wiring.attacks_service.set_lobby_url(
                 self.attack_id, self.player_id, url
             )
@@ -3422,10 +3591,15 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
-        # Drasah 18/10 v5: no extra post — the room's single message
-        # refreshes in place (the ID line + the unlocked ✅ Prêt).
+        # Drasah 18/10 v5 + battle-room-id-v1: no extra post — the room's
+        # single message refreshes in place (the ID line + the unlocked
+        # per-side ✅ Prêt buttons; a CHANGED ID resets both Prêts).
         await _refresh_room_message_safe(interaction.client, attack, _locale(interaction))
-        await interaction.response.send_message(strings["score_url_set"], ephemeral=True)
+        note = strings["score_url_set"]
+        fresh_ready = set((attack.score or {}).get("ready") or [])
+        if before_ready and not fresh_ready:
+            note += "\n" + strings["room_id_changed_reset"]
+        await interaction.response.send_message(note, ephemeral=True)
 
 
 class KingdomRoomResultButton(
@@ -3585,24 +3759,35 @@ async def _declare_room_score(
 
 class KingdomRoomReadyButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"kingdoms:attack:room:ready:(?P<key>[0-9a-f]{16})",
+    template=r"kingdoms:attack:room:ready:(?P<key>[0-9a-f]{16})(?::(?P<side>attacker|defender))?",
 ):
     """The persistent ✅ Prêt button of the battle room (Drasah 18/10).
 
-    The click records the readiness; when BOTH players are ready the
-    match is announced: a Discord scheduled event carrying the match
-    infos is created and the room tells the players to start.
+    battle-room-id-v1 (Drasah 22/10): the symmetric scoreboard carries
+    ONE Prêt button PER SIDE (attacker left, defender right) — the
+    clicker must be that side's player. The click records the
+    readiness and edits the player's half of the scoreboard in place
+    (NO ephemeral bubble); when BOTH players are ready the match is
+    announced: a Discord scheduled event carrying the match infos is
+    created and the room tells the players to start.
     """
 
-    def __init__(self, attack_id: str, label: str) -> None:
+    def __init__(self, attack_id: str, label: str, *, side: str | None = None) -> None:
+        key = _room_key(attack_id)
+        custom_id = (
+            f"kingdoms:attack:room:ready:{key}"
+            if side is None
+            else f"kingdoms:attack:room:ready:{key}:{side}"
+        )
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
-                custom_id=f"kingdoms:attack:room:ready:{_room_key(attack_id)}",
+                custom_id=custom_id,
                 style=discord.ButtonStyle.success,
             )
         )
         self.attack_id = attack_id
+        self.side = side
 
     @classmethod
     async def from_custom_id(
@@ -3613,14 +3798,23 @@ class KingdomRoomReadyButton(
         /,
     ) -> KingdomRoomReadyButton:
         """Resolve the room key back to an attack id (restart-safe)."""
-        label = _strings(_locale(interaction))["room_ready_button"]
-        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+        strings = _strings(_locale(interaction))
+        side = match["side"] if "side" in match.groupdict() else None
+        if side:
+            label = strings["room_ready_side_button"].format(
+                player=strings[f"room_side_{side}"]
+            )
+        else:
+            label = strings["room_ready_button"]
+        return cls(await _resolve_room_attack_id_async(match["key"]), label, side=side)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Record the readiness — both ready creates the match event.
 
         Drasah 18/10 v4: the Prêt unlocks only once the lobby URL is
-        shared (the 🔗 button) — no URL, no ready.
+        shared (the 🔗 button) — no URL, no ready. battle-room-id-v1:
+        the scoreboard shows the Prêt on the player's own side (edit
+        in place, no ephemeral bubble).
         """
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
@@ -3638,10 +3832,15 @@ class KingdomRoomReadyButton(
         except Exception:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
-        if _room_side_of(current, str(interaction.user.id)) == "":
+        side_of = _room_side_of(current, str(interaction.user.id))
+        if side_of == "":
             # restructuration-serveur-v1 b: the meeting message is
             # public — its buttons are reserved to the two players.
             await interaction.response.send_message(strings["room_not_player"], ephemeral=True)
+            return
+        if self.side is not None and side_of != self.side:
+            # battle-room-id-v1: each Prêt button belongs to ONE side.
+            await interaction.response.send_message(strings["room_not_your_side"], ephemeral=True)
             return
         if not str(current.lobby_url or "").strip():
             await interaction.response.send_message(
@@ -3656,18 +3855,18 @@ class KingdomRoomReadyButton(
                 strings["failed"].format(message=message), ephemeral=True
             )
             return
-        # Drasah 18/10 v5: the room message refreshes in place — the
-        # footer tracks the readiness, 🏆 appears once both are Prêt.
+        # battle-room-id-v1: the scoreboard refreshes in place — the
+        # player's own half shows « ✅ Prêt », 🏆 appears once both are
+        # Prêt. The click itself answers with a silent defer (no
+        # ephemeral bubble, the view IS the feedback).
         await _refresh_room_message_safe(interaction.client, attack, _locale(interaction))
+        await interaction.response.defer()
         score = attack.score or {}
         if not score.get("all_ready"):
-            await interaction.response.send_message(strings["room_ready_wait"], ephemeral=True)
             return
         if score.get("room_event_id"):
-            await interaction.response.send_message(strings["ready_done"], ephemeral=True)
             return
         await _announce_room_start_safe(interaction, attack, strings)
-        await interaction.response.send_message(strings["ready_done"], ephemeral=True)
 
 
 def _room_side_of(attack: Any, user_id: str) -> str:
