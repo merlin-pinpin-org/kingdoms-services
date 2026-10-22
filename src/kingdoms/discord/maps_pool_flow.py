@@ -480,7 +480,7 @@ class PoolComposeModal(discord.ui.Modal):
             )
             # an OPTIONAL select: the API rejects min_values=0 on a
             # required component — the select's required flag goes False
-            add_select._underlying.required = False  # type: ignore[attr-defined]
+            add_select._underlying.required = False
             self.add_item(discord.ui.Label(text="Maps \u00e0 ajouter", component=add_select))
         if members:
             remove_select: discord.ui.Select[Any] = discord.ui.Select(
@@ -488,7 +488,7 @@ class PoolComposeModal(discord.ui.Modal):
                 min_values=0,
                 max_values=len(members[:25]),
             )
-            remove_select._underlying.required = False  # type: ignore[attr-defined]
+            remove_select._underlying.required = False
             self.add_item(discord.ui.Label(text="Maps \u00e0 retirer", component=remove_select))
         if available and len(available) > 25:
             # Discord caps a TextInput label at 45 chars
