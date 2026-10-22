@@ -450,7 +450,16 @@ async def _finish_pool_transition(
             try:
                 await origin.edit(view=view)
             except Exception:
+                # the origin is gone or the budget is cold (429): the
+                # action SUCCEEDED — say so, the user reopens the menu
                 logger.warning("pool menu edit in place failed — best-effort", exc_info=True)
+                try:
+                    await interaction.followup.send(
+                        "Menu non rafraîchi (rate limit ?) — rouvre-le pour voir l'état actuel.",
+                        ephemeral=True,
+                    )
+                except Exception:
+                    logger.warning("pool menu fallback answer failed — best-effort", exc_info=True)
         elif interaction.response.is_done():
             await interaction.followup.send(view=view, ephemeral=True)
         else:
@@ -799,7 +808,9 @@ class GamesPoolHardDeleteButton(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
-        await interaction.response.send_modal(PoolHardDeleteModal(pool))
+        await interaction.response.send_modal(
+            PoolHardDeleteModal(pool, origin=getattr(interaction, "message", None))
+        )
 
 
 class PoolHardDeleteModal(discord.ui.Modal):
@@ -809,8 +820,9 @@ class PoolHardDeleteModal(discord.ui.Modal):
     (at the next sync) and the reserved id all go away.
     """
 
-    def __init__(self, pool: Any) -> None:
+    def __init__(self, pool: Any, origin: Any = None) -> None:
         self.pool = pool
+        self.origin = origin
         # the modal title carries the pool id; the label stays under
         # Discord's 45-char cap
         super().__init__(title=f"Supprimer {pool.id[:24]}", timeout=300)
@@ -869,6 +881,16 @@ class PoolHardDeleteModal(discord.ui.Modal):
             f"`{self.pool.id}` redevient utilisable.",
             ephemeral=True,
         )
+        # the origin menu's buttons are dead (the pool is gone): edit it
+        # to a plain closed note \u2014 never a copy of the view, and never
+        # a menu of actions on a deleted pool
+        if self.origin is not None:
+            try:
+                from kingdoms.discord.maps_pool_flow import _text_answer
+
+                await self.origin.edit(view=_text_answer(f"`{self.pool.id}` \u2014 supprim\u00e9."))
+            except Exception:
+                logger.warning("pool menu close after delete failed \u2014 best-effort", exc_info=True)
         await _finish_pool_transition(interaction, self.pool, answer_menu=False)
 
 

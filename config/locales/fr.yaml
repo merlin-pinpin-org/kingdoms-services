@@ -298,7 +298,7 @@ fr:
     menu_btn_sync: Synchroniser
     sync_title: Synchronisation cross-guild
     sync_subtitle: 'Les actions de synchronisation au niveau du bot : chaque bouton met à jour les données partagées par tous les serveurs.'
-    btn_refresh_aoe2_civs: Refresh aoe2 civs
+    btn_refresh_aoe2_civs: Rafraîchir les civs AoE2
     menu_current_language: '🌐 Langue : {current}'
     access_btn_manage: Gérer les accès
     menu_btn_language: Langue

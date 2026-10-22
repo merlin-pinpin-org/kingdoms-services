@@ -245,16 +245,35 @@ async def _sync_game_pools(
             actions += 1
         else:
             await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable)
+    actions += await _delete_orphan_pool_posts(wanted, existing)
+    if actions:
+        await _refresh_member_map_posts(bot, guild_id, wanted)
+    return actions
+
+
+async def _delete_orphan_pool_posts(wanted: dict[str, Any], existing: dict[str, Any]) -> int:
+    """Delete the posts of pools no longer in the mirror (hard-deleted).
+
+    One unreachable thread never kills the whole sync: a 429 on a
+    single delete must not leave every other action and the caller's
+    answer dead \u2014 the next sync retries it.
+    """
+    deleted = 0
     for name, thread in existing.items():
         linked = any(
             str(getattr(p, "forum_thread_id", "") or "") == str(thread.id) for p in wanted.values()
         )
         if name not in wanted and not linked:
-            await thread.delete(reason=f"kingdoms: pool {name} no longer visible")
-            actions += 1
-    if actions:
-        await _refresh_member_map_posts(bot, guild_id, wanted)
-    return actions
+            try:
+                await thread.delete(reason=f"kingdoms: pool {name} no longer visible")
+                deleted += 1
+            except Exception:
+                logger.warning(
+                    "pools forum: orphan post delete failed (%s) \u2014 retried next sync",
+                    name,
+                    exc_info=True,
+                )
+    return deleted
 
 
 async def _create_pool_post(
