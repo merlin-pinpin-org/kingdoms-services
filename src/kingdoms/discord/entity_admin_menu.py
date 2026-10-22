@@ -128,14 +128,18 @@ async def build_entity_admin_menu(
                 sections=(),
             )
         )
-        # line 1: composition (the single Maps editor, rename)
-        composition: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        maps_button = PoolMapsButton(entity_id)
-        if pool is not None and len(getattr(pool, "map_ids", ()) or ()) >= MAX_POOL_MAPS:
-            maps_button.item.disabled = True
-        composition.add_item(maps_button)
-        composition.add_item(GamesPoolRenameButton(entity_id))
-        menu.add_item(composition)
+        # line 1 (edition only): composition (the single Maps editor,
+        # rename) — a published/used/archived pool is frozen: its name
+        # and composition never change, so the composition row is
+        # HIDDEN, only the lifecycle buttons stay
+        if state == POOL_STATE_DRAFT:
+            composition: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+            maps_button = PoolMapsButton(entity_id)
+            if pool is not None and len(getattr(pool, "map_ids", ()) or ()) >= MAX_POOL_MAPS:
+                maps_button.item.disabled = True
+            composition.add_item(maps_button)
+            composition.add_item(GamesPoolRenameButton(entity_id))
+            menu.add_item(composition)
         # line 2: lifecycle (publish/archive/delete, disabled when the
         # transition is impossible from the pool's current state)
         targets = POOL_TRANSITIONS.get(state, ())
