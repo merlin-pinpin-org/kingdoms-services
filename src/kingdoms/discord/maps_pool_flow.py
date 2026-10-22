@@ -94,11 +94,14 @@ class MapAddToPoolButton(
             game_key = entry.game_key if entry else "aoe2"
             pools = await service.list_map_pools(game_key, guild_id=guild_id)
             # only the DRAFT pools accept a map — published/used/closed are
-            # frozen, whatever their edition_mode residue
+            # frozen; and a pool already containing the map never lists
+            # (adding an existing member is a non-action)
             editable = [
                 p
                 for p in pools
-                if p.state == "draft" and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
+                if p.state == "draft"
+                and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
+                and self.map_id not in (p.map_ids or ())
             ]
             if not pools:
                 logger.info(
@@ -197,12 +200,14 @@ class MapPoolPickerSelect(
             entry = await service.get_map(map_id)
             if entry is not None:
                 pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
-                # only the DRAFT pools accept a map — published/used/closed
-                # are frozen, whatever their edition_mode residue
+                # only the DRAFT pools accept a map — and a pool already
+                # containing the map never lists (a non-action)
                 editable = [
                     p
                     for p in pools
-                    if p.state == "draft" and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
+                    if p.state == "draft"
+                    and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
+                    and map_id not in (p.map_ids or ())
                 ]
                 options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
                 if not options:

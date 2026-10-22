@@ -153,11 +153,13 @@ async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = No
     for pool in pools:
         if entry.id not in pool.map_ids:
             continue
-        # a BARE Discord link (<thread_id>): no label, nothing to update
-        # on a rename — Discord renders the thread's live title itself
+        # a LINK to the pool's post (no mention, no frozen label): the
+        # URL renders clickable; the pool's title lives on its own post
         thread_id = str(getattr(pool, "forum_thread_id", "") or "")
         if thread_id:
-            lines.append(f"- <{thread_id}>")
+            lines.append(
+                f"- https://discord.com/channels/{guild_id}/{thread_id}/{thread_id}"
+            )
         else:
             lines.append(f"- {pool.name}")
     return lines
