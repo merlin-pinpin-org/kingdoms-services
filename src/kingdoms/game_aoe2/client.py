@@ -70,3 +70,30 @@ class GameDataClient:
                         yield event_from_wire(wire)
             except grpc.aio.AioRpcError:
                 await asyncio.sleep(5)
+
+    async def get_provider_tests(self, game_key: str = "aoe2", timeout_s: float = 5.0) -> dict[str, Any]:
+        """Fetch the providers' last health-test results for a game."""
+        from kingdoms.core.rpc.client import build_channel
+        from kingdoms.rpc_generated.kingdoms.v1 import gamedata_pb2, gamedata_pb2_grpc
+
+        async with build_channel(self._uri) as channel:
+            stub = gamedata_pb2_grpc.GameDataStub(channel)
+            reply = await stub.GetProviderTests(
+                gamedata_pb2.ProviderTestsRequest(game_key=game_key),
+                timeout=timeout_s,
+            )
+            return {
+                "tests": [
+                    {
+                        "provider_id": t.provider_id,
+                        "game_key": t.game_key,
+                        "ok": t.ok,
+                        "latency_ms": t.latency_ms,
+                        "detail": t.detail,
+                        "checked_at": t.checked_at,
+                        "failures": t.failures,
+                    }
+                    for t in reply.tests
+                ],
+                "checked_at": reply.checked_at,
+            }

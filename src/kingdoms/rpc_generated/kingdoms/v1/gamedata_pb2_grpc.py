@@ -69,6 +69,11 @@ class GameDataStub:
                 request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GetGameDataMatchRequest.SerializeToString,
                 response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GameMatchLinks.FromString,
                 _registered_method=True)
+        self.GetProviderTests = channel.unary_unary(
+                '/kingdoms.v1.GameData/GetProviderTests',
+                request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.ProviderTestsRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.ProviderTests.FromString,
+                _registered_method=True)
 
 
 class GameDataServicer:
@@ -125,6 +130,15 @@ class GameDataServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetProviderTests(self, request, context):
+        """The providers' health-test results for a game: the game service
+        probes its providers periodically (capabilities ping, live stream
+        liveness) and serves the last results per provider.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_GameDataServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -152,6 +166,11 @@ def add_GameDataServicer_to_server(servicer, server):
                     servicer.GetMatchLinks,
                     request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GetGameDataMatchRequest.FromString,
                     response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GameMatchLinks.SerializeToString,
+            ),
+            'GetProviderTests': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProviderTests,
+                    request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.ProviderTestsRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.ProviderTests.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -299,6 +318,33 @@ class GameData:
             '/kingdoms.v1.GameData/GetMatchLinks',
             kingdoms_dot_v1_dot_gamedata__pb2.GetGameDataMatchRequest.SerializeToString,
             kingdoms_dot_v1_dot_gamedata__pb2.GameMatchLinks.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetProviderTests(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/GetProviderTests',
+            kingdoms_dot_v1_dot_gamedata__pb2.ProviderTestsRequest.SerializeToString,
+            kingdoms_dot_v1_dot_gamedata__pb2.ProviderTests.FromString,
             options,
             channel_credentials,
             insecure,

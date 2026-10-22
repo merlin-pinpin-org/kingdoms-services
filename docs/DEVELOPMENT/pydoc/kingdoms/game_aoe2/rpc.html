@@ -45,7 +45,7 @@ civs,&nbsp;aoe2lobby&nbsp;join/spectate&nbsp;URLs,&nbsp;aoe2de&nbsp;deep&nbsp;li
 <td class="section-title" colspan=3>&nbsp;<br><a name="GameDataServicer">class <strong>GameDataServicer</strong></a>(<a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.GameDataServicer</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataServicer">GameDataServicer</a>(aggregator:&nbsp;'Any',&nbsp;poll_interval_s:&nbsp;'float'&nbsp;=&nbsp;2.0,&nbsp;enrollments:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataServicer">GameDataServicer</a>(aggregator:&nbsp;'Any',&nbsp;poll_interval_s:&nbsp;'float'&nbsp;=&nbsp;2.0,&nbsp;enrollments:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;prober:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Serve&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;contract&nbsp;from&nbsp;the&nbsp;aggregator.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -58,13 +58,15 @@ Serve&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;contract&nbsp;from&nbsp;the&nbsp;a
 Methods defined here:<br>
 <dl><dt>async <a name="GameDataServicer-GetCoverage"><strong>GetCoverage</strong></a>(self, request: 'gamedata_pb2.CoverageRequest', context: 'grpc.aio.ServicerContext') -&gt; 'gamedata_pb2.GameCoverage'</dt><dd><span class="code">Serve&nbsp;the&nbsp;games&nbsp;this&nbsp;process&nbsp;covers&nbsp;and&nbsp;its&nbsp;health.</span></dd></dl>
 
+<dl><dt>async <a name="GameDataServicer-GetProviderTests"><strong>GetProviderTests</strong></a>(self, request: 'gamedata_pb2.ProviderTestsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'gamedata_pb2.ProviderTests'</dt><dd><span class="code">Serve&nbsp;the&nbsp;providers'&nbsp;last&nbsp;probe&nbsp;results&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
 <dl><dt>async <a name="GameDataServicer-UpdateEnrollments"><strong>UpdateEnrollments</strong></a>(self, request: 'gamedata_pb2.UpdateEnrollmentsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'gamedata_pb2.UpdateEnrollmentsResponse'</dt><dd><span class="code">Forward&nbsp;the&nbsp;platform's&nbsp;enrollments&nbsp;to&nbsp;the&nbsp;realtime&nbsp;provider.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataServicer-WatchDashboard"><strong>WatchDashboard</strong></a>(self, request: 'gamedata_pb2.WatchGameDataRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[gamedata_pb2.GameDashboard]'</dt><dd><span class="code">Stream&nbsp;snapshots:&nbsp;one&nbsp;immediately,&nbsp;then&nbsp;one&nbsp;per&nbsp;effective&nbsp;change.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataServicer-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(self, request: 'gamedata_pb2.WatchGameDataRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[gamedata_pb2.GamePlayerEvent]'</dt><dd><span class="code">Stream&nbsp;normalized&nbsp;transitions&nbsp;as&nbsp;the&nbsp;aggregator&nbsp;queues&nbsp;them.</span></dd></dl>
 
-<dl><dt><a name="GameDataServicer-__init__"><strong>__init__</strong></a>(self, aggregator: 'Any', poll_interval_s: 'float' = 2.0, enrollments: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;aggregator,&nbsp;the&nbsp;refresh&nbsp;interval&nbsp;and&nbsp;the&nbsp;enrollments&nbsp;pusher.</span></dd></dl>
+<dl><dt><a name="GameDataServicer-__init__"><strong>__init__</strong></a>(self, aggregator: 'Any', poll_interval_s: 'float' = 2.0, enrollments: 'Any' = None, prober: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;aggregator,&nbsp;the&nbsp;refresh&nbsp;interval,&nbsp;the&nbsp;enrollments&nbsp;pusher&nbsp;and&nbsp;the&nbsp;prober.</span></dd></dl>
 
 <hr>
 Methods inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.GameDataServicer</a>:<br>

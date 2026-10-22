@@ -35,6 +35,11 @@ service GameData {
   // Resolve a match reference to the enriched join/spectate links
   // (aoe2lobby pages, aoe2de:// deep link when available).
   rpc GetMatchLinks(GetGameDataMatchRequest) returns (GameMatchLinks);
+
+  // The providers' health-test results for a game: the game service
+  // probes its providers periodically (capabilities ping, live stream
+  // liveness) and serves the last results per provider.
+  rpc GetProviderTests(ProviderTestsRequest) returns (ProviderTests);
 }
 
 message CoverageRequest {}
@@ -114,4 +119,23 @@ message GetGameDataMatchRequest {
 
 message GameMatchLinks {
   repeated GameLink links = 1; // label + url + scheme_url (aoe2de:// when known)
+}
+
+message ProviderTestsRequest {
+  string game_key = 1;      // e.g. "aoe2"; empty means every covered game
+}
+
+message ProviderTests {
+  repeated ProviderTest tests = 1;  // one per configured provider
+  int64 checked_at = 2;             // epoch ms of the last probe round
+}
+
+message ProviderTest {
+  string provider_id = 1;    // e.g. "ext-aoe2lobby"
+  string game_key = 2;
+  bool ok = 3;               // the last probe answered
+  int64 latency_ms = 4;     // the last probe's round-trip
+  string detail = 5;         // human-readable outcome (error summary...)
+  int64 checked_at = 6;      // epoch ms of this provider's last probe
+  int32 failures = 7;        // consecutive failures (degradation signal)
 }

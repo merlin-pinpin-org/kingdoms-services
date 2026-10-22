@@ -133,3 +133,74 @@ def _summary_of(event: Any) -> dict[str, Any]:
 def _now_ms() -> int:
     """Epoch milliseconds, the repo's timestamp convention."""
     return int(time.time() * 1000)
+
+PROBE_INTERVAL_S = 60.0
+
+
+class ProviderProber:
+    """Probe the configured providers periodically and keep the results.
+
+    One capabilities ping per provider per round, with the round-trip
+    latency and the consecutive-failure count (the degradation signal
+    the admin dashboard renders); the aggregator's health flags stay
+    driven by the stream liveness, this prober is the observability
+    layer the GameData contract serves.
+    """
+
+    def __init__(self) -> None:
+        self._results: dict[str, dict[str, Any]] = {}
+        self._checked_at = 0
+
+    def results(self, game_key: str = "") -> dict[str, Any]:
+        """Serve the last probe results (all games, or one)."""
+        tests = {
+            provider_id: result
+            for provider_id, result in self._results.items()
+            if not game_key or result.get("game_key") == game_key
+        }
+        return {"tests": tests, "checked_at": self._checked_at}
+
+    async def run_forever(self, providers: list[tuple[str, str]], game_key: str = "aoe2") -> None:
+        """Probe every configured provider forever, one round per interval."""
+        import asyncio
+        import time as _time
+
+        from kingdoms.core.rpc.game_client import GameProviderClient
+
+        clients: dict[str, Any] = {}
+        while True:
+            for provider_id, uri in providers:
+                if provider_id not in clients and uri:
+                    clients[provider_id] = GameProviderClient(uri, provider_id, game_key)
+                client = clients.get(provider_id)
+                if client is None:
+                    continue
+                started = _time.monotonic()
+                try:
+                    caps = await client.get_capabilities()
+                    latency_ms = int((_time.monotonic() - started) * 1000)
+                    self._results[provider_id] = {
+                        "provider_id": provider_id,
+                        "game_key": game_key,
+                        "ok": bool(caps.provider_id),
+                        "latency_ms": latency_ms,
+                        "detail": (
+                            f"realtime={caps.realtime} player_stats={caps.player_stats}"
+                            if caps.provider_id
+                            else "empty capabilities"
+                        ),
+                        "checked_at": _now_ms(),
+                        "failures": 0 if caps.provider_id else 1,
+                    }
+                except Exception as exc:
+                    self._results[provider_id] = {
+                        "provider_id": provider_id,
+                        "game_key": game_key,
+                        "ok": False,
+                        "latency_ms": int((_time.monotonic() - started) * 1000),
+                        "detail": f"{type(exc).__name__}: {exc}"[:200],
+                        "checked_at": _now_ms(),
+                        "failures": int(self._results.get(provider_id, {}).get("failures", 0)) + 1,
+                    }
+            self._checked_at = _now_ms()
+            await asyncio.sleep(PROBE_INTERVAL_S)

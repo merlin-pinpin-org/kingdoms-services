@@ -476,6 +476,7 @@ en:
       heading_actions: 🎩 Actions
       btn_add_map: Add a map
       btn_create_pool: Create a map pool
+      btn_providers: Providers (health & tests)
       btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.
       btn_sync: Sync now

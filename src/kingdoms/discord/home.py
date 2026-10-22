@@ -160,6 +160,7 @@ async def _profile_game_blocks(
             logger.warning("HOME: profile enricher failed", exc_info=True)
     blocks: list[discord.ui.TextDisplay[discord.ui.LayoutView]] = []
     for game, entries in sorted(by_game.items()):
+        game_site = await _user_preferred_site(interaction, game)
         lines = [f"## {_game_label(game)}"]
         for entry in entries:
             profile = entry.get("profile") or {}
@@ -172,9 +173,16 @@ async def _profile_game_blocks(
             pid = entry.get("profile_id", "?")
             player = players_by_id.get(user_id)
             elo = f" — {player.get('rating')} elo" if player else ""
-            url = _game_account_url(game, str(pid))
+            url = _game_account_url(game, str(pid), game_site)
             account = f"[{name}]({url}) (`{pid}`)" if url else f"{name} (`{pid}`)"
             lines.append(f"• {account}{elo}")
+            from kingdoms.core.services.profile_sites import profile_sites_registry
+
+            for site in profile_sites_registry().sites_for(game):
+                site_url = site.format_url(str(pid))
+                if not site_url or (game_site and site.key == game_site):
+                    continue
+                lines.append(f"  ↳ [{site.label}]({site_url})")
         blocks.append(discord.ui.TextDisplay(chr(10).join(lines)))
     return blocks
 
@@ -216,6 +224,26 @@ async def _profile_followup(
         header = f"{header}\n\n{banner}"
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(header), *blocks))
     view.add_item(row)
+    games = sorted({str(b.get("game_key", "")) for b in bindings if b.get("game_key")})
+    if games:
+        from kingdoms.core.services.profile_sites import profile_sites_registry
+
+        for game in games:
+            registry = profile_sites_registry()
+            sites = registry.sites_for(game)
+            if not sites:
+                continue
+            current = await _user_preferred_site(interaction, game)
+            default = registry.default_site(game)
+            options = [
+                discord.SelectOption(
+                    label=site.label,
+                    value=site.key,
+                    default=(site.key == current) or (not current and default is not None and site.key == default.key),
+                )
+                for site in sites
+            ]
+            view.add_item(ProfileSiteSelect(game, options))
     from kingdoms.core.ids import footer
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
@@ -238,7 +266,6 @@ async def _profile_followup(
 PROFILE_PROVIDER = "ext-librematch (aoe2)"
 
 GAME_LABELS = {"aoe2": "Age of Empires II"}
-GAME_INSIGHTS_URL = "https://www.aoe2insights.com/user/"
 
 
 def _game_label(game_key: str) -> str:
@@ -246,16 +273,53 @@ def _game_label(game_key: str) -> str:
     return GAME_LABELS.get(game_key, game_key)
 
 
-def _game_account_url(game_key: str, relic_id: str) -> str:
-    """Build the profile's public page URL (insights for aoe2; empty when unknown).
+def _profile_sites(game_key: str) -> list[tuple[str, str, str]]:
+    """List the game's declared profile sites: (key, label, no-url)."""
+    from kingdoms.core.services.profile_sites import profile_sites_registry
 
-    The insights site keys profiles by its own user id on the plain
-    /user/<id>/ path; the relic id needs the relic path
-    (``/user/relic/<relic_id>/``) — the plain path with a relic id 404s.
+    return [(s.key, s.label, "") for s in profile_sites_registry().sites_for(game_key)]
+
+
+def _game_account_url(game_key: str, relic_id: str, site_key: str = "") -> str:
+    """Build the profile's public page URL on the chosen (or default) site.
+
+    The sites are declared in ``config/games/<game>/profile_sites.yaml``
+    — never hard-coded; the user's preferred site rides their settings.
     """
-    if game_key == "aoe2" and relic_id.isdigit():
-        return f"{GAME_INSIGHTS_URL}relic/{relic_id}/"
-    return ""
+    from kingdoms.core.services.profile_sites import format_profile_url
+
+    return format_profile_url(game_key, relic_id, site_key)
+
+
+async def _user_preferred_site(interaction: discord.Interaction, game_key: str) -> str:
+    """Read the user's preferred profile site for a game ('' = default)."""
+    logs_service = getattr(interaction.client, "logs_service", None)
+    if logs_service is None:
+        return ""
+    try:
+        settings = await logs_service._safe(
+            logs_service._db.get_user_settings(str(interaction.user.id))
+        ) or {}
+    except Exception:
+        return ""
+    return str(settings.get(f"profile_site:{game_key}", ""))
+
+
+async def _set_user_preferred_site(
+    interaction: discord.Interaction, game_key: str, site_key: str
+) -> None:
+    """Persist the user's preferred profile site for a game."""
+    logs_service = getattr(interaction.client, "logs_service", None)
+    if logs_service is None:
+        return
+    import time as _time
+
+    settings = await logs_service._safe(
+        logs_service._db.get_user_settings(str(interaction.user.id))
+    ) or {}
+    settings[f"profile_site:{game_key}"] = site_key
+    settings["updated_at"] = int(_time.time())
+    await logs_service._db.set_user_settings(str(interaction.user.id), settings)
 
 
 async def _report_profile_error(
@@ -497,6 +561,70 @@ class ProfileRenameButton(
         await interaction.response.send_modal(
             ProfileRenameModal(current, origin=EphemeralOrigin.capture(interaction))
         )
+
+
+class ProfileSiteSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=r"home:profile:site:(?P<game>[a-z0-9]+)",
+):
+    """Pick the preferred profile site for a game (persisted per user).
+
+    The sites come from ``config/games/<game>/profile_sites.yaml`` —
+    the select is rebuilt from the registry at every profile render,
+    so a config change shows up without a deploy.
+    """
+
+    def __init__(self, game_key: str, options: list[discord.SelectOption]) -> None:
+        super().__init__(
+            discord.ui.Select(
+                placeholder="Site de profil préféré",
+                options=options,
+                custom_id=f"home:profile:site:{game_key}",
+            )
+        )
+        self.game_key = game_key
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> ProfileSiteSelect:
+        """Rebuild the picker from the wire (registry options)."""
+        game_key = str(match.group("game"))
+        return cls(game_key, _site_options(interaction, game_key))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Persist the choice and re-render the profile in place."""
+        data = getattr(interaction, "data", None) or {}
+        values = [str(v) for v in data.get("values", [])]
+        if not values:
+            return
+        await _set_user_preferred_site(interaction, self.game_key, values[0])
+        await _profile_followup(
+            interaction,
+            banner=f"Site de profil préféré : **{values[0]}**.",
+        )
+
+
+def _site_options(interaction: discord.Interaction, game_key: str) -> list[discord.SelectOption]:
+    """Build the site options from the registry (current choice marked)."""
+    from kingdoms.core.services.profile_sites import profile_sites_registry
+
+    registry = profile_sites_registry()
+    current = ""
+    default = registry.default_site(game_key)
+    options = [
+        discord.SelectOption(
+            label=site.label,
+            value=site.key,
+            default=(site.key == current) or (not current and default is not None and site.key == default.key),
+        )
+        for site in registry.sites_for(game_key)
+    ]
+    return options
 
 
 class ProfileRenameModal(discord.ui.Modal):

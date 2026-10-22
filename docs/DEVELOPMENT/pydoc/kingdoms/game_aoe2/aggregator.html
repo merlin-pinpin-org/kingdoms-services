@@ -39,6 +39,7 @@ state;&nbsp;svc-core&nbsp;and&nbsp;the&nbsp;bot&nbsp;only&nbsp;see&nbsp;what&nbs
 </dt><dd>
 <dl>
 <dt class="heading-text"><a href="kingdoms.game_aoe2.aggregator.html#GameAoe2Aggregator">GameAoe2Aggregator</a>
+</dt><dt class="heading-text"><a href="kingdoms.game_aoe2.aggregator.html#ProviderProber">ProviderProber</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
@@ -140,6 +141,37 @@ when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`
 However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
 classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderProber">class <strong>ProviderProber</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderProber">ProviderProber</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Probe&nbsp;the&nbsp;configured&nbsp;providers&nbsp;periodically&nbsp;and&nbsp;keep&nbsp;the&nbsp;results.<br>
+&nbsp;<br>
+One&nbsp;capabilities&nbsp;ping&nbsp;per&nbsp;provider&nbsp;per&nbsp;round,&nbsp;with&nbsp;the&nbsp;round-trip<br>
+latency&nbsp;and&nbsp;the&nbsp;consecutive-failure&nbsp;count&nbsp;(the&nbsp;degradation&nbsp;signal<br>
+the&nbsp;admin&nbsp;dashboard&nbsp;renders);&nbsp;the&nbsp;aggregator's&nbsp;health&nbsp;flags&nbsp;stay<br>
+driven&nbsp;by&nbsp;the&nbsp;stream&nbsp;liveness,&nbsp;this&nbsp;prober&nbsp;is&nbsp;the&nbsp;observability<br>
+layer&nbsp;the&nbsp;GameData&nbsp;contract&nbsp;serves.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProviderProber-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProviderProber-results"><strong>results</strong></a>(self, game_key: 'str' = '') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serve&nbsp;the&nbsp;last&nbsp;probe&nbsp;results&nbsp;(all&nbsp;games,&nbsp;or&nbsp;one).</span></dd></dl>
+
+<dl><dt>async <a name="ProviderProber-run_forever"><strong>run_forever</strong></a>(self, providers: 'list[tuple[str, str]]', game_key: 'str' = 'aoe2') -&gt; 'None'</dt><dd><span class="code">Probe&nbsp;every&nbsp;configured&nbsp;provider&nbsp;forever,&nbsp;one&nbsp;round&nbsp;per&nbsp;interval.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -147,6 +179,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>GRACE_MS</strong> = 15000<br>
+<strong>PROBE_INTERVAL_S</strong> = 60.0<br>
 <strong>SNAPSHOT_KEYS</strong> = ('map', 'format', 'status', 'slots_taken', 'slots_total', 'host', 'players', 'lobby_url', 'spectate_url', 'deep_link', 'match_url')<br>
 <strong>STATE_IN_GAME</strong> = 'in_game'<br>
 <strong>STATE_IN_LOBBY</strong> = 'in_lobby'<br>

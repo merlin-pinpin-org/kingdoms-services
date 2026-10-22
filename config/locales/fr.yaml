@@ -476,6 +476,7 @@ fr:
       heading_actions: 🎩 Actions
       btn_add_map: Ajouter une map
       btn_create_pool: Créer un map pool
+      btn_providers: Providers (santé & tests)
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
       btn_sync: Synchroniser

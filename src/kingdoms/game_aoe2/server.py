@@ -39,12 +39,20 @@ async def _serve() -> None:
 
     aggregator = GameAoe2Aggregator()
     enrollments = _EnrollmentPusher()
+    from kingdoms.game_aoe2.aggregator import ProviderProber
+
+    prober = ProviderProber()
     server = build_status_server(
         lambda: CoreStatus(version=__version__, process=PROCESS_LABEL),
     )
-    add_gamedata_servicer(server, GameDataServicer(aggregator, enrollments=enrollments))
+    add_gamedata_servicer(server, GameDataServicer(aggregator, enrollments=enrollments, prober=prober))
 
     consumer = asyncio.ensure_future(_consume_providers(aggregator))
+    providers = [
+        ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", "")),
+        ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", "")),
+    ]
+    probe_task = asyncio.ensure_future(prober.run_forever(providers))
 
     port = os.environ.get("GAME_GRPC_PORT", "50071")
     bind = f"[::]:{port}"
@@ -55,6 +63,7 @@ async def _serve() -> None:
         await server.wait_for_termination()
     finally:
         consumer.cancel()
+        probe_task.cancel()
 
 
 class _EnrollmentPusher:

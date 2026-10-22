@@ -151,11 +151,13 @@ class GameDataServicer(gamedata_pb2_grpc.GameDataServicer):
         aggregator: Any,
         poll_interval_s: float = 2.0,
         enrollments: Any = None,
+        prober: Any = None,
     ) -> None:
-        """Wire the aggregator, the refresh interval and the enrollments pusher."""
+        """Wire the aggregator, the refresh interval, the enrollments pusher and the prober."""
         self._aggregator = aggregator
         self._poll_interval_s = poll_interval_s
         self._enrollments = enrollments
+        self._prober = prober
 
     async def GetCoverage(
         self,
@@ -181,6 +183,31 @@ class GameDataServicer(gamedata_pb2_grpc.GameDataServicer):
             request.game_key, list(request.profile_ids)
         )
         return gamedata_pb2.UpdateEnrollmentsResponse(subscribed=subscribed, applied=applied)
+
+    async def GetProviderTests(
+        self,
+        request: gamedata_pb2.ProviderTestsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> gamedata_pb2.ProviderTests:
+        """Serve the providers' last probe results for a game."""
+        if self._prober is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "provider tests not wired")
+        results = self._prober.results(request.game_key)
+        return gamedata_pb2.ProviderTests(
+            tests=[
+                gamedata_pb2.ProviderTest(
+                    provider_id=str(result.get("provider_id", "")),
+                    game_key=str(result.get("game_key", "")),
+                    ok=bool(result.get("ok", False)),
+                    latency_ms=int(result.get("latency_ms", 0)),
+                    detail=str(result.get("detail", "")),
+                    checked_at=int(result.get("checked_at", 0)),
+                    failures=int(result.get("failures", 0)),
+                )
+                for result in results["tests"].values()
+            ],
+            checked_at=int(results.get("checked_at", 0)),
+        )
 
     async def WatchDashboard(
         self,

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.providers_panel</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.providers_panel</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/providers_panel.py">SOURCE_ROOT/discord/providers_panel.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;providers&nbsp;admin&nbsp;panel&nbsp;(panel:game:aoe2:providers,&nbsp;ADR-0021).<br>
+&nbsp;<br>
+The&nbsp;admin&nbsp;sub-menu&nbsp;of&nbsp;the&nbsp;aoe2&nbsp;game&nbsp;admin:&nbsp;every&nbsp;provider&nbsp;configured<br>
+on&nbsp;the&nbsp;game&nbsp;service,&nbsp;with&nbsp;its&nbsp;last&nbsp;health-test&nbsp;results&nbsp;(the&nbsp;prober's<br>
+capabilities&nbsp;ping:&nbsp;ok,&nbsp;latency,&nbsp;consecutive&nbsp;failures).&nbsp;The&nbsp;data&nbsp;comes<br>
+from&nbsp;the&nbsp;game&nbsp;service&nbsp;—&nbsp;``GetProviderTests``&nbsp;on&nbsp;the&nbsp;GameData&nbsp;contract&nbsp;—<br>
+never&nbsp;from&nbsp;the&nbsp;providers&nbsp;directly&nbsp;(the&nbsp;bot&nbsp;never&nbsp;talks&nbsp;to&nbsp;them).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-view_providers"><strong>view_providers</strong></a>(interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Render&nbsp;the&nbsp;providers&nbsp;panel&nbsp;(ephemeral,&nbsp;admin-guarded).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.discord.providers_panel (WARNING)&gt;</td></tr></table>
+</body></html>
