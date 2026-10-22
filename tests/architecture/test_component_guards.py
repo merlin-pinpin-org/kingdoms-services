@@ -41,32 +41,12 @@ import ast
 import pathlib
 import re
 
-# The known-good U+1F5xx symbols used on components today (validated live
-# against Discord). Anything else in the block must be added here WITH a
-# live validation first.
-_GOOD_1F5XX = {
-    0x1F512,  # lock
-    0x1F513,  # open lock
-    0x1F517,  # link
-    0x1F527,  # wrench
-    0x1F52A,  # knife (civs)
-    0x1F52E,  # crystal ball
-    0x1F570,  # clock
-    0x1F576,  # sunglasses
-    0x1F577,  # spider
-    0x1F578,  # spider web
-    0x1F579,  # joystick
-    0x1F587,  # linked paperclips
-    0x1F58A,  # pen
-    0x1F58B,  # fountain pen
-    0x1F5FA,  # world map
-    0x1F5FB,  # mount fuji
-    0x1F5FC,  # tokyo tower
-    0x1F5FD,  # statue of liberty
-    0x1F5DE,  # bookmark tabs (labels only — NOT valid as component emoji)
-# 0x1F5AE rejected live (50035 Invalid emoji, 2026-10-21 test env)
-    0x1F5D1,  # trash bin
-}
+# The single source of truth for component emoji: the ui SDK's allowlist
+# (kingdoms.discord.ui.emoji). A new emoji is live-checked first, then
+# added THERE — never here.
+from kingdoms.discord.ui.emoji import ALLOWED_CODEPOINTS as _ALLOWED
+
+_GOOD_1F5XX = {cp for cp in _ALLOWED if 0x1F500 <= cp <= 0x1F5FF}
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
