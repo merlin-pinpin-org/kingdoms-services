@@ -1085,6 +1085,15 @@ class MockInteraction(discord.Interaction):
         """Mirror :meth:`discord.Interaction.original_response` (post-send)."""
         return self.response.message
 
+    async def delete_original_response(self) -> None:
+        """Mirror :meth:`discord.Interaction.delete_original_response`.
+
+        battle-room-id-v2: the ephemeral self-destruction timers call
+        this — the mock just drops the recorded response message.
+        """
+        self.response.message = None
+        self.original_deleted = True
+
     @property
     def guild(self) -> MockGuild:
         return self._guild

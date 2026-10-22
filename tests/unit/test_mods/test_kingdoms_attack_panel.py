@@ -208,10 +208,11 @@ async def test_declaration_opens_the_attack_salon() -> None:
     declare = await guild.create_text_channel("Déclarer une attaque", position=3)
     await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), attack)
     salon = next(c for c in guild.text_channels if c.id != declare.id)
-    # Named after the ATTACKER and the target — never « vs défenseur ».
-    assert attack.map_key in salon.name
-    assert "attaque" in salon.name
-    assert "vs" not in salon.name.lower()
+    # battle-room-id-v2: the salon wears a readable ⚔️ duel name —
+    # the ATTACKER VS the defender KINGDOM, slugified (the map title
+    # lives in the announcement, never in the channel name).
+    assert salon.name == "⚔️-king-a-vs-bourgogne"
+    assert attack.map_key not in salon.name
     # Positioned right under the declare salon.
     assert salon.position == declare.position + 1
     # Check 75: the bot carries its own overwrite.
@@ -266,9 +267,10 @@ async def test_declaration_names_the_cover_not_the_attacker() -> None:
     await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), attack)
     salon = next(c for c in guild.text_channels if c.name != "Déclarer une attaque")
     # The salon name never leaks the real attacker — the cover identity
-    # (lord-a is "Lord A", the masked king-a is "King A").
-    assert "Lord A" in salon.name
-    assert "King A" not in salon.name
+    # (lord-a is "Lord A", the masked king-a is "King A"),
+    # slugified by the battle-room-id-v2 duel name.
+    assert salon.name == "⚔️-lord-a-vs-bourgogne"
+    assert "king-a" not in salon.name
 
 
 async def test_cancel_attack_button_refunds_and_purges_the_salon() -> None:
@@ -745,7 +747,9 @@ async def test_gaia_declaration_opens_its_salon_and_is_never_cancellable() -> No
     declare = await guild.create_text_channel("Déclarer une attaque")
     await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), battle)
     salon = next(c for c in guild.text_channels if c.id != declare.id)
-    assert battle.map_key in salon.name
+    # battle-room-id-v2: the gaia salon wears the ⚔️ duel name — the
+    # attacker VS « Gaïa » (the map title stays in the announcement).
+    assert salon.name == "⚔️-king-a-vs-gaia"
     ids = [str(c.custom_id) for c in salon.messages[0].view.children]
     assert f"kingdoms:attack:join:{_room_key(battle.id)}" in ids  # 🦅 Rejoindre
     assert f"kingdoms:attack:cancel:{_room_key(battle.id)}" in ids  # ❌ Annuler
@@ -1057,9 +1061,12 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     assert mine.view_channel is True
     assert mine.send_messages is True
     # The meeting single-message lands in the SALON — the voice room
-    # keeps only the voice (b).
+    # keeps only the voice (b). battle-room-id-v2: the open also PINGS
+    # the two players (message #2) so they cannot miss the scoreboard.
     assert room.messages == []
-    assert len(salon.messages) == 1
+    assert len(salon.messages) == 2
+    ping = str(salon.messages[1].content or "")
+    assert "<@king-a>" in ping and "<@lord-b>" in ping
     body = (salon.messages[0].content or "")
     # Drasah 18/10 v4: the meeting shows the FINAL civ of each player only
     # (post-sabotage, first surviving pick) — the full hands stay in DM.
@@ -1089,7 +1096,7 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     await bundle.attacks.set_lobby_url(attack.id, "king-a", "4242")
     stamped = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     await _refresh_room_message_safe(bot, stamped, "fr")
-    assert len(salon.messages) == 1  # the SAME salon message refreshes
+    assert len(salon.messages) == 2  # the SAME salon message refreshes
     refreshed = {str(c.custom_id) for c in salon.messages[0].view.children}
     assert any(cid.startswith("kingdoms:attack:room:ready:") for cid in refreshed)
     assert not any(cid.startswith("kingdoms:attack:room:result:") for cid in refreshed)
@@ -1221,10 +1228,10 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     strings = _strings("fr")
     # battle-room-id-v1: one Prêt button PER SIDE (attacker/defender).
     button = KingdomRoomReadyButton(
-        attack.id, strings["room_ready_side_button"].format(player="king-a"), side="attacker"
+        attack.id, strings["room_ready_attacker_button"].format(player="king-a"), side="attacker"
     )
     other_side = KingdomRoomReadyButton(
-        attack.id, strings["room_ready_side_button"].format(player="lord-b"), side="defender"
+        attack.id, strings["room_ready_defender_button"].format(player="lord-b"), side="defender"
     )
 
     # Drasah 18/10 v4: no lobby URL yet — the Prêt is politely refused.
@@ -1249,7 +1256,9 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     # type: ignore[arg-type]
     await button.callback(wrong)  # type: ignore[arg-type]
     assert wrong.response.message is not None
-    assert "pas de ton côté" in str(wrong.response.message.content or "")
+    # battle-room-id-v2: the refusal is worded for the player and
+    # self-destructs after 10 s (timer armed, never blocks the test).
+    assert "réservé à votre adversaire" in str(wrong.response.message.content or "")
     fresh_wrong = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert not (fresh_wrong.score or {}).get("ready")
 
@@ -1288,7 +1297,8 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     assert (fresh.score or {}).get("room_event_id") == 987654321
     # v5: no extra post — the SAME salon message carries 🏆 and the
     # « bonne game » footer once both are Prêt (no « La partie commence »).
-    assert len(salon.messages) == 1
+    # v2: the salon counts TWO messages (scoreboard + player ping).
+    assert len(salon.messages) == 2
     final_view = {str(c.custom_id) for c in salon.messages[0].view.children}
     assert any(cid.startswith("kingdoms:attack:room:result:") for cid in final_view)
     assert "bonne game" in str(salon.messages[0].content or "")
@@ -1300,6 +1310,14 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     # type: ignore[arg-type]
     await other_side.callback(again)  # type: ignore[arg-type]
     assert len(created) == 1
+    # v2: the 10 s self-destruction timer of the wrong-side refusal
+    # never blocks the suite.
+    import asyncio
+
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
 
 
 async def test_room_url_button_locks_the_entry_then_a_changed_id_resets_the_ready() -> None:
@@ -1354,8 +1372,9 @@ async def test_room_url_button_locks_the_entry_then_a_changed_id_resets_the_read
         user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
     )
     await modal.on_submit(submit)  # type: ignore[arg-type]
-    note = str(submit.response.message.content or "")
-    assert "remis à zéro" in note
+    # battle-room-id-v2: the modal submit defers silently — the reset
+    # of the Prêts reads directly on the scoreboard (no ephemeral note).
+    assert submit.response.deferred
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.lobby_url == "aoe2de://lobby/2"
     assert (fresh.score or {}).get("ready") == []
@@ -1655,8 +1674,13 @@ async def test_sweep_keeps_a_live_room_and_deletes_orphan_battle_roles() -> None
 
 
 async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> None:
-    """v5: 🏆 refuses before both Prêt; the resolved match posts the
-    Géopolitique conquest recap with its detail thread (game ID reused)."""
+    """battle-room-id-v2: 🏆 refuses before both Prêt; the winner flow
+    is TWO-STAGE (select → EXPLICIT confirmation, anti-missclick) and
+    the result applies only with the OTHER player's confirm (review
+    view — never a second declaration). The resolved match posts the
+    Géopolitique conquest recap with its detail thread (ID reused)."""
+    import asyncio
+
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         KingdomRoomResultButton,
         _open_battle_room,
@@ -1684,30 +1708,69 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
     await button.callback(early)  # type: ignore[arg-type]
     assert early.response.message is not None
     assert "Prêts" in str(early.response.message.content or "")
-    # Both ready, both declare the same winner — the ID rides along.
+    # Both Prêt — the attacker starts the two-stage declaration.
     await bundle.attacks.mark_ready(attack.id, "king-a")
     await bundle.attacks.mark_ready(attack.id, "lord-b")
-    outcomes: list[str] = []
-    for player in ("king-a", "lord-b"):
-        click = MockInteraction(
-            user=MockUser(id=player), guild=guild, channel=room, locale="fr", client=bot
-        )
-        await button.callback(click)  # type: ignore[arg-type]
-        # The ephemeral winner select pops — pick the attacker kingdom.
-        assert click.response.message is not None
-        select = click.response.message.view.children[0]  # type: ignore[union-attr]
-        select._values = [str(aquitaine)]  # type: ignore[attr-defined]
-        target = MockInteraction(
-            user=MockUser(id=player), guild=guild, channel=room, locale="fr", client=bot
-        )
-        await select.callback(target)  # type: ignore[arg-type,union-attr,func-returns-value]
-        assert target.response.message is not None
-        content = str(target.response.message.content or "")
-        if "Résultat enregistré" in content:
-            outcomes.append("resolved")
-        elif "Résultat" in content:
-            outcomes.append("pending")
-    assert "resolved" in outcomes
+    click_a = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await button.callback(click_a)  # type: ignore[arg-type]
+    # Stage 1: the ephemeral winner select.
+    assert click_a.response.message is not None
+    select = click_a.response.message.view.children[0]  # type: ignore[union-attr]
+    select._values = [str(aquitaine)]  # type: ignore[attr-defined]
+    pick_a = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await select.callback(pick_a)  # type: ignore[arg-type,union-attr,func-returns-value]
+    # Stage 2: the explicit confirmation (anti-missclick — the ✏️
+    # Modifier loops back to the select, never a silent declaration).
+    assert pick_a.response.message is not None
+    assert "confirmer" in str(pick_a.response.message.content or "").lower()
+    labels = [str(c.label) for c in pick_a.response.message.view.children]  # type: ignore[union-attr]
+    assert labels == [strings["result_confirm_button"], strings["result_edit_button"]]
+    # The ✏️ Modifier loops back to the winner select via an edit.
+    change = pick_a.response.message.view.children[1]  # type: ignore[union-attr]
+    redo = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await change.callback(redo)  # type: ignore[arg-type,func-returns-value]
+    assert "Qui remporte" in str(redo.response.message.content or "")
+    # The attacker settles on Aquitaine again and CONFIRMS.
+    select2 = redo.response.message.view.children[0]  # type: ignore[union-attr]
+    select2._values = [str(aquitaine)]  # type: ignore[attr-defined]
+    pick_a2 = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await select2.callback(pick_a2)  # type: ignore[arg-type,union-attr,func-returns-value]
+    confirm = pick_a2.response.message.view.children[0]  # type: ignore[union-attr]
+    okay = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await confirm.callback(okay)  # type: ignore[arg-type,func-returns-value]
+    assert okay.response.message is not None
+    assert "Résultat enregistré" in str(okay.response.message.content or "")
+    # PENDING until the other side confirms — the attack is NOT over.
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert not fresh.is_over
+    # The defender can no longer DECLARE a winner — the review view
+    # only offers ✅ Confirmer le résultat / ⚖️ Contester.
+    click_b = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await button.callback(click_b)  # type: ignore[arg-type]
+    assert click_b.response.message is not None
+    assert "a déclaré" in str(click_b.response.message.content or "")
+    review = click_b.response.message.view.children  # type: ignore[union-attr]
+    review_labels = [str(c.label) for c in review]
+    assert review_labels == [strings["result_review_confirm_button"], strings["result_review_contest_button"]]
+    # The defender CONFIRMS the same winner — the result applies now.
+    confirm_b = review[0]
+    okay_b = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await confirm_b.callback(okay_b)  # type: ignore[arg-type,func-returns-value]
+    assert okay_b.response.message is not None
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.is_over
     assert str(fresh.winner_kingdom_id) == str(aquitaine)
@@ -1719,3 +1782,172 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
     detail = str(geo.threads[0].messages[0].content or "")
     assert "4242" in detail  # the game ID declared earlier is reused
     assert "jouait" in detail  # the played civilizations
+    # v2: the armed self-destruction timers never block the suite.
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_result_contest_opens_a_dispute_kept_until_the_admins_arbitrate() -> None:
+    """battle-room-id-v2: a CONTESTED review (contrary declaration)
+    opens the dispute — the ephemeral reminder STAYS (no timer, the
+    admins arbitrate) and mentions taking contact with an admin."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomRoomResultButton,
+        _open_battle_room,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
+    strings = _strings("fr")
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "4242")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    button = KingdomRoomResultButton(attack.id, strings["result_button"])
+    # The attacker declares Aquitaine — select then confirm.
+    click_a = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await button.callback(click_a)  # type: ignore[arg-type]
+    select = click_a.response.message.view.children[0]  # type: ignore[union-attr]
+    select._values = [str(aquitaine)]  # type: ignore[attr-defined]
+    pick_a = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await select.callback(pick_a)  # type: ignore[arg-type,union-attr,func-returns-value]
+    confirm = pick_a.response.message.view.children[0]  # type: ignore[union-attr]
+    okay = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await confirm.callback(okay)  # type: ignore[arg-type,func-returns-value]
+    # The defender contests — the contrary declaration opens a dispute.
+    click_b = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await button.callback(click_b)  # type: ignore[arg-type]
+    contest = click_b.response.message.view.children[1]  # type: ignore[union-attr]
+    assert str(contest.label) == strings["result_review_contest_button"]
+    contest_b = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await contest.callback(contest_b)  # type: ignore[arg-type,func-returns-value]
+    assert contest_b.response.message is not None
+    content = str(contest_b.response.message.content or "")
+    assert "contradictoire" in content
+    assert "admin" in content.lower()
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert (fresh.score or {}).get("disputed")
+    assert not fresh.is_over
+    # The dispute freezes the flow: a new 🏆 click shows the SAME
+    # dispute reminder (staying message), never a fresh select.
+    later = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
+    await button.callback(later)  # type: ignore[arg-type]
+    assert "contradictoire" in str(later.response.message.content or "")
+    assert later.response.message.view is None or not later.response.message.view.children
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_room_row_order_and_duel_names() -> None:
+    """battle-room-id-v2: once both players are Prêt the single salon
+    message carries FOUR components in the Drasah order — Prêt
+    attaquant | 🔗 ID | 🏆 Déclarer le vainqueur | Prêt défenseur —
+    and the ⚔️ duel names (salon AND vocal) are slug-based with a
+    numbered suffix on collision, never the legacy prose names."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _open_battle_room,
+        _room_channel_name,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    strings = _strings("fr")
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "4242")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _refresh_room_message_safe
+
+    await _refresh_room_message_safe(bot, fresh, "fr")
+    ids = [str(c.custom_id) for c in salon.messages[0].view.children]
+    assert len(ids) == 4
+    assert ids[0].startswith("kingdoms:attack:room:ready:") and ids[0].endswith(":attacker")
+    assert ids[1].startswith("kingdoms:attack:room:url:")
+    assert ids[2].startswith("kingdoms:attack:room:result:")
+    assert ids[3].startswith("kingdoms:attack:room:ready:") and ids[3].endswith(":defender")
+    labels = [str(c.item.label) for c in salon.messages[0].view.children]  # type: ignore[attr-defined]
+    assert labels[0] == strings["room_ready_attacker_button"].format(player="King A")
+    assert labels[3] == strings["room_ready_defender_button"].format(player="Lord B")
+    # The ⚔️ duel names: slug, ⚔️- prefix, -vs- separator — and a
+    # numbered suffix separates SIMULTANEOUS duels on the same names.
+    room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
+    assert room.name == "⚔️-king-a-vs-lord-b"
+    twin = _room_channel_name(guild, "King A", "Lord B")
+    assert twin == "⚔️-king-a-vs-lord-b-2"
+    # The twin salon really exists now — the NEXT duel steps to -3.
+    await guild.create_voice_channel(twin)
+    again = _room_channel_name(guild, "king-a", "lord-b")
+    assert again == "⚔️-king-a-vs-lord-b-3"
+
+
+async def test_room_open_pings_both_players_but_never_the_ai() -> None:
+    """battle-room-id-v2: the salon PINGS the two players when the
+    room opens — against the AI defense only the ATTACKER is pinged
+    (no ping-able user on the other side), the scoreboard shows 🤖 IA."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    # The AI took the defense — the ping targets the attacker alone.
+    attack.ai_defender = True
+    await bundle.store.upsert_attack(attack.to_mongo())
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    pings = [m for m in salon.messages if "à vos armes" in str(m.content or "")]
+    assert len(pings) == 1
+    assert "<@king-a>" in str(pings[0].content or "")
+    assert "<@lord-b>" not in str(pings[0].content or "")
+    scoreboard = str(salon.messages[0].content or "")
+    assert "🤖 IA" in scoreboard
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)

@@ -1985,7 +1985,16 @@ The&nbsp;persistent&nbsp;🏆&nbsp;button&nbsp;of&nbsp;the&nbsp;battle&nbsp;room
 Methods defined here:<br>
 <dl><dt><a name="KingdomRoomResultButton-__init__"><strong>__init__</strong></a>(self, attack_id: 'str', label: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomRoomResultButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="KingdomRoomResultButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Ephemeral&nbsp;winner&nbsp;select&nbsp;→&nbsp;game-id&nbsp;modal&nbsp;(Drasah&nbsp;18/10&nbsp;v2).</span></dd></dl>
+<dl><dt>async <a name="KingdomRoomResultButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Ephemeral&nbsp;winner&nbsp;flow&nbsp;(battle-room-id-v2,&nbsp;Drasah&nbsp;22/10).<br>
+&nbsp;<br>
+No&nbsp;pending&nbsp;declaration:&nbsp;a&nbsp;winner&nbsp;select&nbsp;→&nbsp;an&nbsp;EXPLICIT<br>
+confirmation&nbsp;(anti-missclick&nbsp;—&nbsp;✏️&nbsp;Modifier&nbsp;loops&nbsp;back&nbsp;to&nbsp;the<br>
+select).&nbsp;Another&nbsp;player's&nbsp;pending&nbsp;declaration:&nbsp;the&nbsp;clicker<br>
+can&nbsp;no&nbsp;longer&nbsp;declare&nbsp;a&nbsp;winner&nbsp;—&nbsp;only&nbsp;✅&nbsp;Confirmer&nbsp;le<br>
+résultat&nbsp;or&nbsp;⚖️&nbsp;Contester.&nbsp;Every&nbsp;ephemeral&nbsp;view&nbsp;self-destructs<br>
+(idle&nbsp;timer&nbsp;re-armed&nbsp;at&nbsp;each&nbsp;interaction),&nbsp;the&nbsp;receipts&nbsp;after<br>
+5&nbsp;minutes&nbsp;—&nbsp;the&nbsp;dispute&nbsp;message&nbsp;STAYS&nbsp;until&nbsp;the&nbsp;admins<br>
+arbitrate.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -2816,6 +2825,6 @@ resolved&nbsp;rooms&nbsp;are&nbsp;cleaned&nbsp;up&nbsp;by&nbsp;the&nbsp;tick.</s
 <strong>DECLARE_CHANNEL_NAME</strong> = 'Déclarer une attaque'<br>
 <strong>GEOPOLITICS_CHANNEL_NAME</strong> = 'Géopolitique'<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
-<strong>__annotations__</strong> = {'_BATTLE_ROLE_NAME_PREFIXES': 'tuple[str, ...]', '_MAP_TAG_KEYS': 'tuple[tuple[str, str], ...]', '_ROOM_UNLOCK_TASKS': 'set[asyncio.Task[None]]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>__annotations__</strong> = {'_BATTLE_ROLE_NAME_PREFIXES': 'tuple[str, ...]', '_MAP_TAG_KEYS': 'tuple[tuple[str, str], ...]', '_ROOM_EPHEMERAL_TIMERS': 'dict[tuple[str, str], asyncio.Task[None]]', '_ROOM_UNLOCK_TASKS': 'set[asyncio.Task[None]]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.mods.kingdoms.kingdom_attack_panel (WARNING)&gt;</td></tr></table>
 </body></html>
