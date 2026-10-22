@@ -40,7 +40,7 @@ from typing import Any
 
 import websockets
 
-from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S
+from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S, LobbyClosedGrace
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,8 @@ class Aoe2LobbyAdapter:
         self._refresh_s = refresh_s
         self._matches: dict[str, dict[str, dict[str, Any]]] = {c: {} for c in _CONTEXTS}
         self._player_status: dict[str, tuple[str, str]] = {}
-        self._pending_closes: dict[str, tuple[str, float]] = {}
+        self._close_refs: dict[str, str] = {}
+        self._grace = LobbyClosedGrace(grace_s=int(grace_s))
         self._last_snapshot_at = 0
         self._subscribed_ids: set[str] = set()
         self._ws: Any = None
@@ -255,9 +256,9 @@ class Aoe2LobbyAdapter:
             self._schedule_close(profile_id, previous[1], _now_ms())
             return []
         if (status, match_ref) == previous:
-            self._pending_closes.pop(profile_id, None)
+            self._cancel_close(profile_id)
             return []
-        self._pending_closes.pop(profile_id, None)
+        self._cancel_close(profile_id)
         event = self._transition_event(
             profile_id, previous[0] if previous else None, status, match_ref
         )
@@ -303,7 +304,7 @@ class Aoe2LobbyAdapter:
                     self._schedule_close(profile_id, previous[1], _now_ms())
                 continue
             if (status, match_ref) == previous:
-                self._pending_closes.pop(profile_id, None)
+                self._cancel_close(profile_id)
                 continue
             events.append(
                 self._transition_event(
@@ -311,7 +312,7 @@ class Aoe2LobbyAdapter:
                 )
             )
             self._player_status[profile_id] = (status, match_ref)
-            self._pending_closes.pop(profile_id, None)
+            self._cancel_close(profile_id)
         return events
 
     def _current_status(self, profile_id: str) -> tuple[str | None, str]:
@@ -355,22 +356,29 @@ class Aoe2LobbyAdapter:
         }
 
     def _schedule_close(self, profile_id: str, match_ref: str, now_ms: float) -> None:
-        """Park a removal for the grace period before downgrading (§4 trap).
+        """Park a removal behind the game module's grace window (§4 trap).
 
-        A lobby removal is followed seconds later by the spectate match
-        of the same game; only a removal that survives the full grace
-        window becomes a close event.
+        The window rule lives once in ``LobbyClosedGrace`` (the game
+        module owns it); this adapter only keeps the profile→match_ref
+        association for the eventual close event payload.
         """
-        self._pending_closes[profile_id] = (match_ref, now_ms)
+        self._grace.on_lobby_closed(profile_id, now=now_ms / 1000.0)
+        self._close_refs[profile_id] = match_ref
+
+    def _cancel_close(self, profile_id: str) -> None:
+        """Drop a pending close: the player was seen again (§9 last-state rule)."""
+        self._grace.forget(profile_id)
+        self._close_refs.pop(profile_id, None)
 
     def _sweep_pending_closes(self) -> list[dict[str, Any]]:
         """Emit the close events whose grace period has fully elapsed."""
         now = _now_ms()
         events: list[dict[str, Any]] = []
-        for profile_id, (match_ref, closed_at) in sorted(self._pending_closes.items()):
-            if now - closed_at < self._grace_s * 1000:
+        for profile_id in sorted(self._close_refs):
+            if not self._grace.should_downgrade(profile_id, now=now / 1000.0):
                 continue
-            del self._pending_closes[profile_id]
+            match_ref = self._close_refs.pop(profile_id)
+            self._grace.forget(profile_id)
             status, current_ref = self._current_status(profile_id)
             if status is not None:
                 self._player_status[profile_id] = (status, current_ref)

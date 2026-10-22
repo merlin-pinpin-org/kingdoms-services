@@ -74,8 +74,7 @@ def test_lobby_remove_elapses_grace_then_lobby_closed() -> None:
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     _frame(adapter, {"lobby_match_remove": ["111"]})
     profile_id = "123"
-    closed_at = adapter._pending_closes[profile_id][1]
-    adapter._pending_closes[profile_id] = (adapter._pending_closes[profile_id][0], closed_at - 16_000)
+    adapter._grace._closed_at[profile_id] -= 16.0
     events = adapter._sweep_pending_closes()
     assert [e["type"] for e in events] == ["lobby_closed"]
     assert events[0]["profile_ids"] == ["123"]
@@ -87,8 +86,7 @@ def test_spectate_remove_after_grace_emits_game_ended() -> None:
     _frame(adapter, {"spectate_match_all": {"111": _lobby("111", [123])}})
     _frame(adapter, {"spectate_match_remove": ["111"]})
     profile_id = "123"
-    closed_at = adapter._pending_closes[profile_id][1]
-    adapter._pending_closes[profile_id] = (adapter._pending_closes[profile_id][0], closed_at - 16_000)
+    adapter._grace._closed_at[profile_id] -= 16.0
     events = adapter._sweep_pending_closes()
     assert [e["type"] for e in events] == ["game_ended"]
     assert events[0]["profile_ids"] == ["123"]
@@ -99,7 +97,7 @@ def test_player_remove_schedules_graced_close() -> None:
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     events = _frame(adapter, {"lobby_player_remove": [123]})
     assert events == []
-    assert "123" in adapter._pending_closes
+    assert "123" in adapter._close_refs
 
 
 def test_null_match_all_treated_as_empty() -> None:
@@ -107,7 +105,7 @@ def test_null_match_all_treated_as_empty() -> None:
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     removed = _frame(adapter, {"lobby_match_all": None})
     assert removed == []
-    assert "123" in adapter._pending_closes
+    assert "123" in adapter._close_refs
 
 
 def test_profile_ids_compared_as_str() -> None:
@@ -153,7 +151,7 @@ def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
     assert reseen == []
     gone = _frame(adapter, {"lobby_match_all": {}})
     assert gone == []
-    assert "123" in adapter._pending_closes
+    assert "123" in adapter._close_refs
 
 
 def test_snapshot_diff_emits_join_transition_after_reconnect() -> None:
@@ -254,9 +252,8 @@ async def test_player_status_null_status_schedules_graced_close() -> None:
     _frame(adapter, {"player_status": {"123": {"status": "lobby", "matchid": "111"}}})
     gone = _frame(adapter, {"player_status": {"123": {"status": None, "matchid": None}}})
     assert gone == []
-    assert "123" in adapter._pending_closes
+    assert "123" in adapter._close_refs
     assert adapter._sweep_pending_closes() == []
-    closed_at = adapter._pending_closes["123"][1]
-    adapter._pending_closes["123"] = (adapter._pending_closes["123"][0], closed_at - 16_000)
+    adapter._grace._closed_at["123"] -= 16.0
     closed = adapter._sweep_pending_closes()
     assert [e["type"] for e in closed] == ["lobby_closed"]
