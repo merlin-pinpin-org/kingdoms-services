@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.civ_crests</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.civ_crests</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/civ_crests.py">SOURCE_ROOT/mods/kingdoms/civ_crests.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;civilization&nbsp;crest&nbsp;images&nbsp;(civ-crests-v1,&nbsp;Drasah&nbsp;20/10).<br>
+&nbsp;<br>
+The&nbsp;mod's&nbsp;player-facing&nbsp;civ&nbsp;lists&nbsp;(the&nbsp;📜&nbsp;Alliances&nbsp;pinned&nbsp;draft&nbsp;starter,<br>
+the&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;REVEAL&nbsp;DM,&nbsp;the&nbsp;battle-room&nbsp;meeting&nbsp;message)&nbsp;read&nbsp;as&nbsp;bare<br>
+names.&nbsp;Drasah's&nbsp;2026-10-20&nbsp;report:&nbsp;the&nbsp;platform&nbsp;database&nbsp;carries&nbsp;each<br>
+civilization's&nbsp;blason&nbsp;(``faction:aoe2:&lt;Civ&gt;``&nbsp;content&nbsp;docs&nbsp;→<br>
+``image_url``),&nbsp;and&nbsp;the&nbsp;texts&nbsp;should&nbsp;wear&nbsp;them.<br>
+&nbsp;<br>
+Discord&nbsp;cannot&nbsp;inline&nbsp;a&nbsp;remote&nbsp;image&nbsp;inside&nbsp;a&nbsp;line&nbsp;of&nbsp;text,&nbsp;so&nbsp;the<br>
+crests&nbsp;ride&nbsp;as&nbsp;ATTACHED&nbsp;files:&nbsp;they&nbsp;display&nbsp;under&nbsp;the&nbsp;message&nbsp;body,&nbsp;in<br>
+the&nbsp;same&nbsp;order&nbsp;as&nbsp;the&nbsp;names.&nbsp;The&nbsp;PNGs&nbsp;come&nbsp;from&nbsp;the&nbsp;licence-clean<br>
+aoe2techtree&nbsp;repository&nbsp;—&nbsp;the&nbsp;very&nbsp;URL&nbsp;the&nbsp;content&nbsp;docs&nbsp;store&nbsp;—&nbsp;so&nbsp;no<br>
+new&nbsp;upstream&nbsp;is&nbsp;introduced.<br>
+&nbsp;<br>
+The&nbsp;mod's&nbsp;catalog&nbsp;keys&nbsp;are&nbsp;Drasah's&nbsp;French&nbsp;slugs&nbsp;(``azteques``)&nbsp;while<br>
+the&nbsp;dataset&nbsp;and&nbsp;the&nbsp;content&nbsp;docs&nbsp;speak&nbsp;the&nbsp;provider's&nbsp;keys<br>
+(``Aztecs``);&nbsp;:data:`_CIV_CREST_PROVIDER_KEYS`&nbsp;bridges&nbsp;the&nbsp;two.&nbsp;A<br>
+missing&nbsp;mapping&nbsp;or&nbsp;a&nbsp;failed&nbsp;download&nbsp;is&nbsp;cosmetic-only:&nbsp;the&nbsp;message<br>
+goes&nbsp;out&nbsp;regardless,&nbsp;minus&nbsp;that&nbsp;crest.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="httpx.html">httpx</a><br>
+</td><td class="multicolumn"><a href="io.html">io</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-civ_crest_files"><strong>civ_crest_files</strong></a>(civ_keys: 'Any') -&gt; 'list[discord.File]'</dt><dd><span class="code">Build&nbsp;the&nbsp;crest&nbsp;attachments&nbsp;for&nbsp;one&nbsp;civ&nbsp;list&nbsp;(order&nbsp;preserved).<br>
+&nbsp;<br>
+Unknown&nbsp;keys,&nbsp;download&nbsp;failures&nbsp;and&nbsp;the&nbsp;10-attachment&nbsp;Discord&nbsp;cap<br>
+degrade&nbsp;silently:&nbsp;the&nbsp;message&nbsp;always&nbsp;goes&nbsp;out,&nbsp;dressed&nbsp;with&nbsp;what<br>
+could&nbsp;be&nbsp;fetched.</span></dd></dl>
+ <dl><dt><a name="-civ_crest_url"><strong>civ_crest_url</strong></a>(civ_key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;crest&nbsp;image&nbsp;URL&nbsp;of&nbsp;one&nbsp;mod&nbsp;civilization&nbsp;key&nbsp;(None&nbsp;unknown).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CREST_BASE_URL</strong> = 'https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/master/img/Civs'<br>
+<strong>MAX_ATTACHMENTS</strong> = 10<br>
+<strong>__annotations__</strong> = {'_CIV_CREST_PROVIDER_KEYS': 'dict[str, str]', '_CREST_CACHE': 'dict[str, bytes]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdoms.civ_crests (WARNING)&gt;</td></tr></table>
+</body></html>

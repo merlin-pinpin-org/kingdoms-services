@@ -277,6 +277,23 @@ against&nbsp;the&nbsp;target&nbsp;while&nbsp;the&nbsp;window&nbsp;is&nbsp;open&n
 shows&nbsp;1/5).&nbsp;One&nbsp;bought&nbsp;charge&nbsp;is&nbsp;consumed&nbsp;at&nbsp;the&nbsp;activation;<br>
 the&nbsp;target&nbsp;learns&nbsp;it&nbsp;only&nbsp;when&nbsp;an&nbsp;attack&nbsp;is&nbsp;actually&nbsp;declared.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-ai_draft_due"><strong>ai_draft_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Play&nbsp;the&nbsp;bot-AI's&nbsp;delayed&nbsp;draft&nbsp;validation&nbsp;(battle-ai-rdv-v1).<br>
+&nbsp;<br>
+Drasah&nbsp;22/10:&nbsp;the&nbsp;AI&nbsp;validates&nbsp;its&nbsp;draft&nbsp;``ai_validate_at``<br>
+(30-90&nbsp;s&nbsp;after&nbsp;its&nbsp;picks)&nbsp;—&nbsp;the&nbsp;timestamp&nbsp;is&nbsp;PERSISTED&nbsp;so&nbsp;the<br>
+tick&nbsp;replays&nbsp;it&nbsp;safely&nbsp;(a&nbsp;restart&nbsp;never&nbsp;loses&nbsp;nor&nbsp;doubles&nbsp;the<br>
+delay).&nbsp;When&nbsp;both&nbsp;sides&nbsp;validated&nbsp;the&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;resolves<br>
+exactly&nbsp;like&nbsp;the&nbsp;human&nbsp;flow;&nbsp;the&nbsp;panel&nbsp;tick&nbsp;then&nbsp;reveals&nbsp;the<br>
+civs&nbsp;in&nbsp;the&nbsp;attacker's&nbsp;DM&nbsp;and&nbsp;the&nbsp;meeting&nbsp;opens&nbsp;through&nbsp;the<br>
+normal&nbsp;RDV&nbsp;path.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-ai_ready_due"><strong>ai_ready_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Play&nbsp;the&nbsp;bot-AI's&nbsp;delayed&nbsp;Prêt&nbsp;confirmation&nbsp;(battle-ai-rdv-v1).<br>
+&nbsp;<br>
+Drasah&nbsp;22/10:&nbsp;once&nbsp;the&nbsp;attacker&nbsp;clicked&nbsp;Prêt,&nbsp;the&nbsp;AI&nbsp;confirms<br>
+at&nbsp;``ai_ready_at``&nbsp;(30-90&nbsp;s&nbsp;random)&nbsp;—&nbsp;the&nbsp;tick&nbsp;flips&nbsp;the<br>
+``all_ready``&nbsp;flag,&nbsp;the&nbsp;panel&nbsp;then&nbsp;refreshes&nbsp;the&nbsp;scoreboard<br>
+(footer&nbsp;+&nbsp;🏆)&nbsp;and&nbsp;creates&nbsp;the&nbsp;match&nbsp;event&nbsp;like&nbsp;the&nbsp;human&nbsp;flow.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-attacks"><strong>attacks</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-base_ai_level"><strong>base_ai_level</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;base&nbsp;AI&nbsp;level&nbsp;(D18&nbsp;scale,&nbsp;fallback&nbsp;1).</span></dd></dl>
