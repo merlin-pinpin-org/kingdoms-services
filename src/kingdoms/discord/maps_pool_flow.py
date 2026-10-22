@@ -332,6 +332,25 @@ class MapNewPoolModal(discord.ui.Modal):
 _ADD_TO_POOL_NS = "games:pool:addmap"
 
 
+async def _healed_pool_ids(service: Any, pool: Any, extra: str = "") -> tuple[str, ...]:
+    """Build the pool's cleaned member list (deduped, live references).
+
+    Dead references — maps deleted or archived since — drop out: they
+    counted in the reports but never rendered on the post (the '2 maps
+    en trop' residue). Duplicates collapse. The fresh map (``extra``)
+    lands when live.
+    """
+    ids: list[str] = []
+    for mid in [*pool.map_ids, *([extra] if extra else ())]:
+        if mid in ids:
+            continue
+        entry = await service.get_map(mid)
+        if entry is None or entry.archived_at is not None:
+            continue
+        ids.append(mid)
+    return tuple(ids)
+
+
 async def add_map_to_pool(interaction: discord.Interaction, map_id: str, pool_id: str) -> None:
     """Add one map to one pool (the shared add step of the map surfaces).
 
@@ -364,7 +383,8 @@ async def add_map_to_pool(interaction: discord.Interaction, map_id: str, pool_id
         await _answer(interaction, _text_answer(f"**{entry.name}** est déjà dans **{pool.name}**."))
         return
     try:
-        await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
+        ids = await _healed_pool_ids(service, pool, extra=map_id)
+        await service.update_map_pool(pool.id, map_ids=ids)
     except Exception:
         logger.warning("POOL FLOW: add to existing pool failed", exc_info=True)
         await _answer(interaction, _text_answer(await reply(interaction, "replies_shared.action_failed")))
@@ -554,14 +574,17 @@ async def _apply_composition(
     catalog = {m.id: m for m in await service.list_maps(pool.game_key)}
     chosen_add, skipped = _resolve_additions(catalog, pool, add_ids)
     chosen_remove = [mid for mid in remove_ids if mid in pool.map_ids]
-    remaining = tuple(mid for mid in pool.map_ids if mid not in chosen_remove)
-    # deduplicated, order-preserving: the historical add path could write
-    # the same map twice (a double click past the guards) — the compose
-    # heals the residue and the reported count reflects the reality
+    # the compose heals the pool's residue in one pass: dead references
+    # (maps deleted or archived since — they never render on the post)
+    # drop out, duplicates collapse; the reported count matches what the
+    # post and the pickers really show
     seen: set[str] = set()
     final_list: list[str] = []
-    for mid in [*remaining, *chosen_add]:
-        if mid in seen:
+    for mid in [*pool.map_ids, *chosen_add]:
+        if mid in chosen_remove or mid in seen:
+            continue
+        entry = catalog.get(mid)
+        if entry is None or entry.archived_at is not None:
             continue
         seen.add(mid)
         final_list.append(mid)
