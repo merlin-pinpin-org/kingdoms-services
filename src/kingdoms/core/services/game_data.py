@@ -657,7 +657,10 @@ class GameDataService:
         for doc in await self._db.find_open_activations(entry_id):
             activation = MapPoolActivationModel.from_mongo(doc)
             raise ActivePoolArchiveError(f"map pool {entry_id!r} is active on ladder {activation.ladder_id!r}")
-        entry = entry.model_copy(update={"archived_at": _now_ms()})
+        # archiving IS a state change: closed (unusable, still visible)
+        # — the badge and the lifecycle buttons follow the state, so the
+        # archive must persist it, not only the timestamp
+        entry = entry.model_copy(update={"archived_at": _now_ms(), "state": POOL_STATE_CLOSED, "edition_mode": False})
         await self._db.upsert_entry(MAP_POOLS_COLLECTION, entry.to_mongo())
         await self._audit_record("map_pool.archive", {"entry_id": entry_id})
         return entry

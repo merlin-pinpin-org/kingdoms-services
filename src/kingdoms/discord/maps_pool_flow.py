@@ -93,8 +93,12 @@ class MapAddToPoolButton(
             entry = await service.get_map(self.map_id)
             game_key = entry.game_key if entry else "aoe2"
             pools = await service.list_map_pools(game_key, guild_id=guild_id)
+            # only the DRAFT pools accept a map — published/used/closed are
+            # frozen, whatever their edition_mode residue
             editable = [
-                p for p in pools if p.edition_mode and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
+                p
+                for p in pools
+                if p.state == "draft" and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
             ]
             options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
         from kingdoms.discord.commands_i18n import tr
@@ -123,11 +127,23 @@ class MapAddToPoolModal(discord.ui.Modal):
             placeholder="Pools en \u00e9dition uniquement...",
         )
         self.add_item(discord.ui.Label(text="Map pool", component=self.pools))
-
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Delegate to the picker's shared add step."""
-        picker = MapPoolPickerSelect(self.map_id, [])
-        await picker.callback(interaction)
+        """Read the form's selection, delegate to the shared add step."""
+        chosen = (self.pools.values or [""])[0]
+        if chosen in ("", "none"):
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Aucun pool sélectionné.", ephemeral=True)
+            return
+        if chosen == "__new__":
+            # a modal can only be sent on a FRESH response — no defer here
+            service = _games_wiring()
+            entry = await service.get_map(self.map_id) if service is not None else None
+            await interaction.response.send_modal(
+                MapNewPoolModal(self.map_id, entry.game_key if entry else "aoe2")
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        await add_map_to_pool(interaction, self.map_id, chosen)
 
 
 def _text_answer(text: str) -> discord.ui.LayoutView:
@@ -170,12 +186,12 @@ class MapPoolPickerSelect(
             entry = await service.get_map(map_id)
             if entry is not None:
                 pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
-                # only the pools in edition accept a map: the others
-                # (published, used, closed) are frozen and never listed
+                # only the DRAFT pools accept a map — published/used/closed
+                # are frozen, whatever their edition_mode residue
                 editable = [
                     p
                     for p in pools
-                    if p.edition_mode and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
+                    if p.state == "draft" and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
                 ]
                 options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
                 if not options:
@@ -219,7 +235,7 @@ class MapPoolPickerSelect(
                 view=_text_answer(await reply(interaction, "replies_shared.pool_not_found"))
             )
             return
-        if not pool.edition_mode:
+        if pool.state != "draft":
             await interaction.response.edit_message(
                 view=_text_answer(
                     f"**{pool.name}** n'est pas en édition — une map ne peut être ajoutée "
@@ -300,6 +316,61 @@ class MapNewPoolModal(discord.ui.Modal):
 _ADD_TO_POOL_NS = "games:pool:addmap"
 
 
+async def add_map_to_pool(interaction: discord.Interaction, map_id: str, pool_id: str) -> None:
+    """Add one map to one pool (the shared add step of the map surfaces).
+
+    Answers on the interaction: in place when the response is unused
+    (a component click), as a followup otherwise (a modal submit).
+    """
+    service = _games_wiring()
+    if service is None:
+        await _answer(interaction, _text_answer(await reply(interaction, "replies_shared.wiring_unavailable")))
+        return
+    entry = await service.get_map(map_id)
+    if entry is None:
+        await _answer(interaction, _text_answer(await reply(interaction, "replies_shared.map_not_found")))
+        return
+    pool = await service.get_map_pool(pool_id)
+    if pool is None:
+        await _answer(interaction, _text_answer(await reply(interaction, "replies_shared.pool_not_found")))
+        return
+    if pool.state != "draft":
+        await _answer(
+            interaction,
+            _text_answer(
+                f"**{pool.name}** n'est pas en édition — une map ne peut être ajoutée "
+                "qu'à un pool en édition (publié, utilisé ou archivé : la "
+                "composition ne change plus)."
+            ),
+        )
+        return
+    if map_id in pool.map_ids:
+        await _answer(interaction, _text_answer(f"**{entry.name}** est déjà dans **{pool.name}**."))
+        return
+    try:
+        await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
+    except Exception:
+        logger.warning("POOL FLOW: add to existing pool failed", exc_info=True)
+        await _answer(interaction, _text_answer(await reply(interaction, "replies_shared.action_failed")))
+        return
+    await _answer(interaction, _text_answer(f"**{entry.name}** ajoutée à **{pool.name}**."))
+    try:
+        from kingdoms.discord.pools_forum import sync_pools_forum
+
+        if interaction.guild_id is not None:
+            await sync_pools_forum(str(interaction.guild_id), interaction.client)
+    except Exception:
+        logger.warning("POOL FLOW: pools forum sync failed — best-effort")
+
+
+async def _answer(interaction: discord.Interaction, view: discord.ui.LayoutView) -> None:
+    """Answer in place on a fresh response, followup after a defer."""
+    if interaction.response.is_done():
+        await interaction.followup.send(view=view, ephemeral=True)
+    else:
+        await interaction.response.edit_message(view=view)
+
+
 class PoolMapsButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_ADD_TO_POOL_NS}:(?P<pool_id>.+)",
@@ -358,14 +429,13 @@ async def _build_compose_modal(
     pool's maps (at most MAX_POOL_MAPS, always select-fit).
     """
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-    members = []
-    for map_id in pool.map_ids:
-        entry = await service.get_map(map_id)
-        if entry is not None:
-            members.append(entry)
+    # ONE catalog read resolves both lists — the N+1 member lookups blew
+    # the 3-second modal window on the first click
+    catalog = {m.id: m for m in await service.list_maps(pool.game_key)}
+    members = [catalog[mid] for mid in pool.map_ids if mid in catalog]
     available = [
         m
-        for m in await service.list_maps(pool.game_key)
+        for m in catalog.values()
         if m.archived_at is None
         and m.id not in pool.map_ids
         and (m.owner_guild_id is None or m.owner_guild_id == guild_id)

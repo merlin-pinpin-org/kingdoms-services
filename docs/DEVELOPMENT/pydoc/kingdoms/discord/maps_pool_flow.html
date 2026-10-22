@@ -227,7 +227,7 @@ contract,&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;the&nbsp;profile's&nbsp;add
 Methods defined here:<br>
 <dl><dt><a name="MapAddToPoolModal-__init__"><strong>__init__</strong></a>(self, map_id: 'str', options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="MapAddToPoolModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Delegate&nbsp;to&nbsp;the&nbsp;picker's&nbsp;shared&nbsp;add&nbsp;step.</span></dd></dl>
+<dl><dt>async <a name="MapAddToPoolModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Read&nbsp;the&nbsp;form's&nbsp;selection,&nbsp;delegate&nbsp;to&nbsp;the&nbsp;shared&nbsp;add&nbsp;step.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -2850,7 +2850,11 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-register_pool_flow_items"><strong>register_pool_flow_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;flow's&nbsp;DynamicItems&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-add_map_to_pool"><strong>add_map_to_pool</strong></a>(interaction: 'discord.Interaction', map_id: 'str', pool_id: 'str') -&gt; 'None'</dt><dd><span class="code">Add&nbsp;one&nbsp;map&nbsp;to&nbsp;one&nbsp;pool&nbsp;(the&nbsp;shared&nbsp;add&nbsp;step&nbsp;of&nbsp;the&nbsp;map&nbsp;surfaces).<br>
+&nbsp;<br>
+Answers&nbsp;on&nbsp;the&nbsp;interaction:&nbsp;in&nbsp;place&nbsp;when&nbsp;the&nbsp;response&nbsp;is&nbsp;unused<br>
+(a&nbsp;component&nbsp;click),&nbsp;as&nbsp;a&nbsp;followup&nbsp;otherwise&nbsp;(a&nbsp;modal&nbsp;submit).</span></dd></dl>
+ <dl><dt><a name="-register_pool_flow_items"><strong>register_pool_flow_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;flow's&nbsp;DynamicItems&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
