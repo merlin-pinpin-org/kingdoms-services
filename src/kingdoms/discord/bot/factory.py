@@ -210,6 +210,9 @@ class KingdomsBot(discord.Client):
 
         register_admin_dm_items(self)
         register_admin_tree_items(self)
+        from kingdoms.discord.console import register_console_items
+
+        register_console_items(self)
         from kingdoms.discord.views_declared import declare_platform_views
         from kingdoms.discord.views_routing import register_view_router
 

@@ -46,14 +46,14 @@ def _registry() -> ModRegistry:
                 seasonal=True,
                 channel_categories=(ChannelCategoryDef(key="rankings", display_name="Rankings"),),
                 roles=(RoleDef(key="ladder_admin", display_name="Ladder Admin"),),
-                games=("aoe2",),
+                required_games=("aoe2",),
             ),
             "register": ModDefinition(
                 name="register",
                 seasonal=False,
                 channel_categories=(ChannelCategoryDef(key="announce", display_name="Announces"),),
                 roles=(),
-                games=(),
+                required_games=(),
             ),
         }
     )

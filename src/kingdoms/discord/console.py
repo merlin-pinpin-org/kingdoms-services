@@ -194,9 +194,9 @@ async def _nuke_everything(interaction: discord.Interaction) -> tuple[int, int]:
 
 
 def _mod_games(registry: Any, mod_name: str) -> tuple[str, ...]:
-    """Return the games a mod requires (its YAML ``games:`` declaration)."""
+    """Return the games a mod requires (its YAML ``required_games:`` declaration)."""
     definition = registry.get(mod_name)
-    return tuple(getattr(definition, "games", ()) or ()) if definition is not None else ()
+    return tuple(getattr(definition, "required_games", ()) or ()) if definition is not None else ()
 
 
 def _propagate(
@@ -712,3 +712,15 @@ class ConsoleBackButton(
         from kingdoms.discord.admin_persistent import _handle_back
 
         await _handle_back(interaction)
+
+
+def register_console_items(bot: discord.Client) -> None:
+    """Register the console's DynamicItems (called at every startup)."""
+    bot.add_dynamic_items(
+        AdminConsoleButton,
+        ConsoleBackButton,
+        DevCleanManagedButton,
+        DevNukeButton,
+        DevResetDataButton,
+        DevInstallButton,
+    )
