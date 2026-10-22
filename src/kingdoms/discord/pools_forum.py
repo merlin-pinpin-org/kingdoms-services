@@ -251,6 +251,46 @@ async def _sync_game_pools(
     return actions
 
 
+async def refresh_pool_post(
+    guild_id: str,
+    bot: Any,
+    pool: Any,
+    *,
+    sync_members: bool = True,
+) -> None:
+    """Re-render ONE pool's post after a mutation (rename, transition).
+
+    The targeted refresh of the W2 quick win: a transition touches
+    one pool \u2014 the full-forum sync (creations included) stays behind
+    the Synchroniser button. The member maps re-render only when the
+    membership could have changed (a rename does not: the map posts
+    carry raw URLs, no frozen label).
+    """
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    service = _build_service()
+    guild = bot.get_guild(int(guild_id))
+    if guild is None or service is None:
+        return
+    forum_id = await stored_channel_id(guild_id, f"games/{pool.game_key}", "map-pools")
+    if not forum_id or not forum_id.isdigit():
+        return
+    channel = guild.get_channel(int(forum_id))
+    if channel is None or channel.type != discord.ChannelType.forum:
+        return
+    thread = next(
+        (t for t in channel.threads if str(t.id) == str(getattr(pool, "forum_thread_id", "") or "")),
+        None,
+    )
+    if thread is None:
+        return
+    maps = await _pool_maps(service, pool, guild_id)
+    editable = pool.edition_mode and pool.owner_guild_id == guild_id
+    await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable)
+    if sync_members:
+        await _refresh_member_map_posts(bot, guild_id, {pool.id: pool})
+
+
 async def _delete_orphan_pool_posts(wanted: dict[str, Any], existing: dict[str, Any]) -> int:
     """Delete the posts of pools no longer in the mirror (hard-deleted).
 

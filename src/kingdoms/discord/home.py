@@ -40,6 +40,7 @@ from discord import app_commands
 from kingdoms.core.services.home import HomeService
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.discord.commands_i18n import localized, reply, tr
+from kingdoms.discord.ephemeral import EphemeralOrigin
 
 logger = logging.getLogger("kingdoms.home")
 
@@ -219,17 +220,16 @@ async def _profile_followup(
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
     if origin is not None:
-        try:
-            await origin.edit(view=view)
+        from kingdoms.discord.ephemeral import edit_ephemeral
+
+        if await edit_ephemeral(origin, view):
             return
-        except Exception:
-            # the origin is gone (an expired message, a superseded view):
-            # NEVER send a copy of the profile view — the ephemeral contract
-            # forbids it. The action's banner answers as plain text instead.
-            logger.warning("PROFILE edit in place failed — answering as text", exc_info=True)
-            note = banner or await reply(interaction, "profile.updated")
-            await interaction.followup.send(note, ephemeral=True)
-            return
+        # the origin is gone (an expired token, a superseded view):
+        # NEVER send a copy of the profile view — the ephemeral contract
+        # forbids it. The action's banner answers as plain text instead.
+        note = banner or await reply(interaction, "profile.updated")
+        await interaction.followup.send(note, ephemeral=True)
+        return
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -350,7 +350,7 @@ class ProfileAddAccountButton(
         except Exception:
             options = None
         await interaction.response.send_modal(
-            ProfileAddAccountModal(options, origin=getattr(interaction, "message", None))
+            ProfileAddAccountModal(options, origin=EphemeralOrigin.capture(interaction))
         )
 
 
@@ -495,7 +495,7 @@ class ProfileRenameButton(
             except Exception:
                 current = ""
         await interaction.response.send_modal(
-            ProfileRenameModal(current, origin=getattr(interaction, "message", None))
+            ProfileRenameModal(current, origin=EphemeralOrigin.capture(interaction))
         )
 
 
@@ -608,7 +608,7 @@ class ProfileRemoveAccountButton(
             return
         await interaction.response.send_modal(
             ProfileRemoveAccountModal(
-                _remove_options(bindings), origin=getattr(interaction, "message", None)
+                _remove_options(bindings), origin=EphemeralOrigin.capture(interaction)
             )
         )
 

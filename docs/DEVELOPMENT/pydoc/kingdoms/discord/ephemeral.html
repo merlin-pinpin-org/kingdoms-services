@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ephemeral</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.ephemeral</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ephemeral.py">SOURCE_ROOT/discord/ephemeral.py</a></td></tr></table>
+    <p><span class="code">Editing&nbsp;ephemeral&nbsp;views&nbsp;in&nbsp;place&nbsp;—&nbsp;the&nbsp;interaction&nbsp;webhook&nbsp;contract.<br>
+&nbsp;<br>
+An&nbsp;ephemeral&nbsp;message&nbsp;is&nbsp;NOT&nbsp;editable&nbsp;through&nbsp;the&nbsp;REST&nbsp;channel&nbsp;route<br>
+(``PATCH&nbsp;/channels/{id}/messages/{id}``&nbsp;answers&nbsp;404&nbsp;Unknown&nbsp;Message):<br>
+Discord&nbsp;exposes&nbsp;it&nbsp;only&nbsp;through&nbsp;the&nbsp;interaction&nbsp;webhook&nbsp;that&nbsp;created<br>
+it.&nbsp;The&nbsp;pattern&nbsp;(the&nbsp;skill&nbsp;rule&nbsp;"an&nbsp;ephemeral&nbsp;view&nbsp;edits&nbsp;itself"):<br>
+&nbsp;<br>
+1.&nbsp;the&nbsp;click&nbsp;that&nbsp;opens&nbsp;the&nbsp;flow&nbsp;captures&nbsp;the&nbsp;pair<br>
+&nbsp;&nbsp;&nbsp;``(interaction.webhook,&nbsp;interaction.message.id)``&nbsp;—&nbsp;the&nbsp;click's<br>
+&nbsp;&nbsp;&nbsp;webhook&nbsp;token&nbsp;lives&nbsp;15&nbsp;minutes&nbsp;after&nbsp;the&nbsp;click,&nbsp;plenty&nbsp;for&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;modal&nbsp;round-trip;<br>
+2.&nbsp;the&nbsp;submit&nbsp;(or&nbsp;the&nbsp;deferred&nbsp;callback)&nbsp;edits&nbsp;the&nbsp;ORIGINAL&nbsp;message<br>
+&nbsp;&nbsp;&nbsp;through&nbsp;``webhook.edit_message(message_id,&nbsp;view=...)``.<br>
+&nbsp;<br>
+``<a href="#EphemeralOrigin">EphemeralOrigin</a>``&nbsp;carries&nbsp;that&nbsp;pair;&nbsp;``edit_ephemeral``&nbsp;performs<br>
+the&nbsp;edit,&nbsp;best-effort.&nbsp;A&nbsp;direct&nbsp;click&nbsp;that&nbsp;answers&nbsp;with<br>
+``interaction.response.edit_message``&nbsp;needs&nbsp;none&nbsp;of&nbsp;this&nbsp;—&nbsp;the<br>
+current&nbsp;interaction's&nbsp;own&nbsp;webhook&nbsp;does&nbsp;it.&nbsp;This&nbsp;helper&nbsp;is&nbsp;for&nbsp;the<br>
+two&nbsp;deferred&nbsp;shapes:&nbsp;a&nbsp;modal&nbsp;submit,&nbsp;and&nbsp;a&nbsp;callback&nbsp;that&nbsp;had&nbsp;to<br>
+``defer(thinking=True)``&nbsp;(whose&nbsp;response&nbsp;is&nbsp;a&nbsp;new&nbsp;ephemeral,&nbsp;not&nbsp;the<br>
+menu's).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ephemeral.html#EphemeralOrigin">EphemeralOrigin</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EphemeralOrigin">class <strong>EphemeralOrigin</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EphemeralOrigin">EphemeralOrigin</a>(webhook:&nbsp;'Any',&nbsp;message_id:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;(webhook,&nbsp;message&nbsp;id)&nbsp;pair&nbsp;able&nbsp;to&nbsp;edit&nbsp;one&nbsp;ephemeral&nbsp;menu.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="EphemeralOrigin-__init__"><strong>__init__</strong></a>(self, webhook: 'Any', message_id: 'int') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="EphemeralOrigin-capture"><strong>capture</strong></a>(interaction: 'discord.Interaction') -&gt; 'EphemeralOrigin | None'</dt><dd><span class="code">Capture&nbsp;the&nbsp;origin&nbsp;of&nbsp;the&nbsp;menu&nbsp;the&nbsp;click&nbsp;happened&nbsp;on.<br>
+&nbsp;<br>
+None&nbsp;when&nbsp;the&nbsp;click&nbsp;did&nbsp;not&nbsp;ride&nbsp;a&nbsp;message&nbsp;(a&nbsp;slash&nbsp;command,<br>
+a&nbsp;fresh&nbsp;ephemeral&nbsp;without&nbsp;a&nbsp;parent)&nbsp;—&nbsp;the&nbsp;callers&nbsp;fall&nbsp;back<br>
+to&nbsp;their&nbsp;plain-text&nbsp;answer.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-edit_ephemeral"><strong>edit_ephemeral</strong></a>(origin: 'EphemeralOrigin | None', view: 'Any') -&gt; 'bool'</dt><dd><span class="code">Edit&nbsp;the&nbsp;origin's&nbsp;ephemeral&nbsp;message&nbsp;with&nbsp;a&nbsp;fresh&nbsp;view.<br>
+&nbsp;<br>
+True&nbsp;when&nbsp;the&nbsp;edit&nbsp;landed;&nbsp;False&nbsp;(best-effort,&nbsp;logged)&nbsp;when&nbsp;the<br>
+origin&nbsp;is&nbsp;missing&nbsp;or&nbsp;its&nbsp;webhook&nbsp;token&nbsp;expired&nbsp;—&nbsp;the&nbsp;caller&nbsp;then<br>
+answers&nbsp;as&nbsp;plain&nbsp;text,&nbsp;NEVER&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;view.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['EphemeralOrigin', 'edit_ephemeral']</td></tr></table>
+</body></html>

@@ -128,7 +128,9 @@ async def reconcile_map_pools(
         )
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-    added, removed = await _apply_pool_membership(service, map_id, entry.game_key, guild_id, chosen)
+    added, removed, touched = await _apply_pool_membership(
+        service, map_id, entry.game_key, guild_id, chosen
+    )
     parts = [f"**{entry.name}** \u2014 associations mises \u00e0 jour."]
     if added:
         parts.append(f"Ajout\u00e9e \u00e0 : {', '.join(added)}.")
@@ -137,25 +139,32 @@ async def reconcile_map_pools(
     if not added and not removed:
         parts.append("Aucun changement.")
     await interaction.followup.send("\n".join(parts), ephemeral=True)
+    if interaction.guild_id is None:
+        return
     try:
-        from kingdoms.discord.pools_forum import sync_pools_forum
+        from kingdoms.discord.maps_forum import refresh_map_posts
+        from kingdoms.discord.pools_forum import refresh_pool_post
 
-        if interaction.guild_id is not None:
-            guild = str(interaction.guild_id)
-            await sync_pools_forum(guild, interaction.client)
-            from kingdoms.discord.maps_forum import refresh_map_posts
-
-            await refresh_map_posts(interaction.client, guild, [map_id])
+        guild = str(interaction.guild_id)
+        # the W2 targeted refresh: only the touched pools' posts + the
+        # map's own post re-render \u2014 the full-forum sync stays behind
+        # the Synchroniser button, saving the channel's PATCH budget
+        for pool_id in sorted(touched):
+            pool = await service.get_map_pool(pool_id)
+            if pool is not None:
+                await refresh_pool_post(guild, interaction.client, pool, sync_members=False)
+        await refresh_map_posts(interaction.client, guild, [map_id])
     except Exception:
-        logger.warning("POOL FLOW: pools forum sync after reconcile failed \u2014 best-effort")
+        logger.warning("POOL FLOW: targeted refresh after reconcile failed \u2014 best-effort")
 
 
 async def _apply_pool_membership(
     service: Any, map_id: str, game_key: str, guild_id: str, chosen: set[str]
-) -> tuple[list[str], list[str]]:
-    """Write the membership deltas; (added pool names, removed pool names)."""
+) -> tuple[list[str], list[str], set[str]]:
+    """Write the membership deltas; (added, removed, touched pool ids)."""
     added: list[str] = []
     removed: list[str] = []
+    touched: set[str] = set()
     pools = await service.list_map_pools(game_key, guild_id=guild_id)
     for pool in pools:
         if pool.state != "draft":
@@ -164,10 +173,12 @@ async def _apply_pool_membership(
         if has and pool.id not in chosen:
             await service.update_map_pool(pool.id, map_ids=tuple(m for m in pool.map_ids if m != map_id))
             removed.append(pool.name)
+            touched.add(pool.id)
         elif not has and pool.id in chosen:
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
             added.append(pool.name)
-    return added, removed
+            touched.add(pool.id)
+    return added, removed, touched
 
 
 class MapAddToPoolModal(discord.ui.Modal):

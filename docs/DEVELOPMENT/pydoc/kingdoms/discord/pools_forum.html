@@ -39,7 +39,14 @@ concept;&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirrors&nbsp;them.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-register_pools_forum_sync"><strong>register_pools_forum_sync</strong></a>() -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;the&nbsp;pools&nbsp;forums'&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-refresh_pool_post"><strong>refresh_pool_post</strong></a>(guild_id: 'str', bot: 'Any', pool: 'Any', *, sync_members: 'bool' = True) -&gt; 'None'</dt><dd><span class="code">Re-render&nbsp;ONE&nbsp;pool's&nbsp;post&nbsp;after&nbsp;a&nbsp;mutation&nbsp;(rename,&nbsp;transition).<br>
+&nbsp;<br>
+The&nbsp;targeted&nbsp;refresh&nbsp;of&nbsp;the&nbsp;W2&nbsp;quick&nbsp;win:&nbsp;a&nbsp;transition&nbsp;touches<br>
+one&nbsp;pool&nbsp;—&nbsp;the&nbsp;full-forum&nbsp;sync&nbsp;(creations&nbsp;included)&nbsp;stays&nbsp;behind<br>
+the&nbsp;Synchroniser&nbsp;button.&nbsp;The&nbsp;member&nbsp;maps&nbsp;re-render&nbsp;only&nbsp;when&nbsp;the<br>
+membership&nbsp;could&nbsp;have&nbsp;changed&nbsp;(a&nbsp;rename&nbsp;does&nbsp;not:&nbsp;the&nbsp;map&nbsp;posts<br>
+carry&nbsp;raw&nbsp;URLs,&nbsp;no&nbsp;frozen&nbsp;label).</span></dd></dl>
+ <dl><dt><a name="-register_pools_forum_sync"><strong>register_pools_forum_sync</strong></a>() -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;the&nbsp;pools&nbsp;forums'&nbsp;mirror&nbsp;sync&nbsp;(the&nbsp;sync&nbsp;button&nbsp;runs&nbsp;it).</span></dd></dl>
  <dl><dt>async <a name="-sync_pools_forum"><strong>sync_pools_forum</strong></a>(guild_id: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;game's&nbsp;pools&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;pool&nbsp;(idempotent).<br>
 &nbsp;<br>
 The&nbsp;pass&nbsp;holds&nbsp;the&nbsp;guild's&nbsp;forum-sync&nbsp;lock&nbsp;(shared&nbsp;with&nbsp;the&nbsp;maps<br>
