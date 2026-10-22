@@ -61,6 +61,11 @@ class ContentStub:
                 request_serializer=kingdoms_dot_v1_dot_content__pb2.MapContentRequest.SerializeToString,
                 response_deserializer=kingdoms_dot_v1_dot_content__pb2.LocalizedContent.FromString,
                 _registered_method=True)
+        self.GetMapSeed = channel.unary_unary(
+                '/kingdoms.v1.Content/GetMapSeed',
+                request_serializer=kingdoms_dot_v1_dot_content__pb2.MapSeedRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_content__pb2.MapSeedReply.FromString,
+                _registered_method=True)
 
 
 class ContentServicer:
@@ -101,6 +106,15 @@ class ContentServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetMapSeed(self, request, context):
+        """One map's full descriptor (the import flow): description, image,
+        licence-checked fields — the Liquipedia family of content sources.
+        The provider owns the raw data and its terms-of-use compliance.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ContentServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -123,6 +137,11 @@ def add_ContentServicer_to_server(servicer, server):
                     servicer.GetMapContent,
                     request_deserializer=kingdoms_dot_v1_dot_content__pb2.MapContentRequest.FromString,
                     response_serializer=kingdoms_dot_v1_dot_content__pb2.LocalizedContent.SerializeToString,
+            ),
+            'GetMapSeed': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMapSeed,
+                    request_deserializer=kingdoms_dot_v1_dot_content__pb2.MapSeedRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_content__pb2.MapSeedReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -240,6 +259,33 @@ class Content:
             '/kingdoms.v1.Content/GetMapContent',
             kingdoms_dot_v1_dot_content__pb2.MapContentRequest.SerializeToString,
             kingdoms_dot_v1_dot_content__pb2.LocalizedContent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetMapSeed(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.Content/GetMapSeed',
+            kingdoms_dot_v1_dot_content__pb2.MapSeedRequest.SerializeToString,
+            kingdoms_dot_v1_dot_content__pb2.MapSeedReply.FromString,
             options,
             channel_credentials,
             insecure,

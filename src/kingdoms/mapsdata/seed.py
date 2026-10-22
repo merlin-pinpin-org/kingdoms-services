@@ -83,14 +83,36 @@ class LiquipediaUnconfiguredError(RuntimeError):
 
 
 async def fetch_map_seed(name: str) -> MapSeed | None:
-    """Resolve one map name into a seed via Liquipedia (best-effort).
+    """Resolve one map name into a seed (the ext-liquipedia provider first).
 
-    Returns None when Liquipedia doesn't know the page — the caller
-    then creates a guild-local entry with the fields typed in
-    Discord. Raises :class:`LiquipediaUnconfiguredError` when the
-    environment declares no ``LIQUIPEDIA_CONTACT``: that is a
-    configuration gap, not an unknown map, and the UI says so.
+    The provider process (ADR-0020) owns the Liquipedia access and its
+    tables; when it is configured (``EXT_LIQUIPEDIA_URI``) the seed
+    comes over the Content contract. Without it the legacy in-process
+    path serves (transition): the UI behavior is identical.
+    Returns None when Liquipedia doesn't know the page. Raises
+    :class:`LiquipediaUnconfiguredError` on a configuration gap.
     """
+    import os
+
+    provider_uri = os.environ.get("EXT_LIQUIPEDIA_URI", "")
+    if provider_uri:
+        from kingdoms.core.rpc.content_client import ContentProviderClient
+
+        client = ContentProviderClient(provider_uri)
+        descriptor = await client.get_map_seed("aoe2", name)
+        if descriptor is None:
+            return None
+        return MapSeed(
+            name=str(descriptor.get("name", name)),
+            description=str(descriptor.get("description", "")),
+            resource_url=str(descriptor.get("resource_url", "")),
+            image_url=str(descriptor.get("image_url", "")),
+            icon_url=str(descriptor.get("icon_url", "")),
+            terrain=str(descriptor.get("terrain", "")),
+            size=str(descriptor.get("size", "")),
+            map_type=str(descriptor.get("map_type", "")),
+            public=True,
+        )
     user_agent = _user_agent()
     if not user_agent:
         logger.debug("liquipedia seed skipped: LIQUIPEDIA_CONTACT unset")

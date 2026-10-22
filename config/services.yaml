@@ -1,0 +1,14 @@
+# External provider endpoints, versioned with the code (not env defaults).
+#
+# Rationale (developer direction): a provider's URL changing means its
+# API changed — the URL belongs with the code that speaks the protocol,
+# reviewable in one place, not scattered as fallback literals or env
+# defaults. An env var still overrides (AOE2LOBBY_WS_URL...) for
+# out-of-band experiments, but the source of truth is HERE.
+
+providers:
+  aoe2lobby:
+    ws_url: wss://data.aoe2lobby.com/ws/
+    schema_ws_url: wss://data.aoe2lobby.com/ws/lobby/
+  librematch:
+    api_url: https://aoe-api.worldsedgelink.com

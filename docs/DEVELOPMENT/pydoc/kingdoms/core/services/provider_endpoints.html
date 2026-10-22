@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.provider_endpoints</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.provider_endpoints</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/provider_endpoints.py">SOURCE_ROOT/core/services/provider_endpoints.py</a></td></tr></table>
+    <p><span class="code">Provider&nbsp;endpoints:&nbsp;the&nbsp;config-backed&nbsp;source&nbsp;of&nbsp;truth.<br>
+&nbsp;<br>
+A&nbsp;provider's&nbsp;URL&nbsp;changing&nbsp;means&nbsp;its&nbsp;API&nbsp;changed&nbsp;—&nbsp;the&nbsp;endpoints&nbsp;live&nbsp;in<br>
+``config/services.yaml``,&nbsp;versioned&nbsp;and&nbsp;reviewed&nbsp;with&nbsp;the&nbsp;code&nbsp;that<br>
+speaks&nbsp;each&nbsp;protocol&nbsp;(developer&nbsp;direction,&nbsp;2026-10-22).&nbsp;This&nbsp;module&nbsp;owns<br>
+the&nbsp;typed&nbsp;access:<br>
+&nbsp;<br>
+-&nbsp;``<a href="#-provider_url">provider_url</a>(provider,&nbsp;key)``&nbsp;—&nbsp;one&nbsp;endpoint,&nbsp;with&nbsp;the&nbsp;env-var<br>
+&nbsp;&nbsp;override&nbsp;(``AOE2LOBBY_WS_URL``...)&nbsp;as&nbsp;the&nbsp;escape&nbsp;hatch&nbsp;for<br>
+&nbsp;&nbsp;out-of-band&nbsp;experiments;<br>
+-&nbsp;``<a href="#-provider_urls">provider_urls</a>(provider)``&nbsp;—&nbsp;the&nbsp;provider's&nbsp;full&nbsp;endpoint&nbsp;block.<br>
+&nbsp;<br>
+The&nbsp;adapters&nbsp;consume&nbsp;this&nbsp;and&nbsp;never&nbsp;carry&nbsp;their&nbsp;own&nbsp;URL&nbsp;literals:&nbsp;an<br>
+URL&nbsp;change&nbsp;is&nbsp;a&nbsp;config&nbsp;change&nbsp;riding&nbsp;the&nbsp;same&nbsp;PR&nbsp;as&nbsp;the&nbsp;protocol<br>
+change&nbsp;it&nbsp;implies.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-provider_url"><strong>provider_url</strong></a>(provider: 'str', key: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;endpoint:&nbsp;the&nbsp;env&nbsp;override,&nbsp;else&nbsp;the&nbsp;declared&nbsp;URL.<br>
+&nbsp;<br>
+The&nbsp;override&nbsp;is&nbsp;the&nbsp;escape&nbsp;hatch&nbsp;(an&nbsp;out-of-band&nbsp;experiment&nbsp;never<br>
+edits&nbsp;the&nbsp;config);&nbsp;the&nbsp;declared&nbsp;URL&nbsp;is&nbsp;the&nbsp;source&nbsp;of&nbsp;truth.</span></dd></dl>
+ <dl><dt><a name="-provider_urls"><strong>provider_urls</strong></a>(provider: 'str') -&gt; 'dict[str, str]'</dt><dd><span class="code">Return&nbsp;one&nbsp;provider's&nbsp;endpoint&nbsp;block&nbsp;(empty&nbsp;when&nbsp;undeclared).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_cache': 'dict[str, Any] | None'}</td></tr></table>
+</body></html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.ext_liquipedia.server</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.ext_liquipedia.html" class="white">ext_liquipedia</a>.server</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_liquipedia/server.py">SOURCE_ROOT/ext_liquipedia/server.py</a></td></tr></table>
+    <p><span class="code">ext-liquipedia&nbsp;process&nbsp;entrypoint&nbsp;(kingdoms.v1.Content&nbsp;provider).<br>
+&nbsp;<br>
+The&nbsp;Liquipedia&nbsp;content&nbsp;source&nbsp;as&nbsp;a&nbsp;real&nbsp;provider&nbsp;process&nbsp;(ADR-0020):<br>
+it&nbsp;owns&nbsp;the&nbsp;MediaWiki&nbsp;access&nbsp;and&nbsp;its&nbsp;tables&nbsp;(``liquipedia_maps``,<br>
+``liquipedia_pages``&nbsp;—&nbsp;raw&nbsp;data&nbsp;at&nbsp;the&nbsp;provider),&nbsp;and&nbsp;serves&nbsp;the<br>
+Content&nbsp;contract:&nbsp;maps&nbsp;seeding&nbsp;today&nbsp;(``GetMapSeed``),&nbsp;the&nbsp;localized<br>
+map&nbsp;content,&nbsp;and&nbsp;the&nbsp;future&nbsp;Liquipedia&nbsp;surfaces&nbsp;(tournaments,&nbsp;matches)<br>
+will&nbsp;ride&nbsp;the&nbsp;same&nbsp;contract.<br>
+&nbsp;<br>
+The&nbsp;map&nbsp;seeding&nbsp;stays&nbsp;synchronous-heavy&nbsp;(MediaWiki&nbsp;rate&nbsp;limits),&nbsp;so&nbsp;the<br>
+gRPC&nbsp;handlers&nbsp;run&nbsp;it&nbsp;in&nbsp;a&nbsp;worker&nbsp;thread&nbsp;—&nbsp;the&nbsp;server&nbsp;loop&nbsp;never<br>
+blocks&nbsp;on&nbsp;a&nbsp;30&nbsp;s&nbsp;``action=parse``&nbsp;interval.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'None'</dt><dd><span class="code">Run&nbsp;the&nbsp;ext-liquipedia&nbsp;gRPC&nbsp;content&nbsp;provider&nbsp;server.</span></dd></dl>
+</td></tr></table>
+</body></html>

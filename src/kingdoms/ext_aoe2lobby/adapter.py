@@ -41,11 +41,12 @@ from typing import Any
 import websockets
 
 from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S, LobbyClosedGrace
+from kingdoms.core.services.provider_endpoints import provider_url as _provider_url
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WS_URL = "wss://data.aoe2lobby.com/ws/"
-SCHEMA_WS_URL = "wss://data.aoe2lobby.com/ws/lobby/"
+DEFAULT_WS_URL = _provider_url("aoe2lobby", "ws_url")
+SCHEMA_WS_URL = _provider_url("aoe2lobby", "schema_ws_url")
 DEFAULT_MAX_SIZE = 10 * 1024 * 1024
 DEFAULT_RECONNECT_DELAY_S = 5.0
 DEFAULT_HEARTBEAT_S = 90.0

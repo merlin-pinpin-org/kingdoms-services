@@ -18,6 +18,30 @@ service Content {
   rpc GetFactionContent(FactionContentRequest) returns (LocalizedContent);
   // One map's localized content (name-only today).
   rpc GetMapContent(MapContentRequest) returns (LocalizedContent);
+
+  // One map's full descriptor (the import flow): description, image,
+  // licence-checked fields — the Liquipedia family of content sources.
+  // The provider owns the raw data and its terms-of-use compliance.
+  rpc GetMapSeed(MapSeedRequest) returns (MapSeedReply);
+}
+
+message MapSeedRequest {
+  string game_key = 1;    // e.g. "aoe2" (the provider keys its wikis by game)
+  string map_key = 2;     // the map name or page title the admin typed
+}
+
+message MapSeedReply {
+  bool found = 1;              // false: no page under this name
+  string name = 2;             // canonical display name
+  string description = 3;
+  string resource_url = 4;     // attribution/source link
+  string image_url = 5;
+  string icon_url = 6;
+  string terrain = 7;
+  string size = 8;
+  string map_type = 9;
+  string licence_ok = 10;      // true: the image passed the licence guard
+  string licence_note = 11;    // the refusal reason when licence_ok is false
 }
 
 message ContentCapabilitiesRequest {}

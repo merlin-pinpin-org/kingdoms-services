@@ -180,13 +180,14 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-fetch_map_seed"><strong>fetch_map_seed</strong></a>(name: 'str') -&gt; 'MapSeed | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;map&nbsp;name&nbsp;into&nbsp;a&nbsp;seed&nbsp;via&nbsp;Liquipedia&nbsp;(best-effort).<br>
+<td class="singlecolumn"><dl><dt>async <a name="-fetch_map_seed"><strong>fetch_map_seed</strong></a>(name: 'str') -&gt; 'MapSeed | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;map&nbsp;name&nbsp;into&nbsp;a&nbsp;seed&nbsp;(the&nbsp;ext-liquipedia&nbsp;provider&nbsp;first).<br>
 &nbsp;<br>
-Returns&nbsp;None&nbsp;when&nbsp;Liquipedia&nbsp;doesn't&nbsp;know&nbsp;the&nbsp;page&nbsp;—&nbsp;the&nbsp;caller<br>
-then&nbsp;creates&nbsp;a&nbsp;guild-local&nbsp;entry&nbsp;with&nbsp;the&nbsp;fields&nbsp;typed&nbsp;in<br>
-Discord.&nbsp;Raises&nbsp;:class:`<a href="#LiquipediaUnconfiguredError">LiquipediaUnconfiguredError</a>`&nbsp;when&nbsp;the<br>
-environment&nbsp;declares&nbsp;no&nbsp;``LIQUIPEDIA_CONTACT``:&nbsp;that&nbsp;is&nbsp;a<br>
-configuration&nbsp;gap,&nbsp;not&nbsp;an&nbsp;unknown&nbsp;map,&nbsp;and&nbsp;the&nbsp;UI&nbsp;says&nbsp;so.</span></dd></dl>
+The&nbsp;provider&nbsp;process&nbsp;(ADR-0020)&nbsp;owns&nbsp;the&nbsp;Liquipedia&nbsp;access&nbsp;and&nbsp;its<br>
+tables;&nbsp;when&nbsp;it&nbsp;is&nbsp;configured&nbsp;(``EXT_LIQUIPEDIA_URI``)&nbsp;the&nbsp;seed<br>
+comes&nbsp;over&nbsp;the&nbsp;Content&nbsp;contract.&nbsp;Without&nbsp;it&nbsp;the&nbsp;legacy&nbsp;in-process<br>
+path&nbsp;serves&nbsp;(transition):&nbsp;the&nbsp;UI&nbsp;behavior&nbsp;is&nbsp;identical.<br>
+Returns&nbsp;None&nbsp;when&nbsp;Liquipedia&nbsp;doesn't&nbsp;know&nbsp;the&nbsp;page.&nbsp;Raises<br>
+:class:`<a href="#LiquipediaUnconfiguredError">LiquipediaUnconfiguredError</a>`&nbsp;on&nbsp;a&nbsp;configuration&nbsp;gap.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

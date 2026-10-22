@@ -77,3 +77,30 @@ class ContentProviderClient:
             "source_url": reply.source_url,
             "image_url": reply.image_url,
         }
+
+    async def get_map_seed(self, game_key: str, map_key: str) -> dict[str, object] | None:
+        """Fetch one map's full descriptor, degrading to None."""
+        async with build_channel(self._provider_uri) as channel:
+            stub = content_pb2_grpc.ContentStub(channel)
+            try:
+                reply = await stub.GetMapSeed(
+                    content_pb2.MapSeedRequest(game_key=game_key, map_key=map_key)
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in _NOT_FOUND_CODES:
+                    return None
+                raise
+        if not reply.found:
+            return None
+        return {
+            "name": reply.name,
+            "description": reply.description,
+            "resource_url": reply.resource_url,
+            "image_url": reply.image_url,
+            "icon_url": reply.icon_url,
+            "terrain": reply.terrain,
+            "size": reply.size,
+            "map_type": reply.map_type,
+            "licence_ok": reply.licence_ok,
+            "licence_note": reply.licence_note,
+        }
