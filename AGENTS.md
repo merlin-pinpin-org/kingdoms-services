@@ -169,3 +169,8 @@ A session writing a doc, a comment or a commit in French is a bug.
   modal (50035 `type must be one of (4,)`), the Label-wrapped one works
   (the same shape as the profile's add-account form). TextInput labels
   are capped at 45 characters.
+- **An OPTIONAL select in a modal carries `required=False`**: the API
+  rejects `min_values=0` on a required component (50035 `Components
+  marked as required cannot have a min_values of 0`) — set
+  `select._underlying.required = False` alongside `min_values=0` (the
+  required flag is not exposed on the Select constructor).
