@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from kingdoms.mods.kingdoms.attacks import AttackError, AttackStateError
+from kingdoms.mods.kingdoms.attacks import AttackError, AttackStateError, PickBanStateError
 from kingdoms.mods.kingdoms.models import AttackModel, AttackState, FFAExplorationModel
 
 from .test_kingdoms_attack_phases import PhasesBundle
@@ -227,11 +227,14 @@ async def test_double_noshow_is_a_double_forfait() -> None:
     assert await bundle.owner_of(attack) == bourgogne
 
 
-async def test_vs_ai_only_the_attacker_confirms() -> None:
-    """Vs the bot AI: only the attacker confirms — a no-show loses the attack.
+async def test_vs_ai_the_draft_runs_and_only_the_attacker_confirms() -> None:
+    """Vs the bot AI: the draft RUNS (Drasah 22/10 battle-ai-rdv-v1).
 
-    Drasah 17/10: the AI engages AT the meeting time (no pick & ban
-    vs the AI) — the RDV opens right away, the game decides (D20).
+    The AI never bans, picks 3 RANDOM civs of its hand and validates
+    after a 30-90 s PERSISTED delay — the timing never leaks the bot.
+    The meeting opens only once the draft resolved, its no-show line
+    anchored on the ACTUAL opening. The lone attacker declaration
+    still FAIT FOI at once (no second human to confirm).
     """
     bundle = ScoreBundle()
     await bundle.launch_season()
@@ -240,32 +243,107 @@ async def test_vs_ai_only_the_attacker_confirms() -> None:
     await bundle.attacks.reveal_due(now=_CUTOFF)  # the cover drops only
     expired = await bundle.attacks.expire_stale(now=_T)  # the AI takes the defense
     assert [item.id for item in expired] == [attack.id]
-    due = await bundle.attacks.score_due(now=_T)
-    assert [item.id for item in due] == [attack.id]
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.ai_defender is True
-    assert fresh.pickban["resolved_pickban"] is True  # no pick & ban vs the AI
+    # battle-ai-rdv-v1: the pick & ban is NOT resolved yet — the draft
+    # runs even against the AI (the effect of surprise is kept).
+    assert not (fresh.pickban or {}).get("resolved_pickban")
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
+    # The draft leaves: the attacker ranks his 3, the AI arms its
+    # random 3 picks of its OWN hand + its delayed validation.
+    sent = await bundle.attacks.pick_ban_due(now=_T)
+    assert [item.id for item in sent] == [attack.id]
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert len(fresh.pickban["defender_picks"]) == 3
+    assert set(fresh.pickban["defender_picks"]) <= {"huns", "perses", "byzantins"}
+    assert 30 <= fresh.pickban["ai_validate_at"] - int(_T.timestamp()) <= 90
+    # The meeting NEVER opens before the draft resolves.
+    assert await bundle.attacks.score_due(now=_T) == []
+    await bundle.attacks.set_picks(
+        attack.id, "king-a", ["francs", "bretons", "goths"], now=_T
+    )
+    await bundle.attacks.validate_pickban(attack.id, "king-a", now=_T)
+    # The AI has not « thought » yet — the tick replays nothing.
+    assert await bundle.attacks.ai_draft_due(now=_T + timedelta(seconds=29)) == []
+    validated = await bundle.attacks.ai_draft_due(now=_T + timedelta(seconds=90))
+    assert [item.id for item in validated] == [attack.id]
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.pickban["resolved_pickban"] is True
+    assert "ai_validate_at" not in fresh.pickban
+    # The RDV opens on the resolved draft — the no-show line anchored
+    # on the ACTUAL opening (never an instant forfeit past T).
+    opened_at = _T + timedelta(seconds=95)
+    due = await bundle.attacks.score_due(now=opened_at)
+    assert [item.id for item in due] == [attack.id]
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.state is AttackState.MEETING
+    assert fresh.score["ready_deadline"] == int(
+        (opened_at + timedelta(minutes=5)).timestamp()
+    )
+    # The attacker is Prêt — the AI confirms at its OWN 30-90 s mark.
+    fresh = await bundle.attacks.mark_ready(attack.id, "king-a", now=opened_at)
+    assert not fresh.score.get("all_ready")
+    assert 30 <= fresh.score["ai_ready_at"] - int(opened_at.timestamp()) <= 90
+    assert await bundle.attacks.ai_ready_due(now=opened_at + timedelta(seconds=29)) == []
+    confirmed = await bundle.attacks.ai_ready_due(now=opened_at + timedelta(seconds=90))
+    assert [item.id for item in confirmed] == [attack.id]
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.score["all_ready"]
     # Drasah 18/10 v2: vs the AI the lone attacker declaration FAIT
     # FOI at once (no Prêt gate, no second human to confirm).
     fresh, outcome = await bundle.attacks.declare_score(
-        attack.id, "king-a", fresh.attacker_kingdom_id, "g-123", now=_T
+        attack.id, "king-a", fresh.attacker_kingdom_id, "g-123", now=opened_at
     )
     assert outcome == "resolved"
     assert fresh.state is AttackState.RESOLVED
 
 
 async def test_vs_ai_attacker_noshow_loses() -> None:
-    """Vs the bot AI: the attacker never clicked Prêt — the AI wins at T+5."""
+    """Vs the bot AI: the attacker never joined — the AI wins at his line."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
-    await bundle.fresh_attack()
+    attack = await bundle.fresh_attack()
     await bundle.attacks.reveal_due(now=_CUTOFF)  # the cover drops only
     await bundle.attacks.expire_stale(now=_T)  # the AI takes the defense
-    await bundle.attacks.score_due(now=_T)
-    handled = await bundle.attacks.ready_due(now=_T5)
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
+    await bundle.attacks.pick_ban_due(now=_T)
+    await bundle.attacks.set_picks(attack.id, "king-a", ["francs", "bretons", "goths"], now=_T)
+    await bundle.attacks.validate_pickban(attack.id, "king-a", now=_T)
+    await bundle.attacks.ai_draft_due(now=_T + timedelta(seconds=90))
+    opened_at = _T + timedelta(seconds=95)
+    await bundle.attacks.score_due(now=opened_at)
+    deadline = datetime.fromtimestamp(
+        int((opened_at + timedelta(minutes=5)).timestamp()), tz=UTC
+    )
+    handled = await bundle.attacks.ready_due(now=deadline)
+    assert [item.id for item in handled] == [attack.id]
     assert handled[0].winner_kingdom_id == await bundle.kingdom_id("Bourgogne")
     assert handled[0].score["noshow"] == "attacker"
+
+
+async def test_vs_ai_forgotten_attacker_draft_defaults_never_forfeits() -> None:
+    """battle-ai-rdv-v1: vs the AI an abandoned draft defaults after the
+    grace window — random civs, the meeting still opens, never a forfeit."""
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    attack = await bundle.fresh_attack()
+    await bundle.attacks.expire_stale(now=_T)
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
+    await bundle.attacks.pick_ban_due(now=_T)
+    # Inside the grace window the anti-blocking default does NOT fire.
+    assert await bundle.attacks.expire_stale(now=_T + timedelta(minutes=14)) == []
+    handled = await bundle.attacks.expire_stale(now=_T + timedelta(minutes=15))
+    assert handled == []  # defaulted, not expired — the game decides
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.pickban["resolved_pickban"] is True
+    assert fresh.pickban["default_picks"] == ["attacker"]
+    assert len(fresh.pickban["attacker_picks"]) == 3
+    assert fresh.state is AttackState.DEFENDED  # the RDV opens on the next tick
 
 
 async def test_lone_declaration_pends_then_confirms() -> None:
@@ -533,3 +611,32 @@ async def test_a_changed_lobby_url_resets_both_readiness_flags() -> None:
         same.id, str(same.defender_lord_id), "aoe2de://lobby/2"
     )
     assert same.score.get("ready") == [str(same.attacker_lord_id)]
+
+
+async def test_vs_ai_sabotage_stays_open_until_the_room_opens() -> None:
+    """battle-ai-rdv-v1: vs the bot AI the draft/sabotage chain happens
+    AFTER the meeting time — the sabotage window closes when the battle
+    room OPENS, not at T (the attacker keeps his Traquenard window)."""
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    attack = await bundle.fresh_attack()
+    await bundle.attacks.expire_stale(now=_T)  # the AI takes the defense
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
+    await bundle.attacks.pick_ban_due(now=_T)
+    await bundle.attacks.set_picks(attack.id, "king-a", ["francs", "bretons", "goths"], now=_T)
+    await bundle.attacks.validate_pickban(attack.id, "king-a", now=_T)
+    await bundle.attacks.ai_draft_due(now=_T + timedelta(seconds=90))
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.pickban["resolved_pickban"] is True
+    # PAST T the sabotage settle still works vs the AI — the room is
+    # not open yet. The AI counts as settled: the attacker alone
+    # resolves the phase.
+    settled = await bundle.attacks.sabotage_settle(attack.id, "king-a")
+    assert settled.pickban["sabotage_resolved"] is True
+    # The room opens — the window closes with it (never at T vs the AI).
+    fresh = await bundle.attacks.open_meeting_now(attack.id)
+    assert fresh is not None and fresh.score["opened"] is True
+    with pytest.raises(PickBanStateError):
+        await bundle.attacks.sabotage_techno(attack.id, "king-a", "huns")

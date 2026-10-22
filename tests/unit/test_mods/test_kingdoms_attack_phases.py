@@ -196,7 +196,9 @@ async def test_reveal_unmasks_and_the_ai_engages_at_the_meeting_time() -> None:
     assert [item.id for item in expired] == [attack.id]
     assert expired[0].ai_defender is True
     assert expired[0].state is AttackState.DEFENDED
-    assert expired[0].pickban["resolved_pickban"] is True
+    # battle-ai-rdv-v1: the draft runs even vs the AI — nothing is
+    # resolved at T, the tick sends the attacker's draft DM next.
+    assert not (expired[0].pickban or {}).get("resolved_pickban")
 
 
 async def test_reveal_keeps_a_locked_human_defense() -> None:
@@ -215,23 +217,43 @@ async def test_reveal_keeps_a_locked_human_defense() -> None:
     assert revealed[0].state is AttackState.DEFENDED
 
 
-async def test_ai_defense_skips_the_pick_ban_and_opens_the_meeting() -> None:
-    """Drasah 17/10: the AI engages at T — no pick & ban, straight to the RDV."""
+async def test_ai_defense_runs_the_draft_and_opens_the_meeting() -> None:
+    """battle-ai-rdv-v1 (Drasah 22/10): vs the AI the draft RUNS at T —
+    the AI picks 3 RANDOM civs of its hand and validates after its
+    30-90 s delay; the RDV opens once the draft resolved."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(7)
     attack = await bundle.fresh_attack()
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
     await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
     # The defense window [17:45, 18:00) closes with no human answer.
     assert await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 55, tzinfo=UTC)) == []
     expired = await bundle.attacks.expire_stale(now=attack.expires_at)
     assert [item.id for item in expired] == [attack.id]
     assert expired[0].ai_defender is True
-    assert expired[0].pickban["sent"] is True  # the AI never stalls
-    assert expired[0].pickban["defender_validated"] is True
-    assert expired[0].pickban["resolved_pickban"] is True  # no pick & ban vs the AI
+    assert not (expired[0].pickban or {}).get("sent")  # the draft leaves next tick
+    # T: the draft leaves — the attacker ranks, the AI arms its delay.
+    sent = await bundle.attacks.pick_ban_due(now=attack.expires_at)
+    assert [item.id for item in sent] == [attack.id]
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert len(fresh.pickban["defender_picks"]) == 3
+    assert 30 <= fresh.pickban["ai_validate_at"] - int(attack.expires_at.timestamp()) <= 90
+    # The RDV NEVER opens before the draft resolves.
+    assert await bundle.attacks.score_due(now=attack.expires_at) == []
+    await bundle.attacks.set_picks(
+        attack.id, "king-a", ["francs", "bretons", "goths"], now=attack.expires_at
+    )
+    await bundle.attacks.validate_pickban(attack.id, "king-a", now=attack.expires_at)
+    validated = await bundle.attacks.ai_draft_due(
+        now=attack.expires_at + timedelta(seconds=90)
+    )
+    assert [item.id for item in validated] == [attack.id]
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.pickban["resolved_pickban"] is True
     # The next tick opens the RDV: the attacker plays the game (D20).
-    due = await bundle.attacks.score_due(now=attack.expires_at)
+    due = await bundle.attacks.score_due(now=attack.expires_at + timedelta(seconds=95))
     assert [item.id for item in due] == [attack.id]
     assert due[0].state is AttackState.MEETING
     # The meeting keeps waiting for the game result (D20).
@@ -408,5 +430,6 @@ async def test_meeting_time_catches_up_an_unrevealed_attack_with_the_ai() -> Non
     assert [item.id for item in expired] == [attack.id]
     assert expired[0].ai_defender is True
     assert expired[0].state is AttackState.DEFENDED
-    assert expired[0].pickban["sent"] is True
-    assert expired[0].pickban["defender_validated"] is True
+    # battle-ai-rdv-v1: the draft leaves on the next tick (nothing
+    # resolved at the catch-up itself).
+    assert not (expired[0].pickban or {}).get("sent")

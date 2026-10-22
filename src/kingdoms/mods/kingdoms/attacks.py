@@ -36,6 +36,10 @@ from kingdoms.mods.kingdoms.service import (
     NoSeasonError,
 )
 
+# battle-ai-rdv-v1: the AI's 30-90 s think-time delays — SystemRandom
+# (the bot timers are not crypto, but ruff's S311 is right by default).
+_rng = random.SystemRandom()
+
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
     from kingdoms.mods.kingdoms.models import (
@@ -855,15 +859,66 @@ class AttackService:
                 continue
             if attack.pickban.get("sent") or attack.is_over:
                 continue
-            if not attack.revealed or timestamp >= attack.expires_at:
+            if not attack.revealed:
+                continue
+            if not attack.ai_defender and timestamp >= attack.expires_at:
                 continue
             pickban = dict(attack.pickban)
             pickban["sent"] = True
             if attack.ai_defender:
-                pickban["defender_validated"] = True  # the AI never stalls
+                # battle-ai-rdv-v1 (Drasah 22/10): the AI never bans but
+                # picks 3 RANDOM civilizations from its kingdom's hand
+                # (it must survive the attacker's sabotage techno) and
+                # validates after a 30-90 s random delay — the draft
+                # feels like a human one, the timing never leaks the bot.
+                pickban["defender_picks"] = _random_picks(
+                    await self._side_hand(attack.defender_kingdom_id)
+                )
+                pickban["ai_validate_at"] = int(
+                    (timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp()
+                )
             attack.pickban = pickban
             await self._store.upsert_attack(attack.to_mongo())
             due.append(attack)
+        return due
+
+    async def ai_draft_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Play the bot-AI's delayed draft validation (battle-ai-rdv-v1).
+
+        Drasah 22/10: the AI validates its draft ``ai_validate_at``
+        (30-90 s after its picks) — the timestamp is PERSISTED so the
+        tick replays it safely (a restart never loses nor doubles the
+        delay). When both sides validated the pick & ban resolves
+        exactly like the human flow; the panel tick then reveals the
+        civs in the attacker's DM and the meeting opens through the
+        normal RDV path.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+                continue
+            if not attack.ai_defender or attack.is_over:
+                continue
+            pickban = dict(attack.pickban)
+            if pickban.get("defender_validated") or not pickban.get("ai_validate_at"):
+                continue
+            if timestamp.timestamp() < float(pickban["ai_validate_at"]):
+                continue
+            pickban["defender_validated"] = True
+            pickban.pop("ai_validate_at", None)
+            if pickban.get("attacker_validated"):
+                pickban["resolved_pickban"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info(
+                "kingdoms: the defense AI validated its draft on %s",
+                attack.map_key,
+            )
         return due
 
     async def set_picks(
@@ -957,7 +1012,10 @@ class AttackService:
             raise PickBanStateError("the pick & ban is already resolved")
         if not attack.pickban.get("sent"):
             raise PickBanStateError("le draft n'est pas encore ouvert (il part au reveal T-15)")
-        if timestamp >= attack.expires_at:
+        if timestamp >= attack.expires_at and not attack.ai_defender:
+            # battle-ai-rdv-v1 (Drasah 22/10): vs the bot AI the draft
+            # opens AT the meeting time — the attacker keeps his whole
+            # ``ai_draft_grace_minutes`` window to rank his 3 civs.
             raise PickBanStateError("l'heure du RDV est atteinte — le draft est fermé")
         return attack
 
@@ -1033,14 +1091,14 @@ class AttackService:
                 attack.effects["ai_level"] = (
                     1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
                 )
-                attack.pickban = {
-                    **attack.pickban,
-                    "sent": True,
-                    "defender_validated": True,
-                    "resolved_pickban": True,
-                }
+                # battle-ai-rdv-v1 (Drasah 22/10): even against the bot
+                # AI the DRAFT runs — same DM flow as a human defense
+                # (effect of surprise). The pickban stays UNRESOLVED
+                # here: the next pick_ban_due tick sends the attacker's
+                # draft DM and arms the AI's random validate delay —
+                # the meeting then opens through the normal RDV path.
                 logger.info(
-                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s)",
+                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s), draft opens",
                     attack.map_key,
                     attack.defender_kingdom_id,
                     attack.effects["ai_level"],
@@ -1053,6 +1111,16 @@ class AttackService:
 
     async def _expire_defended(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
         """Resolve the un-resolved pick & ban of an expired defense (D77)."""
+        if attack.ai_defender:
+            # battle-ai-rdv-v1 (Drasah 22/10): vs the bot AI the draft
+            # runs AT the meeting time — the anti-blocking default only
+            # applies after ``ai_draft_grace_minutes`` (the same window
+            # the human draft enjoys), never a forfeit.
+            deadline = attack.expires_at + timedelta(
+                minutes=self._config.attacks.ai_draft_grace_minutes
+            )
+            if timestamp < deadline:
+                return None
         pickban = dict(attack.pickban)
         if not pickban.get("sent"):
             # A defense locked after the last pick & ban tick (the
@@ -1339,8 +1407,14 @@ class AttackService:
             # The game-start moment, epoch seconds — the 3h reminder base.
             score["opened_at"] = int(timestamp.timestamp())
             # The T+5 no-show line, epoch seconds (Mongo-proof).
+            # battle-ai-rdv-v1: a LATE opening (the AI draft runs at T)
+            # anchors the line on the ACTUAL open — never an instant
+            # forfeit for a room that opened past its own deadline.
             score["ready_deadline"] = int(
-                (attack.expires_at + timedelta(minutes=self._config.attacks.ready_grace_minutes)).timestamp()
+                (
+                    max(timestamp, attack.expires_at)
+                    + timedelta(minutes=self._config.attacks.ready_grace_minutes)
+                ).timestamp()
             )
             attack.score = score
             attack.state = AttackState.MEETING
@@ -1426,14 +1500,65 @@ class AttackService:
             ready.append(player_id)
             score["ready"] = ready
         if not score.get("all_ready") and set(ready) >= set(expected_score_players(attack)):
-            score["all_ready"] = int(timestamp.timestamp())
-            logger.info(
-                "kingdoms: everyone is ready on the meeting of %s — score phase open",
-                attack.map_key,
-            )
+            if attack.ai_defender:
+                # battle-ai-rdv-v1 (Drasah 22/10): the attacker is the
+                # only human — but the AI "confirms" after a 30-90 s
+                # random delay (same footprint as a human Prêt, the
+                # timing never leaks the bot). The timestamp is
+                # PERSISTED: the tick replays it safely, a restart
+                # never loses it. Idempotent — a re-click never re-arms.
+                if not score.get("ai_ready_at"):
+                    score["ai_ready_at"] = int(
+                        (timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp()
+                    )
+                    logger.info(
+                        "kingdoms: %s is Prêt on %s — the AI confirms shortly",
+                        player_id,
+                        attack.map_key,
+                    )
+            else:
+                score["all_ready"] = int(timestamp.timestamp())
+                logger.info(
+                    "kingdoms: everyone is ready on the meeting of %s — score phase open",
+                    attack.map_key,
+                )
         attack.score = score
         await self._store.upsert_attack(attack.to_mongo())
         return attack
+
+    async def ai_ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Play the bot-AI's delayed Prêt confirmation (battle-ai-rdv-v1).
+
+        Drasah 22/10: once the attacker clicked Prêt, the AI confirms
+        at ``ai_ready_at`` (30-90 s random) — the tick flips the
+        ``all_ready`` flag, the panel then refreshes the scoreboard
+        (footer + 🏆) and creates the match event like the human flow.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            if not attack.ai_defender or attack.is_over:
+                continue
+            score = dict(attack.score)
+            if score.get("all_ready") or not score.get("ai_ready_at"):
+                continue
+            if timestamp.timestamp() < float(score["ai_ready_at"]):
+                continue
+            score["all_ready"] = int(timestamp.timestamp())
+            score.pop("ai_ready_at", None)
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info(
+                "kingdoms: the defense AI confirmed on %s — score phase open",
+                attack.map_key,
+            )
+        return due
 
     async def _require_sabotage_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:
         """Fetch the attack and enforce the sabotage-phase window (v4)."""
@@ -1446,7 +1571,13 @@ class AttackService:
             raise PickBanStateError("le draft doit être résolu avant la phase de sabotage")
         if attack.pickban.get("sabotage_resolved"):
             raise PickBanStateError("la phase de sabotage est terminée")
-        if timestamp >= attack.expires_at:
+        if attack.ai_defender:
+            # battle-ai-rdv-v1: vs the bot AI the whole draft/sabotage
+            # chain happens AFTER the meeting time — the window closes
+            # when the battle room opens, not at T.
+            if attack.score.get("opened"):
+                raise PickBanStateError("la partie a commencé — la phase de sabotage est fermée")
+        elif timestamp >= attack.expires_at:
             raise PickBanStateError("l'heure du RDV est atteinte — la phase de sabotage est fermée")
         return attack
 
@@ -1558,9 +1689,13 @@ class AttackService:
         score["ready"] = []
         # The game-start moment, epoch seconds — the 3h reminder base.
         score["opened_at"] = int(timestamp.timestamp())
-        # The T+5 no-show line, epoch seconds (Mongo-proof).
+        # The T+5 no-show line, epoch seconds (Mongo-proof) — anchored
+        # on the ACTUAL open for a late opening (battle-ai-rdv-v1).
         score["ready_deadline"] = int(
-            (attack.expires_at + timedelta(minutes=self._config.attacks.ready_grace_minutes)).timestamp()
+            (
+                max(timestamp, attack.expires_at)
+                + timedelta(minutes=self._config.attacks.ready_grace_minutes)
+            ).timestamp()
         )
         attack.score = score
         attack.state = AttackState.MEETING

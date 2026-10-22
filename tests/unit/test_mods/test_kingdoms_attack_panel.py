@@ -208,10 +208,10 @@ async def test_declaration_opens_the_attack_salon() -> None:
     declare = await guild.create_text_channel("Déclarer une attaque", position=3)
     await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), attack)
     salon = next(c for c in guild.text_channels if c.id != declare.id)
-    # battle-room-id-v2: the salon wears a readable ⚔️ duel name —
+    # battle-ai-rdv-v1: the salon wears a readable 🗡️ duel name —
     # the ATTACKER VS the defender KINGDOM, slugified (the map title
     # lives in the announcement, never in the channel name).
-    assert salon.name == "⚔️-king-a-vs-bourgogne"
+    assert salon.name == "🗡️-king-a-vs-bourgogne"
     assert attack.map_key not in salon.name
     # Positioned right under the declare salon.
     assert salon.position == declare.position + 1
@@ -269,7 +269,7 @@ async def test_declaration_names_the_cover_not_the_attacker() -> None:
     # The salon name never leaks the real attacker — the cover identity
     # (lord-a is "Lord A", the masked king-a is "King A"),
     # slugified by the battle-room-id-v2 duel name.
-    assert salon.name == "⚔️-lord-a-vs-bourgogne"
+    assert salon.name == "🗡️-lord-a-vs-bourgogne"
     assert "king-a" not in salon.name
 
 
@@ -508,6 +508,9 @@ async def test_declare_flow_declares_the_attack() -> None:
     # DIRECTLY (Drasah 18/10 — no modal: an empty modal is rejected
     # by Discord and killed the flow, live beta 18/10).
     await territory_select.callback(step2)  # type: ignore[arg-type]
+    # battle-ai-rdv-v1: the map is chosen — the SELECTOR ephemeral dies
+    # instantly (no stale wizard left behind after the declaration).
+    assert click.original_deleted is True
     attacks = await bundle.attacks.attacks()
     assert len(attacks) == 1
     assert str(attacks[0].state.value) == "declared"
@@ -747,9 +750,9 @@ async def test_gaia_declaration_opens_its_salon_and_is_never_cancellable() -> No
     declare = await guild.create_text_channel("Déclarer une attaque")
     await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), battle)
     salon = next(c for c in guild.text_channels if c.id != declare.id)
-    # battle-room-id-v2: the gaia salon wears the ⚔️ duel name — the
+    # battle-ai-rdv-v1: the gaia salon wears the 🗡️ duel name — the
     # attacker VS « Gaïa » (the map title stays in the announcement).
-    assert salon.name == "⚔️-king-a-vs-gaia"
+    assert salon.name == "🗡️-king-a-vs-gaia"
     ids = [str(c.custom_id) for c in salon.messages[0].view.children]
     assert f"kingdoms:attack:join:{_room_key(battle.id)}" in ids  # 🦅 Rejoindre
     assert f"kingdoms:attack:cancel:{_room_key(battle.id)}" in ids  # ❌ Annuler
@@ -851,15 +854,29 @@ async def test_scheduler_reveals_then_the_ai_takes_over_at_the_meeting_time() ->
     assert any(
         ATTACK_PANEL_MARKER in (m.content or "") for m in declare_channel.messages
     )  # the panel re-pinned in the declare salon
-    # T+1: the meeting time — nobody defended, the bot AI takes the defense
-    # and the RDV opens directly (no pick & ban, no forfait).
+    # T+1: the meeting time — nobody defended, the bot AI takes the
+    # defense (battle-ai-rdv-v1): the draft RUNS even solo — the
+    # attacker's DM leaves and the AI arms its random picks + delay.
     attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
     await run_attack_phases_safe(bot)
     assert any("IA" in (m.content or "") for m in salon.messages)
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.ai_defender is True
-    assert fresh.pickban["sent"] is True  # the AI never stalls
-    assert fresh.pickban["resolved_pickban"] is True  # no pick & ban vs the AI
+    assert not (fresh.pickban or {}).get("sent")  # the draft leaves on the NEXT tick
+    # T+2: the tick sends the attacker's draft DM — the AI arms its 3
+    # RANDOM picks of its hand + its delayed validation (the
+    # resolution waits for the attacker's ranking AND the AI's mark).
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
+    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 2, tzinfo=UTC)
+    await run_attack_phases_safe(bot)
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.pickban["sent"] is True  # the draft DM leaves at once
+    assert not fresh.pickban.get("resolved_pickban")
+    assert len(fresh.pickban["defender_picks"]) == 3
+    assert 30 <= fresh.pickban["ai_validate_at"] - int(
+        datetime(2026, 10, 11, 18, 2, tzinfo=UTC).timestamp()
+    ) <= 90
     assert not [m for m in salon.messages if "Forfait" in (m.content or "")]
 
 
@@ -1869,7 +1886,7 @@ async def test_room_row_order_and_duel_names() -> None:
     """battle-room-id-v2: once both players are Prêt the single salon
     message carries FOUR components in the Drasah order — Prêt
     attaquant | 🔗 ID | 🏆 Déclarer le vainqueur | Prêt défenseur —
-    and the ⚔️ duel names (salon AND vocal) are slug-based with a
+    and the duel names (🗡️ salon, ⚔️ vocal) are slug-based with a
     numbered suffix on collision, never the legacy prose names."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         _open_battle_room,
@@ -1906,16 +1923,17 @@ async def test_room_row_order_and_duel_names() -> None:
     labels = [str(c.item.label) for c in salon.messages[0].view.children]  # type: ignore[attr-defined]
     assert labels[0] == strings["room_ready_attacker_button"].format(player="King A")
     assert labels[3] == strings["room_ready_defender_button"].format(player="Lord B")
-    # The ⚔️ duel names: slug, ⚔️- prefix, -vs- separator — and a
-    # numbered suffix separates SIMULTANEOUS duels on the same names.
+    # The duel names: the VOCAL room wears the ⚔️ prefix (a defender
+    # is present), the TEXT salon the 🗡️ prefix — slug, -vs- separator,
+    # and a numbered suffix separates SIMULTANEOUS duels on the names.
     room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
     assert room.name == "⚔️-king-a-vs-lord-b"
-    twin = _room_channel_name(guild, "King A", "Lord B")
-    assert twin == "⚔️-king-a-vs-lord-b-2"
-    # The twin salon really exists now — the NEXT duel steps to -3.
-    await guild.create_voice_channel(twin)
-    again = _room_channel_name(guild, "king-a", "lord-b")
-    assert again == "⚔️-king-a-vs-lord-b-3"
+    twin = _room_channel_name(guild, "🗡️", "King A", "Lord B")
+    assert twin == "🗡️-king-a-vs-lord-b"
+    # The twin salon really exists now — the NEXT duel steps to -2.
+    await guild.create_text_channel(twin)
+    again = _room_channel_name(guild, "🗡️", "king-a", "lord-b")
+    assert again == "🗡️-king-a-vs-lord-b-2"
 
 
 async def test_room_open_pings_both_players_but_never_the_ai() -> None:
@@ -1951,3 +1969,63 @@ async def test_room_open_pings_both_players_but_never_the_ai() -> None:
         if task is not asyncio.current_task():
             task.cancel()
     await asyncio.sleep(0)
+
+
+async def test_ai_room_shows_the_raw_level_and_the_disclaimer() -> None:
+    """battle-ai-rdv-v1: vs the bot AI the scoreboard carries the RAW
+    level (« 🤖 IA — niv. N/5 », Traquenard-aware) and the short
+    multiplayer-ID disclaimer sits right under it."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    attack.ai_defender = True
+    effects = dict(attack.effects or {})
+    effects["ai_level"] = 4
+    attack.effects = effects
+    await bundle.store.upsert_attack(attack.to_mongo())
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    scoreboard = str(salon.messages[0].content or "")
+    assert "🤖 IA — niv. 4/5" in scoreboard
+    assert "multijoueur" in scoreboard
+    assert "fraude" in scoreboard
+
+
+async def test_declared_note_timer_deletes_the_note_at_the_meeting_time() -> None:
+    """battle-ai-rdv-v1: the declared/itinerary ephemeral self-destructs
+    at the MEETING time (token life 15 min — a later meeting keeps it)."""
+    import asyncio
+    from datetime import timedelta
+
+    from kingdoms.mods.kingdoms.game_clock import game_now
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _DECLARE_NOTE_TASKS,
+        _arm_declared_note_timer,
+    )
+
+    interaction = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), locale="fr"  # type: ignore[arg-type]
+    )
+    note = await interaction.followup.send("⚔️ Attaque déclarée", ephemeral=True)
+    # A far meeting (> 15 min of followup-token life) — never armed.
+    _arm_declared_note_timer(
+        "attack-far", interaction, note.id, game_now() + timedelta(minutes=30)
+    )
+    assert "attack-far" not in _DECLARE_NOTE_TASKS
+    # A near meeting — the timer deletes the note at the deadline.
+    _arm_declared_note_timer(
+        "attack-x", interaction, note.id, game_now() + timedelta(seconds=0.05)
+    )
+    assert "attack-x" in _DECLARE_NOTE_TASKS
+    await asyncio.sleep(0.15)
+    assert not [m for m in interaction.followup.messages if m.id == note.id]
+    assert "attack-x" not in _DECLARE_NOTE_TASKS

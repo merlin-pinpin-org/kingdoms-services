@@ -71,19 +71,65 @@ def _arm_ephemeral_timer(
     _ROOM_EPHEMERAL_TIMERS[key] = task
 
 
-def _room_channel_name(guild: Any, *parts: str) -> str:
-    """Build the ⚔️-slug-vs-slug channel name, unique per guild (v2).
+# battle-ai-rdv-v1: auto-destruction timers of the DECLARED-note
+# ephemerals — the note dies at the MEETING time (it stops being news
+# once the room opens). Keyed by attack id (one declaration, one note).
+_DECLARE_NOTE_TASKS: dict[str, asyncio.Task[None]] = {}
+
+
+def _arm_declared_note_timer(
+    attack_id: str, interaction: Any, message_id: int, expires_at: Any
+) -> None:
+    """Arm the declared-note deletion at the meeting time (best effort).
+
+    Drasah 22/10 (battle-ai-rdv-v1): « ⚔️ Attaque déclarée … RDV … »
+    disappears the moment the meeting happens — the token webhook
+    lives 15 minutes, so a later meeting keeps the note (the room's
+    own message takes over the visibility).
+    """
+    try:
+        when = expires_at if isinstance(expires_at, datetime) else datetime.fromtimestamp(
+            float(expires_at), tz=UTC
+        )
+        delay = (when - game_now()).total_seconds()
+    except Exception:
+        return
+    if delay <= 0 or delay > 840:
+        return
+    existing = _DECLARE_NOTE_TASKS.pop(attack_id, None)
+    if existing is not None:
+        existing.cancel()
+
+    async def _delete_later() -> None:
+        try:
+            await asyncio.sleep(delay)
+            await interaction.followup.delete_message(message_id)
+        except Exception:
+            logger.debug("kingdoms: declared-note auto-delete skipped", exc_info=True)
+        finally:
+            _DECLARE_NOTE_TASKS.pop(attack_id, None)
+
+    _DECLARE_NOTE_TASKS[attack_id] = asyncio.create_task(_delete_later())
+
+
+def _room_channel_name(guild: Any, prefix: str, *parts: str) -> str:
+    """Build the duel channel name, unique per guild (battle-ai-rdv-v1).
 
     Drasah 22/10 (battle-room-id-v2): the readable-but-ugly generated
     names (« {joueur} attaque {map} de {kingdom} », the 🆚 voice
-    title) become a ⚔️ duel name — ``⚔️-drasah-vs-bourgogne``. Discord
+    title) become a duel name — ``⚔️-drasah-vs-bourgogne``. Discord
     lowercases everything: the slug strips accents, a numbered suffix
     (``-2``, ``-3``…) separates SIMULTANEOUS attacks on the same
     names; the existing salons are never renamed (no retro sweep).
+
+    battle-ai-rdv-v1 (Drasah 22/10): the PREFIX is a parameter — 🗡️
+    dague for the ATTACK salon (the attack itself), ⚔️ épées
+    croisées for the VOCAL (a duel, there IS a defender — AI or
+    player).
     """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
-    base = "⚔️-" + "-vs-".join(_slug(str(part)) for part in parts) or "⚔️-bataille"
+    base = f"{prefix}-" + "-vs-".join(_slug(str(part)) for part in parts) or f"{prefix}-bataille"
     base = base[:90]
     names = {str(getattr(channel, "name", "")) for channel in getattr(guild, "channels", [])}
     if base not in names:
@@ -289,7 +335,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_side_ready": "✅ Prêt",
         "room_side_wait": "⏳ en attente du Prêt",
         "room_side_none": "🔗 en attente de l'ID",
-        "room_side_ai": "🤖 IA",
+        "room_side_ai": "🤖 IA — niv. {level}/5",
+        "room_ai_disclaimer": (
+            "⚠️ **IA de niveau {level}/5** — la partie se joue en multijoueur"
+            " avec un ID (jamais en local) pour rester traçable et vérifiable"
+            " post-game. Le joueur est cru sur parole ; toute fraude présumée"
+            " peut être contestée ⚖️ puis arbitrée par les admins."
+        ),
         "room_id_button": "🔗 Renseigner l'ID",
         "room_id_modify_button": "🔴 Modifier l'ID",
         "room_id_pending_button": "⏳ Saisie de l'ID en cours…",
@@ -586,7 +638,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_side_ready": "✅ Ready",
         "room_side_wait": "⏳ waiting for Ready",
         "room_side_none": "🔗 waiting for the game ID",
-        "room_side_ai": "🤖 AI",
+        "room_side_ai": "🤖 AI — lvl {level}/5",
+        "room_ai_disclaimer": (
+            "⚠️ **Level {level}/5 AI** — the game is played in multiplayer"
+            " with an ID (never local) to stay traceable and verifiable"
+            " post-game. The player is taken at their word; any suspected"
+            " fraud can be contested ⚖️ then arbitrated by the admins."
+        ),
         "room_id_button": "🔗 Enter the game ID",
         "room_id_modify_button": "🔴 Change the game ID",
         "room_id_pending_button": "⏳ Game ID being entered…",
@@ -1038,7 +1096,9 @@ class KingdomAttackDeclareButton(
         if lord is None:
             await interaction.response.send_message(strings["not_a_lord"], ephemeral=True)
             return
-        content, view = await _kingdom_select_view(wiring, str(getattr(lord, "kingdom_id", "") or ""), strings)
+        content, view = await _kingdom_select_view(
+            wiring, str(getattr(lord, "kingdom_id", "") or ""), strings, interaction
+        )
         if view is None:
             await interaction.response.send_message(strings["no_target"], ephemeral=True)
             return
@@ -1154,7 +1214,7 @@ async def _kingdom_step_options(
 
 
 async def _kingdom_select_view(
-    wiring: Any, own_kingdom_id: str, strings: dict[str, str]
+    wiring: Any, own_kingdom_id: str, strings: dict[str, str], origin: Any = None
 ) -> tuple[str, discord.ui.View | None]:
     """Step 1 — the attackable kingdoms (patrol-shielded ones stay visible)."""
     import discord
@@ -1179,7 +1239,9 @@ async def _kingdom_select_view(
         chosen = [str(v) for v in values.get("values", [])]
         if not chosen:
             return
-        content, view = await _territory_select_view(wiring, own_kingdom_id, chosen[0], strings)
+        content, view = await _territory_select_view(
+            wiring, own_kingdom_id, chosen[0], strings, origin
+        )
         if view is None:
             await target.response.edit_message(content=strings["no_target"], view=None)
             return
@@ -1196,7 +1258,7 @@ async def _kingdom_select_view(
 
 
 async def _territory_select_view(
-    wiring: Any, own_kingdom_id: str, kingdom_id: str, strings: dict[str, str]
+    wiring: Any, own_kingdom_id: str, kingdom_id: str, strings: dict[str, str], origin: Any = None
 ) -> tuple[str, discord.ui.View | None]:
     """Step 2 — the territories of the chosen kingdom (tags + cadastre)."""
     import discord
@@ -1234,6 +1296,15 @@ async def _territory_select_view(
         chosen = [str(v) for v in values.get("values", [])]
         if not chosen:
             return
+        # battle-ai-rdv-v1 (Drasah 22/10): the map is chosen — the
+        # selector ephemeral dies INSTANTLY (no stale wizard left
+        # behind after the declaration; the cover question and the
+        # itinerary note speak for themselves).
+        if origin is not None:
+            try:
+                await origin.delete_original_response()
+            except Exception:
+                logger.debug("kingdoms: selector ephemeral delete failed", exc_info=True)
         await _open_cover_step(
             wiring,
             target,
@@ -1250,6 +1321,16 @@ async def _territory_select_view(
     # delay LIVE from the config (player vs Gaïa target — never hardcoded,
     # the beta reconfigures and the Corbeau 24h follow-up overrides it
     # per-lord at the declaration itself).
+    delay_minutes = _declare_delay_minutes(wiring, kingdom)
+    lines = [str(strings["choose_territory"]).format(kingdom=f"**{kingdom.name}**")]
+    if delay_minutes:
+        lines.append(str(strings["itinerary_line"]).format(minutes=delay_minutes))
+    lines.append(str(strings["traquenard_hint"]))
+    return "\n".join(lines), view
+
+
+def _declare_delay_minutes(wiring: Any, kingdom: Any) -> int:
+    """Return the LIVE declaration delay of this target (battle-ai-rdv-v1)."""
     delay_minutes = 0
     try:
         if bool(getattr(kingdom, "is_gaia", False)) and wiring.attacks_service is not None:
@@ -1258,11 +1339,16 @@ async def _territory_select_view(
             delay_minutes = int(wiring.attacks_service.player_attack_delay_minutes)
     except Exception:
         delay_minutes = 0
-    lines = [str(strings["choose_territory"]).format(kingdom=f"**{kingdom.name}**")]
-    if delay_minutes:
-        lines.append(str(strings["itinerary_line"]).format(minutes=delay_minutes))
-    lines.append(str(strings["traquenard_hint"]))
-    return "\n".join(lines), view
+    return delay_minutes
+
+
+async def _followup_send_ephemeral(interaction: Any, content: str) -> Any:
+    """Send an ephemeral followup and return its message (battle-ai-rdv-v1).
+
+    discord.py returns the created message; some type builds type the
+    send as None — the callers only read ``id`` best-effort.
+    """
+    return await interaction.followup.send(content, ephemeral=True)
 
 
 async def _declare_player_attack(
@@ -1299,13 +1385,22 @@ async def _declare_player_attack(
         delay_minutes = int((attack.expires_at - attack.declared_at).total_seconds() // 60)
     except Exception:
         delay_minutes = 0
-    await target.followup.send(
+    note: Any = await _followup_send_ephemeral(
+        target,
         strings["itinerary_note"].format(
             map=attack.map_key,
             delay=delay_minutes,
             time=_fmt_paris(attack.expires_at),
         ),
-        ephemeral=True,
+    )
+    # battle-ai-rdv-v1: the note dies at the MEETING time — it stops
+    # being news once the battle room opens (best effort, the
+    # followup token lives 15 minutes).
+    _arm_declared_note_timer(
+        str(attack.id),
+        target,
+        int(getattr(note, "id", 0) or 0),
+        attack.expires_at,
     )
     await _open_attack_salon_safe(target.guild, wiring, strings, attack)
     await refresh_attack_panel_safe(target.guild, _locale(target))
@@ -1421,7 +1516,12 @@ async def _open_cover_step(
     no.callback = on_no  # type: ignore[method-assign, assignment]
     view.add_item(yes)
     view.add_item(no)
-    await interaction.response.edit_message(content=str(strings["cover_question"]), view=view)
+    # battle-ai-rdv-v1: the selector ephemeral is already gone (it
+    # died at the map choice) — the cover question opens its OWN
+    # ephemeral instead of editing the wizard message.
+    await interaction.response.send_message(
+        content=str(strings["cover_question"]), view=view, ephemeral=True
+    )
 
 
 def _attack_salon_overwrites(guild: Any) -> dict[Any, discord.PermissionOverwrite]:
@@ -1485,7 +1585,7 @@ async def _open_attack_salon_safe(guild: Any, wiring: Any, strings: dict[str, st
     # name VS the DEFENDER KINGDOM's name — the defender PLAYER is
     # unknown at the declaration). A numbered suffix separates
     # simultaneous attacks on the same names.
-    name = _room_channel_name(guild, shown_name, defender_name)
+    name = _room_channel_name(guild, "🗡️", shown_name, defender_name)
     overwrites = _attack_salon_overwrites(guild)
     position = int(getattr(declare, "position", 0) or 0) + 1
     try:
@@ -1599,9 +1699,17 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
             message = getattr(exc, "message", None) or str(exc)
             await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
             return
-        await interaction.followup.send(
+        note: Any = await _followup_send_ephemeral(
+            interaction,
             strings["declared_note"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
-            ephemeral=True,
+        )
+        # battle-ai-rdv-v1: the Gaïa declared note dies at the meeting
+        # time too (same helper as the player itinerary note).
+        _arm_declared_note_timer(
+            str(attack.id),
+            interaction,
+            int(getattr(note, "id", 0) or 0),
+            attack.expires_at,
         )
         await _open_attack_salon_safe(interaction.guild, wiring, strings, attack)
         await refresh_attack_panel_safe(interaction.guild, _locale(interaction))
@@ -2714,6 +2822,23 @@ async def _run_phases_announce_safe(
         for attack in pickbans:
             await _send_pickban_dm(bot, attack, kingdoms_service, locale)
         dirty += len(pickbans)
+        # Drasah 22/10 battle-ai-rdv-v1: against the AI defender the
+        # draft resolves on the tick — the AI validates its 3 random
+        # picks at ``ai_validate_at`` (30-90 s) so the attacker cannot
+        # tell instantly that the adversary is a bot; once both sides
+        # validated, the reveal DMs go out exactly like a human draft.
+        ai_drafts = await attacks_service.ai_draft_due()
+        for attack in ai_drafts:
+            await _edit_pickban_dms_reveal(bot, attack, kingdoms_service, strings)
+        dirty += len(ai_drafts)
+        # battle-ai-rdv-v1: the AI « clicks Prêt » at ``ai_ready_at``
+        # (30-90 s after the attacker's Prêt) — the flip opens the
+        # same scheduled event + footer refresh as a human ready pair.
+        ai_readies = await attacks_service.ai_ready_due()
+        for attack in ai_readies:
+            await _create_room_event_safe(bot, attack, strings)
+            await _refresh_room_message_safe(bot, attack, locale)
+        dirty += len(ai_readies)
         # Drasah 18/10 v2: at T the meeting opens a BATTLE ROOM
         # (dedicated role, voice channel under « Champs de bataille »,
         # the shuffled civs in its text channel) and DMs the link to
@@ -3034,7 +3159,10 @@ async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str,
 
     attacker_status = _status(attack.attacker_lord_id)
     if attack.ai_defender:
-        defender_status = strings["room_side_ai"]
+        # battle-ai-rdv-v1 (Drasah 22/10): the RAW level (1-5, Traquenard
+        # aware) rides the scoreboard — never an invented label.
+        level = int((attack.effects or {}).get("ai_level", 1) or 1)
+        defender_status = strings["room_side_ai"].format(level=level)
     else:
         defender_status = _status(attack.defender_lord_id)
     id_line = (
@@ -3051,6 +3179,11 @@ async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str,
         _score_row(attacker_status, defender_status, ""),
     ]
     body = "```\n" + "\n".join(rows) + "\n```"
+    if attack.ai_defender:
+        # battle-ai-rdv-v1 (Drasah 22/10, version courte validée): the
+        # multiplayer-ID disclaimer sits right under the scoreboard.
+        level = int((attack.effects or {}).get("ai_level", 1) or 1)
+        body += "\n" + strings["room_ai_disclaimer"].format(level=level)
     if score.get("all_ready"):
         body += "\n" + strings["room_scoreboard_footer"]
     return body
@@ -3222,7 +3355,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 "KINGDOM ATTACK: battlefield category not found — battle room created at the guild root"
             )
         channel = await guild.create_voice_channel(
-            _room_channel_name(guild, attacker, defender),
+            _room_channel_name(guild, "⚔️", attacker, defender),
             category=category,
             user_limit=2,
             overwrites=_battle_room_overwrites(guild, role),
@@ -4308,12 +4441,39 @@ async def _announce_room_start_safe(
     Drasah 18/10 v5: both players clicked Prêt — the announcement
     lives in the ROOM MESSAGE's refreshed footer (no extra post, the
     vocal stays clean); only the server-calendar event is created here.
+    Drasah 22/10 battle-ai-rdv-v1: the tick (AI ready flip) reuses the
+    same event creation — the body lives in ``_create_room_event_safe``.
+    """
+    await _create_room_event_safe(interaction.client, attack, strings, interaction.channel)
+
+
+async def _create_room_event_safe(
+    client: Any, attack: Any, strings: dict[str, str], channel: Any = None
+) -> None:
+    """Create the room's scheduled event from an interaction OR a tick.
+
+    Drasah 22/10 battle-ai-rdv-v1: against the AI defender the ready
+    flip happens in the phase tick (no interaction); the channel is
+    then resolved from ``score["room_channel_id"]`` across the client's
+    guilds. Best effort — never raises.
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
     wiring = _wiring()
-    guild = interaction.guild
-    channel = interaction.channel
+    guild = None
+    if channel is None:
+        score_probe = dict(attack.score or {})
+        channel_id = int(score_probe.get("room_channel_id") or 0)
+        for candidate in list(getattr(client, "guilds", []) or []):
+            resolved = getattr(candidate, "get_channel", lambda _id: None)(channel_id)
+            if resolved is not None:
+                channel = resolved
+                guild = candidate
+                break
+    else:
+        guild = getattr(channel, "guild", None) or getattr(client, "get_guild", lambda _id: None)(
+            getattr(channel, "guild_id", 0)
+        )
     if guild is None:
         logger.warning("KINGDOM ATTACK: room match announce without a guild")
         return
