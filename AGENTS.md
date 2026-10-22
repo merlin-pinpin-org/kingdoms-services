@@ -154,6 +154,13 @@ A session writing a doc, a comment or a commit in French is a bug.
   the `_profile_followup` shape). A modal that only answers with a
   confirmation note while the underlying view shows stale data is a
   bug.
+- **The guild's pinned views are NEVER refreshed wholesale** — the one
+  and only trigger is a guild language change (the pins re-read their
+  labels). Every other mutation (pool actions, map deletes, read-only
+  toggles) heals at its own surface: the forum posts through the sync
+  the action already runs, the section pins' counters at the
+  Synchroniser or the boot. A per-action full-pin refresh is a bug
+  (it burns the channel's PATCH budget — the 429s).
 - **A components-v2 message answers in a view, never in `content`.**
   The API rejects `content` on a v2 message edit (50035
   "The 'content' field cannot be used when using

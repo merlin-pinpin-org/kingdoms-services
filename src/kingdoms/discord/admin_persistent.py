@@ -367,12 +367,11 @@ async def _handle_read_only(interaction: discord.Interaction) -> None:
     await interaction.response.defer()
     if not await _guard(interaction, wiring):
         return
-    from kingdoms.discord.pinned_views import refresh_registered_pins, set_pinned_read_only
+    from kingdoms.discord.pinned_views import set_pinned_read_only
 
     logs = wiring.logs_service
     db = getattr(logs, "_db", None) if logs is not None else None
     await set_pinned_read_only(guild_id, category, read_only, db=db)
-    await refresh_registered_pins(guild_id)
 
 
 def register_admin_persistent_items(bot: discord.Client) -> None:

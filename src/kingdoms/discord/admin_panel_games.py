@@ -83,22 +83,6 @@ async def _gtr(interaction: discord.Interaction, key: str, fallback: str = "") -
     return rendered if rendered != key else (fallback or key)
 
 
-async def _refresh_pins_after_mutation(interaction: discord.Interaction) -> None:
-    """Re-render the guild's pinned views after a games mutation (#257).
-
-    No manual refresh affordance: the admin pin (and every surface
-    registered in pinned_views) is edited in place, best-effort.
-    """
-    if interaction.guild_id is None:
-        return
-    try:
-        from kingdoms.discord.pinned_views import refresh_registered_pins
-
-        await refresh_registered_pins(str(interaction.guild_id))
-    except Exception:
-        logger.warning("pin refresh after mutation failed — best-effort", exc_info=True)
-
-
 def _display_name(name: str) -> str:
     """Title-case a map's name for its post ('hideout' -> 'Hideout')."""
     return name[:1].upper() + name[1:] if name else name

@@ -856,12 +856,6 @@ async def _delete_map_post(interaction: discord.Interaction, entry: Any) -> None
                     entry.forum_message_id,
                     exc_info=True,
                 )
-        try:
-            from kingdoms.discord.pinned_views import refresh_registered_pins
-
-            await refresh_registered_pins(str(interaction.guild_id))
-        except Exception:
-            logger.warning("pin refresh after map delete failed — best-effort")
 
 
 class PoolDeleteConfirmModal(discord.ui.Modal):
