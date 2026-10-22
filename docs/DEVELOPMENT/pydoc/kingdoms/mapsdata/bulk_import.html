@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mapsdata.bulk_import</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mapsdata.html" class="white">mapsdata</a>.bulk_import</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mapsdata/bulk_import.py">SOURCE_ROOT/mapsdata/bulk_import.py</a></td></tr></table>
+    <p><span class="code">Bulk&nbsp;Liquipedia&nbsp;map&nbsp;import:&nbsp;list&nbsp;in,&nbsp;maps&nbsp;out&nbsp;(transactional).<br>
+&nbsp;<br>
+Each&nbsp;line&nbsp;is&nbsp;one&nbsp;map,&nbsp;accepted&nbsp;as:&nbsp;the&nbsp;map&nbsp;id&nbsp;(map:public:arena),<br>
+the&nbsp;English&nbsp;name&nbsp;with&nbsp;underscores&nbsp;(arena&nbsp;/&nbsp;Dry_River),&nbsp;or&nbsp;a&nbsp;full<br>
+Liquipedia&nbsp;URL.&nbsp;Every&nbsp;missing&nbsp;map&nbsp;is&nbsp;imported&nbsp;from&nbsp;Liquipedia&nbsp;and<br>
+associated;&nbsp;any&nbsp;failure&nbsp;rolls&nbsp;the&nbsp;whole&nbsp;batch&nbsp;back&nbsp;(#259&nbsp;semantics).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mapsdata.bulk_import.html#BulkImportLine">BulkImportLine</a>
+</dt><dt class="heading-text"><a href="kingdoms.mapsdata.bulk_import.html#BulkImportResult">BulkImportResult</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="BulkImportLine">class <strong>BulkImportLine</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BulkImportLine">BulkImportLine</a>(raw:&nbsp;'str',&nbsp;page_name:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;error:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;parsed&nbsp;line:&nbsp;its&nbsp;raw&nbsp;text&nbsp;and&nbsp;the&nbsp;resolved&nbsp;page&nbsp;name.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="BulkImportLine-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="BulkImportLine-__init__"><strong>__init__</strong></a>(self, raw: 'str', page_name: 'str' = '', error: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="BulkImportLine-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'error': 'str', 'page_name': 'str', 'raw': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'error': Field(name='error',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'page_name': Field(name='page_name',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'raw': Field(name='raw',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('raw', 'page_name', 'error')</dl>
+
+<dl><dt><strong>error</strong> = ''</dl>
+
+<dl><dt><strong>page_name</strong> = ''</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="BulkImportResult">class <strong>BulkImportResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BulkImportResult">BulkImportResult</a>(created:&nbsp;'list[Any]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;failure:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+The&nbsp;batch&nbsp;outcome:&nbsp;created&nbsp;entries,&nbsp;or&nbsp;the&nbsp;first&nbsp;failure.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="BulkImportResult-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="BulkImportResult-__init__"><strong>__init__</strong></a>(self, created: 'list[Any]' = &lt;factory&gt;, failure: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="BulkImportResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'created': 'list[Any]', 'failure': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'created': Field(name='created',type='list[Any]',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'failure': Field(name='failure',type='str',default='',defau...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('created', 'failure')</dl>
+
+<dl><dt><strong>failure</strong> = ''</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-parse_import_line"><strong>parse_import_line</strong></a>(raw: 'str') -&gt; 'BulkImportLine'</dt><dd><span class="code">Parse&nbsp;one&nbsp;import&nbsp;line&nbsp;into&nbsp;a&nbsp;page&nbsp;name&nbsp;(id&nbsp;/&nbsp;slug&nbsp;/&nbsp;URL).</span></dd></dl>
+</td></tr></table>
+</body></html>

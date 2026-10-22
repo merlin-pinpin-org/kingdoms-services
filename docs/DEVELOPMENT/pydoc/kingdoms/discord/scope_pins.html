@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.scope_pins</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.scope_pins</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/scope_pins.py">SOURCE_ROOT/discord/scope_pins.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;scope&nbsp;menus&nbsp;—&nbsp;every&nbsp;tree&nbsp;folder's&nbsp;home&nbsp;and&nbsp;admin,&nbsp;on&nbsp;the&nbsp;charte.<br>
+&nbsp;<br>
+The&nbsp;channel&nbsp;tree&nbsp;gives&nbsp;each&nbsp;scope&nbsp;folder&nbsp;a&nbsp;``général``&nbsp;with&nbsp;a&nbsp;pinned<br>
+home&nbsp;menu&nbsp;and&nbsp;an&nbsp;``admin``&nbsp;with&nbsp;the&nbsp;management&nbsp;menu.&nbsp;Both&nbsp;follow&nbsp;the<br>
+menu&nbsp;template&nbsp;(title,&nbsp;description,&nbsp;sections&nbsp;of&nbsp;buttons,&nbsp;view&nbsp;id<br>
+footer);&nbsp;every&nbsp;button&nbsp;opens&nbsp;an&nbsp;ephemeral&nbsp;(the&nbsp;frozen-menu&nbsp;contract)<br>
+through&nbsp;the&nbsp;existing&nbsp;dispatches:<br>
+&nbsp;<br>
+-&nbsp;``home:open:&lt;view&gt;``&nbsp;—&nbsp;the&nbsp;user-facing&nbsp;views&nbsp;(status,&nbsp;profile,<br>
+&nbsp;&nbsp;games,&nbsp;the&nbsp;aoe2&nbsp;game&nbsp;manager);<br>
+-&nbsp;``admin:pin:modgames:section:&lt;section&gt;:&lt;game&gt;``&nbsp;—&nbsp;the&nbsp;aoe2&nbsp;admin<br>
+&nbsp;&nbsp;sub-menus&nbsp;(civs,&nbsp;maps,&nbsp;pools:&nbsp;list,&nbsp;import,&nbsp;create,&nbsp;manage);<br>
+-&nbsp;the&nbsp;access&nbsp;and&nbsp;cross-guild&nbsp;flows&nbsp;keep&nbsp;their&nbsp;existing&nbsp;ids.<br>
+&nbsp;<br>
+The&nbsp;menus&nbsp;resolve&nbsp;their&nbsp;channel&nbsp;by&nbsp;the&nbsp;stored&nbsp;tree&nbsp;id&nbsp;and&nbsp;render&nbsp;in<br>
+the&nbsp;guild's&nbsp;locale.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-register_scope_pins"><strong>register_scope_pins</strong></a>(bot: 'Any', scopes: 'tuple[str, ...]') -&gt; 'list[Any]'</dt><dd><span class="code">Declare&nbsp;(and&nbsp;register)&nbsp;every&nbsp;scope's&nbsp;home&nbsp;and&nbsp;admin&nbsp;pins.<br>
+&nbsp;<br>
+Idempotent:&nbsp;re-registering&nbsp;returns&nbsp;the&nbsp;already-registered&nbsp;specs<br>
+(the&nbsp;static-pin&nbsp;store&nbsp;keeps&nbsp;the&nbsp;first&nbsp;per&nbsp;key).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['register_scope_pins']</td></tr></table>
+</body></html>

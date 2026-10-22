@@ -189,6 +189,12 @@ crash&nbsp;reporter&nbsp;(cause,&nbsp;interaction&nbsp;context,&nbsp;GitHub&nbsp
 
 <dl><dt>async <a name="KingdomsBot-on_error"><strong>on_error</strong></a>(self, event_method: 'str', /, *args: 'object', **kwargs: 'object') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;unhandled&nbsp;gateway-event&nbsp;failures&nbsp;to&nbsp;each&nbsp;guild's&nbsp;bot-logs.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsBot-on_interaction"><strong>on_interaction</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Observe&nbsp;the&nbsp;clicker's&nbsp;Discord&nbsp;client&nbsp;language&nbsp;(best-effort).<br>
+&nbsp;<br>
+Discord&nbsp;exposes&nbsp;a&nbsp;user's&nbsp;language&nbsp;only&nbsp;inside&nbsp;interactions;<br>
+the&nbsp;interaction-free&nbsp;DMs&nbsp;(boot&nbsp;status,&nbsp;crash&nbsp;reports)&nbsp;render<br>
+in&nbsp;the&nbsp;language&nbsp;the&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-on_tree_error"><strong>on_tree_error</strong></a>(self, interaction: 'discord.Interaction', error: 'app_commands.AppCommandError') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;Kingdoms&nbsp;errors&nbsp;with&nbsp;i18n&nbsp;+&nbsp;audit;&nbsp;crash-report&nbsp;the&nbsp;rest.</span></dd></dl>
@@ -1554,7 +1560,6 @@ The&nbsp;status&nbsp;being&nbsp;used&nbsp;upon&nbsp;logging&nbsp;on&nbsp;to&nbsp
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>PINNED_MENU_CHECK_INTERVAL</strong> = 3600<br>
-<strong>READY_LOG_LINE</strong> = 'KINGDOMS_BOT_READY'<br>
+<td class="singlecolumn"><strong>READY_LOG_LINE</strong> = 'KINGDOMS_BOT_READY'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.bot (WARNING)&gt;</td></tr></table>
 </body></html>

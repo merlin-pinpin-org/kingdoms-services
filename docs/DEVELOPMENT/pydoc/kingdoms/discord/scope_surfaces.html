@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.scope_surfaces</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.scope_surfaces</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/scope_surfaces.py">SOURCE_ROOT/discord/scope_surfaces.py</a></td></tr></table>
+    <p><span class="code">Scope&nbsp;surfaces:&nbsp;the&nbsp;extensible&nbsp;registry&nbsp;of&nbsp;a&nbsp;scope's&nbsp;mirror&nbsp;syncs.<br>
+&nbsp;<br>
+The&nbsp;sync&nbsp;button&nbsp;of&nbsp;an&nbsp;admin&nbsp;menu&nbsp;re-creates&nbsp;everything&nbsp;its&nbsp;scope&nbsp;owns:<br>
+the&nbsp;declared&nbsp;channels&nbsp;(the&nbsp;tree&nbsp;provisioning),&nbsp;every&nbsp;pinned&nbsp;view<br>
+registered&nbsp;for&nbsp;the&nbsp;scope,&nbsp;and&nbsp;the&nbsp;scope's&nbsp;data-mirror&nbsp;forums&nbsp;(maps,<br>
+pools,&nbsp;civs).&nbsp;Nothing&nbsp;runs&nbsp;in&nbsp;the&nbsp;background&nbsp;anymore&nbsp;—&nbsp;the&nbsp;surfaces<br>
+heal&nbsp;on&nbsp;demand,&nbsp;at&nbsp;the&nbsp;button's&nbsp;click.<br>
+&nbsp;<br>
+Extensibility:&nbsp;a&nbsp;module&nbsp;registers&nbsp;its&nbsp;sync&nbsp;through<br>
+:func:`register_scope_sync`&nbsp;(``scope``&nbsp;+&nbsp;an&nbsp;async&nbsp;``sync(guild_id,<br>
+bot)&nbsp;-&gt;&nbsp;int``);&nbsp;the&nbsp;button&nbsp;discovers&nbsp;every&nbsp;sync&nbsp;whose&nbsp;scope&nbsp;is&nbsp;the<br>
+clicked&nbsp;scope&nbsp;or&nbsp;one&nbsp;of&nbsp;its&nbsp;descendants&nbsp;—&nbsp;``games``&nbsp;runs&nbsp;the&nbsp;aoe2<br>
+forums,&nbsp;``games/aoe2``&nbsp;runs&nbsp;them&nbsp;too,&nbsp;``mods``&nbsp;runs&nbsp;none&nbsp;until&nbsp;a&nbsp;mod<br>
+declares&nbsp;one.&nbsp;No&nbsp;hard-coded&nbsp;list&nbsp;anywhere.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-clear_scope_syncs"><strong>clear_scope_syncs</strong></a>() -&gt; 'None'</dt><dd><span class="code">Empty&nbsp;the&nbsp;registry&nbsp;(tests&nbsp;only).</span></dd></dl>
+ <dl><dt><a name="-register_scope_sync"><strong>register_scope_sync</strong></a>(scope: 'str', sync: 'ScopeSync') -&gt; 'None'</dt><dd><span class="code">Declare&nbsp;one&nbsp;scope's&nbsp;mirror&nbsp;sync&nbsp;(idempotent&nbsp;per&nbsp;function).</span></dd></dl>
+ <dl><dt>async <a name="-run_scope_syncs"><strong>run_scope_syncs</strong></a>(guild_id: 'str', bot: 'Any', scope: 'str') -&gt; 'int'</dt><dd><span class="code">Run&nbsp;every&nbsp;registered&nbsp;sync&nbsp;of&nbsp;the&nbsp;scopes&nbsp;and&nbsp;their&nbsp;descendants.<br>
+&nbsp;<br>
+``scope``&nbsp;carries&nbsp;a&nbsp;comma-separated&nbsp;list&nbsp;(the&nbsp;sync&nbsp;button's<br>
+contract):&nbsp;each&nbsp;scope&nbsp;contributes&nbsp;its&nbsp;own&nbsp;prefixes.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['clear_scope_syncs', 'register_scope_sync', 'run_scope_syncs']<br>
+<strong>__annotations__</strong> = {'_REGISTRY': 'dict[str, list[ScopeSync]]'}</td></tr></table>
+</body></html>

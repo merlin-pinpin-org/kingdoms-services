@@ -70,12 +70,17 @@ maps&nbsp;of&nbsp;the&nbsp;live&nbsp;lobbies&nbsp;are&nbsp;the&nbsp;best&nbsp;av
 Cross-checks&nbsp;the&nbsp;advertisement&nbsp;list&nbsp;for&nbsp;the&nbsp;referenced&nbsp;lobby;<br>
 returns&nbsp;None&nbsp;when&nbsp;the&nbsp;lobby&nbsp;is&nbsp;not&nbsp;visible&nbsp;(expired&nbsp;or&nbsp;unknown).</span></dd></dl>
 
-<dl><dt>async <a name="LibrematchAdapter-player_stats"><strong>player_stats</strong></a>(self, profile_id: 'str') -&gt; 'PlayerStats | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;leaderboard&nbsp;stats&nbsp;as&nbsp;pre-formatted&nbsp;blocks.<br>
+<dl><dt>async <a name="LibrematchAdapter-player_stats"><strong>player_stats</strong></a>(self, profile_id: 'str') -&gt; 'PlayerStats | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;identity&nbsp;and&nbsp;leaderboard&nbsp;stats.<br>
 &nbsp;<br>
-Uses&nbsp;the&nbsp;authenticated&nbsp;leaderboard&nbsp;endpoint&nbsp;when&nbsp;an&nbsp;API&nbsp;key&nbsp;is<br>
-configured;&nbsp;without&nbsp;one,&nbsp;degrades&nbsp;to&nbsp;None&nbsp;(the&nbsp;caller&nbsp;falls&nbsp;back<br>
-to&nbsp;the&nbsp;manual&nbsp;path).&nbsp;Transport/decode&nbsp;failures&nbsp;also&nbsp;degrade&nbsp;—<br>
-the&nbsp;provider&nbsp;never&nbsp;fails&nbsp;the&nbsp;serving&nbsp;process.</span></dd></dl>
+Calls&nbsp;the&nbsp;community&nbsp;leaderboard&nbsp;endpoint&nbsp;—&nbsp;it&nbsp;is&nbsp;PUBLIC&nbsp;(no&nbsp;API<br>
+key;&nbsp;the&nbsp;2026-10-16&nbsp;lesson:&nbsp;the&nbsp;key&nbsp;gate&nbsp;rejected&nbsp;every&nbsp;profile<br>
+while&nbsp;the&nbsp;endpoint&nbsp;answers&nbsp;anyone):<br>
+``/community/leaderboard/GetPersonalStat?title=age2&amp;profile_ids=[...]``.<br>
+The&nbsp;reply&nbsp;carries&nbsp;the&nbsp;profile's&nbsp;identity&nbsp;(``statGroups[].members[]``<br>
+—&nbsp;alias,&nbsp;country,&nbsp;clan)&nbsp;plus&nbsp;one&nbsp;stats&nbsp;entry&nbsp;per&nbsp;requested<br>
+leaderboard&nbsp;(``leaderboardStats[]``).&nbsp;Transport&nbsp;failures&nbsp;degrade<br>
+to&nbsp;None&nbsp;—&nbsp;the&nbsp;provider&nbsp;never&nbsp;fails&nbsp;the&nbsp;serving&nbsp;process;&nbsp;the<br>
+Redis-backed&nbsp;rate&nbsp;budget&nbsp;is&nbsp;the&nbsp;only&nbsp;throttle.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -96,5 +101,6 @@ Data descriptors defined here:<br>
 <strong>LEADERBOARD_KEYS</strong> = {'0': 'rm_1v1', '1': 'rm_team', '2': 'unranked', '3': 'dm_1v1', '4': 'dm_team'}<br>
 <strong>LOBBIES_PATH</strong> = '/community/advertisement/findAdvertisements'<br>
 <strong>LOBBIES_QUERY_PARAMS</strong> = {'title': 'age2'}<br>
+<strong>PERSONAL_STAT_PATH</strong> = '/community/leaderboard/GetPersonalStat'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.ext_librematch.adapter (WARNING)&gt;</td></tr></table>
 </body></html>

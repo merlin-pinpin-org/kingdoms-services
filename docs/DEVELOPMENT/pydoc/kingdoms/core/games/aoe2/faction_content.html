@@ -74,7 +74,10 @@ can&nbsp;renumber&nbsp;the&nbsp;provider's&nbsp;ids,&nbsp;the&nbsp;catalog's&nbs
 
 <dl><dt><a name="TechtreeContentProvider-faction_names"><strong>faction_names</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;civ&nbsp;name&nbsp;known&nbsp;to&nbsp;the&nbsp;dataset.</span></dd></dl>
 
-<dl><dt><a name="TechtreeContentProvider-map_content"><strong>map_content</strong></a>(self, map_name: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Build&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content&nbsp;descriptor&nbsp;(name&nbsp;only&nbsp;today).</span></dd></dl>
+<dl><dt><a name="TechtreeContentProvider-map_content"><strong>map_content</strong></a>(self, map_name: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Build&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content&nbsp;descriptor&nbsp;(name&nbsp;only&nbsp;today).<br>
+&nbsp;<br>
+The&nbsp;map's&nbsp;source&nbsp;URL&nbsp;points&nbsp;to&nbsp;its&nbsp;Liquipedia&nbsp;page&nbsp;(the&nbsp;wiki's<br>
+per-map&nbsp;page),&nbsp;not&nbsp;the&nbsp;aoe2techtree&nbsp;home.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -95,8 +98,9 @@ Data descriptors defined here:<br>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>CREST_BASE_URL</strong> = 'https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/master/img/Civs'<br>
+<strong>LIQUIPEDIA_MAP_URL</strong> = 'https://liquipedia.net/ageofempires/'<br>
 <strong>PROVIDER_KEY</strong> = 'aoe2techtree'<br>
-<strong>SOURCE_URL</strong> = 'https://github.com/SiegeEngineers/aoe2techtree'<br>
+<strong>SOURCE_URL</strong> = 'https://aoe2techtree.net'<br>
 <strong>SUPPORTED_LOCALES</strong> = ('en', 'fr')<br>
 <strong>logger</strong> = &lt;Logger kingdoms.core.faction_content (WARNING)&gt;</td></tr></table>
 </body></html>

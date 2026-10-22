@@ -131,14 +131,20 @@ Resolve&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;and&nbsp;deliver&nbsp;life
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LogService-__init__"><strong>__init__</strong></a>(self, database: 'LogsDatabase', platform: 'LogsPlatform', state: 'Any', clock: 'Any' = &lt;built-in function monotonic&gt;, catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``state``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).<br>
 &nbsp;<br>
-``catalog``&nbsp;localizes&nbsp;the&nbsp;audit&nbsp;events&nbsp;with&nbsp;the&nbsp;guild's&nbsp;locale;<br>
-None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.</span></dd></dl>
+``catalog``&nbsp;localizes&nbsp;the&nbsp;audit&nbsp;events;&nbsp;``locale_resolver``<br>
+resolves&nbsp;a&nbsp;guild's&nbsp;native&nbsp;Discord&nbsp;locale&nbsp;from&nbsp;its&nbsp;id&nbsp;(the<br>
+bot&nbsp;injects&nbsp;``guild.preferred_locale``&nbsp;—&nbsp;the&nbsp;platform&nbsp;stores<br>
+no&nbsp;locale&nbsp;of&nbsp;its&nbsp;own).&nbsp;None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English<br>
+messages.&nbsp;The&nbsp;superseded&nbsp;boot-status&nbsp;messages&nbsp;stay&nbsp;(unpinned,<br>
+never&nbsp;deleted):&nbsp;the&nbsp;boot&nbsp;status&nbsp;declares<br>
+``delete_when_superseded=False``&nbsp;on&nbsp;the&nbsp;static-pin&nbsp;registry&nbsp;—<br>
+the&nbsp;log&nbsp;trail&nbsp;stays&nbsp;readable.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-get_access_policy"><strong>get_access_policy</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;access&nbsp;policy&nbsp;(default:&nbsp;admin-only).</span></dd></dl>
 
-<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>
+<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;language:&nbsp;the&nbsp;stored&nbsp;choice,&nbsp;then&nbsp;the&nbsp;fallback.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-get_user_locale"><strong>get_user_locale</strong></a>(self, user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;user's&nbsp;DM&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>
+<dl><dt>async <a name="LogService-get_user_locale"><strong>get_user_locale</strong></a>(self, user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;DM&nbsp;language:&nbsp;the&nbsp;stored&nbsp;choice,&nbsp;the&nbsp;observed&nbsp;one.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-grant_role_view_access"><strong>grant_role_view_access</strong></a>(self, guild_id: 'str', role_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
 
@@ -154,9 +160,32 @@ Policy&nbsp;and&nbsp;stop&nbsp;messages&nbsp;are&nbsp;localized&nbsp;with&nbsp;t
 status):&nbsp;the&nbsp;platform&nbsp;pins&nbsp;it&nbsp;and&nbsp;unpins&nbsp;the&nbsp;previous&nbsp;one&nbsp;—<br>
 only&nbsp;the&nbsp;most&nbsp;recent&nbsp;boot&nbsp;status&nbsp;stays&nbsp;pinned.</span></dd></dl>
 
+<dl><dt>async <a name="LogService-observe_guild_member_locale"><strong>observe_guild_member_locale</strong></a>(self, guild_id: 'str', user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;client&nbsp;language&nbsp;one&nbsp;member&nbsp;was&nbsp;last&nbsp;seen&nbsp;using&nbsp;in&nbsp;a&nbsp;guild.<br>
+&nbsp;<br>
+Only&nbsp;useful&nbsp;when&nbsp;Discord&nbsp;gives&nbsp;us&nbsp;nothing:&nbsp;a&nbsp;non-Community&nbsp;guild's<br>
+``preferred_locale``&nbsp;is&nbsp;a&nbsp;hard-coded&nbsp;``en-US``&nbsp;(not&nbsp;a&nbsp;setting),&nbsp;so<br>
+the&nbsp;guild's&nbsp;language&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;majority&nbsp;of&nbsp;its&nbsp;members'<br>
+observed&nbsp;client&nbsp;languages.&nbsp;Best-effort,&nbsp;never&nbsp;a&nbsp;managed&nbsp;setting.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-observe_user_locale"><strong>observe_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;Discord&nbsp;client&nbsp;language&nbsp;a&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using.<br>
+&nbsp;<br>
+Observation,&nbsp;never&nbsp;a&nbsp;setting&nbsp;the&nbsp;user&nbsp;manages:&nbsp;Discord&nbsp;exposes<br>
+a&nbsp;user's&nbsp;language&nbsp;only&nbsp;inside&nbsp;interactions,&nbsp;so&nbsp;every&nbsp;interaction<br>
+refreshes&nbsp;it&nbsp;here&nbsp;(best-effort)&nbsp;and&nbsp;the&nbsp;interaction-free&nbsp;DMs<br>
+(boot&nbsp;status,&nbsp;crash&nbsp;reports)&nbsp;render&nbsp;in&nbsp;the&nbsp;language&nbsp;the&nbsp;user<br>
+was&nbsp;last&nbsp;seen&nbsp;speaking.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-observed_guild_locale"><strong>observed_guild_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;majority&nbsp;observed&nbsp;client&nbsp;language&nbsp;of&nbsp;the&nbsp;members.</span></dd></dl>
+
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation&nbsp;(admin-only).</span></dd></dl>
+<dl><dt>async <a name="LogService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;MongoDB,&nbsp;nothing&nbsp;else.<br>
+&nbsp;<br>
+The&nbsp;tree&nbsp;owns&nbsp;the&nbsp;channel&nbsp;(``bot/logs``)&nbsp;and&nbsp;routes&nbsp;it&nbsp;through<br>
+``set_channel``;&nbsp;this&nbsp;service&nbsp;never&nbsp;adopts&nbsp;a&nbsp;channel&nbsp;by&nbsp;name<br>
+and&nbsp;never&nbsp;creates&nbsp;one&nbsp;—&nbsp;the&nbsp;legacy&nbsp;``🤖-bot-logs``<br>
+channel&nbsp;stays&nbsp;dead,&nbsp;nothing&nbsp;writes&nbsp;into&nbsp;it&nbsp;anymore.&nbsp;None&nbsp;when<br>
+the&nbsp;tree&nbsp;has&nbsp;not&nbsp;routed&nbsp;a&nbsp;channel&nbsp;yet&nbsp;(the&nbsp;events&nbsp;drop).</span></dd></dl>
 
 <dl><dt>async <a name="LogService-set_channel"><strong>set_channel</strong></a>(self, guild_id: 'str', channel_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;the&nbsp;bot&nbsp;logs&nbsp;to&nbsp;an&nbsp;existing&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.<br>
 &nbsp;<br>
@@ -164,13 +193,16 @@ The&nbsp;channel&nbsp;must&nbsp;already&nbsp;exist&nbsp;on&nbsp;the&nbsp;platfor
 it&nbsp;from&nbsp;the&nbsp;guild's&nbsp;channels);&nbsp;the&nbsp;current&nbsp;visibility&nbsp;policy&nbsp;is<br>
 re-applied&nbsp;on&nbsp;the&nbsp;new&nbsp;target&nbsp;so&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-set_locale"><strong>set_locale</strong></a>(self, guild_id: 'str', locale: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(fr/en);&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
+<dl><dt>async <a name="LogService-set_locale"><strong>set_locale</strong></a>(self, guild_id: 'str', locale: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;language&nbsp;choice&nbsp;(the&nbsp;admin&nbsp;picker).</span></dd></dl>
 
-<dl><dt>async <a name="LogService-set_user_locale"><strong>set_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;user's&nbsp;DM&nbsp;locale&nbsp;(fr/en).<br>
+<dl><dt><a name="LogService-set_locale_resolver"><strong>set_locale_resolver</strong></a>(self, resolver: 'Any') -&gt; 'None'</dt><dd><span class="code">Inject&nbsp;the&nbsp;fallback&nbsp;locale&nbsp;resolver&nbsp;(guild&nbsp;id&nbsp;-&gt;&nbsp;en/fr).<br>
 &nbsp;<br>
-DM&nbsp;settings&nbsp;are&nbsp;personal:&nbsp;they&nbsp;follow&nbsp;the&nbsp;user&nbsp;across&nbsp;guilds&nbsp;and<br>
-are&nbsp;never&nbsp;audited&nbsp;in&nbsp;a&nbsp;guild's&nbsp;logs&nbsp;channel&nbsp;(a&nbsp;DM&nbsp;has&nbsp;no&nbsp;channel<br>
-to&nbsp;audit&nbsp;into&nbsp;—&nbsp;the&nbsp;change&nbsp;is&nbsp;acknowledged&nbsp;in&nbsp;the&nbsp;DM&nbsp;itself).</span></dd></dl>
+The&nbsp;stored&nbsp;guild&nbsp;choice&nbsp;(the&nbsp;admin&nbsp;language&nbsp;picker,&nbsp;bot/admin)<br>
+always&nbsp;wins;&nbsp;the&nbsp;resolver&nbsp;only&nbsp;serves&nbsp;the&nbsp;guilds&nbsp;that&nbsp;never<br>
+picked&nbsp;—&nbsp;Discord's&nbsp;own&nbsp;signal&nbsp;(preferred_locale),&nbsp;then&nbsp;the<br>
+members'&nbsp;observed&nbsp;majority.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-set_user_locale"><strong>set_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;user's&nbsp;DM&nbsp;language&nbsp;choice&nbsp;(the&nbsp;DM&nbsp;picker).</span></dd></dl>
 
 <dl><dt>async <a name="LogService-set_visibility"><strong>set_visibility</strong></a>(self, guild_id: 'str', public: 'bool', by: 'str') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;logs&nbsp;channel&nbsp;visibility&nbsp;(public/admin-only);&nbsp;audited.<br>
 &nbsp;<br>
@@ -269,7 +301,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#LogsPlatform">LogsPlatform</a>(*args,&nbsp;**kwargs)<br>
 &nbsp;<br>
-Narrow&nbsp;platform&nbsp;seam:&nbsp;creation,&nbsp;permissions,&nbsp;sending.<br>&nbsp;</span></td></tr>
+Narrow&nbsp;platform&nbsp;seam:&nbsp;routing,&nbsp;permissions,&nbsp;sending.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.services.logs.html#LogsPlatform">LogsPlatform</a></dd>
@@ -286,10 +318,6 @@ Methods defined here:<br>
 <dl><dt>async <a name="LogsPlatform-apply_public_policy"><strong>apply_public_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;channel&nbsp;to&nbsp;everyone&nbsp;(public&nbsp;visibility).</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
-
-<dl><dt>async <a name="LogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
-
-<dl><dt>async <a name="LogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;logs&nbsp;channel&nbsp;by&nbsp;name;&nbsp;None&nbsp;when&nbsp;there&nbsp;is&nbsp;none.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
@@ -323,7 +351,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'create_logs_channel', 'find_logs_channel', 'grant_role_view', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'grant_role_view', 'list_pinned_log_messages', 'list_text_channels', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
