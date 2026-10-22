@@ -871,8 +871,10 @@ class PoolHardDeleteModal(discord.ui.Modal):
         # link knows it), best-effort
         if interaction.guild_id is not None and str(getattr(self.pool, "forum_thread_id", "") or ""):
             try:
-                guild = interaction.client.get_guild(interaction.guild_id)
-                thread = guild.get_channel(int(self.pool.forum_thread_id)) if guild else None
+                # a forum thread is NOT in the guild channel cache \u2014 the
+                # REST fetch is the reliable route (get_channel returns
+                # None for a thread it has not seen)
+                thread = await interaction.client.fetch_channel(int(self.pool.forum_thread_id))
                 if thread is not None:
                     await thread.delete(reason=f"kingdoms: pool {self.pool.id} hard-deleted")
             except Exception:

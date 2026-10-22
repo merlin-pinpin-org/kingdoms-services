@@ -143,7 +143,20 @@ async def build_entity_admin_menu(
         return menu
     if kind == "pool":
         pool = await _resolve_pool(entity_id)
-        state = getattr(pool, "state", POOL_STATE_DRAFT)
+        if pool is None:
+            # a hard-deleted pool never renders a menu \u2014 the default
+            # state would resurrect it as a draft editor
+            from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
+
+            return build_menu(
+                MenuSpec(
+                    title="\u2699\ufe0f Gestion du map pool",
+                    description=f"`{entity_id}` \u2014 introuvable (supprim\u00e9 ?).",
+                    view_id="",
+                    sections=(),
+                )
+            )
+        state = pool.state
         from kingdoms.discord.admin_panel_games import (
             GamesPoolRenameButton,
         )
