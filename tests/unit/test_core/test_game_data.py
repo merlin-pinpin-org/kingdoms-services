@@ -10,10 +10,8 @@ from kingdoms.core.models.game_data import MapPoolModel
 from kingdoms.core.services.game_data import (
     ADMIN_AUDIT_COLLECTION,
     MAP_PACKS_COLLECTION,
-    MAP_POOL_HISTORY_COLLECTION,
     MAP_POOLS_COLLECTION,
     MAPS_COLLECTION,
-    ActivePoolArchiveError,
     ArchivedEntryError,
     GameDataService,
     NameTakenError,
@@ -70,16 +68,10 @@ class FakeGameDataDatabase:
             if d.get("game_key") == game_key and d.get("archived_at") is None
         ]
 
-    async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
-        rows = [d for d in self._collection(MAP_POOL_HISTORY_COLLECTION).values() if d.get("ladder_id") == ladder_id]
-        return sorted(rows, key=lambda d: d["activated_at"])
 
-    async def find_open_activations(self, map_pool_id: str) -> list[dict[str, Any]]:
-        return [
-            d
-            for d in self._collection(MAP_POOL_HISTORY_COLLECTION).values()
-            if d.get("map_pool_id") == map_pool_id and d.get("deactivated_at") is None
-        ]
+
+    async def record(self, action: str, payload: dict[str, Any]) -> None:
+        self.lines.append((action, payload))
 
 
 class FakeAudit:
@@ -189,56 +181,6 @@ async def test_resolve_pool_map_ids_unions_packs_and_maps() -> None:
 
 
 @pytest.mark.asyncio
-async def test_activate_map_pool_transactional_history() -> None:
-    svc, db, _ = _service()
-    m1 = await svc.create_map(GAME, "Arabia", filename="arabia.v0")
-    m2 = await svc.create_map(GAME, "Arena", filename="arena.v0")
-    pool1 = await svc.create_map_pool(GAME, "Pool1", map_ids=(m1.id,))
-    pool2 = await svc.create_map_pool(GAME, "Pool2", map_ids=(m2.id,))
-    a1 = await svc.activate_map_pool("ladder:1", pool1.id)
-    assert a1.deactivated_at is None
-    a2 = await svc.activate_map_pool("ladder:1", pool2.id)
-    history = await db.find_ladder_activations("ladder:1")
-    assert len(history) == 2
-    assert history[0]["deactivated_at"] is not None
-    assert history[1]["deactivated_at"] is None
-    assert history[1]["_id"] == a2.id
-
-
-@pytest.mark.asyncio
-async def test_activate_archived_pool_rejected() -> None:
-    svc, _, _ = _service()
-    m = await svc.create_map(GAME, "Islands", filename="islands.v0")
-    pool = await svc.create_map_pool(GAME, "Pool", map_ids=(m.id,))
-    await svc.archive_map_pool(pool.id)
-    with pytest.raises(ArchivedEntryError):
-        await svc.activate_map_pool("ladder:1", pool.id)
-
-
-@pytest.mark.asyncio
-async def test_archive_active_pool_rejected() -> None:
-    svc, _, _ = _service()
-    m = await svc.create_map(GAME, "Highway", filename="highway.v0")
-    pool = await svc.create_map_pool(GAME, "Active", map_ids=(m.id,))
-    await svc.activate_map_pool("ladder:1", pool.id)
-    with pytest.raises(ActivePoolArchiveError):
-        await svc.archive_map_pool(pool.id)
-
-
-@pytest.mark.asyncio
-async def test_archive_pool_after_deactivation_allowed() -> None:
-    svc, _, _ = _service()
-    m1 = await svc.create_map(GAME, "Oasis", filename="oasis.v0")
-    m2 = await svc.create_map(GAME, "Serengeti", filename="serengeti.v0")
-    pool1 = await svc.create_map_pool(GAME, "Old", map_ids=(m1.id,))
-    pool2 = await svc.create_map_pool(GAME, "New", map_ids=(m2.id,))
-    await svc.activate_map_pool("ladder:1", pool1.id)
-    await svc.activate_map_pool("ladder:1", pool2.id)
-    archived = await svc.archive_map_pool(pool1.id)
-    assert archived.archived_at is not None
-
-
-@pytest.mark.asyncio
 async def test_seed_from_data_idempotent() -> None:
     svc, _, _ = _service()
     data = {
@@ -269,7 +211,6 @@ def test_collections_constants() -> None:
     assert MAPS_COLLECTION == "maps"
     assert MAP_PACKS_COLLECTION == "map_packs"
     assert MAP_POOLS_COLLECTION == "map_pools"
-    assert MAP_POOL_HISTORY_COLLECTION == "map_pool_history"
     assert ADMIN_AUDIT_COLLECTION == "admin_audit"
 
 

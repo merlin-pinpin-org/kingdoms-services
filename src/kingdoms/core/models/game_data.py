@@ -144,24 +144,3 @@ class MapPoolModel(BaseModel):
                 "map_pack_ids": tuple(data.get("map_pack_ids") or ()),
             }
         )
-
-
-class MapPoolActivationModel(BaseModel):
-    """One map-pool activation on a ladder, forming the pool history."""
-
-    model_config = ConfigDict(strict=True)
-
-    id: str = Field(alias="_id")
-    ladder_id: str
-    map_pool_id: str
-    activated_at: int
-    deactivated_at: int | None = None
-
-    def to_mongo(self) -> dict[str, Any]:
-        """Convert to a MongoDB document."""
-        return self.model_dump(by_alias=True)
-
-    @classmethod
-    def from_mongo(cls, data: dict[str, Any]) -> MapPoolActivationModel:
-        """Build from a MongoDB document."""
-        return cls.model_validate(data)

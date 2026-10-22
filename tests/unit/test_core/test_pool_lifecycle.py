@@ -99,8 +99,9 @@ async def test_used_pool_is_frozen() -> None:
     m = await service.create_map("aoe2", "Arabia", filename="arabia.v0")
     pool = await service.create_map_pool("aoe2", "P", map_ids=(m.id,))
 
-    activation = await service.activate_map_pool("ladder:1:aoe2", pool.id)
-    del activation
+    # the legal path to used: publish first (the ladder activation is gone)
+    await service.transition_map_pool(pool.id, "published")
+    await service.transition_map_pool(pool.id, "used")
     used = await service.get_map_pool(pool.id)
     assert used is not None and used.state == POOL_STATE_USED
 

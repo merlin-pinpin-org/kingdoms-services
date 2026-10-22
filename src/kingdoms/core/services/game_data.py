@@ -29,7 +29,6 @@ from kingdoms.core.models.game_data import (
     FactionModel,
     MapModel,
     MapPackModel,
-    MapPoolActivationModel,
     MapPoolModel,
     RuleModel,
 )
@@ -93,7 +92,6 @@ class InvalidPoolStateError(ValueError):
 
 MAP_POOLS_COLLECTION = "map_pools"
 MAP_PACKS_COLLECTION = "map_packs"
-MAP_POOL_HISTORY_COLLECTION = "map_pool_history"
 ADMIN_AUDIT_COLLECTION = "admin_audit"
 FACTIONS_COLLECTION = "factions"
 RULES_COLLECTION = "rules"
@@ -142,13 +140,6 @@ class GameDataDatabase(Protocol):
         """List the non-archived factions for a game, scoped like the maps."""
         ...
 
-    async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
-        """List the pool activation history of a ladder (ascending)."""
-        ...
-
-    async def find_open_activations(self, map_pool_id: str) -> list[dict[str, Any]]:
-        """List the still-open activations referencing one pool."""
-        ...
 
     async def delete_entry(self, collection: str, entry_id: str) -> bool:
         """Delete one document by ``_id``; True when one was removed."""
@@ -173,10 +164,6 @@ class ArchivedEntryError(ValueError):
 
 class PoolNotEditableError(ValueError):
     """The pool is locked (activated once, or received from another guild)."""
-
-
-class ActivePoolArchiveError(ValueError):
-    """The pool is active on a ladder: it cannot be archived."""
 
 
 def _map_updates(
@@ -572,12 +559,6 @@ class GameDataService:
         its trace). Everything else goes: the record, the reserved id.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        for doc in await self._db.find_open_activations(entry_id):
-            activation = MapPoolActivationModel.from_mongo(doc)
-            raise ActivePoolArchiveError(
-                f"map pool {entry_id!r} is active on ladder {activation.ladder_id!r} — "
-                "deactivate it first"
-            )
         if pool.ever_activated:
             raise ValueError(
                 f"map pool {entry_id!r} has been used on a ladder — it can only be archived"
@@ -613,84 +594,6 @@ class GameDataService:
             ids.extend(MapPackModel.from_mongo(doc).map_ids)
         return tuple(dict.fromkeys(ids))
 
-    async def activate_map_pool(self, ladder_id: str, map_pool_id: str) -> MapPoolActivationModel:
-        """Activate a pool on a ladder, transactionally (reference §4).
-
-        The previous active activation is deactivated, the new activation
-        is recorded, and the ladder's ``active_map_pool_id`` moves — the
-        caller persists the ladder field; this method owns the history
-        rows so the switch is atomic from the store's point of view.
-        Re-activating the pool that is already active is a no-op (the
-        history stays one row per real switch).
-        """
-        pool = await self._require(MAP_POOLS_COLLECTION, map_pool_id, MapPoolModel.from_mongo)
-        if pool.archived_at is not None:
-            raise ArchivedEntryError(f"map pool {map_pool_id!r} is archived")
-        if pool.state != POOL_STATE_CLOSED and pool.state != POOL_STATE_USED:
-            await self._force_pool_state(pool, POOL_STATE_USED)
-        elif not pool.edition_mode or not pool.ever_activated:
-            locked = pool.model_copy(update={"edition_mode": False, "ever_activated": True})
-            await self._db.upsert_entry(MAP_POOLS_COLLECTION, locked.to_mongo())
-        now = _now_ms()
-        for doc in await self._db.find_ladder_activations(ladder_id):
-            activation = MapPoolActivationModel.from_mongo(doc)
-            if activation.deactivated_at is None:
-                if activation.map_pool_id == map_pool_id:
-                    return activation
-                closed = activation.model_copy(update={"deactivated_at": now})
-                await self._db.upsert_entry(MAP_POOL_HISTORY_COLLECTION, closed.to_mongo())
-        activation = MapPoolActivationModel(
-            _id=f"activation:{ladder_id}:{map_pool_id}:{now}",
-            ladder_id=ladder_id,
-            map_pool_id=map_pool_id,
-            activated_at=now,
-        )
-        await self._db.upsert_entry(MAP_POOL_HISTORY_COLLECTION, activation.to_mongo())
-        await self._audit_record("map_pool.activate", {"ladder_id": ladder_id, "map_pool_id": map_pool_id})
-        return activation
-
-    async def archive_map_pool(self, entry_id: str) -> MapPoolModel:
-        """Archive a pool — never the pool active on some ladder."""
-        entry = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        if entry.archived_at is not None:
-            raise ArchivedEntryError(f"map pool {entry_id!r} is already archived")
-        for doc in await self._db.find_open_activations(entry_id):
-            activation = MapPoolActivationModel.from_mongo(doc)
-            raise ActivePoolArchiveError(f"map pool {entry_id!r} is active on ladder {activation.ladder_id!r}")
-        # archiving IS a state change: closed (unusable, still visible)
-        # — the badge and the lifecycle buttons follow the state, so the
-        # archive must persist it, not only the timestamp
-        entry = entry.model_copy(update={"archived_at": _now_ms(), "state": POOL_STATE_CLOSED, "edition_mode": False})
-        await self._db.upsert_entry(MAP_POOLS_COLLECTION, entry.to_mongo())
-        await self._audit_record("map_pool.archive", {"entry_id": entry_id})
-        return entry
-    async def send_map_pool_to_guild(self, entry_id: str, target_guild_id: str, new_name: str) -> MapPoolModel:
-        """Send one pool to another guild: the received copy is locked.
-
-        The receiving guild gets its own copy (own stable id, own forum
-        post) that it can use and activate but never modify: the copy is
-        created with ``edition_mode=False``.
-        """
-        copy = await self.duplicate_map_pool(entry_id, new_name, owner_guild_id=target_guild_id)
-        locked = copy.model_copy(update={"edition_mode": False})
-        await self._db.upsert_entry(MAP_POOLS_COLLECTION, locked.to_mongo())
-        await self._audit_record(
-            "map_pool.sent",
-            {"pool_id": entry_id, "target_guild_id": target_guild_id, "copy_id": locked.id},
-        )
-        return locked
-
-    async def _force_pool_state(self, pool: MapPoolModel, new_state: str) -> MapPoolModel:
-        """Force a pool's state along activation (usage is a fact, not a choice).
-
-        Activating a pool on a ladder moves it to ``used`` whatever its
-        current state — a draft pool that gets used is used.
-        """
-        updates: dict[str, Any] = {"state": new_state, "edition_mode": False, "ever_activated": True}
-        updated = pool.model_copy(update=updates)
-        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
-        await self._audit_record("map_pool.transition", {"entry_id": pool.id, "from": pool.state, "to": new_state})
-        return updated
 
     async def transition_map_pool(self, entry_id: str, new_state: str) -> MapPoolModel:
         """Move a pool along its lifecycle (draft->published->used->closed).
@@ -721,19 +624,6 @@ class GameDataService:
         await self._audit_record("map_pool.transition", {"entry_id": entry_id, "from": pool.state, "to": new_state})
         return updated
 
-    async def assert_pool_archivable(self, entry_id: str) -> None:
-        """Guard: refuse archiving a pool still active on a ladder.
-
-        Callers that track the ladder's ``active_map_pool_id`` use this
-        before the archive; the service itself keeps the check where the
-        ladder link is queryable (the activations history).
-        """
-        pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        for doc in await self._db.find_ladder_activations("*"):
-            activation = MapPoolActivationModel.from_mongo(doc)
-            if activation.map_pool_id == entry_id and activation.deactivated_at is None:
-                raise ActivePoolArchiveError(f"map pool {entry_id!r} is active on ladder {activation.ladder_id!r}")
-        del pool
 
     # ── Civs & rules ──────────────────────────────────────────────────────
 

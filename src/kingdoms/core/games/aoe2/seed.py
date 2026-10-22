@@ -106,12 +106,6 @@ class MongoAoE2Database:
         cursor = self._database[collection_name("map_pools")].find(query)
         return [doc async for doc in cursor]
 
-    async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
-        """List the pool activation history of a ladder (ascending)."""
-        cursor = (
-            self._database[collection_name("map_pool_history")].find({"ladder_id": ladder_id}).sort("activated_at", 1)
-        )
-        return [doc async for doc in cursor]
 
     async def find_open_activations(self, map_pool_id: str) -> list[dict[str, Any]]:
         """List the still-open activations referencing one pool."""
@@ -209,7 +203,6 @@ def collection_name(kind: str) -> str:
         "rules": "rules",
         "map_pools": "map_pools",
         "map_packs": "map_packs",
-        "map_pool_history": "map_pool_history",
         "seasons": "seasons",
         "ladders": "ladders",
         "players": "players",
