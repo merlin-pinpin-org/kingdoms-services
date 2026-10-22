@@ -18,13 +18,14 @@ contributes its own) and stays platform-agnostic:
 
 Reference: §0/§6 (the core never imports platform code), ADR-0020.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 HOME_MARKER = "home:pin:"
-HOME_BUTTON_IDS = ("status", "profile", "games", "users", "admin")
+HOME_BUTTON_IDS = ("status", "profile", "games", "mods", "users", "admin")
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,21 +53,41 @@ class ModHomeViewProvider(Protocol):
         ...
 
 
+class HomeLabelProvider(Protocol):
+    """Narrow seam: localized labels for the home buttons."""
+
+    def label(self, view: str, fallback: str) -> str:
+        """Return the localized label of one home view key."""
+        ...
+
+
 class HomeService:
     """Compose the home menu buttons: the standards + one per enabled mod."""
 
-    def __init__(self, registry: HomeRegistry, mod_views: ModHomeViewProvider | None = None) -> None:
+    def __init__(
+        self,
+        registry: HomeRegistry,
+        mod_views: ModHomeViewProvider | None = None,
+        labels: HomeLabelProvider | None = None,
+    ) -> None:
         self._registry = registry
         self._mod_views = mod_views
+        self._labels = labels
+
+    def _label(self, view: str, fallback: str) -> str:
+        if self._labels is None:
+            return fallback
+        return self._labels.label(view, fallback)
 
     def standard_buttons(self) -> list[HomeButton]:
         """Return the platform's standard home buttons, in display order."""
         return [
-            HomeButton(view="status", label="Status", emoji="🧭"),
-            HomeButton(view="profile", label="Profile", emoji="👤"),
-            HomeButton(view="games", label="Games", emoji="🎮"),
-            HomeButton(view="users", label="Users", emoji="👥"),
-            HomeButton(view="admin", label="Admin", emoji="🛡"),
+            HomeButton(view="status", label=self._label("status", "Status"), emoji="🧭"),
+            HomeButton(view="profile", label=self._label("profile", "Profile"), emoji="👤"),
+            HomeButton(view="games", label=self._label("games", "Games"), emoji="🎮"),
+            HomeButton(view="mods", label=self._label("mods", "Mods"), emoji="🧩"),
+            HomeButton(view="users", label=self._label("users", "Users"), emoji="👥"),
+            HomeButton(view="admin", label=self._label("admin", "Admin"), emoji="🛡"),
         ]
 
     def mod_buttons(self) -> list[HomeButton]:
@@ -75,7 +96,13 @@ class HomeService:
         for name in sorted(self._registry.enabled()):
             if self._mod_views is None or self._mod_views.mod_home_view(name) is None:
                 continue
-            buttons.append(HomeButton(view=f"mod:{name}", label=name.capitalize(), emoji="🧩"))
+            buttons.append(
+                HomeButton(
+                    view=f"mod:{name}",
+                    label=self._label(f"mod:{name}", name.capitalize()),
+                    emoji="🧩",
+                )
+            )
         return buttons
 
     def buttons(self) -> list[HomeButton]:

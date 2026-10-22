@@ -8,6 +8,8 @@ rebinding, and member assignment/removal through the narrow seam.
 
 from __future__ import annotations
 
+import pytest
+
 from kingdoms.core.models.role_mapping import RoleMappingModel
 from kingdoms.core.services.mod_definition import ModDefinition, RoleDef
 from kingdoms.core.services.mod_registry import ModRegistry
@@ -52,6 +54,9 @@ class FakeRolesPlatform:
 
     async def find_role_by_name(self, guild_id: str, name: str) -> str | None:
         return self.roles_by_name.get(name)
+
+    async def role_exists(self, guild_id: str, role_id: str) -> bool:
+        return role_id in self.roles_by_name.values()
 
     async def create_role(self, guild_id: str, name: str, reason: str) -> str:
         role_id = f"role{self.next_id}"
@@ -190,3 +195,15 @@ class TestAssignRemove:
         service, _db, _platform, members, _store = make_service()
         await service.remove_mod_role(GUILD, USER, "clans", "clan_member")
         assert members.removed == []
+
+
+@pytest.mark.asyncio
+async def test_deleted_role_is_recreated_on_next_setup() -> None:
+    """A mapping whose role was deleted on Discord heals at the next sync."""
+    service, _, platform, _, _ = make_service()
+    first = await service.setup_mod_roles("123456", "clans")
+    # the leader role is deleted on the platform (id gone)
+    leader_id = first["clan_leader"]
+    platform.roles_by_name = {n: r for n, r in platform.roles_by_name.items() if r != leader_id}
+    second = await service.setup_mod_roles("123456", "clans")
+    assert second["clan_leader"] != leader_id, "the deleted role is re-created, the mapping heals"

@@ -11,6 +11,7 @@ Imported bindings are trusted data (they come from the legacy export),
 so validation is not re-run through the game seam; the ``bound_at``
 timestamp is the import date, not the legacy association date.
 """
+
 from __future__ import annotations
 
 import csv
@@ -92,9 +93,7 @@ async def import_identity_links(
         entry_id = f"binding:{game_key}:{discord_id}:{profile_id}"
         existing = await collection.find_one({"_id": entry_id})
         if existing is None:
-            owner = await collection.find_one(
-                {"game_key": game_key, "profile_id": profile_id}
-            )
+            owner = await collection.find_one({"game_key": game_key, "profile_id": profile_id})
             if owner is not None and owner.get("user_id") != discord_id:
                 await collection.delete_one({"_id": owner["_id"]})
                 rebounds += 1

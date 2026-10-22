@@ -27,6 +27,7 @@ __all__ = [
     "MockClient",
     "MockDMChannel",
     "MockFollowup",
+    "MockForumChannel",
     "MockGuild",
     "MockInteraction",
     "MockMember",
@@ -279,6 +280,10 @@ class MockTextChannel(discord.TextChannel):
     def category(self, value: MockCategoryChannel | None) -> None:
         self._category = value
 
+    @property
+    def category_id(self) -> int | None:
+        return self._category.id if self._category is not None else None
+
     async def send(
         self,
         content: str | None = None,
@@ -362,6 +367,71 @@ class MockVoiceChannel(discord.VoiceChannel):
 
     def __repr__(self) -> str:
         return f"<MockVoiceChannel id={self.id} name={self.name!r}>"
+
+
+class MockForumChannel(discord.ForumChannel):
+    """In-memory :class:`discord.ForumChannel` (threads only, no tags)."""
+
+    def __init__(
+        self,
+        id: int | None = None,
+        name: str = "test-forum",
+        *,
+        guild: MockGuild | None = None,
+        category: MockCategoryChannel | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.id = id if id is not None else _next_id()
+        self.name = name
+        self.guild = guild or MockGuild()
+        self._category = category
+        self._threads: list[Any] = []
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    @property
+    def type(self) -> discord.ChannelType:
+        return discord.ChannelType.forum
+
+    @property
+    def category(self) -> MockCategoryChannel | None:
+        return self._category
+
+    @category.setter
+    def category(self, value: MockCategoryChannel | None) -> None:
+        self._category = value
+
+    @property
+    def category_id(self) -> int | None:
+        return self._category.id if self._category is not None else None
+
+    @property
+    def threads(self) -> list[Any]:
+        return list(self._threads)
+
+    async def edit(self, **kwargs: Any) -> None:
+        new_category = kwargs.pop("category", None)
+        if new_category is not None:
+            old = self._category
+            if isinstance(old, MockCategoryChannel):
+                old.remove_channel(self)
+            new_category.add_channel(self)
+            self._category = new_category
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    async def set_permissions(
+        self,
+        target: Any,
+        overwrite: discord.PermissionOverwrite | None = None,
+        *,
+        reason: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        del target, overwrite, reason, kwargs
+
+    def __repr__(self) -> str:
+        return f"<MockForumChannel id={self.id} name={self.name!r}>"
 
 
 class MockCategoryChannel(discord.CategoryChannel):
@@ -478,6 +548,15 @@ class MockGuild(discord.Guild):
     def me(self) -> MockMember:
         return self._me
 
+    @property
+    def default_role(self) -> MockRole:
+        """The guild's @everyone role (overridden in-memory for tests)."""
+        role = self.__dict__.get("_default_role")
+        if role is None:
+            role = MockRole(name="@everyone", id=self.id)
+            self.__dict__["_default_role"] = role
+        return role
+
     @me.setter
     def me(self, value: MockMember) -> None:
         self._me = value
@@ -516,6 +595,21 @@ class MockGuild(discord.Guild):
 
     def get_channel(self, channel_id: int) -> MockChannel | None:
         return self._channels.get(channel_id)
+
+    @property
+    def categories(self) -> list[MockCategoryChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockCategoryChannel)]
+
+    @property
+    def forums(self) -> list[MockForumChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockForumChannel)]
+
+    async def create_forum(self, name: str, **kwargs: Any) -> MockForumChannel:
+        forum = MockForumChannel(name=name, guild=self, **kwargs)
+        self._channels[forum.id] = forum
+        if isinstance(forum.category, MockCategoryChannel):
+            forum.category.add_channel(forum)
+        return forum
 
     def add_member(self, member: MockMember) -> None:
         self._members[member.id] = member

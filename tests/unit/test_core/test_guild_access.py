@@ -1,4 +1,4 @@
-"""GuildAccessService tests: default-inactive, request/approve/deny/revoke."""
+"""GuildAccessService tests: default-open catalog, request/approve/deny/revoke."""
 
 from __future__ import annotations
 
@@ -28,13 +28,14 @@ def _service(db: FakeGuildAccessDB | None = None) -> GuildAccessService:
     return GuildAccessService(db or FakeGuildAccessDB(), games=GAMES, mods=MODS)
 
 
-async def test_default_nothing_active() -> None:
+async def test_default_everything_active() -> None:
+    """A guild with no access doc gets the whole catalog (default open)."""
     service = _service()
     access = await service.get("123")
     assert access["games"] == []
     assert access["mods"] == []
-    assert await service.enabled_games("123") == ()
-    assert await service.enabled_mods("123") == ()
+    assert await service.enabled_games("123") == GAMES
+    assert await service.enabled_mods("123") == MODS
 
 
 async def test_request_then_approve_grants_access() -> None:
@@ -54,17 +55,23 @@ async def test_deny_drops_request_without_grant() -> None:
     await service.request_access("123", ["game:aoe2"])
     [request] = await service.pending_requests()
     await service.deny("123", request["requested_at"])
-    assert await service.enabled_games("123") == ()
+    assert await service.enabled_games("123") == GAMES
     assert await service.pending_requests() == []
 
 
 async def test_revoke_removes_grant() -> None:
+    """An explicit restricted list stays restrictive after one revoke.
+
+    The default-open contract: an empty grants list means the whole
+    catalog, so revoking down to empty re-opens the default. A guild
+    holding at least one explicit key stays restricted to it.
+    """
     service = _service()
-    await service.request_access("123", ["game:aoe2"])
+    await service.request_access("123", ["mod:kingdoms", "mod:ladder"])
     [request] = await service.pending_requests()
     await service.approve("123", request["requested_at"])
-    await service.revoke("123", "game:aoe2")
-    assert await service.enabled_games("123") == ()
+    await service.revoke("123", "mod:ladder")
+    assert await service.enabled_mods("123") == ("kingdoms",)
 
 
 async def test_duplicate_request_is_refused() -> None:

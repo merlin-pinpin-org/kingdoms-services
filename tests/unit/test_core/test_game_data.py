@@ -29,6 +29,14 @@ class FakeGameDataDatabase:
     def _collection(self, name: str) -> dict[str, dict[str, Any]]:
         return self.collections.setdefault(name, {})
 
+    async def find_game_keys(self) -> list[str]:
+        keys: set[str] = set()
+        for doc in self._collection("maps").values():
+            keys.add(str(doc.get("game_key", "")))
+        for doc in self._collection("factions").values():
+            keys.add(str(doc.get("game_key", "")))
+        return sorted(k for k in keys if k)
+
     async def upsert_entry(self, collection: str, document: dict[str, Any]) -> None:
         self._collection(collection)[document["_id"]] = document
 
@@ -40,6 +48,13 @@ class FakeGameDataDatabase:
             if doc.get("game_key") == game_key and doc.get("name") == name and doc.get("archived_at") is None:
                 return doc
         return None
+
+    async def find_active_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        return [
+            d
+            for d in self._collection(MAP_POOLS_COLLECTION).values()
+            if d.get("game_key") == game_key and d.get("archived_at") is None
+        ]
 
     async def find_active_maps(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         return [
@@ -56,11 +71,7 @@ class FakeGameDataDatabase:
         ]
 
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
-        rows = [
-            d
-            for d in self._collection(MAP_POOL_HISTORY_COLLECTION).values()
-            if d.get("ladder_id") == ladder_id
-        ]
+        rows = [d for d in self._collection(MAP_POOL_HISTORY_COLLECTION).values() if d.get("ladder_id") == ladder_id]
         return sorted(rows, key=lambda d: d["activated_at"])
 
     async def find_open_activations(self, map_pool_id: str) -> list[dict[str, Any]]:
@@ -93,7 +104,7 @@ GAME = "aoe2"
 async def test_create_and_get_map() -> None:
     svc, _, audit = _service()
     entry = await svc.create_map(GAME, "Arabia", filename="arabia.v0", description="The classic")
-    assert entry.id == f"map:{GAME}:Arabia"
+    assert entry.id == "map:aoe2:public:arabia"
     fetched = await svc.get_map(entry.id)
     assert fetched is not None and fetched.filename == "arabia.v0"
     assert ("map.create", {"game_key": GAME, "name": "Arabia"}) in audit.lines
@@ -148,14 +159,16 @@ async def test_map_pack_validates_map_ids() -> None:
     pack = await svc.create_map_pack(GAME, "Closed Maps", map_ids=(map_.id,))
     assert pack.map_ids == (map_.id,)
     with pytest.raises(ValueError, match="unknown map"):
-        await svc.create_map_pack(GAME, "Broken", map_ids=("map:aoe2:Nowhere",))
+        await svc.create_map_pack(GAME, "Broken", map_ids=("map:aoe2:public:Nowhere",))
 
 
 @pytest.mark.asyncio
 async def test_map_pool_requires_maps_and_duplicate() -> None:
     svc, _, _ = _service()
-    with pytest.raises(ValueError, match="at least one"):
-        await svc.create_map_pool(GAME, "Empty")
+    # an empty pool is the creation flow's draft state (maps added in
+    # the editor right after) — it must create cleanly
+    draft = await svc.create_map_pool(GAME, "Empty")
+    assert draft.map_ids == ()
     map_ = await svc.create_map(GAME, "Nomad", filename="nomad.v0")
     pool = await svc.create_map_pool(GAME, "Open Pool", map_ids=(map_.id,))
     with pytest.raises(NameTakenError):
@@ -265,3 +278,21 @@ def test_map_pool_model_roundtrip() -> None:
     doc = pool.to_mongo()
     assert doc["_id"] == pool.id
     assert MapPoolModel.from_mongo(doc) == pool
+
+
+@pytest.mark.asyncio
+async def test_create_map_title_cases_the_display_name() -> None:
+    """A lowercase designer input lands title-cased in the catalog."""
+    svc, _, _ = _service()
+    entry = await svc.create_map(GAME, "team islands", filename="team_islands")
+    assert entry.name == "Team Islands"
+
+
+@pytest.mark.asyncio
+async def test_create_map_pool_title_cases_the_display_name() -> None:
+    """A lowercase pool name lands title-cased in the catalog."""
+    map_entry = None
+    svc, _, _ = _service()
+    map_entry = await svc.create_map(GAME, "Arabia", filename="arabia.v0")
+    pool = await svc.create_map_pool(GAME, "rotation un", map_ids=(map_entry.id,))
+    assert pool.name == "Rotation Un"

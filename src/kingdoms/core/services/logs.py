@@ -94,15 +94,7 @@ class LogsDatabase(Protocol):
 
 
 class LogsPlatform(Protocol):
-    """Narrow platform seam: creation, permissions, sending."""
-
-    async def find_logs_channel(self, guild_id: str) -> str | None:
-        """Find an existing logs channel by name; None when there is none."""
-        ...
-
-    async def create_logs_channel(self, guild_id: str) -> str:
-        """Create the logs channel; return its id."""
-        ...
+    """Narrow platform seam: routing, permissions, sending."""
 
     async def apply_default_policy(self, guild_id: str, channel_id: str) -> None:
         """Apply the admin-only default permission overwrites."""
@@ -179,14 +171,21 @@ class LogService:
     ) -> None:
         """Wire the stores; ``state`` is a StateService (Redis cache-aside).
 
-        ``catalog`` localizes the audit events with the guild's locale;
-        None keeps the built-in English messages.
+        ``catalog`` localizes the audit events; ``locale_resolver``
+        resolves a guild's native Discord locale from its id (the
+        bot injects ``guild.preferred_locale`` — the platform stores
+        no locale of its own). None keeps the built-in English
+        messages. The superseded boot-status messages stay (unpinned,
+        never deleted): the boot status declares
+        ``delete_when_superseded=False`` on the static-pin registry —
+        the log trail stays readable.
         """
         self._db = database
         self._platform = platform
         self._state = state
         self._clock = clock
         self._catalog = catalog
+        self._locale_resolver: Any = None
 
     def _tr(self, key: str, locale: str, **kwargs: Any) -> str:
         """Render a lifecycle message, falling back to English strings."""
@@ -201,7 +200,14 @@ class LogService:
         return self._catalog.render(key, locale, **kwargs)
 
     async def resolve_channel(self, guild_id: str) -> str | None:
-        """Cache-aside resolution: Redis → MongoDB → creation (admin-only)."""
+        """Cache-aside resolution: Redis → MongoDB, nothing else.
+
+        The tree owns the channel (``bot/logs``) and routes it through
+        ``set_channel``; this service never adopts a channel by name
+        and never creates one — the legacy ``🤖-bot-logs``
+        channel stays dead, nothing writes into it anymore. None when
+        the tree has not routed a channel yet (the events drop).
+        """
         cache_key = self._cache_key(guild_id)
         cached = await self._safe(self._state.get_state("channels", cache_key))
         if cached and cached.get("channel_id"):
@@ -214,42 +220,7 @@ class LogService:
                 await self._cache(guild_id, stored.channel_id)
                 return stored.channel_id
             await self._db.delete_channel(guild_id, BOT_LOGS_CATEGORY)
-        adopted = await self._safe_find_channel(guild_id)
-        if adopted is not None:
-            await self._db.upsert_channel(
-                ChannelModel(
-                    _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
-                    guild_id=guild_id,
-                    platform="discord",
-                    category=BOT_LOGS_CATEGORY,
-                    channel_id=adopted,
-                    name=BOT_LOGS_CHANNEL_NAME,
-                )
-            )
-            # Private by default, adopted channels included: an existing
-            # channel may carry public overwrites — the default policy
-            # (admin-only) is re-applied best-effort, adoption never
-            # inherits looser permissions than a fresh creation.
-            await self._safe(self._platform.apply_default_policy(guild_id, adopted))
-            if await self._safe(self._db.get_policy(guild_id, BOT_LOGS_CATEGORY)) is None:
-                await self._safe(self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy()))
-            await self._cache(guild_id, adopted)
-            return adopted
-        channel_id = await self._platform.create_logs_channel(guild_id)
-        await self._platform.apply_default_policy(guild_id, channel_id)
-        await self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy())
-        await self._db.upsert_channel(
-            ChannelModel(
-                _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
-                guild_id=guild_id,
-                platform="discord",
-                category=BOT_LOGS_CATEGORY,
-                channel_id=channel_id,
-                name=BOT_LOGS_CHANNEL_NAME,
-            )
-        )
-        await self._cache(guild_id, channel_id)
-        return channel_id
+        return None
 
     async def log_event(self, guild_id: str, event: LifecycleEvent, *, pin: bool = False) -> None:
         """Deliver one lifecycle event to the guild's logs channel (best-effort).
@@ -275,18 +246,16 @@ class LogService:
     async def _replace_pinned_boot_status(
         self, guild_id: str, channel_id: str, content: str, event: LifecycleEvent
     ) -> None:
-        """Pin the new boot status and keep only it pinned (the pins contract).
+        """Pin the new boot status; the superseded stay (unpinned).
 
-        The previous pinned status id rides the state store; a missing
-        or stale id is skipped silently (already unpinned, deleted, or
-        the first boot) — best-effort like every delivery.
+        The static-pin registry owns the policy: the boot status is
+        declared with ``delete_when_superseded=False`` — the old
+        statuses are unpinned (only the latest stays pinned) but the
+        messages remain readable in the log trail. The per-guild id
+        rides the state store; the cycle is best-effort like every
+        delivery.
         """
         key = f"pinned_boot:{guild_id}"
-        # Unpin EVERY pinned message of the channel, not only the tracked
-        # one: deployments from before the pins contract (or a purged
-        # state store) leave orphans no tracked id can reach. Only the
-        # boot status is pinned by the bot in this channel; a foreign
-        # pin is rare and re-pinnable by hand — the contract is absolute.
         pinned_ids = await self._safe(self._platform.list_pinned_log_messages(guild_id, channel_id)) or []
         for pinned_id in pinned_ids:
             try:
@@ -357,8 +326,10 @@ class LogService:
         """
         if not await self._platform.channel_exists(guild_id, channel_id):
             raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")
-        policy = await self.get_access_policy(guild_id)
         previous = await self._db.find_channel(guild_id, BOT_LOGS_CATEGORY)
+        if previous is not None and previous.channel_id == channel_id:
+            return  # already routed there: a no-op, never an audit event
+        policy = await self.get_access_policy(guild_id)
         await self._db.upsert_channel(
             ChannelModel(
                 _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
@@ -376,6 +347,11 @@ class LogService:
             await self._platform.apply_default_policy(guild_id, channel_id)
         for role_id in policy.get("roles_with_view", []):
             await self._platform.grant_role_view(guild_id, channel_id, str(role_id))
+        # the boot routing is internal bookkeeping, not an admin action:
+        # no audit event (the "<@channel-tree>" mention was noise); a
+        # human reroute keeps its audit line
+        if not str(by).isdigit():
+            return
         previous_note = f" (was <#{previous.channel_id}>)" if previous is not None else ""
         locale = await self.get_locale(guild_id)
         await self.log_event(
@@ -418,14 +394,95 @@ class LogService:
         """List the guild's text channels (id, name) for the admin picker."""
         return await self._platform.list_text_channels(guild_id)
 
-    async def get_locale(self, guild_id: str) -> str:
-        """Read the guild's locale (en fallback)."""
-        settings = await self._safe(self._db.get_guild_settings(guild_id))
+    async def observe_user_locale(self, user_id: str, locale: str) -> None:
+        """Record the Discord client language a user was last seen using.
+
+        Observation, never a setting the user manages: Discord exposes
+        a user's language only inside interactions, so every interaction
+        refreshes it here (best-effort) and the interaction-free DMs
+        (boot status, crash reports) render in the language the user
+        was last seen speaking.
+        """
+        if locale not in SUPPORTED_LOCALES:
+            return
+        try:
+            settings = await self._safe(self._db.get_user_settings(user_id)) or {}
+            if str(settings.get("locale", "")) == locale:
+                return
+            settings["locale"] = locale
+            settings["updated_at"] = int(time.time())
+            await self._db.set_user_settings(user_id, settings)
+        except Exception:
+            logger.debug("user locale observation failed (user %s)", user_id, exc_info=True)
+
+    async def observe_guild_member_locale(self, guild_id: str, user_id: str, locale: str) -> None:
+        """Record the client language one member was last seen using in a guild.
+
+        Only useful when Discord gives us nothing: a non-Community guild's
+        ``preferred_locale`` is a hard-coded ``en-US`` (not a setting), so
+        the guild's language falls back to the majority of its members'
+        observed client languages. Best-effort, never a managed setting.
+        """
+        if locale not in SUPPORTED_LOCALES:
+            return
+        try:
+            settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
+            observed: dict[str, Any] = dict(settings.get("member_locales", {}) or {})
+            observed[user_id] = locale
+            # keep the store bounded: the 100 most recently seen members
+            if len(observed) > 100:
+                observed = dict(list(observed.items())[-100:])
+            settings["member_locales"] = observed
+            settings["updated_at"] = int(time.time())
+            await self._db.set_guild_settings(guild_id, settings)
+        except Exception:
+            logger.debug("guild member locale observation failed (guild %s)", guild_id, exc_info=True)
+
+    async def observed_guild_locale(self, guild_id: str) -> str:
+        """Return the majority observed client language of the members."""
+        try:
+            settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
+            observed: dict[str, str] = dict(settings.get("member_locales", {}) or {})
+        except Exception:
+            return "en"
+        if not observed:
+            return "en"
+        counts: dict[str, int] = {}
+        for locale in observed.values():
+            counts[locale] = counts.get(locale, 0) + 1
+        best = max(counts.items(), key=lambda kv: kv[1])[0]
+        return best if best in SUPPORTED_LOCALES else "en"
+
+    async def set_user_locale(self, user_id: str, locale: str) -> None:
+        """Persist the user's DM language choice (the DM picker)."""
+        if locale not in SUPPORTED_LOCALES:
+            raise ValueError(f"unsupported locale: {locale!r}")
+        settings = await self._safe(self._db.get_user_settings(user_id)) or {}
+        settings["locale"] = locale
+        settings["updated_at"] = int(time.time())
+        await self._db.set_user_settings(user_id, settings)
+
+    async def get_user_locale(self, user_id: str) -> str:
+        """Return the user's DM language: the stored choice, the observed one."""
+        try:
+            settings = await self._safe(self._db.get_user_settings(user_id))
+        except Exception:
+            return "en"
         locale = str((settings or {}).get("locale", ""))
         return locale if locale in SUPPORTED_LOCALES else "en"
 
+    def set_locale_resolver(self, resolver: Any) -> None:
+        """Inject the fallback locale resolver (guild id -> en/fr).
+
+        The stored guild choice (the admin language picker, bot/admin)
+        always wins; the resolver only serves the guilds that never
+        picked — Discord's own signal (preferred_locale), then the
+        members' observed majority.
+        """
+        self._locale_resolver = resolver
+
     async def set_locale(self, guild_id: str, locale: str, by: str) -> None:
-        """Persist the guild's locale (fr/en); audited as an event."""
+        """Persist the guild's language choice (the admin picker)."""
         if locale not in SUPPORTED_LOCALES:
             raise ValueError(f"unsupported locale: {locale!r}")
         settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
@@ -438,25 +495,24 @@ class LogService:
             LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.language", locale, lang=locale, by=by)),
         )
 
-    async def get_user_locale(self, user_id: str) -> str:
-        """Read the user's DM locale (en fallback)."""
-        settings = await self._safe(self._db.get_user_settings(user_id))
-        locale = str((settings or {}).get("locale", ""))
+    async def get_locale(self, guild_id: str) -> str:
+        """Return the guild's language: the stored choice, then the fallback."""
+        try:
+            settings = await self._safe(self._db.get_guild_settings(guild_id))
+        except Exception:
+            settings = None
+        stored = str((settings or {}).get("locale", ""))
+        if stored in SUPPORTED_LOCALES:
+            return stored
+        if self._locale_resolver is None:
+            return "en"
+        try:
+            locale = str(await self._locale_resolver(guild_id) or "en")
+        except TypeError:
+            locale = str(self._locale_resolver(guild_id) or "en")
+        except Exception:
+            return "en"
         return locale if locale in SUPPORTED_LOCALES else "en"
-
-    async def set_user_locale(self, user_id: str, locale: str) -> None:
-        """Persist the user's DM locale (fr/en).
-
-        DM settings are personal: they follow the user across guilds and
-        are never audited in a guild's logs channel (a DM has no channel
-        to audit into — the change is acknowledged in the DM itself).
-        """
-        if locale not in SUPPORTED_LOCALES:
-            raise ValueError(f"unsupported locale: {locale!r}")
-        settings = await self._safe(self._db.get_user_settings(user_id)) or {}
-        settings["locale"] = locale
-        settings["updated_at"] = int(time.time())
-        await self._db.set_user_settings(user_id, settings)
 
     async def _cache(self, guild_id: str, channel_id: str) -> None:
         await self._safe(
@@ -464,13 +520,6 @@ class LogService:
                 "channels", self._cache_key(guild_id), {"channel_id": channel_id}, ttl=CACHE_TTL_SECONDS
             )
         )
-
-    async def _safe_find_channel(self, guild_id: str) -> str | None:
-        """Find an existing logs channel by name, degrading to None on failure."""
-        try:
-            return await self._platform.find_logs_channel(guild_id)
-        except Exception:
-            return None
 
     async def _drop_caches(self, guild_id: str) -> None:
         await self._safe(self._state.delete_state("channels", self._cache_key(guild_id)))

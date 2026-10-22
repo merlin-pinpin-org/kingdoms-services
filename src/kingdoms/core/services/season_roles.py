@@ -21,6 +21,7 @@ assigned.
 
 Reference: §0/§6 (the core never imports platform code), ADR-0020.
 """
+
 from __future__ import annotations
 
 import logging
@@ -45,15 +46,11 @@ class SeasonRolesMembers(Protocol):
         """Adopt or create the platform role; its id, None on failure."""
         ...
 
-    async def assign_platform_role(
-        self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str
-    ) -> None:
+    async def assign_platform_role(self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str) -> None:
         """Add one platform role to a member (best-effort)."""
         ...
 
-    async def remove_platform_role(
-        self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str
-    ) -> None:
+    async def remove_platform_role(self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str) -> None:
         """Remove one platform role from a member (best-effort)."""
         ...
 

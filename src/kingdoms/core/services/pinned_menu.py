@@ -21,6 +21,7 @@ service's business: the caller provides a layout builder, the seam
 delivers it. The admin pin and the guild home are two builders over the
 same lifecycle.
 """
+
 from __future__ import annotations
 
 import logging
@@ -72,14 +73,21 @@ class PinnedMenuUpdater(Protocol):
 
 
 LayoutBuilder = Callable[[str], Awaitable[Any]]
+RegisteredIdResolver = Callable[[str], Awaitable[str | None]]
 
 
 class PinnedMenuService:
     """Keep one pinned menu alive in one channel (idempotent, best-effort)."""
 
-    def __init__(self, delivery: PinnedMenuDelivery, updater: PinnedMenuUpdater | None = None) -> None:
+    def __init__(
+        self,
+        delivery: PinnedMenuDelivery,
+        updater: PinnedMenuUpdater | None = None,
+        registered_id_resolver: RegisteredIdResolver | None = None,
+    ) -> None:
         self._delivery = delivery
         self._updater = updater
+        self._registered_id_resolver = registered_id_resolver
 
     async def ensure(
         self,
@@ -102,6 +110,8 @@ class PinnedMenuService:
         """
         if await self._current_menu_exists(channel, marker, required_ids):
             return False
+        if await self._update_registered(channel, build_layout, guild_id):
+            return False
         if await self._update_current(channel, marker, required_ids, build_layout, guild_id):
             return False
         layout = await build_layout(guild_id)
@@ -112,6 +122,51 @@ class PinnedMenuService:
         pinned = await self._pin_message(channel, message_id, pin_reason)
         await self._unpin_stale(channel, marker, keep_message_id=message_id)
         return pinned
+
+    async def _update_registered(
+        self,
+        channel: PinnedMenuChannel,
+        build_layout: LayoutBuilder,
+        guild_id: str,
+    ) -> bool:
+        """Edit the registry-registered menu in place (#256).
+
+        The message registry holds the current menu's message id — even
+        when the pin was removed from the channel's pin list (manual
+        unpin, pin-list lag) the menu still exists and is edited in
+        place, keeping its message id. Falls through to a re-creation
+        only when the registered message is gone (deleted, unfetchable)
+        or no resolver/updater is wired.
+        """
+        if self._registered_id_resolver is None or self._updater is None:
+            return False
+        message_id = await self._registered_id_resolver(guild_id)
+        if not message_id:
+            return False
+        try:
+            message = await channel.fetch_message(int(message_id))
+        except Exception:
+            logger.debug(
+                "PINNED MENU registered message gone (guild %s, message %s) — re-creating",
+                guild_id,
+                message_id,
+            )
+            return False
+        if message is None:
+            return False
+        layout = await build_layout(guild_id)
+        try:
+            edited = await self._updater.update(channel, message_id, layout)
+        except Exception:
+            logger.warning("PINNED MENU registered in-place edit failed (message %s)", message_id, exc_info=True)
+            return False
+        if edited:
+            try:
+                await message.pin(reason="kingdoms: registered menu refresh")
+            except Exception:
+                logger.warning("PINNED MENU re-pin after registered edit failed (message %s)", message_id)
+            return True
+        return False
 
     async def _update_current(
         self,
@@ -132,7 +187,7 @@ class PinnedMenuService:
         if self._updater is None:
             return False
         for message in await self._safe_pins(channel):
-            if not (self._carries_marker(message, marker) and self._carries_required(message, ())) :
+            if not (self._carries_marker(message, marker) and self._carries_required(message, ())):
                 continue
             if self._carries_required(message, required_ids):
                 continue

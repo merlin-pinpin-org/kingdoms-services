@@ -33,10 +33,7 @@ def main() -> int:
             report = await import_identity_links(database, users_csv)
         finally:
             await close_async_client()
-        print(
-            f"identity import: {report.users} users, "
-            f"{report.bindings} profile bindings, {report.rebounds} rebounds"
-        )
+        print(f"identity import: {report.users} users, {report.bindings} profile bindings, {report.rebounds} rebounds")
 
     asyncio.run(run())
     return 0

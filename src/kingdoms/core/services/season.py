@@ -70,6 +70,7 @@ class SeasonAudit(Protocol):
 class SeasonNotScheduledError(ValueError):
     """The season is not in the scheduled state for this transition."""
 
+
 class SeasonActiveError(ValueError):
     """The season is already active, or another season is active on the ladder."""
 
@@ -247,4 +248,3 @@ class SeasonService:
             await self._audit.record(action, payload)
         except Exception:
             logger.warning("AUDIT WRITE FAILED (%s)", action, exc_info=True)
-
