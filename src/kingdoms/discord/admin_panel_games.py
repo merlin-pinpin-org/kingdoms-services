@@ -875,7 +875,7 @@ class PoolHardDeleteModal(discord.ui.Modal):
                 # REST fetch is the reliable route (get_channel returns
                 # None for a thread it has not seen)
                 thread = await interaction.client.fetch_channel(int(self.pool.forum_thread_id))
-                if thread is not None:
+                if isinstance(thread, discord.Thread):
                     await thread.delete(reason=f"kingdoms: pool {self.pool.id} hard-deleted")
             except Exception:
                 logger.warning("pool post delete after hard delete failed \u2014 best-effort", exc_info=True)
