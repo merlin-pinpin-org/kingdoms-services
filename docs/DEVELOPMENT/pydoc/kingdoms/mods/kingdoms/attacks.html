@@ -464,6 +464,12 @@ The&nbsp;resolution&nbsp;edits&nbsp;the&nbsp;SAME&nbsp;DM&nbsp;(anti-spam):&nbsp
 panel&nbsp;append&nbsp;the&nbsp;«&nbsp;Prêt&nbsp;»&nbsp;button&nbsp;to&nbsp;the&nbsp;existing&nbsp;message<br>
 instead&nbsp;of&nbsp;sending&nbsp;a&nbsp;new&nbsp;one.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-record_ping_message"><strong>record_ping_message</strong></a>(self, attack_id: 'str', channel_id: 'int', message_id: 'int') -&gt; 'AttackModel'</dt><dd><span class="code">Store&nbsp;the&nbsp;room's&nbsp;PING&nbsp;message&nbsp;ref&nbsp;(sabotage-ux-v1).<br>
+&nbsp;<br>
+Drasah&nbsp;22/10:&nbsp;the&nbsp;«&nbsp;⚔️&nbsp;…&nbsp;à&nbsp;vos&nbsp;armes&nbsp;!&nbsp;»&nbsp;ping&nbsp;of&nbsp;the&nbsp;room&nbsp;gets<br>
+the&nbsp;🏆&nbsp;winner&nbsp;stamped&nbsp;at&nbsp;every&nbsp;resolution&nbsp;—&nbsp;the&nbsp;ref&nbsp;lives&nbsp;in<br>
+the&nbsp;score,&nbsp;separate&nbsp;from&nbsp;the&nbsp;meeting&nbsp;message&nbsp;refs.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-record_room_event"><strong>record_room_event</strong></a>(self, attack_id: 'str', event_id: 'int') -&gt; 'AttackModel'</dt><dd><span class="code">Store&nbsp;the&nbsp;battle-room&nbsp;match&nbsp;event&nbsp;ref&nbsp;(Drasah&nbsp;18/10).<br>
 &nbsp;<br>
 Both&nbsp;players&nbsp;clicked&nbsp;Prêt&nbsp;in&nbsp;the&nbsp;vocal&nbsp;—&nbsp;the&nbsp;announced&nbsp;match<br>
