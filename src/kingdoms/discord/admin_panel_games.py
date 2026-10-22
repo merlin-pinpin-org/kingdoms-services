@@ -404,7 +404,7 @@ class GamesPoolCreateModal(discord.ui.Modal):
         await interaction.edit_original_response(
             content=f"Pool **{pool.name}** créé{pool_link or ' — son post est dans le forum des map pools.'}"
         )
-        await _refresh_pins_after_mutation(interaction)
+
 
 
 class GamesPoolAddByIdButton(
@@ -544,10 +544,13 @@ class GamesPoolRenameModal(discord.ui.Modal):
             logger.exception("GAMES ADMIN: pool rename failed")
             await interaction.followup.send("Renommage échoué (voir les logs).", ephemeral=True)
             return
-        await _finish_pool_transition(interaction, pool, origin=self.origin)
+        # confirm FIRST — the forum sync is best-effort behind (never eats
+        # the answer; behind a rate-limited bucket it would hang ~10 min)
         await interaction.followup.send(
-            f"Pool renommé **{pool.name}** — son post est à jour.", ephemeral=True
+            f"Pool renommé **{pool.name}** — son post suit à la prochaine synchronisation.",
+            ephemeral=True,
         )
+        await _finish_pool_transition(interaction, pool, origin=self.origin)
 
 
 class GamesPoolArchiveButton(
@@ -617,7 +620,7 @@ class GamesPoolArchiveButton(
             ephemeral=True,
         )
         await _finish_pool_transition(interaction, pool, answer_menu=False)
-        await _refresh_pins_after_mutation(interaction)
+
 
 
 
@@ -881,7 +884,7 @@ class PoolHardDeleteModal(discord.ui.Modal):
             ephemeral=True,
         )
         await _finish_pool_transition(interaction, self.pool, answer_menu=False)
-        await _refresh_pins_after_mutation(interaction)
+
 
 
 PAGE_SIZE = 25  # Discord's hard cap on select options
@@ -1434,7 +1437,7 @@ class GamesPoolCopyModal(discord.ui.Modal):
             "son post est dans le forum des map pools.",
             ephemeral=True,
         )
-        await _refresh_pins_after_mutation(interaction)
+
 
 
 def register_games_admin_items(bot: discord.Client) -> None:
