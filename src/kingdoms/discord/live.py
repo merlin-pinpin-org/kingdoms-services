@@ -39,6 +39,14 @@ def live_page_key(game_key: str, page: int) -> str:
 
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
 
+_LABELS = {"watch": ("Regarder", "Watch"), "join": ("Rejoindre", "Join")}
+
+
+def _live_label(key: str, locale: str = "fr") -> str:
+    """Render one short label (fr default, en variant) — the catalog-less fallback."""
+    fr, en = _LABELS[key]
+    return en if locale == "en" else fr
+
 
 OFFLINE_GRACE_MS = 3600 * 1000
 
@@ -149,24 +157,23 @@ def _render_account(
     accounts_by_profile: dict[str, dict[str, Any]] | None = None,
     stats: dict[str, dict[str, Any]] | None = None,
 ) -> str:
-    """One line per Discord user: mention, fused state, last-match stamp.
+    """One block per Discord user: mention header, then the active match lines.
 
-    Each active profile renders its enriched match context (map,
-    format, the player's civilization, join/spectate links and the
-    aoe2de:// deep link) — one sub-line per active profile.
+    Readability (owner direction): the mention and the display name on
+    ONE line, the match context on the next — a clean two-line block
+    per active player, no emoji salad, the links inline at the end.
     """
-    icon = "🟢" if account["active"] else "⚫"
-    header = f"{icon} <@{account['user_id']}>"
-    if account["last_match_ms"]:
-        header += f" — last match <t:{account['last_match_ms'] // 1000}:R>"
-    lines = [header]
+    lines: list[str] = []
     for profile in account["profiles"]:
         if profile["state"] == "offline":
             continue
-        lines.append(
-            _render_active_profile(account, profile, accounts_by_profile, stats)
-        )
-    return "\n".join(lines)
+        lines.append(_render_active_profile(account, profile, accounts_by_profile, stats))
+    if lines:
+        return "\n".join(lines)
+    header = f"⚫ <@{account['user_id']}>"
+    if account["last_match_ms"]:
+        header += f" · {_t(None, '', 'last_match', 'dernière partie')} <t:{account['last_match_ms'] // 1000}:R>"
+    return header
 
 
 def _render_active_profile(
@@ -175,36 +182,33 @@ def _render_active_profile(
     accounts_by_profile: dict[str, dict[str, Any]] | None = None,
     stats: dict[str, dict[str, Any]] | None = None,
 ) -> str:
-    """One sub-line per active profile: map, format, civ, elo, with/against, links.
+    """One block per active profile — readable, dense, no decoration noise.
 
-    ``accounts_by_profile`` maps a profile id to the account record of
-    the enrolled player — the other enrolled players of the same match
-    render as mentions, split by team (with/against).
+    Line 1: state icon, mention, display name, elo.
+    Line 2 (indented): map, format, civ, the enrolled co-players
+    (🤝 with / ⚔️ against), the aoe2lobby link.
     """
     match = profile.get("match") or {}
     state_icon = _STATE_ICONS.get(profile["state"], "⚫")
-    sub = f"  {state_icon} "
-    sub += f"**{profile['display_name']}**"
-    parts = []
-    if match.get("map"):
-        parts.append(f"🗺️ {match['map']}")
-    if match.get("format"):
-        parts.append(f"{match['format']}")
-    civ = _profile_civ(match, profile["profile_id"])
-    if civ:
-        parts.append(f"🏛️ {civ}")
+    line1 = f"{state_icon} <@{account['user_id']}> · **{profile['display_name']}**"
     elo = _profile_elo(stats or {}, profile["profile_id"])
     if elo:
-        parts.append(f"⚡ {elo}")
-    if parts:
-        sub += " — " + " · ".join(parts)
+        line1 += f" · {elo}"
+    details: list[str] = []
+    if match.get("map"):
+        details.append(str(match["map"]))
+    if match.get("format"):
+        details.append(str(match["format"]))
+    civ = _profile_civ(match, profile["profile_id"])
+    if civ:
+        details.append(civ)
     others = _enrolled_others(match, profile["profile_id"], accounts_by_profile or {})
-    if others:
-        sub += f"\n    {' · '.join(others)}"
+    details.extend(others)
     links = _match_links(match, profile["state"])
+    line2 = "  > " + " · ".join(details) if details else ""
     if links:
-        sub += f"\n    ⛓️ {' | '.join(links)}"
-    return sub
+        line2 = f"{line2} · {' | '.join(links)}" if line2 else "  > " + " | ".join(links)
+    return line1 + (f"\n{line2}" if line2 else "")
 
 
 def _profile_civ(match: dict[str, Any], profile_id: str) -> str:
@@ -269,19 +273,17 @@ def _match_players(match: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _match_links(match: dict[str, Any], state: str) -> list[str]:
-    """Render the match's aoe2lobby links.
+    """Render the match's aoe2lobby link (one, labelled by state).
 
     The aoe2de:// deep link does not render as clickable in Discord
-    (non-http schemes are stripped by the client) — the lobby page
-    carries the join button itself, so the aoe2lobby URLs serve both
-    states.
+    (non-http schemes are stripped) — the aoe2lobby pages carry the
+    join/spectate actions themselves.
     """
-    links = []
     if state == "in_game" and match.get("spectate_url"):
-        links.append(f"[▶ Watch]({match['spectate_url']})")
+        return [f"[{_live_label('watch')}]({match['spectate_url']})"]
     if state == "in_lobby" and match.get("lobby_url"):
-        links.append(f"[🌐 Lobby]({match['lobby_url']})")
-    return links
+        return [f"[{_live_label('join')}]({match['lobby_url']})"]
+    return []
 
 
 def game_label(game_key: str) -> str:
