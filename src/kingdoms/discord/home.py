@@ -907,6 +907,11 @@ async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -
             snapshot = await client.watch(game_key)
         except Exception:
             logger.warning("HOME: live snapshot failed (game %s)", game_key, exc_info=True)
+    guild = interaction.client.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
+    if guild is not None:
+        from kingdoms.discord.live import scope_snapshot_to_guild
+
+        snapshot = await scope_snapshot_to_guild(snapshot, guild)
     active_ids = [
         str(p.get("profile_id", ""))
         for p in snapshot.get("players", [])
@@ -1198,11 +1203,12 @@ def _view_users_for_game(game_key: str) -> Any:
         # guild render (owner direction — the platform's roster, not the
         # game's global one)
         if guild is not None:
-            by_user = {
-                user_id: bindings
-                for user_id, bindings in by_user.items()
-                if guild.get_member(int(user_id)) is not None
-            }
+            member_ids = [
+                user_id
+                for user_id in by_user
+                if await _is_guild_member(guild, int(user_id))
+            ]
+            by_user = {user_id: by_user[user_id] for user_id in member_ids}
         profile_ids = [str(b.get("profile_id", "")) for bs in by_user.values() for b in bs]
         from kingdoms.discord.live import collect_profile_stats
 

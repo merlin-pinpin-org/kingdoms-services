@@ -63,6 +63,38 @@ def _t(bot: Any, locale: str, key: str, fallback: str) -> str:
     return rendered if rendered != f"live.{key}" else fallback
 
 
+async def scope_snapshot_to_guild(
+    snapshot: dict[str, Any],
+    guild: Any,
+) -> dict[str, Any]:
+    """Keep only the players whose platform user is a member of the guild.
+
+    Cache-first with a fetch fallback (a guild does not cache every
+    member); a missing membership never crashes the render — the player
+    is simply out of this guild's dashboard.
+    """
+    if guild is None:
+        return snapshot
+    import discord as _discord
+
+    async def _is_member(user_id: str) -> bool:
+        if not user_id or not user_id.isdigit():
+            return False
+        if guild.get_member(int(user_id)) is not None:
+            return True
+        try:
+            return await guild.fetch_member(int(user_id)) is not None
+        except (_discord.NotFound, _discord.HTTPException):
+            return False
+
+    kept: list[dict[str, Any]] = []
+    for player in snapshot.get("players", []):
+        user_id = str(player.get("user_id", ""))
+        if await _is_member(user_id):
+            kept.append(player)
+    return {**snapshot, "players": kept}
+
+
 def render_dashboard(
     snapshot: dict[str, Any],
     locale: str = "en",
@@ -478,6 +510,7 @@ async def ensure_live_dashboard(
             exc_info=True,
         )
         snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
+    snapshot = await scope_snapshot_to_guild(snapshot, guild)
     from kingdoms.discord.content_posts import guild_locale
 
     locale = await guild_locale(guild_id, bot)

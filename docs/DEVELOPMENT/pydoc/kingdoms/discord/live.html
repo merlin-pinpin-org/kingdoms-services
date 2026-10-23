@@ -269,6 +269,11 @@ single&nbsp;record&nbsp;and&nbsp;a&nbsp;user&nbsp;is&nbsp;active&nbsp;when&nbsp;
 Shown:&nbsp;every&nbsp;active&nbsp;user,&nbsp;plus&nbsp;the&nbsp;users&nbsp;offline&nbsp;for&nbsp;less&nbsp;than&nbsp;an<br>
 hour&nbsp;(with&nbsp;their&nbsp;last&nbsp;completed&nbsp;match&nbsp;timestamp);&nbsp;users&nbsp;offline&nbsp;for<br>
 longer&nbsp;are&nbsp;omitted.</span></dd></dl>
+ <dl><dt>async <a name="-scope_snapshot_to_guild"><strong>scope_snapshot_to_guild</strong></a>(snapshot: 'dict[str, Any]', guild: 'Any') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Keep&nbsp;only&nbsp;the&nbsp;players&nbsp;whose&nbsp;platform&nbsp;user&nbsp;is&nbsp;a&nbsp;member&nbsp;of&nbsp;the&nbsp;guild.<br>
+&nbsp;<br>
+Cache-first&nbsp;with&nbsp;a&nbsp;fetch&nbsp;fallback&nbsp;(a&nbsp;guild&nbsp;does&nbsp;not&nbsp;cache&nbsp;every<br>
+member);&nbsp;a&nbsp;missing&nbsp;membership&nbsp;never&nbsp;crashes&nbsp;the&nbsp;render&nbsp;—&nbsp;the&nbsp;player<br>
+is&nbsp;simply&nbsp;out&nbsp;of&nbsp;this&nbsp;guild's&nbsp;dashboard.</span></dd></dl>
  <dl><dt>async <a name="-start_live_dashboard_refresh"><strong>start_live_dashboard_refresh</strong></a>(bot: 'discord.Client', clients: 'dict[str, LiveClientLike]', registry: 'MessageRegistryServiceLike') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;guild's&nbsp;per-game&nbsp;dashboards:&nbsp;streams&nbsp;+&nbsp;a&nbsp;self-healing&nbsp;interval.<br>
 &nbsp;<br>
 One&nbsp;stream&nbsp;watcher&nbsp;per&nbsp;game&nbsp;(``clients``&nbsp;maps&nbsp;a&nbsp;game&nbsp;key&nbsp;to&nbsp;its<br>

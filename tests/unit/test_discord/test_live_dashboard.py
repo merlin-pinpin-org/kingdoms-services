@@ -106,6 +106,14 @@ class _FakeGuild:
     def get_channel(self, channel_id: int) -> _FakeChannel | None:
         return self._channel if channel_id == self._channel.id else None
 
+    def get_member(self, user_id: int) -> Any:
+        """Membership seam: every platform user is a member (test default)."""
+        return object()
+
+    async def fetch_member(self, user_id: int) -> Any:
+        """Fetch fallback: same as the cache (member)."""
+        return object()
+
 
 @pytest.fixture
 def stored_live_channel(monkeypatch: Any) -> None:
