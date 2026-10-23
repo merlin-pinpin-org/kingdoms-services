@@ -132,17 +132,96 @@ def render_dashboard(
         for p in players
         if p.get("user_id") in accounts and p.get("profile_id")
     }
+
+    # one section per match (owner direction): the active players grouped
+    # by their match_ref, the section header carrying the match context
+    active_players = [p for p in players if p.get("state") != "offline"]
+    by_match: dict[str, list[dict[str, Any]]] = {}
+    for player in active_players:
+        by_match.setdefault(str(player.get("match_ref", "")), []).append(player)
+    for match_ref in sorted(by_match):
+        if not match_ref:
+            for player in by_match[match_ref]:
+                lines.append(_render_account(accounts[player["user_id"]], accounts_by_profile, stats))
+            continue
+        lines.append(_render_match_section(by_match[match_ref], accounts, accounts_by_profile, stats, bot, locale))
+
+    # the offline tail: the members who were recently in a match
     visible = [a for a in accounts.values() if a["active"] or now - a["last_match_ms"] < OFFLINE_GRACE_MS]
-    ordered = sorted(visible, key=_account_sort_key)
-    offline_seen = False
-    for account in ordered:
-        if not offline_seen and not account["active"]:
-            lines.append(_t(bot, locale, "offline_separator", "— offline —"))
-            offline_seen = True
-        lines.append(_render_account(account, accounts_by_profile, stats or {}))
-    if not ordered:
+    offline = [a for a in visible if not a["active"]]
+    if offline:
+        lines.append(_t(bot, locale, "offline_separator", "— offline —"))
+        for account in sorted(offline, key=_account_sort_key):
+            lines.append(_render_account(account, accounts_by_profile, stats or {}))
+    if not by_match and not offline:
         lines.append(_t(bot, locale, "all_offline", "Everyone is offline for more than an hour."))
     return "\n".join(lines)
+
+
+def _render_match_section(
+    players: list[dict[str, Any]],
+    accounts: dict[str, dict[str, Any]],
+    accounts_by_profile: dict[str, dict[str, Any]],
+    stats: dict[str, dict[str, Any]] | None,
+    bot: Any,
+    locale: str,
+) -> str:
+    """Render one match section: header, then the players.
+
+    The header carries the match context (mode, map, link); each player
+    line carries the player (mention, name, elo, civ, enrolled
+    co-players) — no repetition between the two.
+    """
+    first = players[0]
+    match = first.get("match") or {}
+    state_icon = _STATE_ICONS.get(str(first.get("state", "")), "⚫")
+    mode_bits: list[str] = []
+    match_type = str(match.get("match_type", ""))
+    if match_type:
+        mode_bits.append(match_type)
+    fmt = str(match.get("format", ""))
+    if fmt and fmt != match_type:
+        mode_bits.append(fmt)
+    header = f"{state_icon} **{' '.join(mode_bits)}**" if mode_bits else state_icon
+    if match.get("map"):
+        header += f" — {match['map']}"
+    links = _match_links(match, str(first.get("state", "")))
+    if links:
+        header += f" · {' · '.join(links)}"
+    lines = [header]
+    for player in players:
+        account = accounts.get(str(player.get("user_id", "")))
+        if account is None:
+            continue
+        lines.append(_render_section_player(player, account, accounts_by_profile, stats))
+    return "\n".join(lines)
+
+
+def _render_section_player(
+    player: dict[str, Any],
+    account: dict[str, Any],
+    accounts_by_profile: dict[str, dict[str, Any]],
+    stats: dict[str, dict[str, Any]] | None,
+) -> str:
+    """One player line inside a match section: mention, name, elo, civ, co-players.
+
+    The match context (map, link) lives on the section header — the line
+    carries the player only.
+    """
+    match = player.get("match") or {}
+    profile_id = str(player.get("profile_id", ""))
+    display_name = str((stats or {}).get(profile_id, {}).get("display_name", "")) or profile_id
+    line = f"  <@{account['user_id']}> · **{display_name}**"
+    elo = _profile_elo(stats or {}, profile_id)
+    if elo:
+        line += f" · {elo}"
+    civ = _profile_civ(match, str(player.get("profile_id", "")))
+    if civ:
+        line += f" · {civ}"
+    others = _enrolled_others(match, str(player.get("profile_id", "")), accounts_by_profile)
+    if others:
+        line += " · " + " · ".join(others)
+    return line
 
 
 def group_by_account(

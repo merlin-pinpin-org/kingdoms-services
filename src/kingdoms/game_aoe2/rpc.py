@@ -37,6 +37,7 @@ def summary_to_wire(summary: dict[str, Any]) -> gamedata_pb2.GameMatchSummary:
         lobby_url=str(summary.get("lobby_url", "")),
         spectate_url=str(summary.get("spectate_url", "")),
         deep_link=str(summary.get("deep_link", "")),
+        match_type=str(summary.get("match_type", "")),
     )
 
 
@@ -65,6 +66,8 @@ def _parse_players(compact: str) -> list[gamedata_pb2.GamePlayerSlot]:
                 civilization=str(entry.get("civ", "")),
                 team=int(entry.get("team", 0) or 0),
                 filled=True,
+                avatar_url=str(entry.get("avatar", "")),
+                country=str(entry.get("country", "")),
             )
         )
     return slots
@@ -152,10 +155,13 @@ def summary_from_wire(wire: gamedata_pb2.GameMatchSummary) -> dict[str, Any]:
                 "profile_id": p.profile_id,
                 "name": p.name,
                 "civ": p.civilization,
+                "avatar": p.avatar_url,
+                "country": p.country,
                 "team": p.team,
             }
             for p in wire.players
         ],
+        "match_type": wire.match_type,
         "lobby_url": wire.lobby_url,
         "spectate_url": wire.spectate_url,
         "deep_link": wire.deep_link,

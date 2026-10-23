@@ -307,7 +307,14 @@ def test_match_summary_enriched_with_format_civs_links() -> None:
     assert summary["format"] == "1v1"
     assert summary["host"] == "Alice"
     players = json.loads(summary["players"])
-    assert players[0] == {"profile_id": "123", "name": "Alice", "civ": "Britons", "team": 1}
+    assert players[0] == {
+        "profile_id": "123",
+        "name": "Alice",
+        "civ": "Britons",
+        "avatar": "",
+        "country": "",
+        "team": 1,
+    }
     assert players[1]["name"] == "Bob"
     assert summary["lobby_url"] == "https://www.aoe2lobby.com/j/111"
     assert summary["deep_link"] == "aoe2de://1/-111"

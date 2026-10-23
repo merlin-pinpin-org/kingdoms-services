@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1akingdoms/v1/gamedata.proto\x12\x0bkingdoms.v1\"\x11\n\x0f\x43overageRequest\"E\n\x0cGameCoverage\x12\x11\n\tgame_keys\x18\x01 \x03(\t\x12\x10\n\x08realtime\x18\x02 \x01(\x08\x12\x10\n\x08\x64\x65graded\x18\x03 \x01(\x08\"7\n\x14WatchGameDataRequest\x12\x10\n\x08game_key\x18\x01 \x01(\t\x12\r\n\x05since\x18\x02 \x01(\x03\"f\n\rGameDashboard\x12-\n\x07players\x18\x01 \x03(\x0b\x32\x1c.kingdoms.v1.GamePlayerState\x12\x14\n\x0cgenerated_at\x18\x02 \x01(\x03\x12\x10\n\x08\x64\x65graded\x18\x03 \x01(\x08\"\x95\x01\n\x0fGamePlayerState\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x12\n\nprofile_id\x18\x02 \x01(\t\x12\r\n\x05state\x18\x03 \x01(\t\x12\x11\n\tmatch_ref\x18\x04 \x01(\t\x12\r\n\x05since\x18\x05 \x01(\x03\x12,\n\x05match\x18\x06 \x01(\x0b\x32\x1d.kingdoms.v1.GameMatchSummary\"\xfe\x01\n\x10GameMatchSummary\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\x12\x10\n\x08map_name\x18\x02 \x01(\t\x12\x0e\n\x06\x66ormat\x18\x03 \x01(\t\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x13\n\x0bslots_taken\x18\x05 \x01(\x05\x12\x13\n\x0bslots_total\x18\x06 \x01(\x05\x12\x11\n\thost_name\x18\x07 \x01(\t\x12,\n\x07players\x18\x08 \x03(\x0b\x32\x1b.kingdoms.v1.GamePlayerSlot\x12\x11\n\tlobby_url\x18\t \x01(\t\x12\x14\n\x0cspectate_url\x18\n \x01(\t\x12\x11\n\tdeep_link\x18\x0b \x01(\t\"f\n\x0eGamePlayerSlot\x12\x12\n\nprofile_id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x14\n\x0c\x63ivilization\x18\x03 \x01(\t\x12\x0c\n\x04team\x18\x04 \x01(\x05\x12\x0e\n\x06\x66illed\x18\x05 \x01(\x08\"\xb3\x01\n\x0fGamePlayerEvent\x12\x10\n\x08game_key\x18\x01 \x01(\t\x12\x12\n\nprofile_id\x18\x02 \x01(\t\x12\x0f\n\x07user_id\x18\x03 \x01(\t\x12\x12\n\nold_status\x18\x04 \x01(\t\x12\x12\n\nnew_status\x18\x05 \x01(\t\x12\x13\n\x0boccurred_at\x18\x06 \x01(\x03\x12,\n\x05match\x18\x07 \x01(\x0b\x32\x1d.kingdoms.v1.GameMatchSummary\"S\n\x18UpdateEnrollmentsRequest\x12\x10\n\x08game_key\x18\x01 \x01(\t\x12\x13\n\x0bprofile_ids\x18\x02 \x03(\t\x12\x10\n\x08user_ids\x18\x03 \x03(\t\"@\n\x19UpdateEnrollmentsResponse\x12\x12\n\nsubscribed\x18\x01 \x01(\x05\x12\x0f\n\x07\x61pplied\x18\x02 \x01(\x08\"(\n\x14ProviderTestsRequest\x12\x10\n\x08game_key\x18\x01 \x01(\t\"M\n\rProviderTests\x12(\n\x05tests\x18\x01 \x03(\x0b\x32\x19.kingdoms.v1.ProviderTest\x12\x12\n\nchecked_at\x18\x02 \x01(\x03\"\x8b\x01\n\x0cProviderTest\x12\x13\n\x0bprovider_id\x18\x01 \x01(\t\x12\x10\n\x08game_key\x18\x02 \x01(\t\x12\n\n\x02ok\x18\x03 \x01(\x08\x12\x12\n\nlatency_ms\x18\x04 \x01(\x03\x12\x0e\n\x06\x64\x65tail\x18\x05 \x01(\t\x12\x12\n\nchecked_at\x18\x06 \x01(\x03\x12\x10\n\x08\x66\x61ilures\x18\x07 \x01(\x05\x32\xb4\x03\n\x08GameData\x12\x46\n\x0bGetCoverage\x12\x1c.kingdoms.v1.CoverageRequest\x1a\x19.kingdoms.v1.GameCoverage\x12Q\n\x0eWatchDashboard\x12!.kingdoms.v1.WatchGameDataRequest\x1a\x1a.kingdoms.v1.GameDashboard0\x01\x12V\n\x11WatchPlayerEvents\x12!.kingdoms.v1.WatchGameDataRequest\x1a\x1c.kingdoms.v1.GamePlayerEvent0\x01\x12\x62\n\x11UpdateEnrollments\x12%.kingdoms.v1.UpdateEnrollmentsRequest\x1a&.kingdoms.v1.UpdateEnrollmentsResponse\x12Q\n\x10GetProviderTests\x12!.kingdoms.v1.ProviderTestsRequest\x1a\x1a.kingdoms.v1.ProviderTestsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1akingdoms/v1/gamedata.proto\x12\x0bkingdoms.v1\"\x11\n\x0f\x43overageRequest\"E\n\x0cGameCoverage\x12\x11\n\tgame_keys\x18\x01 \x03(\t\x12\x10\n\x08realtime\x18\x02 \x01(\x08\x12\x10\n\x08\x64\x65graded\x18\x03 \x01(\x08\"7\n\x14WatchGameDataRequest\x12\x10\n\x08game_key\x18\x01 \x01(\t\x12\r\n\x05since\x18\x02 \x01(\x03\"f\n\rGameDashboard\x12-\n\x07players\x18\x01 \x03(\x0b\x32\x1c.kingdoms.v1.GamePlayerState\x12\x14\n\x0cgenerated_at\x18\x02 \x01(\x03\x12\x10\n\x08\x64\x65graded\x18\x03 \x01(\x08\"\x95\x01\n\x0fGamePlayerState\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x12\n\nprofile_id\x18\x02 \x01(\t\x12\r\n\x05state\x18\x03 \x01(\t\x12\x11\n\tmatch_ref\x18\x04 \x01(\t\x12\r\n\x05since\x18\x05 \x01(\x03\x12,\n\x05match\x18\x06 \x01(\x0b\x32\x1d.kingdoms.v1.GameMatchSummary\"\x92\x02\n\x10GameMatchSummary\x12\x11\n\tmatch_ref\x18\x01 \x01(\t\x12\x10\n\x08map_name\x18\x02 \x01(\t\x12\x0e\n\x06\x66ormat\x18\x03 \x01(\t\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x13\n\x0bslots_taken\x18\x05 \x01(\x05\x12\x13\n\x0bslots_total\x18\x06 \x01(\x05\x12\x11\n\thost_name\x18\x07 \x01(\t\x12,\n\x07players\x18\x08 \x03(\x0b\x32\x1b.kingdoms.v1.GamePlayerSlot\x12\x11\n\tlobby_url\x18\t \x01(\t\x12\x14\n\x0cspectate_url\x18\n \x01(\t\x12\x11\n\tdeep_link\x18\x0b \x01(\t\x12\x12\n\nmatch_type\x18\x0c \x01(\t\"\x8b\x01\n\x0eGamePlayerSlot\x12\x12\n\nprofile_id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x14\n\x0c\x63ivilization\x18\x03 \x01(\t\x12\x0c\n\x04team\x18\x04 \x01(\x05\x12\x0e\n\x06\x66illed\x18\x05 \x01(\x08\x12\x12\n\navatar_url\x18\x06 \x01(\t\x12\x0f\n\x07\x63ountry\x18\x07 \x01(\t\"\xb3\x01\n\x0fGamePlayerEvent\x12\x10\n\x08game_key\x18\x01 \x01(\t\x12\x12\n\nprofile_id\x18\x02 \x01(\t\x12\x0f\n\x07user_id\x18\x03 \x01(\t\x12\x12\n\nold_status\x18\x04 \x01(\t\x12\x12\n\nnew_status\x18\x05 \x01(\t\x12\x13\n\x0boccurred_at\x18\x06 \x01(\x03\x12,\n\x05match\x18\x07 \x01(\x0b\x32\x1d.kingdoms.v1.GameMatchSummary\"S\n\x18UpdateEnrollmentsRequest\x12\x10\n\x08game_key\x18\x01 \x01(\t\x12\x13\n\x0bprofile_ids\x18\x02 \x03(\t\x12\x10\n\x08user_ids\x18\x03 \x03(\t\"@\n\x19UpdateEnrollmentsResponse\x12\x12\n\nsubscribed\x18\x01 \x01(\x05\x12\x0f\n\x07\x61pplied\x18\x02 \x01(\x08\"(\n\x14ProviderTestsRequest\x12\x10\n\x08game_key\x18\x01 \x01(\t\"M\n\rProviderTests\x12(\n\x05tests\x18\x01 \x03(\x0b\x32\x19.kingdoms.v1.ProviderTest\x12\x12\n\nchecked_at\x18\x02 \x01(\x03\"\x8b\x01\n\x0cProviderTest\x12\x13\n\x0bprovider_id\x18\x01 \x01(\t\x12\x10\n\x08game_key\x18\x02 \x01(\t\x12\n\n\x02ok\x18\x03 \x01(\x08\x12\x12\n\nlatency_ms\x18\x04 \x01(\x03\x12\x0e\n\x06\x64\x65tail\x18\x05 \x01(\t\x12\x12\n\nchecked_at\x18\x06 \x01(\x03\x12\x10\n\x08\x66\x61ilures\x18\x07 \x01(\x05\x32\xb4\x03\n\x08GameData\x12\x46\n\x0bGetCoverage\x12\x1c.kingdoms.v1.CoverageRequest\x1a\x19.kingdoms.v1.GameCoverage\x12Q\n\x0eWatchDashboard\x12!.kingdoms.v1.WatchGameDataRequest\x1a\x1a.kingdoms.v1.GameDashboard0\x01\x12V\n\x11WatchPlayerEvents\x12!.kingdoms.v1.WatchGameDataRequest\x1a\x1c.kingdoms.v1.GamePlayerEvent0\x01\x12\x62\n\x11UpdateEnrollments\x12%.kingdoms.v1.UpdateEnrollmentsRequest\x1a&.kingdoms.v1.UpdateEnrollmentsResponse\x12Q\n\x10GetProviderTests\x12!.kingdoms.v1.ProviderTestsRequest\x1a\x1a.kingdoms.v1.ProviderTestsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,21 +42,21 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GAMEPLAYERSTATE']._serialized_start=295
   _globals['_GAMEPLAYERSTATE']._serialized_end=444
   _globals['_GAMEMATCHSUMMARY']._serialized_start=447
-  _globals['_GAMEMATCHSUMMARY']._serialized_end=701
-  _globals['_GAMEPLAYERSLOT']._serialized_start=703
-  _globals['_GAMEPLAYERSLOT']._serialized_end=805
-  _globals['_GAMEPLAYEREVENT']._serialized_start=808
-  _globals['_GAMEPLAYEREVENT']._serialized_end=987
-  _globals['_UPDATEENROLLMENTSREQUEST']._serialized_start=989
-  _globals['_UPDATEENROLLMENTSREQUEST']._serialized_end=1072
-  _globals['_UPDATEENROLLMENTSRESPONSE']._serialized_start=1074
-  _globals['_UPDATEENROLLMENTSRESPONSE']._serialized_end=1138
-  _globals['_PROVIDERTESTSREQUEST']._serialized_start=1140
-  _globals['_PROVIDERTESTSREQUEST']._serialized_end=1180
-  _globals['_PROVIDERTESTS']._serialized_start=1182
-  _globals['_PROVIDERTESTS']._serialized_end=1259
-  _globals['_PROVIDERTEST']._serialized_start=1262
-  _globals['_PROVIDERTEST']._serialized_end=1401
-  _globals['_GAMEDATA']._serialized_start=1404
-  _globals['_GAMEDATA']._serialized_end=1840
+  _globals['_GAMEMATCHSUMMARY']._serialized_end=721
+  _globals['_GAMEPLAYERSLOT']._serialized_start=724
+  _globals['_GAMEPLAYERSLOT']._serialized_end=863
+  _globals['_GAMEPLAYEREVENT']._serialized_start=866
+  _globals['_GAMEPLAYEREVENT']._serialized_end=1045
+  _globals['_UPDATEENROLLMENTSREQUEST']._serialized_start=1047
+  _globals['_UPDATEENROLLMENTSREQUEST']._serialized_end=1130
+  _globals['_UPDATEENROLLMENTSRESPONSE']._serialized_start=1132
+  _globals['_UPDATEENROLLMENTSRESPONSE']._serialized_end=1196
+  _globals['_PROVIDERTESTSREQUEST']._serialized_start=1198
+  _globals['_PROVIDERTESTSREQUEST']._serialized_end=1238
+  _globals['_PROVIDERTESTS']._serialized_start=1240
+  _globals['_PROVIDERTESTS']._serialized_end=1317
+  _globals['_PROVIDERTEST']._serialized_start=1320
+  _globals['_PROVIDERTEST']._serialized_end=1459
+  _globals['_GAMEDATA']._serialized_start=1462
+  _globals['_GAMEDATA']._serialized_end=1898
 # @@protoc_insertion_point(module_scope)

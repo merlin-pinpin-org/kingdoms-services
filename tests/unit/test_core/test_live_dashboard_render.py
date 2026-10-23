@@ -55,9 +55,9 @@ def test_render_orders_online_first_then_last_match() -> None:
         },
         now_ms=10_000_000,
     )
-    assert "🟢 <@20>" in body
+    assert "🟢" in body
     assert "— offline —" in body
-    assert body.index("🟢 <@20>") < body.index("— offline —")
+    assert body.index("🟢") < body.index("— offline —")
     assert body.index("— offline —") < body.index("⚫ <@10>")
     assert "dernière partie" in body
 
@@ -83,10 +83,8 @@ def test_render_enriched_sublines_per_active_profile() -> None:
             "B": _stats("Bob", "1200", "1", "5", 2_000),
         },
     )
-    assert "🟢 <@10>" in body
-    assert "**Alice**" in body
-    assert "Arabia" in body
-    assert "1v1" in body
+    assert "🟢 **1v1** — Arabia" in body  # the section header
+    assert "<@10> · **Alice**" in body
     assert "[Regarder](https://www.aoe2lobby.com/w/m1)" in body
     assert "RM 1v1" not in body
 

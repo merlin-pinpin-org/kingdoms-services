@@ -75,10 +75,11 @@ message GameMatchSummary {
   int32 slots_taken = 5;
   int32 slots_total = 6;
   string host_name = 7;      // display name of the host, empty when unknown
-  repeated GamePlayerSlot players = 8; // per-slot summary (civs, teams)
+  repeated GamePlayerSlot players = 8; // per-slot summary (civs, avatars, teams)
   string lobby_url = 9;      // aoe2lobby.com/j/<id> (lobby) — join page
   string spectate_url = 10;  // aoe2lobby.com/w/<id> (in game) — watch page
   string deep_link = 11;     // aoe2de:// join deep link when available
+  string match_type = 12;    // the game mode label (RandomMap, FFA, ...)
 }
 
 message GamePlayerSlot {
@@ -87,6 +88,8 @@ message GamePlayerSlot {
   string civilization = 3;   // human-readable civ (via ws schema), raw id as fallback
   int32 team = 4;
   bool filled = 5;
+  string avatar_url = 6;      // the player's steam avatar, may be empty
+  string country = 7;        // country code, may be empty
 }
 
 message GamePlayerEvent {

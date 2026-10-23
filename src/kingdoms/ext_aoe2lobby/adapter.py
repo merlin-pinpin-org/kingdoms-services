@@ -462,6 +462,23 @@ class Aoe2LobbyAdapter:
                 return label
         return raw
 
+    def _match_type_label(self, match: dict[str, Any]) -> str:
+        """Resolve the game mode label (RandomMap, FFA, ...) via the schema.
+
+        The match's ``match_typeid`` indexes the ws schema's
+        ``match_typeid`` map; the format (1v1, 2v2...) stays separate —
+        the label names the MODE, the format the team layout.
+        """
+        raw = match.get("match_typeid")
+        if raw in (None, ""):
+            return ""
+        types = self._schema.get("match_typeid")
+        if isinstance(types, dict):
+            label = types.get(str(raw)) or (types.get(int(raw)) if str(raw).isdigit() else None)
+            if isinstance(label, str) and label:
+                return label
+        return str(raw)
+
     def match_summary(self, match_ref: str, status: str) -> dict[str, Any]:
         """Build the enriched summary of a match for the given context.
 
@@ -488,6 +505,8 @@ class Aoe2LobbyAdapter:
                     "profile_id": str(profile_id),
                     "name": str(slot.get("name") or ""),
                     "civilization": self._civ_label(slot.get("civilization")),
+                    "avatar": str(slot.get("steam_avatar") or ""),
+                    "country": str(slot.get("country") or ""),
                     "team": team,
                 }
             )
@@ -496,6 +515,7 @@ class Aoe2LobbyAdapter:
         return {
             "map": str(match.get("map_name") or ""),
             "format": _format_label(teams, len(players)),
+            "match_type": self._match_type_label(match),
             "status": status,
             "slots_taken": str(match.get("slots_taken", len(players))),
             "slots_total": str(match.get("slots_total", 0)),
@@ -506,6 +526,8 @@ class Aoe2LobbyAdapter:
                         "profile_id": p["profile_id"],
                         "name": p["name"],
                         "civ": p["civilization"],
+                        "avatar": p["avatar"],
+                        "country": p["country"],
                         "team": p["team"],
                     }
                     for p in players

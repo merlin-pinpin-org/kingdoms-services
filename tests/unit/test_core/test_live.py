@@ -104,7 +104,8 @@ def test_render_dashboard_degraded_and_empty() -> None:
             "degraded": False,
         }
     )
-    assert "🟢 <@10>" in populated
+    assert "🟢" in populated  # the active section header
+    assert "<@10>" in populated
 
 
 
