@@ -396,6 +396,12 @@ _STRINGS: dict[str, dict[str, str]] = {
             " absent du salon vocal à l'heure du RDV est déclaré forfait !"
         ),
         "sab_open_button": "🗡️ Saboter / Utiliser un Faucon",
+        "pickban_default_reveal_dm": (
+            "🎭 **Reveal — {map}**\n⏱️ Le draft a été clôturé à l'heure : les"
+            " civilisations jamais classées ont été tirées au sort (aucun"
+            " sabotage ni Faucon).\nLes 3 civilisations potentielles de ton"
+            " adversaire (ordre aléatoire) :\n**{civs}**"
+        ),
         "sab_pass_button": "⚔️ Passer — je suis prêt",
         "sab_title": (
             "🪶 **Phase de sabotage** — Faucon ou Sabotage (jusqu'à 2 par camp),"
@@ -736,6 +742,12 @@ _STRINGS: dict[str, dict[str, str]] = {
             " room at the meeting time is a forfeit!"
         ),
         "sab_open_button": "🗡️ Sabotage / Use a Faucon",
+        "pickban_default_reveal_dm": (
+            "🎭 **Reveal — {map}**\n⏱️ The draft closed on time: the"
+            " never-ranked civilizations were drawn at random (no sabotage,"
+            " no Faucon).\nYour adversary's 3 potential civilizations"
+            " (random order):\n**{civs}**"
+        ),
         "sab_pass_button": "⚔️ Pass — I am ready",
         "sab_title": (
             "🪶 **Sabotage phase** — Faucon or Sabotage (up to 2 per side),"
@@ -3291,6 +3303,42 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
             await _dm_user_safe(bot, player_id, content, view, files)
 
 
+async def _edit_pickban_dms_default_reveal(
+    bot: Any, attack: Any, kingdoms_service: Any, strings: dict[str, str]
+) -> None:
+    """Edit both draft DMs into the DEFAULTED draft's reveal (FR live).
+
+    timeline-timers-v1 (Drasah 23/10): when the anti-blocking default
+    ran at T (a side never ranked its civs), the draft DMs never got
+    their reveal — they stayed stuck on « waiting for the adversary »
+    forever. This edits both DMs (own picks already ranked, adversary
+    civs in random order, crests attached — NO sabotage view: the
+    default wiped every sabotage and no Faucon applies), falling
+    back to a fresh DM when the refs are lost. The probe is
+    idempotent service-side, so a restart replays nothing.
+    """
+    pickban: dict[str, Any] = dict(attack.pickban or {})
+    for side, player_id in (
+        ("attacker", str(attack.attacker_lord_id)),
+        ("defender", str(attack.defender_lord_id or "")),
+    ):
+        if not player_id or (side == "defender" and attack.ai_defender):
+            continue
+        enemy = "defender" if side == "attacker" else "attacker"
+        shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
+        civs = ", ".join(shuffled) or "—"
+        content = strings["pickban_default_reveal_dm"].format(map=attack.map_key, civs=civs)
+        # civ-crests-v1 (Drasah 20/10): the revealed civs wear their
+        # blasons, in the SAME shuffled order as the names.
+        files = await civ_crest_files(shuffled)
+        ref = pickban.get(f"{side}_dm") or {}
+        edited = False
+        if ref.get("channel_id") and ref.get("message_id"):
+            edited = await _edit_dm_message_safe(bot, ref, content, None, files)
+        if not edited:
+            await _dm_user_safe(bot, player_id, content, None, files)
+
+
 async def _edit_pickban_dms_phase_done(bot: Any, attack: Any, strings: dict[str, str]) -> None:
     """Edit both DMs into the « sabotage phase over » notice (v4)."""
     pickban: dict[str, Any] = dict(attack.pickban or {})
@@ -3678,6 +3726,14 @@ async def _run_phases_announce_safe(
         for attack in ai_drafts:
             await _edit_pickban_dms_reveal(bot, attack, kingdoms_service, strings)
         dirty += len(ai_drafts)
+        # timeline-timers-v1 (Drasah 23/10): a defaulted draft (a side
+        # never ranked its civs at T) still owed the players their
+        # reveal — without this the draft DMs stayed stuck on
+        # « waiting for the adversary » forever.
+        defaults = await attacks_service.default_reveal_due()
+        for attack in defaults:
+            await _edit_pickban_dms_default_reveal(bot, attack, kingdoms_service, strings)
+        dirty += len(defaults)
         # battle-ai-rdv-v1: the AI « clicks Prêt » at ``ai_ready_at``
         # (30-90 s after the attacker's Prêt) — the flip opens the
         # same scheduled event + footer refresh as a human ready pair.

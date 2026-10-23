@@ -1347,6 +1347,40 @@ class AttackService:
             )
         return due
 
+    async def default_reveal_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Return the DEFAULTED drafts whose players never saw the reveal.
+
+        timeline-timers-v1 (Drasah 23/10): when the anti-blocking
+        default ran at T (a side never ranked its 3 civilizations),
+        ``_expire_defended`` drew random picks — but the players' draft
+        DMs never received their reveal and stayed stuck on the draft
+        forever. This probe returns those attacks so the panel can edit
+        both DMs (adversary civs, crests only — the default wiped every
+        sabotage, so no sabotage view). Idempotent through
+        ``pickban["default_reveal_sent"]`` — a restart replays nothing.
+        """
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.is_over:
+                continue
+            pickban = dict(attack.pickban or {})
+            # Only a RAN default owes a reveal — a draft that never
+            # left a DM (defense locked after the last tick) carries
+            # no ``default_picks`` and skips this probe by design.
+            if not pickban.get("default_picks") or pickban.get("default_reveal_sent"):
+                continue
+            if not (pickban.get("attacker_picks") and pickban.get("defender_picks")):
+                continue
+            pickban["default_reveal_sent"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info(
+                "kingdoms: defaulted draft reveal owed on %s",
+                attack.map_key,
+            )
+        return due
+
     async def set_picks(
         self,
         attack_id: str,

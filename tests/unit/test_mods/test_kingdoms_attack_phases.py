@@ -292,6 +292,35 @@ async def test_forgotten_draft_defaults_to_random_picks_no_sabotage() -> None:
     assert meetings[0].state is AttackState.MEETING
 
 
+async def test_defaulted_draft_reveal_is_owed_exactly_once() -> None:
+    """timeline-timers-v1 (Drasah 23/10): a defaulted draft (a side
+    never ranked its civs at T) still owes the players their reveal
+    DM — the draft DMs must not stay stuck on « waiting » forever."""
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(13)
+    attack = await bundle.fresh_attack()
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths", "huns")
+    await bundle.give_civs("Bourgogne", "perses", "byzantins", "celtes", "maya")
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 46, tzinfo=UTC))
+    # Before the default: nothing is owed.
+    assert await bundle.attacks.default_reveal_due(now=attack.expires_at) == []
+    # Nobody ranks or validates — the meeting time applies the default.
+    await bundle.attacks.expire_stale(now=attack.expires_at)
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert sorted(fresh.pickban["default_picks"]) == ["attacker", "defender"]
+    # The defaulted draft owes its reveal exactly ONCE, then the
+    # probe is idempotent (a restart replays nothing).
+    owed = await bundle.attacks.default_reveal_due(now=attack.expires_at)
+    assert [item.id for item in owed] == [attack.id]
+    assert owed[0].pickban["default_reveal_sent"] is True
+    assert await bundle.attacks.default_reveal_due(now=attack.expires_at) == []
+
+
 async def test_pick_ban_opens_at_the_reveal() -> None:
     """Drasah 18/10: the draft DMs leave AT the T-15 reveal — no pick
     & ban before it, live picks after it."""
