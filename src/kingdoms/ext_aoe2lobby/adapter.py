@@ -202,17 +202,28 @@ class Aoe2LobbyAdapter:
             await asyncio.sleep(self._reconnect_delay_s)
 
     async def _subscribe_all(self, ws: Any) -> None:
-        """Subscribe both channels on a fresh session.
+        """Subscribe the players channel and LEAVE the matches channel.
 
-        ``matches`` is global (the service offers no per-profile
-        filter); ``players`` carries the subscribed profile ids so the
-        server pushes their ``player_status`` deltas — both re-sent on
-        every reconnect with the last reconciled list.
+        The session's default carries the global matches feed (every
+        observable lobby and game — thousands of profiles, the
+        111-pages lesson). The server honors the per-profile filter
+        only when the global feed is explicitly left:
+        ``subscribe players`` + ``unsubscribe matches`` pushes exactly
+        the subscribed profiles' ``player_status`` and nothing else
+        (live-validated: 0 match frames, 0 stray profiles).
         """
-        for context in _CONTEXTS:
-            await ws.send(json.dumps({"action": "subscribe", "type": "matches", "context": context}))
+        await ws.send(
+            json.dumps({"action": "unsubscribe", "type": "matches", "context": "lobby"})
+        )
+        await ws.send(
+            json.dumps({"action": "unsubscribe", "type": "matches", "context": "spectate"})
+        )
         if self._subscribed_ids:
             await self._send_subscription("subscribe", "players", sorted(self._subscribed_ids))
+            logger.info(
+                "aoe2lobby session ready: players-only, %d profile(s) subscribed",
+                len(self._subscribed_ids),
+            )
 
     def _reset_matches(self) -> None:
         """Reset the live matches only: statuses survive across reconnects.
@@ -330,7 +341,7 @@ class Aoe2LobbyAdapter:
         """Derive per-profile transitions from the matches touched by a frame."""
         events: list[dict[str, Any]] = []
         for profile_id in sorted(_profiles_of(touched)):
-            if profile_id not in self._subscribed_ids and self._subscribed_ids:
+            if profile_id not in self._subscribed_ids:
                 continue
             status, match_ref = self._current_status(profile_id)
             previous = self._player_status.get(profile_id)

@@ -29,8 +29,9 @@ def _lobby(match_id: str, profile_ids: list[Any]) -> dict[str, Any]:
     }
 
 
-def test_lobby_snapshot_emits_lobby_opened_per_profile() -> None:
+async def test_lobby_snapshot_emits_lobby_opened_per_profile() -> None:
     adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123", "456", "789"])
     events = _frame(
         adapter,
         {
@@ -48,8 +49,9 @@ def test_lobby_snapshot_emits_lobby_opened_per_profile() -> None:
     assert opened["metadata"]["match_url"] == "https://www.aoe2lobby.com/j/111"
 
 
-def test_match_update_join_emits_transition_snapshot_idempotent() -> None:
+async def test_match_update_join_emits_transition_snapshot_idempotent() -> None:
     adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123", "456"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     join = _frame(adapter, {"lobby_match_update": {"111": _lobby("111", [123, 456])}})
     assert [e["profile_ids"] for e in join] == [["456"]]
@@ -57,8 +59,9 @@ def test_match_update_join_emits_transition_snapshot_idempotent() -> None:
     assert again == []
 
 
-def test_launch_lobby_remove_then_spectate_grace() -> None:
+async def test_launch_lobby_remove_then_spectate_grace() -> None:
     adapter = Aoe2LobbyAdapter(grace_s=15)
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     removed = _frame(adapter, {"lobby_match_remove": ["111"]})
     assert removed == []
@@ -69,8 +72,9 @@ def test_launch_lobby_remove_then_spectate_grace() -> None:
     assert swept == []
 
 
-def test_lobby_remove_elapses_grace_then_lobby_closed() -> None:
+async def test_lobby_remove_elapses_grace_then_lobby_closed() -> None:
     adapter = Aoe2LobbyAdapter(grace_s=15)
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     _frame(adapter, {"lobby_match_remove": ["111"]})
     profile_id = "123"
@@ -81,8 +85,9 @@ def test_lobby_remove_elapses_grace_then_lobby_closed() -> None:
     assert adapter._sweep_pending_closes() == []
 
 
-def test_spectate_remove_after_grace_emits_game_ended() -> None:
+async def test_spectate_remove_after_grace_emits_game_ended() -> None:
     adapter = Aoe2LobbyAdapter(grace_s=15)
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"spectate_match_all": {"111": _lobby("111", [123])}})
     _frame(adapter, {"spectate_match_remove": ["111"]})
     profile_id = "123"
@@ -92,16 +97,18 @@ def test_spectate_remove_after_grace_emits_game_ended() -> None:
     assert events[0]["profile_ids"] == ["123"]
 
 
-def test_player_remove_schedules_graced_close() -> None:
+async def test_player_remove_schedules_graced_close() -> None:
     adapter = Aoe2LobbyAdapter(grace_s=15)
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     events = _frame(adapter, {"lobby_player_remove": [123]})
     assert events == []
     assert "123" in adapter._close_refs
 
 
-def test_null_match_all_treated_as_empty() -> None:
+async def test_null_match_all_treated_as_empty() -> None:
     adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     removed = _frame(adapter, {"lobby_match_all": None})
     assert removed == []
@@ -122,8 +129,9 @@ def test_unknown_keys_and_undecodable_frames_ignored() -> None:
     assert adapter.apply_frame("[1, 2]") == []
 
 
-def test_rejoin_same_lobby_no_duplicate_close() -> None:
+async def test_rejoin_same_lobby_no_duplicate_close() -> None:
     adapter = Aoe2LobbyAdapter(grace_s=15)
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     _frame(adapter, {"lobby_match_remove": ["111"]})
     rejoin = _frame(adapter, {"lobby_match_update": {"111": _lobby("111", [123])}})
@@ -131,8 +139,9 @@ def test_rejoin_same_lobby_no_duplicate_close() -> None:
     assert adapter._sweep_pending_closes() == []
 
 
-def test_lobby_to_game_same_profile_supersedes() -> None:
+async def test_lobby_to_game_same_profile_supersedes() -> None:
     adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     started = _frame(adapter, {"spectate_match_all": {"222": _lobby("222", [123])}})
     assert [e["type"] for e in started] == ["game_started"]
@@ -141,8 +150,9 @@ def test_lobby_to_game_same_profile_supersedes() -> None:
     assert adapter._player_status["123"] == ("game", "222")
 
 
-def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
+async def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
     adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     adapter._reset_matches()
     assert adapter._matches == {"lobby": {}, "spectate": {}}
@@ -154,8 +164,9 @@ def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
     assert "123" in adapter._close_refs
 
 
-def test_snapshot_diff_emits_join_transition_after_reconnect() -> None:
+async def test_snapshot_diff_emits_join_transition_after_reconnect() -> None:
     adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["123"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     adapter._reset_matches()
     adapter._matches = {"lobby": {}, "spectate": {}}
@@ -322,3 +333,42 @@ async def test_transition_carries_the_summary_metadata() -> None:
     assert events and events[0]["metadata"]["map"] == "Arabia"
     assert events[0]["metadata"]["deep_link"] == "aoe2de://1/-111"
     assert events[0]["metadata"]["format"] == "solo"
+
+
+async def test_handshake_leaves_the_global_matches_feed() -> None:
+    """The session subscribes players and LEAVES the global matches feed.
+
+    The 111-pages lesson: the server honors the per-profile filter
+    only when the global matches channel is explicitly left — the
+    handshake sends unsubscribe matches THEN subscribe players.
+    Live-validated: exactly the subscribed profiles, nothing else.
+    """
+    import json as jsonlib
+
+    adapter = Aoe2LobbyAdapter()
+    await adapter.set_subscribed_profiles(["10", "20"])
+    sent: list[dict] = []
+
+    class _FakeWs:
+        async def send(self, payload: str) -> None:
+            sent.append(dict(jsonlib.loads(payload)))
+
+    fake = _FakeWs()
+    adapter._ws = fake  # the live session seam
+    await adapter._subscribe_all(fake)
+    unsub = [m for m in sent if m["action"] == "unsubscribe"]
+    sub = [m for m in sent if m["action"] == "subscribe"]
+    assert {(m["type"], m["context"]) for m in unsub} == {
+        ("matches", "lobby"),
+        ("matches", "spectate"),
+    }
+    assert all(m["type"] == "players" for m in sub)
+    assert {m["context"] for m in sub} == {"lobby", "spectate"}
+    assert sub[0]["ids"] == ["10", "20"]
+
+
+async def test_no_subscribers_emits_nothing() -> None:
+    """Without enrolled profiles the adapter stays silent (strict filter)."""
+    adapter = Aoe2LobbyAdapter()
+    events = _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
+    assert events == []
