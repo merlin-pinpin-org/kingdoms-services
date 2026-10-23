@@ -924,13 +924,11 @@ async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -
     from kingdoms.discord.live import build_dashboard_view
 
     # THE dashboard rendering (unified, owner direction): the same view
-    # the pinned channel shows — embed + the id under it, one code path.
-    embed, footer_view = build_dashboard_view(
+    # the pinned channel shows — Container + the id under it, one code path.
+    view = build_dashboard_view(
         snapshot, body, interaction.client, locale=str(interaction.locale or "en"), game_key=game_key
     )
-    await interaction.followup.send(  # type: ignore[call-overload]
-        embed=embed, view=footer_view, ephemeral=True
-    )
+    await interaction.followup.send(view=view, ephemeral=True)
 
 
 async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) -> None:

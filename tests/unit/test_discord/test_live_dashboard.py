@@ -23,11 +23,29 @@ from kingdoms.discord.live import (
 )
 
 
+def _view_text(view: object) -> str:
+    """Flatten a LayoutView's TextDisplays (real or fake) into text."""
+    if view is None:
+        return ""
+    parts: list[str] = []
+    for item in getattr(getattr(view, "children", []), "__iter__", lambda: [])():
+        for child in getattr(item, "children", []) or []:
+            text = getattr(child, "content", "") or getattr(child, "label", "")
+            if isinstance(text, str):
+                parts.append(text)
+        text = getattr(item, "content", "") or getattr(item, "label", "")
+        if isinstance(text, str):
+            parts.append(text)
+    return "\n".join(parts)
+
+
 @dataclass
 class _FakeMessage:
     id: int
     content: str = ""
     edits: list[str] = field(default_factory=list)
+    author: object = field(default_factory=lambda: _FakeAuthor())
+    flags: object = None
     embeds: list[object] = field(default_factory=list)
     author_id: int = 999
     pinned: bool = False
@@ -52,7 +70,12 @@ class _FakePartialMessage:
             message.content = content
         if embed is not None:
             message.embeds.append(embed)
-        message.edits.append(content or getattr(embed, "description", ""))
+        if view is not None:
+            self._store.sent_views.append(view)
+        # the unified dashboard edits ride the VIEW (components-v2):
+        # capture its text content so the render asserts keep working
+        view_text = _view_text(view)
+        message.edits.append(content or getattr(embed, "description", "") or view_text)
 
 
 class _FakeChannel:
@@ -63,6 +86,7 @@ class _FakeChannel:
         self.name = "📡-live-dashboard"
         self.messages: dict[int, _FakeMessage] = {}
         self.sent: list[_FakeMessage] = []
+        self.sent_views: list[object] = []
         self.guild = _FakeGuildRef(self)
 
     def get_partial_message(self, message_id: int) -> _FakePartialMessage:
@@ -78,9 +102,15 @@ class _FakeChannel:
         message = _FakeMessage(id=1000 + len(self.sent), content=content)
         if embed is not None:
             message.embeds.append(embed)
+        if view is not None:
+            self.sent_views.append(view)
         self.messages[message.id] = message
         self.sent.append(message)
         return message
+
+
+class _FakeAuthor:
+    id: int = 999
 
 
 class _FakeGuildRef:
@@ -283,8 +313,10 @@ async def test_provider_failure_degrades_to_offline_dashboard(stored_live_channe
     created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
-    body = channel.sent[0].edits[-1] if channel.sent[0].edits else channel.sent[0].embeds[0].description
-    assert "Providers unreachable" in body, "the degraded note is shown"
+    # the created message carries the unified view (Container + footer)
+    body = channel.sent_views[0] if channel.sent_views else ""
+    flat = _view_text(body) if not isinstance(body, str) else body
+    assert "Providers unreachable" in flat, "the degraded note is shown"
 
 
 async def test_scope_snapshot_filters_by_cached_members() -> None:

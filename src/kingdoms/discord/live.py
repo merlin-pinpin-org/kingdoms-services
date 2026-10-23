@@ -18,8 +18,6 @@ from typing import Any, Protocol
 
 import discord
 
-from kingdoms.discord.message_limits import MAX_EMBED_DESCRIPTION, truncate_body
-
 logger = logging.getLogger("kingdoms.live")
 
 # The live machinery is game-generic: the game key rides the channel
@@ -590,14 +588,12 @@ async def ensure_live_dashboard(
 
     locale = await guild_locale(guild_id, bot)
     body = render_dashboard(snapshot, locale=locale, bot=bot)
-    embeds = _dashboard_embeds(snapshot, body, bot, locale=locale, game_key=game_key)
     registered = await _resolve_page(registry, guild_id, game_key)
-    page1_embed, page1_footer = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
-    if await _edit_registered(channel, registered, page1_embed, page1_footer):
-        await _sync_extra_pages(guild_id, channel, registry, embeds)
+    page_view = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
+    if await _edit_registered(channel, registered, None, page_view):
         await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
         return False
-    reused = await _reuse_pinned_dashboard(channel, embeds[0])
+    reused = await _reuse_pinned_dashboard(channel, page_view)
     if reused is not None:
         await registry.register(
             platform=PLATFORM,
@@ -607,14 +603,10 @@ async def ensure_live_dashboard(
             message_id=reused,
             guild_id=guild_id,
         )
-        await _sync_extra_pages(guild_id, channel, registry, embeds)
         await _sweep_duplicate_dashboards(channel, keep=reused)
         return False
     await _sweep_duplicate_dashboards(channel, keep=None)
-    page1_embed, page1_footer = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
-    message = await channel.send(  # type: ignore[call-overload]  # embed+LayoutView is runtime-valid
-        embed=page1_embed, view=page1_footer
-    )
+    message = await channel.send(view=page_view)
     try:
         await message.pin(reason="kingdoms: live dashboard (#147)")
     except Exception:
@@ -627,20 +619,7 @@ async def ensure_live_dashboard(
         message_id=str(message.id),
         guild_id=guild_id,
     )
-    await _sync_extra_pages(guild_id, channel, registry, embeds)
     return True
-
-
-def _dashboard_footer_view(game_key: str) -> discord.ui.LayoutView:
-    """Build the dashboard's footer view: the id as a TextDisplay, outside.
-
-    Same convention as every other view (owner direction, asked 23
-    times): the id never rides INSIDE the embed — it is a separate
-    component under it.
-    """
-    from kingdoms.discord.ui.view_footer import add_view_footer
-
-    return add_view_footer(discord.ui.LayoutView(timeout=None), f"panel:game:{game_key}:live")
 
 
 def _page_key(game_key: str, page: int) -> str:
@@ -656,80 +635,61 @@ async def _resolve_page(registry: Any, guild_id: str, game_key: str, page: int =
     return await registry.resolve(PLATFORM, _page_key(game_key, page), guild_id)
 
 
-def _dashboard_embeds(
+async def _reuse_pinned_dashboard(
+    channel: discord.TextChannel, view: discord.ui.LayoutView
+) -> str | None:
+    """Reuse an already-pinned dashboard message instead of adding a new one.
+
+    The registry may point at a dead message (deleted, channel wiped) while
+    the channel still holds the pinned dashboard: adopting it keeps one
+    dashboard message per channel instead of accumulating a new message
+    per refresh failure.
+    """
+    try:
+        for message in await channel.pins():
+            if message.author.id != channel.guild.me.id:
+                continue
+            if not (message.flags and int(message.flags.value) & (1 << 15)):
+                continue  # not a components-v2 dashboard of ours (bit 15 = IS_COMPONENTS_V2)
+            await message.edit(content=None, embed=None, view=view)
+            return str(message.id)
+    except Exception:
+        logger.warning("live dashboard pin adoption failed — best-effort", exc_info=True)
+    return None
+
+
+def build_dashboard_view(
     snapshot: dict[str, Any],
     body: str,
     bot: discord.Client | None = None,
     locale: str = "en",
     game_key: str = DEFAULT_GAME_KEY,
-) -> list[discord.Embed]:
-    """Build the dashboard embeds: as many as the player list needs.
+    page_index: int = 1,
+    page_count: int = 1,
+) -> discord.ui.LayoutView:
+    """Build THE dashboard view — the players-panel look, one code path.
 
-    Discord caps one embed description at 4096 chars; a long player
-    list is split across several messages (one embed each) instead of
-    being silently truncated.
+    A components-v2 Container (accent colour, like an embed) holding the
+    body, the view id as a TextDisplay UNDER it. No embed anywhere (an
+    embed cannot share a message with components-v2 — 50035). The
+    pinned channel, /live and the menu button all send this exact view.
     """
-    lines = body.split("\n")
-    pages: list[str] = []
-    current: list[str] = []
-    for line in lines:
-        candidate = "\n".join([*current, line])
-        if len(candidate) > (MAX_EMBED_DESCRIPTION - 128) and current:
-            pages.append("\n".join(current))
-            current = [line]
-        else:
-            current.append(line)
-    if current:
-        pages.append("\n".join(current))
-    if not pages:
-        pages = [body]
-    return [
-        _dashboard_embed(
-            snapshot, page, bot, page_index=i + 1, page_count=len(pages), locale=locale, game_key=game_key
-        )
-        for i, page in enumerate(pages)
-    ]
+    from kingdoms.discord.message_limits import truncate_body
 
-
-async def _sync_extra_pages(
-    guild_id: str,
-    channel: discord.TextChannel,
-    registry: MessageRegistryServiceLike,
-    embeds: list[discord.Embed],
-    game_key: str = DEFAULT_GAME_KEY,
-) -> None:
-    """Keep pages 2..N alive: edit in place, create, or clean up as needed."""
-    for page_number in range(2, len(embeds) + 1):
-        key = _page_key(game_key, page_number)
-        embed = embeds[page_number - 1]
-        registered = await registry.resolve(PLATFORM, key, guild_id)
-        if await _edit_registered(channel, registered, embed):
-            continue
-        message = await channel.send(  # type: ignore[call-overload]
-            embed=embed, view=_dashboard_footer_view(game_key)
+    title = _t(bot, locale, "title", "🎮 Live dashboard") + f" — {game_label(game_key)}"
+    if page_count > 1:
+        title += f" ({page_index}/{page_count})"
+    colour = 0xE74C3C if snapshot.get("degraded") else 0xF1C40F
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"# {title}\n\n{truncate_body(body, 3500)}"),
+            accent_colour=discord.Colour(colour),
         )
-        await registry.register(
-            platform=PLATFORM,
-            message_key=key,
-            entity_id=guild_id,
-            channel_id=str(channel.id),
-            message_id=str(message.id),
-            guild_id=guild_id,
-        )
-    from kingdoms.discord.pinned_marks import is_pinned_view
+    )
+    from kingdoms.discord.ui.view_footer import add_view_footer
 
-    for page_number in range(len(embeds) + 1, len(embeds) + 10):
-        registered = await registry.resolve(PLATFORM, _page_key(game_key, page_number), guild_id)
-        if registered is None:
-            break
-        try:
-            stale = await channel.get_partial_message(int(registered.message_id)).fetch()
-            if is_pinned_view(stale):
-                await stale.edit(content=None, embed=None)
-                continue
-            await channel.get_partial_message(int(registered.message_id)).delete()
-        except Exception:
-            logger.warning("live dashboard page %s cleanup failed", page_number, exc_info=True)
+    return add_view_footer(view, f"panel:game:{game_key}:live")
 
 
 async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | None) -> int:
@@ -766,86 +726,13 @@ async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | 
     return removed
 
 
-async def _reuse_pinned_dashboard(channel: discord.TextChannel, embed: discord.Embed) -> str | None:
-    """Reuse an already-pinned dashboard message instead of adding a new one.
-
-    The registry may point at a dead message (deleted, channel wiped) while
-    the channel still holds the pinned dashboard: adopting it keeps one
-    dashboard message per channel instead of accumulating a new message
-    per refresh failure.
-    """
-    try:
-        for message in await channel.pins():
-            if message.author.id != channel.guild.me.id:
-                continue
-            if not any("Live dashboard" in (e.title or "") for e in message.embeds):
-                continue
-            await message.edit(content=None, embed=embed)
-            return str(message.id)
-    except Exception:
-        logger.warning("live dashboard pin adoption failed — best-effort", exc_info=True)
-    return None
-
-
-def build_dashboard_view(
-    snapshot: dict[str, Any],
-    body: str,
-    bot: discord.Client | None = None,
-    locale: str = "en",
-    game_key: str = DEFAULT_GAME_KEY,
-    page_index: int = 1,
-    page_count: int = 1,
-) -> tuple[discord.Embed, discord.ui.LayoutView]:
-    """Build THE dashboard page: the embed, and the footer view under it.
-
-    The single rendering of the live dashboard (owner direction, after
-    18 prompts of two diverging implementations): the embed carries the
-    dashboard, the view id rides a TextDisplay UNDER it — never inside
-    the embed. The pinned channel, /live and the menu button all send
-    this exact pair (message = embed, components = the footer view).
-    """
-    embed = _dashboard_embed(
-        snapshot, body, bot, page_index=page_index, page_count=page_count, locale=locale, game_key=game_key
-    )
-    from kingdoms.discord.ui.view_footer import add_view_footer
-
-    view = add_view_footer(discord.ui.LayoutView(timeout=None), f"panel:game:{game_key}:live")
-    return embed, view
-
-
-def _dashboard_embed(
-    snapshot: dict[str, Any],
-    body: str,
-    bot: discord.Client | None = None,
-    page_index: int = 1,
-    page_count: int = 1,
-    locale: str = "en",
-    game_key: str = DEFAULT_GAME_KEY,
-) -> discord.Embed:
-    """Build one dashboard page's embed: title, icon, and the players' states."""
-    user = getattr(bot, "user", None) if bot is not None else None
-    icon = getattr(user, "display_avatar", None) if user else None
-    icon_url = getattr(icon, "url", None) if icon else None
-
-    description = truncate_body(body, MAX_EMBED_DESCRIPTION)
-    title = _t(bot, locale, "title", "🎮 Live dashboard") + f" — {game_label(game_key)}"
-    if page_count > 1:
-        title += f" ({page_index}/{page_count})"
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
-    )
-    if icon_url:
-        embed.set_thumbnail(url=icon_url)
-    return embed
 
 
 async def _edit_registered(
     channel: discord.TextChannel,
     registered: RegisteredMessageLike | None,
-    embed: discord.Embed,
-    view: discord.ui.LayoutView | None = None,
+    embed: discord.Embed | None,
+    view: discord.ui.LayoutView,
 ) -> bool:
     """Edit the registered message in place; True when the edit landed.
 
@@ -1013,9 +900,8 @@ async def _push_snapshot(
     ]
     stats = await collect_profile_stats(active_ids)
     body = render_dashboard(snapshot, stats=stats)
-    embeds = _dashboard_embeds(snapshot, body, bot)
-    _page1_embed, page1_footer = build_dashboard_view(snapshot, body, bot, game_key=game_key)
-    views = [page1_footer]
+    page_view = build_dashboard_view(snapshot, body, bot, game_key=game_key)
+    views = [page_view]
     for guild in list(bot.guilds):
         guild_id = str(guild.id)
         last_at, last_fp = _LAST_PUSH.get(guild_id, (0.0, ""))
@@ -1035,10 +921,8 @@ async def _push_snapshot(
             continue  # the tree has not provisioned the game's live channel yet
         registered = await registry.resolve(PLATFORM, _page_key(game_key, 1), str(guild.id))
         try:
-            if not await _edit_registered(channel, registered, embeds[0], views[0]):
+            if not await _edit_registered(channel, registered, None, views[0]):
                 await ensure_live_dashboard(bot, guild_id, client, registry, game_key)
-            else:
-                await _sync_extra_pages(guild_id, channel, registry, embeds, game_key)
             await _remember_sent_fingerprint(guild_id, fingerprint)
         except Exception:
             logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)
