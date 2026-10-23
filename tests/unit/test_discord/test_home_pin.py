@@ -1,4 +1,6 @@
 """The declared home menu pins through the static-pin machinery."""
+from typing import Any
+
 import pytest
 
 from kingdoms.discord.views_declared import declare_views_from_config
@@ -30,3 +32,40 @@ async def test_the_root_home_menu_pins_as_a_declared_view() -> None:
     layout = await root_home.build_layout("42")
     customs = [c.custom_id for c in layout.walk_children() if getattr(c, "custom_id", None)]
     assert "view:open:panel:profile" in customs, "the declared buttons ride the pin"
+
+
+def test_roster_lines_sorted_with_mention_and_links() -> None:
+    """The roster lines: pseudo, mention, aoe2insights links — alphabetical."""
+    from kingdoms.discord.home import _casefold_key, _roster_lines
+
+    class _Member:
+        def __init__(self, name: str) -> None:
+            self.display_name = name
+
+    class _Guild:
+        def get_member(self, uid: int) -> Any:
+            return {"10": _Member("Zoé"), "20": _Member("alice"), "30": _Member("Bob")}.get(str(uid))
+
+    by_user = {
+        "10": [{"user_id": "10", "profile_id": "111", "profile": {"display_name": "ZoeAoe"}}],
+        "20": [{"user_id": "20", "profile_id": "222", "profile": {"display_name": "AliceAoe"}}],
+        "30": [{"user_id": "30", "profile_id": "333", "profile": {"display_name": "BobAoe"}}],
+    }
+    lines = _roster_lines("aoe2", by_user, _Guild())
+    assert lines[0].startswith("• **alice** — <@20>")
+    assert lines[1].startswith("• **Bob** — <@30>")
+    assert lines[2].startswith("• **Zoé** — <@10>")
+    assert "https://www.aoe2insights.com/user/relic/222/" in lines[0]
+    assert _casefold_key("Zoé") == "zoe"
+
+
+def test_paginate_lines_splits_on_budget() -> None:
+    """Lines beyond the budget split into several pages, none over budget."""
+    from kingdoms.discord.home import _paginate_lines
+
+    lines = [f"player-{i} " + "x" * 90 for i in range(10)]
+    pages = _paginate_lines(lines, 200)
+    assert len(pages) > 1
+    assert all(len(page) <= 200 for page in pages)
+    assert pages[0].startswith("player-0")
+    assert pages[-1].endswith("x" * 90 or lines[-1].split()[-1])

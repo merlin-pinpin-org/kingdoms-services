@@ -1088,10 +1088,11 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
 def _view_users_for_game(game_key: str) -> Any:
     """Build the players panel opener for one game (generic, per game).
 
-    One line per registered member: their bold display name, then
-    every profile of that game as an aoe2insights link. The header
-    carries the game's long label (never the game key), the footer
-    the view id.
+    One line per registered member — pseudo, Discord mention, then
+    every profile of that game as an aoe2insights link — sorted
+    alphabetically by pseudo. The whole roster shows: the lines are
+    paginated across as many ephemeral messages as the 4000-char V2
+    text budget needs (no [:25] truncation).
     """
 
     async def _open(interaction: discord.Interaction) -> None:
@@ -1107,7 +1108,6 @@ def _view_users_for_game(game_key: str) -> Any:
             logger.warning("PLAYERS PANEL roster read failed (%s)", game_key, exc_info=True)
             bindings = []
 
-        # group by Discord user: one line per member, all their profiles
         from collections import defaultdict
 
         by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -1116,37 +1116,87 @@ def _view_users_for_game(game_key: str) -> Any:
             if user_id:
                 by_user[user_id].append(binding)
 
-        lines: list[str] = []
         guild = bot.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
-        for user_id, user_bindings in list(by_user.items())[:25]:
-            member = guild.get_member(int(user_id)) if guild is not None else None
-            pseudo = getattr(member, "display_name", None) or f"<@{user_id}>"
-            profiles: list[str] = []
-            for binding in user_bindings:
-                profile = binding.get("profile") or {}
-                name = (
-                    str(profile.get("display_name") or profile.get("name") or "")
-                    or str(binding.get("profile_id", "?"))
-                )
-                pid = str(binding.get("profile_id", "?"))
-                url = _game_account_url(game_key, pid)
-                profiles.append(f"[{name}]({url})" if url else name)
-            lines.append(f"\u2022 **{pseudo}**: {', '.join(profiles)}")
+        lines = _roster_lines(game_key, by_user, guild)
+        if not lines:
+            lines = [await reply(interaction, "profile.no_members_bound")]
+        for view in _roster_views(game_key, lines):
+            await interaction.followup.send(view=view, ephemeral=True)
 
-        body = "\n".join(lines) if lines else await reply(interaction, "profile.no_members_bound")
-        from kingdoms.core.ids import footer
+    return _open
 
+
+def _roster_lines(game_key: str, by_user: dict[str, list[dict[str, Any]]], guild: Any) -> list[str]:
+    """One line per member (pseudo, mention, profile links), alphabetical by pseudo."""
+    entries: list[tuple[str, str, str]] = []
+    for user_id, user_bindings in by_user.items():
+        member = guild.get_member(int(user_id)) if guild is not None else None
+        pseudo = getattr(member, "display_name", None) or ""
+        mention = f"<@{user_id}>"
+        profiles: list[str] = []
+        for binding in sorted(user_bindings, key=lambda b: str(b.get("profile_id", ""))):
+            profile = binding.get("profile") or {}
+            name = (
+                str(profile.get("display_name") or profile.get("name") or "")
+                or str(binding.get("profile_id", "?"))
+            )
+            pid = str(binding.get("profile_id", "?"))
+            url = _game_account_url(game_key, pid)
+            profiles.append(f"[{name}]({url})" if url else name)
+        entries.append((pseudo or mention, mention, ", ".join(profiles)))
+    entries.sort(key=lambda e: _casefold_key(e[0]))
+    return [f"\u2022 **{pseudo}** \u2014 {mention}: {profiles}" for pseudo, mention, profiles in entries]
+
+
+def _roster_views(game_key: str, lines: list[str]) -> list[Any]:
+    """Build the roster's V2 views: one per page of the character budget."""
+    from kingdoms.core.ids import footer
+
+    header = f"# \U0001F465 {_game_label(game_key)}\n\n"
+    view_id = f"panel:game:{game_key}:players"
+    budget = 4000 - len(header) - len(footer(view_id)) - 64
+    pages = _paginate_lines(lines, budget)
+    views: list[Any] = []
+    for page_index, page in enumerate(pages):
+        title = header
+        if len(pages) > 1:
+            title += f"*({page_index + 1}/{len(pages)})*\n\n"
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(
             discord.ui.Container(
-                discord.ui.TextDisplay(f"# \U0001F465 {_game_label(game_key)}\n\n{body}"),
+                discord.ui.TextDisplay(title + page),
                 accent_colour=discord.Colour(0x5865F2),
             )
         )
-        view.add_item(discord.ui.TextDisplay(footer(f"panel:game:{game_key}:players")))
-        await interaction.followup.send(view=view, ephemeral=True)
+        view.add_item(discord.ui.TextDisplay(footer(view_id)))
+        views.append(view)
+    return views
 
-    return _open
+
+def _casefold_key(text: str) -> str:
+    """Sort key that ignores case and diacritics (pseudo alphabetical order)."""
+    import unicodedata
+
+    stripped = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in stripped if not unicodedata.combining(ch)).casefold()
+
+
+def _paginate_lines(lines: list[str], budget: int) -> list[str]:
+    """Split lines into pages that each fit the character budget."""
+    pages: list[str] = []
+    current: list[str] = []
+    used = 0
+    for line in lines:
+        cost = len(line) + 1
+        if current and used + cost > budget:
+            pages.append("\n".join(current))
+            current = []
+            used = 0
+        current.append(line)
+        used += cost
+    if current:
+        pages.append("\n".join(current))
+    return pages or [""]
 
 
 async def open_home_view_for_guild(interaction: discord.Interaction, view_key: str, guild_id: str) -> None:
