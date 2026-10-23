@@ -45,6 +45,7 @@ from kingdoms.core.services.provider_endpoints import provider_url as _provider_
 
 logger = logging.getLogger(__name__)
 
+
 DEFAULT_WS_URL = _provider_url("aoe2lobby", "ws_url")
 SCHEMA_WS_URL = _provider_url("aoe2lobby", "schema_ws_url")
 DEFAULT_MAX_SIZE = 10 * 1024 * 1024
@@ -162,6 +163,47 @@ class Aoe2LobbyAdapter:
             logger.warning("aoe2lobby schema capture failed — civs stay as raw ids")
         return self._schema
 
+    async def _run_session(self, ws: Any) -> AsyncIterator[dict[str, Any]]:
+        """Run one connected session: frames + timed grace closes.
+
+        The reader task feeds raw frames; the sweeper task consumes the
+        grace windows on a timer (a lobby exit can leave the session
+        silent — the stale-lobby lesson); both meet on one queue the
+        generator drains. Ends on the reader's sentinel (server closed)
+        or the snapshot refresh (the caller reconnects).
+        """
+        queue: asyncio.Queue[Any] = asyncio.Queue()
+
+
+
+        reader = asyncio.ensure_future(_frame_reader(ws, queue))
+        sweeper = asyncio.ensure_future(_grace_sweeper(self, queue))
+        try:
+            while True:
+                item = await queue.get()
+                if isinstance(item, str) and not item:
+                    break  # the reader ended (sentinel)
+                if isinstance(item, dict):
+                    yield item  # a grace-close event from the sweeper
+                else:
+                    for event in self.apply_frame(item):
+                        yield event
+                if self._snapshot_due():
+                    break
+        finally:
+            reader.cancel()
+            sweeper.cancel()
+
+
+    def _snapshot_due(self) -> bool:
+        """Report whether the periodic snapshot refresh is due."""
+        if not self._last_snapshot_at:
+            return False
+        if _now_ms() - self._last_snapshot_at > self._refresh_s * 1000:
+            logger.info("aoe2lobby ws refreshing: reconnect for a fresh snapshot")
+            return True
+        return False
+
     async def stream_events(self) -> AsyncIterator[dict[str, Any]]:
         """Yield normalized event dicts from the WebSocket, forever.
 
@@ -189,15 +231,8 @@ class Aoe2LobbyAdapter:
                         await self.fetch_schema()
                     await self._subscribe_all(ws)
                     logger.info("aoe2lobby ws connected: %s", self._ws_url)
-                    while True:
-                        raw = await ws.recv()
-                        for event in self.apply_frame(raw):
-                            yield event
-                        for event in self._sweep_pending_closes():
-                            yield event
-                        if self._last_snapshot_at and _now_ms() - self._last_snapshot_at > self._refresh_s * 1000:
-                            logger.info("aoe2lobby ws refreshing: reconnect for a fresh snapshot")
-                            break
+                    async for event in self._run_session(ws):
+                        yield event
             except (TimeoutError, websockets.WebSocketException, OSError):
                 logger.warning("aoe2lobby ws disconnected; retrying in %ss", self._reconnect_delay_s)
             except Exception:
@@ -579,3 +614,20 @@ def _format_label(teams: dict[int, int], player_count: int) -> str:
 def _now_ms() -> int:
     """Epoch milliseconds, the repo's timestamp convention."""
     return int(time.time() * 1000)
+
+
+async def _frame_reader(ws: Any, queue: asyncio.Queue[Any]) -> None:
+    """Feed raw frames to the queue until the session ends."""
+    try:
+        while True:
+            queue.put_nowait(await ws.recv())
+    except Exception:
+        queue.put_nowait("")
+
+
+async def _grace_sweeper(adapter: Aoe2LobbyAdapter, queue: asyncio.Queue[Any]) -> None:
+    """Consume the grace windows on a timer (silence-proof)."""
+    while True:
+        await asyncio.sleep(2.0)
+        for event in adapter._sweep_pending_closes():
+            queue.put_nowait(event)

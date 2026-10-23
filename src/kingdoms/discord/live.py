@@ -852,7 +852,12 @@ async def _push_snapshot(
     if fingerprint == _LAST_PUSH.get("_global", (0.0, ""))[1]:
         return
     _LAST_PUSH["_global"] = (now, fingerprint)
-    stats = await collect_profile_stats([str(p.get("profile_id", "")) for p in snapshot.get("players", [])])
+    active_ids = [
+        str(p.get("profile_id", ""))
+        for p in snapshot.get("players", [])
+        if p.get("state") != "offline"
+    ]
+    stats = await collect_profile_stats(active_ids)
     body = render_dashboard(snapshot, stats=stats)
     embeds = _dashboard_embeds(snapshot, body, bot)
     for guild in list(bot.guilds):

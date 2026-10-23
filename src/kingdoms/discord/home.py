@@ -907,9 +907,12 @@ async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -
             snapshot = await client.watch(game_key)
         except Exception:
             logger.warning("HOME: live snapshot failed (game %s)", game_key, exc_info=True)
-    stats = await collect_profile_stats(
-        [str(p.get("profile_id", "")) for p in snapshot.get("players", [])], game_key
-    )
+    active_ids = [
+        str(p.get("profile_id", ""))
+        for p in snapshot.get("players", [])
+        if p.get("state") != "offline"
+    ]
+    stats = await collect_profile_stats(active_ids, game_key)
     body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
     from kingdoms.discord.message_limits import truncate_body
     from kingdoms.discord.ui.view_footer import add_view_footer
@@ -1190,6 +1193,16 @@ def _view_users_for_game(game_key: str) -> Any:
                 by_user[user_id].append(binding)
 
         guild = bot.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
+
+        # guild-scoped: only the enrolled players who are MEMBERS of this
+        # guild render (owner direction — the platform's roster, not the
+        # game's global one)
+        if guild is not None:
+            by_user = {
+                user_id: bindings
+                for user_id, bindings in by_user.items()
+                if guild.get_member(int(user_id)) is not None
+            }
         profile_ids = [str(b.get("profile_id", "")) for bs in by_user.values() for b in bs]
         from kingdoms.discord.live import collect_profile_stats
 
