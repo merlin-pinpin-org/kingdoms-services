@@ -366,6 +366,16 @@ after&nbsp;``score_confirm_minutes``,&nbsp;contested&nbsp;before),&nbsp;``"alrea
 or&nbsp;``"disputed"``&nbsp;(contrary&nbsp;declarations&nbsp;—&nbsp;the&nbsp;admins&nbsp;arbitrate<br>
 through&nbsp;``resolve_dispute``).</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-default_reveal_due"><strong>default_reveal_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;DEFAULTED&nbsp;draft&nbsp;still&nbsp;needs&nbsp;its&nbsp;reveal&nbsp;DM.<br>
+&nbsp;<br>
+real-timeline-v1&nbsp;(Drasah&nbsp;23/10):&nbsp;when&nbsp;the&nbsp;anti-blocking&nbsp;default<br>
+ran&nbsp;at&nbsp;T&nbsp;(a&nbsp;side&nbsp;never&nbsp;ranked&nbsp;its&nbsp;civs),&nbsp;the&nbsp;draft&nbsp;DMs&nbsp;never&nbsp;got<br>
+the&nbsp;reveal&nbsp;—&nbsp;they&nbsp;stay&nbsp;stuck&nbsp;on&nbsp;"waiting&nbsp;for&nbsp;the&nbsp;adversary".<br>
+This&nbsp;probe&nbsp;returns&nbsp;the&nbsp;defaulted&nbsp;attacks&nbsp;whose&nbsp;players&nbsp;have&nbsp;not<br>
+been&nbsp;shown&nbsp;their&nbsp;final&nbsp;selections&nbsp;yet,&nbsp;so&nbsp;the&nbsp;panel&nbsp;can&nbsp;edit<br>
+both&nbsp;DMs&nbsp;(own&nbsp;picks&nbsp;+&nbsp;adversary&nbsp;civs,&nbsp;crests&nbsp;only).&nbsp;Idempotent<br>
+through&nbsp;``pickban["default_reveal_sent"]``.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-defense_ai_level"><strong>defense_ai_level</strong></a>(self, kingdom_id: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdom&nbsp;defence&nbsp;bot's&nbsp;AI&nbsp;level&nbsp;(marche-v2&nbsp;art.&nbsp;5).<br>
 &nbsp;<br>
 The&nbsp;base&nbsp;level&nbsp;is&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;(D18:&nbsp;1=Facile&nbsp;…&nbsp;5=Extrême);<br>
@@ -438,7 +448,7 @@ Drasah&nbsp;18/10&nbsp;v4:&nbsp;the&nbsp;vocal&nbsp;is&nbsp;wanted&nbsp;as&nbsp;
 answered&nbsp;the&nbsp;sabotage&nbsp;phase&nbsp;—&nbsp;not&nbsp;at&nbsp;T.&nbsp;Returns&nbsp;the&nbsp;fresh<br>
 MEETING&nbsp;attack,&nbsp;or&nbsp;None&nbsp;when&nbsp;the&nbsp;phase&nbsp;is&nbsp;not&nbsp;done&nbsp;yet.</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-pick_ban_due"><strong>pick_ban_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Mark&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;T-5&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;must&nbsp;leave&nbsp;(D77).<br>
+<dl><dt>async <a name="AttackService-pick_ban_due"><strong>pick_ban_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Mark&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;T-15&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;must&nbsp;leave&nbsp;(D77).<br>
 &nbsp;<br>
 Idempotent&nbsp;through&nbsp;``pickban["sent"]``.&nbsp;The&nbsp;AI&nbsp;side<br>
 auto-validates&nbsp;at&nbsp;the&nbsp;same&nbsp;moment&nbsp;(no&nbsp;human&nbsp;to&nbsp;wait&nbsp;for).<br>
@@ -448,7 +458,10 @@ the&nbsp;defense&nbsp;locks&nbsp;—&nbsp;the&nbsp;old&nbsp;T-5&nbsp;lead&nbsp;w
 the&nbsp;scheduler&nbsp;tick&nbsp;and&nbsp;the&nbsp;draft&nbsp;NEVER&nbsp;left&nbsp;(live&nbsp;beta&nbsp;17/10:<br>
 no&nbsp;DM,&nbsp;then&nbsp;double&nbsp;forfeit&nbsp;at&nbsp;T).&nbsp;The&nbsp;pickban&nbsp;rides<br>
 ``revealed``:&nbsp;once&nbsp;the&nbsp;reveal&nbsp;ran&nbsp;on&nbsp;a&nbsp;defended&nbsp;attack,&nbsp;the<br>
-DMs&nbsp;are&nbsp;due&nbsp;on&nbsp;the&nbsp;very&nbsp;same&nbsp;tick.</span></dd></dl>
+DMs&nbsp;are&nbsp;due&nbsp;on&nbsp;the&nbsp;very&nbsp;same&nbsp;tick.&nbsp;real-timeline-v1&nbsp;(Drasah<br>
+23/10):&nbsp;vs&nbsp;the&nbsp;bot&nbsp;AI&nbsp;the&nbsp;SAME&nbsp;clock&nbsp;holds&nbsp;—&nbsp;the&nbsp;AI&nbsp;engages&nbsp;at<br>
+the&nbsp;cutoff&nbsp;and&nbsp;its&nbsp;draft&nbsp;DM&nbsp;leaves&nbsp;on&nbsp;the&nbsp;same&nbsp;tick&nbsp;as&nbsp;a&nbsp;human<br>
+defense's.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-ready_due"><strong>ready_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;T+5&nbsp;no-show&nbsp;line&nbsp;of&nbsp;every&nbsp;open&nbsp;meeting.<br>
 &nbsp;<br>
@@ -547,9 +560,13 @@ Drasah&nbsp;18/10:&nbsp;the&nbsp;defense&nbsp;window&nbsp;is&nbsp;[declaration,&
 reveal&nbsp;CLOSES&nbsp;the&nbsp;defense&nbsp;(no&nbsp;more&nbsp;answers)&nbsp;and,&nbsp;on&nbsp;the&nbsp;same<br>
 tick,&nbsp;the&nbsp;defended&nbsp;attacks'&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;leave<br>
 (``pick_ban_due``&nbsp;rides&nbsp;``revealed``).&nbsp;Without&nbsp;a&nbsp;defender&nbsp;the<br>
-bot&nbsp;AI&nbsp;still&nbsp;takes&nbsp;the&nbsp;defense&nbsp;at&nbsp;the&nbsp;meeting&nbsp;time<br>
-(``expire_stale``).&nbsp;Idempotent&nbsp;through&nbsp;``revealed``&nbsp;—&nbsp;the<br>
-scheduler&nbsp;tick&nbsp;replays&nbsp;it&nbsp;after&nbsp;every&nbsp;restart.</span></dd></dl>
+bot&nbsp;AI&nbsp;takes&nbsp;the&nbsp;defense&nbsp;AT&nbsp;THE&nbsp;CUTOFF&nbsp;(real-timeline-v1,<br>
+Drasah&nbsp;23/10):&nbsp;the&nbsp;whole&nbsp;draft/sabotage/RDV&nbsp;chain&nbsp;then&nbsp;follows<br>
+the&nbsp;SAME&nbsp;clock&nbsp;as&nbsp;a&nbsp;human&nbsp;defense&nbsp;—&nbsp;draft&nbsp;DM&nbsp;at&nbsp;T-15,&nbsp;meeting<br>
+at&nbsp;T,&nbsp;no-show&nbsp;at&nbsp;T+5.&nbsp;``expire_stale``&nbsp;keeps&nbsp;a&nbsp;catch-up&nbsp;path<br>
+for&nbsp;a&nbsp;restart&nbsp;that&nbsp;never&nbsp;ran&nbsp;the&nbsp;reveal.&nbsp;Idempotent&nbsp;through<br>
+``revealed``&nbsp;—&nbsp;the&nbsp;scheduler&nbsp;tick&nbsp;replays&nbsp;it&nbsp;after&nbsp;every<br>
+restart.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-sabotage_civilizations"><strong>sabotage_civilizations</strong></a>(self, attack_id: 'str', attacker_kingdom_id: 'str', civilizations: 'list[str]') -&gt; 'AttackModel'</dt><dd><span class="code">Snipe&nbsp;civilizations&nbsp;on&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;(D12/D28).<br>
 &nbsp;<br>

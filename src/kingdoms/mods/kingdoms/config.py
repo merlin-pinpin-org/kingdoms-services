@@ -167,13 +167,6 @@ class AttackSettings(BaseModel):
     territory without a game) and no longer the default."""
     ready_grace_minutes: int = Field(default=5, ge=0)
     """The T+grace no-show line of a meeting (minutes)."""
-    ai_draft_grace_minutes: int = Field(default=15, ge=0)
-    """battle-ai-rdv-v1 (Drasah 22/10): vs a bot-AI defense the draft
-    runs AT the meeting time (the AI never bans, it picks 3 random
-    civilizations and validates after a 30-90 s random delay) — this
-    is the window the ATTACKER gets to answer his own draft DM before
-    the anti-blocking default (random civs, never a forfeit) applies.
-    15 minutes: the exact window the human draft enjoys (T-15 → T)."""
     room_cleanup_delay_minutes: int = Field(default=30, ge=0)
     """Drasah 18/10 v4: the battle room survives this long (minutes)
     after the meeting resolved — the room only disappears once a

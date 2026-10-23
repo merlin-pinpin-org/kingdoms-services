@@ -70,23 +70,25 @@ async def test_no_live_deadline_returns_none() -> None:
     assert await bundle.attacks.next_phase_deadline(now=_T) is None
 
 
-async def test_ai_flip_tracks_the_ai_draft_validate_and_the_grace_default() -> None:
-    """battle-ai-rdv-v1: after the T flip the probe tracks the AI's
-    ``ai_validate_at`` think time, then the T+grace anti-blocking default."""
+async def test_ai_engaged_at_the_cutoff_tracks_validate_then_the_default() -> None:
+    """real-timeline-v1 (Drasah 23/10): the AI engages AT the T-15
+    cutoff — the probe tracks the AI's ``ai_validate_at`` think time,
+    then the anti-blocking default at T (no post-T grace anymore)."""
     bundle = _PhaseBundle()
     await _launch(bundle)
     await bundle.declared()
-    # Nobody defended: the AI takes over at T.
-    await bundle.attacks.expire_stale(now=_T)
-    flipped = await bundle.attacks.pick_ban_due(now=_T)
+    cutoff = _T - timedelta(minutes=15)
+    # Nobody defended: the AI takes over at the cutoff.
+    await bundle.attacks.reveal_due(now=cutoff)
+    flipped = await bundle.attacks.pick_ban_due(now=cutoff)
     assert len(flipped) == 1
     validate_at = float(flipped[0].pickban["ai_validate_at"])
-    probe = _T + timedelta(seconds=5)
+    probe = cutoff + timedelta(seconds=5)
     assert validate_at > probe.timestamp()
     assert await bundle.attacks.next_phase_deadline(now=probe) == datetime.fromtimestamp(validate_at, tz=UTC)
-    # Past the AI's validation (draft still unresolved): the T+grace default.
+    # Past the AI's validation (draft still unresolved): the T default.
     grace = datetime.fromtimestamp(validate_at, tz=UTC) + timedelta(seconds=1)
-    assert await bundle.attacks.next_phase_deadline(now=grace) == _T + timedelta(minutes=15)
+    assert await bundle.attacks.next_phase_deadline(now=grace) == _T
 
 
 async def test_meeting_tracks_the_no_show_line_and_the_ai_ready() -> None:
@@ -207,20 +209,22 @@ async def test_a_probe_failure_keeps_the_stock_cadence() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_the_meeting_time_flip_is_urgent_the_draft_dm_leaves_now() -> None:
-    """v2: at T the AI flip leaves the DEFENDED+unsent draft DUE NOW —
-    the probe returns ``now`` so the DM leaves within the second
-    instead of waiting the base tick (the live beta report)."""
+async def test_the_cutoff_ai_engagement_is_urgent_the_draft_dm_leaves_now() -> None:
+    """v2 + real-timeline-v1: at the T-15 cutoff the AI engagement
+    leaves the DEFENDED+unsent draft DUE NOW — the probe returns
+    ``now`` so the DM leaves within the second instead of waiting the
+    base tick (the live beta report)."""
     bundle = _PhaseBundle()
     await _launch(bundle)
     await bundle.declared()
-    # Nobody defended: the AI flip at T reveals the attack — the draft
-    # DM is now due and carries no clock of its own.
-    await bundle.attacks.expire_stale(now=_T)
-    assert await bundle.attacks.next_phase_deadline(now=_T) == _T
+    cutoff = _T - timedelta(minutes=15)
+    # Nobody defended: the AI engages at the cutoff — the draft DM is
+    # now due and carries no clock of its own.
+    await bundle.attacks.reveal_due(now=cutoff)
+    assert await bundle.attacks.next_phase_deadline(now=cutoff) == cutoff
     # One tick clears it: the DMs are sent, the AI's validate takes over.
-    await bundle.attacks.pick_ban_due(now=_T)
-    probe = _T + timedelta(seconds=5)
+    await bundle.attacks.pick_ban_due(now=cutoff)
+    probe = cutoff + timedelta(seconds=5)
     assert await bundle.attacks.next_phase_deadline(now=probe) != probe
 
 
@@ -231,22 +235,23 @@ async def test_the_attacker_validation_is_urgent_the_reveal_resolves_now() -> No
     bundle = _PhaseBundle()
     await _launch(bundle)
     attack = await bundle.declared()
-    await bundle.attacks.expire_stale(now=_T)
-    await bundle.attacks.pick_ban_due(now=_T)
+    cutoff = _T - timedelta(minutes=15)
+    await bundle.attacks.reveal_due(now=cutoff)
+    await bundle.attacks.pick_ban_due(now=cutoff)
     # The AI validates its 3 random picks at ``ai_validate_at``.
-    flipped = (await bundle.attacks.ai_draft_due(now=_T + timedelta(minutes=2)))[0]
+    flipped = (await bundle.attacks.ai_draft_due(now=cutoff + timedelta(minutes=2)))[0]
     assert flipped.pickban.get("defender_validated")
     assert not flipped.pickban.get("resolved_pickban")
     # Not urgent while the attacker has not ranked his civs: the probe
-    # keeps tracking the T+grace anti-blocking default.
-    grace = _T + timedelta(minutes=15)
-    assert await bundle.attacks.next_phase_deadline(now=_T + timedelta(minutes=2)) == grace
+    # keeps tracking the T anti-blocking default.
+    assert await bundle.attacks.next_phase_deadline(now=cutoff + timedelta(minutes=2)) == _T
     # The attacker validates — the resolution is now due NOW.
-    validated = await bundle.attacks.validate_pickban(attack.id, "king-a")
+    validated = await bundle.attacks.validate_pickban(
+        attack.id, "king-a", now=cutoff + timedelta(minutes=2)
+    )
     assert validated.pickban.get("resolved_pickban")
-    # The resolution itself flipped ``resolved_pickban`` — the room is
-    # the next urgent step (past T).
-    assert await bundle.attacks.next_phase_deadline(now=_T + timedelta(minutes=2)) == _T + timedelta(minutes=2)
+    # Pre-T the resolution is NOT urgent — the room opens at T.
+    assert await bundle.attacks.next_phase_deadline(now=cutoff + timedelta(minutes=2)) == _T
 
 
 async def test_a_resolved_draft_past_t_is_urgent_the_room_opens_now() -> None:

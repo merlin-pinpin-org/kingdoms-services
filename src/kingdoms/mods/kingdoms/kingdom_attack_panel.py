@@ -336,7 +336,8 @@ _STRINGS: dict[str, dict[str, str]] = {
             "(ton classement ordonne les replis).\n"
             "Si tu possèdes un Sabotage ou un Faucon, tu pourras en faire usage dans le salon de la bataille.\n"
             "\n"
-            "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
+            "⏳ **Tu as jusqu'à <t:{deadline}:R> (fin à <t:{deadline}:t>).**\n"
+            "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant la fin du timer, "
             "3 civilisations seront tirées **au hasard** de ta main — et aucun "
             "sabotage ni faucon ne s'appliquera. Le RDV a lieu quoi qu'il arrive.\n"
             "Ta main : {hand}\nMain adverse : {theirs}"
@@ -347,11 +348,20 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_waiting": "⏳ Picks enregistrés et validés — en attente de l'adversaire.",
         "pickban_reveal_dm": (
             "🎭 **Reveal — {map}**\nLes 3 civilisations potentielles de ton"
-            " adversaire (ordre aléatoire) :\n**{civs}**\n\n🗡️ Veux-tu saboter"
-            " ou utiliser un Faucon ? — jusqu'à 2 civilisations adverses"
+            " adversaire (ordre aléatoire) — blasons ci-dessous.\n\n"
+            "⏳ **Tu as jusqu'à <t:{deadline}:R> (fin à <t:{deadline}:t>).**\n"
+            "🗡️ Veux-tu saboter ou utiliser un Faucon ? — jusqu'à 2 civilisations adverses"
             " retirées par camp.\n⚔️ Sinon, valide avec Passer — un joueur"
-            " absent du salon vocal à l'heure du RDV est déclaré forfait !"
+            " absent du salon vocal à l'heure du RDV est déclaré forfait !\n"
+            "⚠️ Si le timer est écoulé, **aucun sabotage ni faucon ne sera utilisé** par défaut."
         ),
+        "pickban_default_dm": (
+            "🎭 **Reveal — {map}**\n**Ta sélection** (blasons ci-dessous) :"
+            "{own_note}\n**Les 3 civilisations de ton adversaire** (ordre aléatoire, blasons ci-dessous).\n"
+            "Le RDV a lieu quoi qu'il arrive — rejoins le salon de la bataille à l'heure du RDV."
+        ),
+        "pickban_default_own_random": " — choisie **au hasard** (aucun choix validé avant la fin du timer)",
+        "pickban_default_own_picked": " — ton classement",
         "sab_open_button": "🗡️ Saboter / Utiliser un Faucon",
         "sab_pass_button": "⚔️ Passer — je suis prêt",
         "sab_title": (
@@ -398,9 +408,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_side_ready": "✅ Prêt",
         "room_side_wait": "⏳ en attente du Prêt",
         "room_side_none": "🔗 en attente de l'ID",
-        "room_side_ai": "🤖 IA — niv. {level}/5",
+        "room_side_ai": "IA-{level}",
         "room_ai_disclaimer": (
-            "⚠️ **IA de niveau {level}/5** — la partie se joue en multijoueur"
+            "⚠️ **IA-{level}** — la partie se joue en multijoueur"
             " avec un ID (jamais en local) pour rester traçable et vérifiable"
             " post-game. Le joueur est cru sur parole ; toute fraude présumée"
             " peut être contestée ⚖️ puis arbitrée par les admins."
@@ -414,10 +424,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_scoreboard_footer": ("🎮 Les deux joueurs sont prêts — bonne game ! Déclarez le vainqueur avec 🏆."),
         "room_ping_message": ("⚔️ {attacker} {defender} — la salle de bataille est ouverte, à vos armes !"),
         "room_ping_attacker_only": ("⚔️ {attacker} — la salle de bataille est ouverte, à vos armes !"),
-        "room_dm": (
+        "room_dm_attacker": (
             "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
             "Rejoins ton adversaire : {room} — le déroulé (ID de la partie, ✅ Prêt,"
-            " résultat) vit dans le salon de l'attaque."
+            " résultat) vit dans le salon de l'attaque.\n"
+            "⏳ **Rejoins le salon vocal jusqu'à <t:{deadline}:R> (fermeture à <t:{deadline}:t>).**\n"
+            "⚠️ En cas d'absence de ta part, ton **point d'attaque est perdu** — le territoire"
+            " ne pourra pas être conquis."
+        ),
+        "room_dm_defender": (
+            "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
+            "Rejoins ton adversaire : {room} — le déroulé (ID de la partie, ✅ Prêt,"
+            " résultat) vit dans le salon de l'attaque.\n"
+            "⏳ **Rejoins le salon vocal jusqu'à <t:{deadline}:R> (fermeture à <t:{deadline}:t>).**\n"
+            "⚠️ En cas d'absence de ta part, ton **point de défense est perdu** — tu perds"
+            " ton territoire sans confrontation (pas de défense IA)."
         ),
         "result_button": "🏆 Déclarer le vainqueur",
         "result_select_title": "🏆 **Qui remporte la partie ?**",
@@ -633,7 +654,8 @@ _STRINGS: dict[str, dict[str, str]] = {
             " order of preference (your ranking orders the fallbacks).\n"
             "If you own a Sabotage or a Faucon, you will use it in the battle room.\n"
             "\n"
-            "⚠️ **Anti-blocking rule**: no choice validated before the meeting → "
+            "⏳ **You have until <t:{deadline}:R> (ends at <t:{deadline}:t>).**\n"
+            "⚠️ **Anti-blocking rule**: no choice validated before the timer ends → "
             "3 **random** civilizations from your hand — and no sabotage or faucon "
             "applies. The meeting happens anyway.\n"
             "Your hand: {hand}\nAdversary hand: {theirs}"
@@ -644,11 +666,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_waiting": "⏳ Picks recorded and validated — waiting for the adversary.",
         "pickban_reveal_dm": (
             "🎭 **Reveal — {map}**\nYour adversary's 3 potential civilizations"
-            " (random order):\n**{civs}**\n\n🗡️ Do you want to sabotage or use"
+            " (random order) — crests below.\n\n"
+            "⏳ **You have until <t:{deadline}:R> (ends at <t:{deadline}:t>).**\n"
+            "🗡️ Do you want to sabotage or use"
             " a Faucon? — up to 2 enemy civilizations removed per side.\n⚔️"
             " Otherwise confirm with Pass — a player missing from the voice"
-            " room at the meeting time is a forfeit!"
+            " room at the meeting time is a forfeit!\n"
+            "⚠️ If the timer runs out, **no sabotage nor faucon applies** by default."
         ),
+        "pickban_default_dm": (
+            "🎭 **Reveal — {map}**\n**Your selection** (crests below):"
+            "{own_note}\n**Your adversary's 3 civilizations** (random order, crests below).\n"
+            "The meeting happens anyway — join the battle room at the meeting time."
+        ),
+        "pickban_default_own_random": " — picked **at random** (no choice validated before the timer ended)",
+        "pickban_default_own_picked": " — your ranking",
         "sab_open_button": "🗡️ Sabotage / Use a Faucon",
         "sab_pass_button": "⚔️ Pass — I am ready",
         "sab_title": (
@@ -693,9 +725,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_side_ready": "✅ Ready",
         "room_side_wait": "⏳ waiting for Ready",
         "room_side_none": "🔗 waiting for the game ID",
-        "room_side_ai": "🤖 AI — lvl {level}/5",
+        "room_side_ai": "AI-{level}",
         "room_ai_disclaimer": (
-            "⚠️ **Level {level}/5 AI** — the game is played in multiplayer"
+            "⚠️ **AI-{level}** — the game is played in multiplayer"
             " with an ID (never local) to stay traceable and verifiable"
             " post-game. The player is taken at their word; any suspected"
             " fraud can be contested ⚖️ then arbitrated by the admins."
@@ -709,10 +741,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_scoreboard_footer": ("🎮 Both players are ready — good luck! Declare the winner with 🏆."),
         "room_ping_message": ("⚔️ {attacker} {defender} — the battle room is open, to arms!"),
         "room_ping_attacker_only": ("⚔️ {attacker} — the battle room is open, to arms!"),
-        "room_dm": (
+        "room_dm_attacker": (
             "🏟️ **The battle room is open — {map}**\n"
             "Join your adversary: {room} — the rundown (game ID, ✅ Ready, result)"
-            " lives in the attack's salon."
+            " lives in the attack's salon.\n"
+            "⏳ **Join the voice room until <t:{deadline}:R> (closes at <t:{deadline}:t>).**\n"
+            "⚠️ If you are absent, your **attack point is lost** — the territory"
+            " cannot be conquered."
+        ),
+        "room_dm_defender": (
+            "🏟️ **The battle room is open — {map}**\n"
+            "Join your adversary: {room} — the rundown (game ID, ✅ Ready, result)"
+            " lives in the attack's salon.\n"
+            "⏳ **Join the voice room until <t:{deadline}:R> (closes at <t:{deadline}:t>).**\n"
+            "⚠️ If you are absent, your **defense point is lost** — you lose"
+            " your territory without a confrontation (no AI defense)."
         ),
         "result_button": "🏆 Declare the winner",
         "result_select_title": "🏆 **Who wins the game?**",
@@ -2434,6 +2477,10 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
     ranking stays hidden) followed by the sabotage question. The refs
     come from the pickban store (``record_pickban_dm``); a failed edit
     (restart gap, expired message) falls back to a NEW DM.
+
+    real-timeline-v1 (Drasah 23/10): the reveal DM carries the phase
+    TIMER (the draft deadline, T) and the crests REPLACE the names —
+    only the blasons identify the adversary civs.
     """
     pickban: dict[str, Any] = dict(attack.pickban or {})
     wiring = None
@@ -2443,6 +2490,7 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
         wiring = _wiring()
     except Exception:
         wiring = None
+    deadline = int(_deadline_epoch(attack))
     for side, player_id in (
         ("attacker", str(attack.attacker_lord_id)),
         ("defender", str(attack.defender_lord_id or "")),
@@ -2451,16 +2499,16 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
             continue
         enemy = "defender" if side == "attacker" else "attacker"
         shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
-        civs = ", ".join(shuffled) or "—"
-        content = strings["pickban_reveal_dm"].format(map=attack.map_key, civs=civs)
+        content = strings["pickban_reveal_dm"].format(map=attack.map_key, deadline=deadline)
         # sabotage-ux-v1 (Drasah 22/10): the reveal keeps the stock
         # line visible (the sabotage phase follows right after).
         if wiring is not None:
             content = f"{content}\n\n{await _sabotage_stock_line(wiring, attack, side, strings)}"
         view = _sabotage_dm_view(str(attack.id), player_id, "fr")
-        # civ-crests-v1 (Drasah 20/10): the revealed civs wear their
-        # blasons — the crest PNGs attach under the text, in the SAME
-        # shuffled order as the names (the raw pick order stays hidden).
+        # civ-crests-v1 (Drasah 20/10) + real-timeline-v1 (Drasah
+        # 23/10): the revealed civs wear their blasons — the crest PNGs
+        # attach under the text, in the SAME shuffled order (the raw
+        # pick order stays hidden). The names are gone from the text.
         files = await civ_crest_files(shuffled)
         ref = pickban.get(f"{side}_dm") or {}
         edited = False
@@ -2468,6 +2516,40 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
             edited = await _edit_dm_message_safe(bot, ref, content, view, files)
         if not edited:
             await _dm_user_safe(bot, player_id, content, view, files)
+
+
+async def _edit_pickban_dms_default_reveal(bot: Any, attack: Any, strings: dict[str, str]) -> None:
+    """Reveal each side's final selection when the draft DEFAULTED at T.
+
+    real-timeline-v1 (Drasah 23/10): when the anti-blocking default ran
+    (a side never ranked its civs before T), the draft DMs never got
+    the reveal — they stay stuck on "waiting for the adversary". At T
+    both DMs are edited into the final selections: each player sees
+    THEIR OWN picks (marked "at random" only when they were) and the
+    adversary's 3 civs — crests only, in a shuffled order. The DM
+    never tells a player whether the adversary picked or defaulted —
+    the sabotage phase is over either way (no sabotage applies).
+    """
+    pickban: dict[str, Any] = dict(attack.pickban or {})
+    defaulted = set(pickban.get("default_picks") or [])
+    for side, player_id in (
+        ("attacker", str(attack.attacker_lord_id)),
+        ("defender", str(attack.defender_lord_id or "")),
+    ):
+        if not player_id or (side == "defender" and attack.ai_defender):
+            continue
+        enemy = "defender" if side == "attacker" else "attacker"
+        own = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
+        shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
+        own_note = strings["pickban_default_own_random"] if side in defaulted else strings["pickban_default_own_picked"]
+        content = strings["pickban_default_dm"].format(map=attack.map_key, own_note=own_note)
+        files = await civ_crest_files([*own, *shuffled])
+        ref = pickban.get(f"{side}_dm") or {}
+        edited = False
+        if ref.get("channel_id") and ref.get("message_id"):
+            edited = await _edit_dm_message_safe(bot, ref, content, None, files)
+        if not edited:
+            await _dm_user_safe(bot, player_id, content, None, files)
 
 
 async def _edit_pickban_dms_phase_done(bot: Any, attack: Any, strings: dict[str, str]) -> None:
@@ -2669,10 +2751,16 @@ class KingdomSabotagePassButton(
 
 
 async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
-    """Send the pick & ban DM to each human player (Drasah 18/10 v2)."""
+    """Send the pick & ban DM to each human player (Drasah 18/10 v2).
+
+    real-timeline-v1 (Drasah 23/10): the DM carries the phase TIMER —
+    the draft closes at T (the meeting time), a Discord timestamp that
+    adapts to the player's own timezone.
+    """
     strings = _strings(locale)
     hand = await _hand_of(kingdoms_service, attack.attacker_kingdom_id)
     adversary = await _hand_of(kingdoms_service, attack.defender_kingdom_id)
+    deadline = _deadline_epoch(attack)
     view = KingdomPickBanView(
         str(attack.id),
         str(attack.attacker_lord_id),
@@ -2699,6 +2787,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
             count=min(3, len(hand)) or 1,
             hand=", ".join(hand) or "—",
             theirs=", ".join(adversary) or "—",
+            deadline=deadline,
         )
         + (f"\n\n{stock_attacker}" if stock_attacker else ""),
         view,
@@ -2722,6 +2811,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
                 count=min(3, len(adversary)) or 1,
                 hand=", ".join(adversary) or "—",
                 theirs=", ".join(hand) or "—",
+                deadline=deadline,
             )
             + (f"\n\n{stock_defender}" if stock_defender else ""),
             view,
@@ -2899,6 +2989,13 @@ async def _run_phases_announce_safe(
             await _attack_salon_send_safe(guild, attack, strings["auto_dispute"].format(map=attack.map_key))
         dirty += len(disputes)
         dirty += await _run_forfeits_safe(guild, attacks_service, kingdoms_service, strings)
+        # real-timeline-v1 (Drasah 23/10): a DEFAULTED draft (a side
+        # never ranked before T) still reveals each side's final
+        # selection at T — the draft DMs were stuck on "waiting".
+        default_reveals = await attacks_service.default_reveal_due()
+        for attack in default_reveals:
+            await _edit_pickban_dms_default_reveal(bot, attack, strings)
+        dirty += len(default_reveals)
         dirty += await _run_noshows_safe(bot, guild, attacks_service, kingdoms_service, strings)
     except Exception:
         logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
@@ -2910,9 +3007,10 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
 
     restructuration-serveur-v1 b (Drasah 19/10): the reveal names the
     DEFENDER at last — « ⚔️ Bataille en vue (défenseur : X) » when a
-    lord answered, « 🏳️ Assaut irrésistible » when nobody did (the AI
-    fallback still announces at the meeting time). The cover (if any)
-    drops on the same beat.
+    lord answered. real-timeline-v1 (Drasah 23/10): when nobody did,
+    the bot AI engages AT THE CUTOFF — the reveal announces it right
+    away (« 🤖 l'IA prend la défense ») instead of waiting for T.
+    The cover (if any) drops on the same beat.
     """
     from kingdoms.mods.kingdoms.models import AttackState
 
@@ -2929,7 +3027,11 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
                 ),
             )
         if attack.ai_defender:
-            note = strings["reveal_no_defense"]
+            note = strings["reveal_ai"].format(
+                map=attack.map_key,
+                kingdom=await _kingdom_name(kingdoms_service, attack.defender_kingdom_id),
+                level=attack.effects.get("ai_level", 1) if attack.effects else 1,
+            )
         elif getattr(attack, "state", None) is AttackState.DEFENDED:
             note = strings["reveal_battle"].format(defender=await _lord_name(kingdoms_service, attack.defender_lord_id))
         else:
@@ -2948,8 +3050,10 @@ async def _run_forfeits_safe(guild: Any, attacks_service: Any, kingdoms_service:
     for attack in await attacks_service.expire_stale():
         played += 1
         if attack.ai_defender:
-            # The [T-15, T] window closed with no defender — the bot
-            # AI takes the defense at the meeting time (Drasah 17/10).
+            # real-timeline-v1 (Drasah 23/10): the AI engages at the
+            # T-15 cutoff (``reveal_due`` announces it) — reaching this
+            # list means the catch-up path (the reveal never ran, a
+            # restart gap): the AI engages at the meeting time here.
             await _attack_salon_send_safe(
                 guild,
                 attack,
@@ -3021,6 +3125,22 @@ def _shuffled_civs(picks: Any) -> list[str]:
     pool = [str(civ) for civ in (picks or [])]
     _random.shuffle(pool)
     return pool
+
+
+def _deadline_epoch(attack: Any) -> int:
+    """Return the draft/sabotage deadline (the meeting time T) as epoch seconds.
+
+    real-timeline-v1 (Drasah 23/10): the pick & ban and the sabotage
+    phase both close at T for every defense (human and bot AI alike) —
+    the DM timers show that same deadline as a Discord timestamp.
+    """
+    expires_at = getattr(attack, "expires_at", None)
+    if isinstance(expires_at, datetime):
+        return int(expires_at.timestamp())
+    try:
+        return int(float(str(expires_at)))
+    except Exception:
+        return int(game_now().timestamp())
 
 
 def _final_civ(pickban: dict[str, Any], side: str) -> str:
@@ -3407,13 +3527,26 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 logger.warning("KINGDOM ATTACK: meeting message post failed", exc_info=True)
         for player_id in _score_players(attack):
             await _grant_battle_room_role_safe(guild, role, player_id)
-        for player_id in _score_players(attack):
+        # real-timeline-v1 (Drasah 23/10): the room DM is ROLE-SPECIFIC —
+        # it carries the presence TIMER (the T+5 no-show deadline, a
+        # Discord timestamp) and the absence protocol (the attack point
+        # or the defense point is lost — never "brûlé").
+        ready_deadline = int(score.get("ready_deadline") or 0) or _deadline_epoch(attack) + 300
+        attacker_id = str(attack.attacker_lord_id)
+        defender_id = str(attack.defender_lord_id or "")
+        for side, player_id in (
+            ("attacker", attacker_id),
+            ("defender", defender_id),
+        ):
+            if not player_id or (side == "defender" and attack.ai_defender):
+                continue
             await _dm_user_safe(
                 bot,
                 player_id,
-                strings["room_dm"].format(
+                strings[f"room_dm_{side}"].format(
                     map=attack.map_key,
                     room=f"<#{channel.id}>",
+                    deadline=ready_deadline,
                 ),
             )
     except Exception:

@@ -377,13 +377,14 @@ def _phase_deadlines(attack: AttackModel, config: KingdomsSeasonConfig) -> list[
     """Return the upcoming player-facing deadlines of ONE live attack (tick-v1).
 
     The reveal cutoff (T-15) tracks the pending reveal of every state;
-    DECLARED then tracks the meeting time T (the AI flip at T); DEFENDED
-    tracks the draft outcome — the room opening at T once resolved, the
-    anti-blocking default otherwise (T for a human defense, T + the AI
-    draft grace vs the bot AI) — plus the AI's ``ai_validate_at``
-    think time; MEETING tracks the AI's ``ai_ready_at`` and the T+5
-    no-show line. Past deadlines stay in the list — the caller filters
-    them against ``now`` (a single comparison for the whole board).
+    DECLARED then tracks the meeting time T (the catch-up AI flip at T);
+    DEFENDED tracks the draft outcome — the room opening at T once
+    resolved, the anti-blocking default otherwise (T for a human
+    defense AND for the bot AI — real-timeline-v1: the AI engages at
+    T-15, no post-T grace) — plus the AI's ``ai_validate_at`` think
+    time; MEETING tracks the AI's ``ai_ready_at`` and the T+5 no-show
+    line. Past deadlines stay in the list — the caller filters them
+    against ``now`` (a single comparison for the whole board).
     """
     deadlines: list[datetime] = []
     if not attack.revealed:
@@ -397,10 +398,8 @@ def _phase_deadlines(attack: AttackModel, config: KingdomsSeasonConfig) -> list[
             # The room opens at T on the next score tick.
             deadlines.append(attack.expires_at)
         else:
-            # The anti-blocking default: T for a human defense, T +
-            # the AI draft grace vs the bot AI.
-            grace = config.attacks.ai_draft_grace_minutes if attack.ai_defender else 0
-            deadlines.append(attack.expires_at + timedelta(minutes=grace))
+            # The anti-blocking default at T — human and bot AI alike.
+            deadlines.append(attack.expires_at)
         if attack.ai_defender and pickban.get("sent") and pickban.get("ai_validate_at"):
             deadlines.append(datetime.fromtimestamp(float(pickban["ai_validate_at"]), tz=UTC))
     elif attack.state is AttackState.MEETING:
@@ -409,6 +408,10 @@ def _phase_deadlines(attack: AttackModel, config: KingdomsSeasonConfig) -> list[
         ready_deadline = int(score.get("ready_deadline") or 0)
         if ready_deadline:
             deadlines.append(datetime.fromtimestamp(ready_deadline, tz=UTC))
+        # real-timeline-v1: a defaulted draft still owes its reveal DM
+        # (T) — the meeting may have opened on the same tick.
+        if pickban.get("default_picks") and not pickban.get("default_reveal_sent"):
+            deadlines.append(attack.expires_at)
     return deadlines
 
 
@@ -871,9 +874,13 @@ class AttackService:
         reveal CLOSES the defense (no more answers) and, on the same
         tick, the defended attacks' pick & ban DMs leave
         (``pick_ban_due`` rides ``revealed``). Without a defender the
-        bot AI still takes the defense at the meeting time
-        (``expire_stale``). Idempotent through ``revealed`` — the
-        scheduler tick replays it after every restart.
+        bot AI takes the defense AT THE CUTOFF (real-timeline-v1,
+        Drasah 23/10): the whole draft/sabotage/RDV chain then follows
+        the SAME clock as a human defense — draft DM at T-15, meeting
+        at T, no-show at T+5. ``expire_stale`` keeps a catch-up path
+        for a restart that never ran the reveal. Idempotent through
+        ``revealed`` — the scheduler tick replays it after every
+        restart.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -889,12 +896,43 @@ class AttackService:
             if timestamp < cutoff:
                 continue
             attack.revealed = True
+            if attack.state is AttackState.DECLARED:
+                # real-timeline-v1: no human answered — the bot AI
+                # takes the defense NOW (not at T) so the real
+                # timeline (draft T-15, meeting T, no-show T+5) holds.
+                await self._engage_ai_defense(attack, timestamp)
             await self._store.upsert_attack(attack.to_mongo())
             revealed.append(attack)
         return revealed
 
+    async def _engage_ai_defense(self, attack: AttackModel, timestamp: datetime) -> None:
+        """Flip a defender-less DECLARED attack to the bot-AI defense.
+
+        real-timeline-v1 (Drasah 23/10): the AI engages at the T-15
+        cutoff (``reveal_due``) — ``expire_stale`` only calls this as a
+        catch-up when a restart never ran the reveal. The pickban stays
+        UNRESOLVED: the next ``pick_ban_due`` tick sends the attacker's
+        draft DM (the AI never bans, it picks 3 random civilizations and
+        validates after a 30-90 s random delay) — the meeting then
+        opens at T through the normal RDV path.
+        """
+        attack.ai_defender = True
+        attack.state = AttackState.DEFENDED
+        # marche-v2 art. 2/5: the level the attacker faces — a
+        # Traquenard forces Facile (1), otherwise the defence bot's
+        # own level (epoch base + Jeu d'armes, ceiling 5).
+        attack.effects["ai_level"] = (
+            1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
+        )
+        logger.info(
+            "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s), draft opens",
+            attack.map_key,
+            attack.defender_kingdom_id,
+            attack.effects["ai_level"],
+        )
+
     async def pick_ban_due(self, *, now: datetime | None = None) -> list[AttackModel]:
-        """Mark the attacks whose T-5 pick & ban DMs must leave (D77).
+        """Mark the attacks whose T-15 pick & ban DMs must leave (D77).
 
         Idempotent through ``pickban["sent"]``. The AI side
         auto-validates at the same moment (no human to wait for).
@@ -904,7 +942,10 @@ class AttackService:
         the scheduler tick and the draft NEVER left (live beta 17/10:
         no DM, then double forfeit at T). The pickban rides
         ``revealed``: once the reveal ran on a defended attack, the
-        DMs are due on the very same tick.
+        DMs are due on the very same tick. real-timeline-v1 (Drasah
+        23/10): vs the bot AI the SAME clock holds — the AI engages at
+        the cutoff and its draft DM leaves on the same tick as a human
+        defense's.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -918,7 +959,7 @@ class AttackService:
                 continue
             if not attack.revealed:
                 continue
-            if not attack.ai_defender and timestamp >= attack.expires_at:
+            if timestamp >= attack.expires_at:
                 continue
             pickban = dict(attack.pickban)
             pickban["sent"] = True
@@ -1063,10 +1104,9 @@ class AttackService:
             raise PickBanStateError("the pick & ban is already resolved")
         if not attack.pickban.get("sent"):
             raise PickBanStateError("le draft n'est pas encore ouvert (il part au reveal T-15)")
-        if timestamp >= attack.expires_at and not attack.ai_defender:
-            # battle-ai-rdv-v1 (Drasah 22/10): vs the bot AI the draft
-            # opens AT the meeting time — the attacker keeps his whole
-            # ``ai_draft_grace_minutes`` window to rank his 3 civs.
+        if timestamp >= attack.expires_at:
+            # real-timeline-v1: the SAME window vs the bot AI — the
+            # draft closes at T for everyone (the AI engages at T-15).
             raise PickBanStateError("l'heure du RDV est atteinte — le draft est fermé")
         return attack
 
@@ -1128,32 +1168,16 @@ class AttackService:
                 attack.resolved_at = timestamp
                 await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
             else:
-                # The defense window [declaration, T-5] closed with no defender:
-                # the bot AI takes the defense AT the meeting time and
-                # the RDV opens directly — no pick & ban ever left (the
-                # defense side had no human to pick, and the attacker's
-                # DM window is gone; the game decides, D20).
+                # real-timeline-v1 (Drasah 23/10): the AI engages at the
+                # T-15 cutoff (``reveal_due``) — this branch is the
+                # catch-up for a restart that never ran the reveal (the
+                # defense window closed with no defender).
                 attack.revealed = True
-                attack.ai_defender = True
-                attack.state = AttackState.DEFENDED
-                # marche-v2 art. 2/5: the level the attacker faces — a
-                # Traquenard forces Facile (1), otherwise the defence
-                # bot's own level (epoch base + Jeu d'armes, ceiling 5).
-                attack.effects["ai_level"] = (
-                    1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
-                )
-                # battle-ai-rdv-v1 (Drasah 22/10): even against the bot
-                # AI the DRAFT runs — same DM flow as a human defense
-                # (effect of surprise). The pickban stays UNRESOLVED
-                # here: the next pick_ban_due tick sends the attacker's
-                # draft DM and arms the AI's random validate delay —
-                # the meeting then opens through the normal RDV path.
-                logger.info(
-                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s), draft opens",
-                    attack.map_key,
-                    attack.defender_kingdom_id,
-                    attack.effects["ai_level"],
-                )
+                await self._engage_ai_defense(attack, timestamp)
+                # The pickban stays UNRESOLVED: the next pick_ban_due
+                # tick sends the attacker's draft DM and arms the AI's
+                # random validate delay — the meeting then opens at T
+                # through the normal RDV path.
             await self._store.upsert_attack(attack.to_mongo())
             return attack
         if attack.state is not AttackState.DEFENDED or attack.pickban.get("resolved_pickban"):
@@ -1161,15 +1185,12 @@ class AttackService:
         return await self._expire_defended(attack, timestamp)
 
     async def _expire_defended(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
-        """Resolve the un-resolved pick & ban of an expired defense (D77)."""
-        if attack.ai_defender:
-            # battle-ai-rdv-v1 (Drasah 22/10): vs the bot AI the draft
-            # runs AT the meeting time — the anti-blocking default only
-            # applies after ``ai_draft_grace_minutes`` (the same window
-            # the human draft enjoys), never a forfeit.
-            deadline = attack.expires_at + timedelta(minutes=self._config.attacks.ai_draft_grace_minutes)
-            if timestamp < deadline:
-                return None
+        """Resolve the un-resolved pick & ban of an expired defense (D77).
+
+        real-timeline-v1: the anti-blocking default applies at T for
+        EVERYONE — a human defense and a bot-AI defense alike (the AI
+        engages at T-15 and its draft leaves on the same tick).
+        """
         pickban = dict(attack.pickban)
         if not pickban.get("sent"):
             # A defense locked after the last pick & ban tick (the
@@ -1222,6 +1243,45 @@ class AttackService:
     # ------------------------------------------------------------------
     # The RDV score phase (attaques-score-v1)
     # ------------------------------------------------------------------
+    async def default_reveal_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Return the attacks whose DEFAULTED draft still needs its reveal DM.
+
+        real-timeline-v1 (Drasah 23/10): when the anti-blocking default
+        ran at T (a side never ranked its civs), the draft DMs never got
+        the reveal — they stay stuck on "waiting for the adversary".
+        This probe returns the defaulted attacks whose players have not
+        been shown their final selections yet, so the panel can edit
+        both DMs (own picks + adversary civs, crests only). Idempotent
+        through ``pickban["default_reveal_sent"]``.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER:
+                continue
+            if attack.state not in (AttackState.DEFENDED, AttackState.MEETING):
+                continue
+            pickban = dict(attack.pickban)
+            if attack.is_over or not pickban.get("resolved_pickban"):
+                continue
+            if not pickban.get("default_picks"):
+                continue
+            if pickban.get("default_reveal_sent"):
+                continue
+            if timestamp < attack.expires_at:
+                continue
+            pickban["default_reveal_sent"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info("kingdoms: default reveal DMs due on %s", attack.map_key)
+        return due
+
     async def set_lobby_url(self, attack_id: str, player_id: str, lobby_url: str) -> AttackModel:
         """Store the game lobby URL shared at the RDV (Drasah 18/10).
 

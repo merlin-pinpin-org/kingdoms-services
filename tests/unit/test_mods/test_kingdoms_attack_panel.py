@@ -816,8 +816,10 @@ class _GuildBot:
         raise RuntimeError("no user resolution in tests")
 
 
-async def test_scheduler_reveals_then_the_ai_takes_over_at_the_meeting_time() -> None:
-    """The tick drives the phases: T-15 cover drop, T the AI takeover + RDV."""
+async def test_scheduler_reveals_and_the_ai_engages_at_the_cutoff() -> None:
+    """The tick drives the phases (real-timeline-v1, Drasah 23/10):
+    T-15 cover drop AND the AI takeover on the same tick — the draft
+    DM leaves at once, the meeting opens at T."""
     from kingdoms.mods.kingdoms import attacks as attacks_module
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         ATTACK_PANEL_MARKER,
@@ -829,46 +831,35 @@ async def test_scheduler_reveals_then_the_ai_takes_over_at_the_meeting_time() ->
     await bundle.draw(23)
     attack = await bundle.fresh_attack()
     guild = await _salon_guild(bundle, attack)
-    salon = next(c for c in guild.text_channels if c.name != "Déclarer une attaque")
+    salon = next(c for c in guild.text_channels if c.name != "D\u00e9clarer une attaque")
     declare_channel = guild.text_channels[0]
     bot = _GuildBot(bundle, guild)
     # T-16: nothing is due yet — the tick stays silent.
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 44, tzinfo=UTC)
     await run_attack_phases_safe(bot)
     assert salon.messages == []
-    # T-2: the reveal runs IN THE SALON — the cover drops, the defense
-    # stays OPEN (no AI).
+    # T-2: the reveal runs IN THE SALON — the AI takes the defense AT
+    # THE CUTOFF (real-timeline-v1), the announcement lands right away.
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
     await run_attack_phases_safe(bot)
-    assert not [m for m in salon.messages if "IA" in (m.content or "")]  # no AI at the cutoff
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.revealed is True
-    assert fresh.ai_defender is False
-    assert any("Assaut irrésistible" in (m.content or "") for m in salon.messages)
+    assert fresh.ai_defender is True
+    assert any("IA" in (m.content or "") for m in salon.messages)  # the AI announcement
+    # The draft DM left on the SAME tick — the AI armed its 3 RANDOM
+    # picks of its hand + its delayed validation.
+    assert fresh.pickban["sent"] is True
+    assert not fresh.pickban.get("resolved_pickban")
+    assert len(fresh.pickban["defender_picks"]) == 3
+    assert 30 <= fresh.pickban["ai_validate_at"] - int(datetime(2026, 10, 11, 17, 58, tzinfo=UTC).timestamp()) <= 90
     assert any(
         ATTACK_PANEL_MARKER in (m.content or "") for m in declare_channel.messages
     )  # the panel re-pinned in the declare salon
-    # T+1: the meeting time — nobody defended, the bot AI takes the
-    # defense (battle-ai-rdv-v1): the draft RUNS even solo — the
-    # attacker's DM leaves and the AI arms its random picks + delay.
-    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
+    # T: the meeting opens once the draft resolves — no forfeit line.
+    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 0, tzinfo=UTC)
     await run_attack_phases_safe(bot)
-    assert any("IA" in (m.content or "") for m in salon.messages)
-    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
-    assert fresh.ai_defender is True
-    assert not (fresh.pickban or {}).get("sent")  # the draft leaves on the NEXT tick
-    # T+2: the tick sends the attacker's draft DM — the AI arms its 3
-    # RANDOM picks of its hand + its delayed validation (the
-    # resolution waits for the attacker's ranking AND the AI's mark).
-    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
-    await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
-    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 2, tzinfo=UTC)
-    await run_attack_phases_safe(bot)
-    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
-    assert fresh.pickban["sent"] is True  # the draft DM leaves at once
-    assert not fresh.pickban.get("resolved_pickban")
-    assert len(fresh.pickban["defender_picks"]) == 3
-    assert 30 <= fresh.pickban["ai_validate_at"] - int(datetime(2026, 10, 11, 18, 2, tzinfo=UTC).timestamp()) <= 90
     assert not [m for m in salon.messages if "Forfait" in (m.content or "")]
 
 
@@ -911,20 +902,15 @@ async def test_scheduler_reveal_names_the_defender_in_the_salon() -> None:
     salon = next(c for c in guild.text_channels if c.name != "Déclarer une attaque")
     bot = _GuildBot(bundle, guild)
     # T-2: the reveal runs (cover drop + outcome line) — nobody
-    # defended yet, so the salon shows the irresistible assault.
+    # defended yet, so the bot AI takes the defense AT THE CUTOFF and
+    # the salon announces it right away (real-timeline-v1).
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
     await run_attack_phases_safe(bot)
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.revealed is True
-    assert fresh.ai_defender is False
-    assert any("Assaut irrésistible — aucune défense" in (m.content or "") for m in salon.messages)
-    # T+1: the meeting time — nobody defended, the bot AI takes the
-    # defense; the announce fires in the salon.
-    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
-    await run_attack_phases_safe(bot)
-    assert any("IA" in (m.content or "") for m in salon.messages)
-    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.ai_defender is True
+    assert any("IA" in (m.content or "") for m in salon.messages)
+    assert not [m for m in salon.messages if "Assaut irrésistible" in (m.content or "")]
 
     # The defended case: another attack, a lord defends right after
     # the declaration, then the reveal tick shows the battle — with
@@ -1954,7 +1940,7 @@ async def test_room_open_pings_both_players_but_never_the_ai() -> None:
     assert "<@king-a>" in str(pings[0].content or "")
     assert "<@lord-b>" not in str(pings[0].content or "")
     scoreboard = str(salon.messages[0].content or "")
-    assert "🤖 IA" in scoreboard
+    assert "IA-" in scoreboard
     for task in asyncio.all_tasks():
         if task is not asyncio.current_task():
             task.cancel()
@@ -1963,8 +1949,8 @@ async def test_room_open_pings_both_players_but_never_the_ai() -> None:
 
 async def test_ai_room_shows_the_raw_level_and_the_disclaimer() -> None:
     """battle-ai-rdv-v1: vs the bot AI the scoreboard carries the RAW
-    level (« 🤖 IA — niv. N/5 », Traquenard-aware) and the short
-    multiplayer-ID disclaimer sits right under it."""
+    level (« IA-N », Traquenard-aware) and the short multiplayer-ID
+    disclaimer sits right under it."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room
 
     bundle = ScoreBundle()
@@ -1985,7 +1971,7 @@ async def test_ai_room_shows_the_raw_level_and_the_disclaimer() -> None:
     await bundle.store.upsert_attack(attack.to_mongo())
     await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
     scoreboard = str(salon.messages[0].content or "")
-    assert "🤖 IA — niv. 4/5" in scoreboard
+    assert "IA-4" in scoreboard
     assert "multijoueur" in scoreboard
     assert "fraude" in scoreboard
 

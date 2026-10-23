@@ -174,8 +174,11 @@ async def test_cover_consumes_one_contre_espionnage() -> None:
         )
 
 
-async def test_reveal_unmasks_and_the_ai_engages_at_the_meeting_time() -> None:
-    """Drasah 17/10: the reveal only unmasks — the AI fallback is at T."""
+async def test_reveal_engages_the_ai_at_the_cutoff() -> None:
+    """real-timeline-v1 (Drasah 23/10): the AI engages AT the T-15
+    cutoff — the reveal flips the attack to the bot-AI defense on the
+    same tick, so the draft/RDV/no-show clock holds (draft T-15,
+    meeting T, no-show T+5)."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(5)
@@ -185,20 +188,16 @@ async def test_reveal_unmasks_and_the_ai_engages_at_the_meeting_time() -> None:
     revealed = await bundle.attacks.reveal_due(now=cutoff)
     assert [item.id for item in revealed] == [attack.id]
     assert revealed[0].revealed is True
-    # The defense stays OPEN at the cutoff: no AI, no state change.
-    assert revealed[0].ai_defender is False
-    assert revealed[0].state is AttackState.DECLARED
+    # The bot AI takes the defense AT THE CUTOFF — no state stays open.
+    assert revealed[0].ai_defender is True
+    assert revealed[0].state is AttackState.DEFENDED
+    assert "ai_level" in (revealed[0].effects or {})
     # Idempotent: a scheduler replay after a restart changes nothing.
     assert await bundle.attacks.reveal_due(now=cutoff) == []
-    # At the meeting time nobody answered — the bot AI takes the defense
-    # and the RDV opens directly (no pick & ban ever left).
-    expired = await bundle.attacks.expire_stale(now=attack.expires_at)
-    assert [item.id for item in expired] == [attack.id]
-    assert expired[0].ai_defender is True
-    assert expired[0].state is AttackState.DEFENDED
-    # battle-ai-rdv-v1: the draft runs even vs the AI — nothing is
-    # resolved at T, the tick sends the attacker's draft DM next.
-    assert not (expired[0].pickban or {}).get("resolved_pickban")
+    # The meeting-time expiry finds nothing to flip (the AI engaged at
+    # the cutoff) — the draft DMs leave on the next pick_ban_due tick.
+    assert await bundle.attacks.expire_stale(now=attack.expires_at) == []
+    assert not (revealed[0].pickban or {}).get("resolved_pickban")
 
 
 async def test_reveal_keeps_a_locked_human_defense() -> None:
@@ -218,44 +217,45 @@ async def test_reveal_keeps_a_locked_human_defense() -> None:
 
 
 async def test_ai_defense_runs_the_draft_and_opens_the_meeting() -> None:
-    """battle-ai-rdv-v1 (Drasah 22/10): vs the AI the draft RUNS at T —
-    the AI picks 3 RANDOM civs of its hand and validates after its
-    30-90 s delay; the RDV opens once the draft resolved."""
+    """real-timeline-v1 (Drasah 23/10): vs the AI the draft RUNS at the
+    T-15 reveal — the AI engages at the cutoff, picks 3 RANDOM civs of
+    its hand and validates after its 30-90 s delay; the RDV opens at T
+    once the draft resolved (the SAME clock as a human defense)."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(7)
     attack = await bundle.fresh_attack()
     await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
     await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
-    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
-    # The defense window [17:45, 18:00) closes with no human answer.
-    assert await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 55, tzinfo=UTC)) == []
-    expired = await bundle.attacks.expire_stale(now=attack.expires_at)
-    assert [item.id for item in expired] == [attack.id]
-    assert expired[0].ai_defender is True
-    assert not (expired[0].pickban or {}).get("sent")  # the draft leaves next tick
-    # T: the draft leaves — the attacker ranks, the AI arms its delay.
-    sent = await bundle.attacks.pick_ban_due(now=attack.expires_at)
+    cutoff = datetime(2026, 10, 11, 17, 45, tzinfo=UTC)
+    # T-15: the reveal engages the bot AI on the same tick.
+    revealed = await bundle.attacks.reveal_due(now=cutoff)
+    assert [item.id for item in revealed] == [attack.id]
+    assert revealed[0].ai_defender is True
+    assert revealed[0].state is AttackState.DEFENDED
+    # The draft leaves AT THE REVEAL — no human answer, no wait for T.
+    sent = await bundle.attacks.pick_ban_due(now=cutoff)
     assert [item.id for item in sent] == [attack.id]
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert len(fresh.pickban["defender_picks"]) == 3
-    assert 30 <= fresh.pickban["ai_validate_at"] - int(attack.expires_at.timestamp()) <= 90
-    # The RDV NEVER opens before the draft resolves.
-    assert await bundle.attacks.score_due(now=attack.expires_at) == []
-    await bundle.attacks.set_picks(
-        attack.id, "king-a", ["francs", "bretons", "goths"], now=attack.expires_at
-    )
-    await bundle.attacks.validate_pickban(attack.id, "king-a", now=attack.expires_at)
-    validated = await bundle.attacks.ai_draft_due(
-        now=attack.expires_at + timedelta(seconds=90)
-    )
+    assert set(fresh.pickban["defender_picks"]) <= {"huns", "perses", "byzantins"}
+    assert 30 <= fresh.pickban["ai_validate_at"] - int(cutoff.timestamp()) <= 90
+    # The RDV NEVER opens before T even once the draft resolves.
+    await bundle.attacks.set_picks(attack.id, "king-a", ["francs", "bretons", "goths"], now=cutoff)
+    await bundle.attacks.validate_pickban(attack.id, "king-a", now=cutoff)
+    validated = await bundle.attacks.ai_draft_due(now=cutoff + timedelta(seconds=90))
     assert [item.id for item in validated] == [attack.id]
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.pickban["resolved_pickban"] is True
-    # The next tick opens the RDV: the attacker plays the game (D20).
-    due = await bundle.attacks.score_due(now=attack.expires_at + timedelta(seconds=95))
+    assert await bundle.attacks.score_due(now=cutoff + timedelta(minutes=5)) == []
+    # At T the meeting opens: the attacker plays the game (D20).
+    due = await bundle.attacks.score_due(now=attack.expires_at)
     assert [item.id for item in due] == [attack.id]
     assert due[0].state is AttackState.MEETING
+    # The no-show line is anchored at T+5 — never at the late opening.
+    assert due[0].score["ready_deadline"] == int(
+        (attack.expires_at + timedelta(minutes=5)).timestamp()
+    )
     # The meeting keeps waiting for the game result (D20).
     assert await bundle.attacks.expire_stale(now=attack.expires_at + timedelta(minutes=5)) == []
 
@@ -420,7 +420,9 @@ async def test_meeting_time_still_waits_for_the_game_result_after_default() -> N
 
 
 async def test_meeting_time_catches_up_an_unrevealed_attack_with_the_ai() -> None:
-    """D77 default vs_ai: an expiry the reveal never reached engages the AI."""
+    """real-timeline-v1 catch-up: an expiry the reveal never reached
+    (restart gap) still engages the AI — the draft leaves on the next
+    tick (nothing resolved at the catch-up itself)."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(12)
@@ -430,6 +432,6 @@ async def test_meeting_time_catches_up_an_unrevealed_attack_with_the_ai() -> Non
     assert [item.id for item in expired] == [attack.id]
     assert expired[0].ai_defender is True
     assert expired[0].state is AttackState.DEFENDED
-    # battle-ai-rdv-v1: the draft leaves on the next tick (nothing
-    # resolved at the catch-up itself).
+    # The draft leaves on the next tick (nothing resolved at the
+    # catch-up itself).
     assert not (expired[0].pickban or {}).get("sent")
