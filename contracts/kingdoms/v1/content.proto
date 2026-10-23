@@ -40,7 +40,7 @@ message MapSeedReply {
   string terrain = 7;
   string size = 8;
   string map_type = 9;
-  string licence_ok = 10;      // true: the image passed the licence guard
+  bool licence_ok = 10;        // true: the image passed the licence guard
   string licence_note = 11;    // the refusal reason when licence_ok is false
 }
 
