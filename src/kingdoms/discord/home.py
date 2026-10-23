@@ -242,7 +242,8 @@ async def _profile_followup(
                 )
                 for site in sites
             ]
-            view.add_item(ProfileSiteSelect(game, options))
+            picker = ProfileSiteSelect(game, options)
+            view.add_item(discord.ui.ActionRow(picker.item))
     from kingdoms.core.ids import footer
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
@@ -918,16 +919,15 @@ async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -
         if p.get("state") != "offline"
     ]
     stats = await collect_profile_stats(active_ids, game_key)
-    body = render_dashboard(
-        snapshot, locale=str(interaction.locale or "en"), stats=stats
-    )
+    from kingdoms.discord.content_posts import guild_locale
+
+    locale = await guild_locale(str(interaction.guild_id), interaction.client)
+    body = render_dashboard(snapshot, locale=locale, stats=stats)
     from kingdoms.discord.live import build_dashboard_view
 
     # THE dashboard rendering (unified, owner direction): the same view
     # the pinned channel shows — Container + the id under it, one code path.
-    view = build_dashboard_view(
-        snapshot, body, interaction.client, locale=str(interaction.locale or "en"), game_key=game_key
-    )
+    view = build_dashboard_view(snapshot, body, interaction.client, locale=locale, game_key=game_key)
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -1248,11 +1248,14 @@ async def _roster_lines(
         mention = f"<@{user_id}>"
         profiles: list[str] = []
         for binding in user_bindings:
+            # the exact profile-page naming: display_name → name → first
+            # alias (owner direction — the librematch resolver diverged)
             profile = binding.get("profile") or {}
             pid = str(binding.get("profile_id", "?"))
+            aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
             name = (
                 str(profile.get("display_name") or profile.get("name") or "")
-                or str((names.get(pid) or {}).get("display_name") or "")
+                or (aliases[0] if aliases else "")
                 or pid
             )
             url = _game_account_url(game_key, pid)
