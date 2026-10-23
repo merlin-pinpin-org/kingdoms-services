@@ -1045,13 +1045,10 @@ async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, An
 
 
 async def _is_guild_member(guild: Any, user_id: int) -> bool:
-    """Whether one user is a member of the guild (cache first, then fetch)."""
-    if guild.get_member(user_id) is not None:
-        return True
-    try:
-        return await guild.fetch_member(user_id) is not None
-    except Exception:
-        return False
+    """Whether one user is a member of the guild (the cached roster)."""
+    from kingdoms.discord.member_cache import is_guild_member as _cached
+
+    return await _cached(guild, user_id)
 
 
 async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
@@ -1198,7 +1195,6 @@ def _view_users_for_game(game_key: str) -> Any:
                 by_user[user_id].append(binding)
 
         guild = bot.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
-
         # guild-scoped: only the enrolled players who are MEMBERS of this
         # guild render (owner direction — the platform's roster, not the
         # game's global one)

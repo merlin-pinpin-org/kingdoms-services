@@ -230,6 +230,18 @@ class KingdomsBot(discord.Client):
             self._home_pin_pending = False
     
 
+    async def on_member_join(self, member: discord.Member) -> None:
+        """Keep the member cache fresh between TTLs (owner direction)."""
+        from kingdoms.discord.member_cache import on_member_join as _join
+
+        _join(member)
+
+    async def on_member_remove(self, member: discord.Member) -> None:
+        """Keep the member cache fresh between TTLs (owner direction)."""
+        from kingdoms.discord.member_cache import on_member_remove as _remove
+
+        _remove(member)
+
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
         logger.info(

@@ -69,29 +69,23 @@ async def scope_snapshot_to_guild(
 ) -> dict[str, Any]:
     """Keep only the players whose platform user is a member of the guild.
 
-    Cache-first with a fetch fallback (a guild does not cache every
-    member); a missing membership never crashes the render — the player
-    is simply out of this guild's dashboard.
+    The membership rides the member cache (one chunked fetch per guild
+    per hour, kept fresh by the member events) — the dashboard render
+    stays fast; a missing membership never crashes it, the player is
+    simply out of this guild's dashboard.
     """
     if guild is None:
         return snapshot
-    import discord as _discord
 
-    async def _is_member(user_id: str) -> bool:
-        if not user_id or not user_id.isdigit():
-            return False
-        if guild.get_member(int(user_id)) is not None:
-            return True
-        try:
-            return await guild.fetch_member(int(user_id)) is not None
-        except (_discord.NotFound, _discord.HTTPException):
-            return False
+    from kingdoms.discord.member_cache import guild_members
 
-    kept: list[dict[str, Any]] = []
-    for player in snapshot.get("players", []):
-        user_id = str(player.get("user_id", ""))
-        if await _is_member(user_id):
-            kept.append(player)
+    members = await guild_members(guild)
+    kept = [
+        player
+        for player in snapshot.get("players", [])
+        if str(player.get("user_id", "")).isdigit()
+        and int(str(player.get("user_id", ""))) in members
+    ]
     return {**snapshot, "players": kept}
 
 

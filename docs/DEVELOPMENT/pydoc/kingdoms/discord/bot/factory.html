@@ -195,6 +195,10 @@ Discord&nbsp;exposes&nbsp;a&nbsp;user's&nbsp;language&nbsp;only&nbsp;inside&nbsp
 the&nbsp;interaction-free&nbsp;DMs&nbsp;(boot&nbsp;status,&nbsp;crash&nbsp;reports)&nbsp;render<br>
 in&nbsp;the&nbsp;language&nbsp;the&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsBot-on_member_join"><strong>on_member_join</strong></a>(self, member: 'discord.Member') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;member&nbsp;cache&nbsp;fresh&nbsp;between&nbsp;TTLs&nbsp;(owner&nbsp;direction).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-on_member_remove"><strong>on_member_remove</strong></a>(self, member: 'discord.Member') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;member&nbsp;cache&nbsp;fresh&nbsp;between&nbsp;TTLs&nbsp;(owner&nbsp;direction).</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-on_tree_error"><strong>on_tree_error</strong></a>(self, interaction: 'discord.Interaction', error: 'app_commands.AppCommandError') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;Kingdoms&nbsp;errors&nbsp;with&nbsp;i18n&nbsp;+&nbsp;audit;&nbsp;crash-report&nbsp;the&nbsp;rest.</span></dd></dl>

@@ -114,6 +114,18 @@ class _FakeGuild:
         """Fetch fallback: same as the cache (member)."""
         return object()
 
+    async def fetch_members(self, limit: int | None = None) -> Any:
+        """The member cache's chunked fetch: the snapshot's users are members."""
+
+        class _M:
+            def __init__(self, uid: int) -> None:
+                self.id = uid
+                self.display_name = f"member{uid}"
+
+        ids = {10, 20}
+        for uid in sorted(ids):
+            yield _M(uid)
+
 
 @pytest.fixture
 def stored_live_channel(monkeypatch: Any) -> None:
@@ -271,3 +283,31 @@ async def test_provider_failure_degrades_to_offline_dashboard(stored_live_channe
     assert created is True
     body = channel.sent[0].edits[-1] if channel.sent[0].edits else channel.sent[0].embeds[0].description
     assert "Providers unreachable" in body, "the degraded note is shown"
+
+
+async def test_scope_snapshot_filters_by_cached_members() -> None:
+    """The dashboard scope keeps only the guild's members."""
+    from kingdoms.discord import member_cache
+    from kingdoms.discord.live import scope_snapshot_to_guild
+
+    class _Guild:
+        id = 42
+
+        async def fetch_members(self, limit: int | None = None):
+            class _M:
+                def __init__(self, uid: int, name: str) -> None:
+                    self.id = uid
+                    self.display_name = name
+
+            yield _M(10, "Merlin")
+
+    snapshot = {
+        "players": [
+            {"user_id": "10", "profile_id": "A"},
+            {"user_id": "99", "profile_id": "B"},
+            {"user_id": "", "profile_id": "C"},
+        ]
+    }
+    scoped = await scope_snapshot_to_guild(snapshot, _Guild())
+    assert [p["profile_id"] for p in scoped["players"]] == ["A"]
+    member_cache._cache.pop(42, None)
