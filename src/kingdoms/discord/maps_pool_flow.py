@@ -513,17 +513,24 @@ class PoolMapsButton(
             )
             return
         modal = await _build_compose_modal(service, pool, interaction)
+        if modal is None:
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.no_maps_to_compose"), ephemeral=True
+            )
+            return
         await interaction.response.send_modal(modal)
 
 
 async def _build_compose_modal(
     service: Any, pool: Any, interaction: discord.Interaction
-) -> PoolComposeModal:
+) -> PoolComposeModal | None:
     """Resolve the pool's members and the guild's available maps.
 
     Available: the maps the guild may add \u2014 its own locals plus the
     public catalog, never the pool's current members. Members: the
-    pool's maps (at most MAX_POOL_MAPS, always select-fit).
+    pool's maps (at most MAX_POOL_MAPS, always select-fit). Returns
+    None when neither list has an entry: Discord rejects a modal with
+    no components, so the caller answers with a message instead.
     """
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     # ONE catalog read resolves both lists — the N+1 member lookups blew
@@ -537,6 +544,8 @@ async def _build_compose_modal(
         and m.id not in pool.map_ids
         and (m.owner_guild_id is None or m.owner_guild_id == guild_id)
     ]
+    if not available and not members:
+        return None
     return PoolComposeModal(pool, available, members)
 
 
