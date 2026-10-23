@@ -30,9 +30,10 @@ async def guild_members(guild: Any) -> dict[int, str]:
 
     The first call per guild (or after the TTL elapsed) does one chunked
     fetch of the whole roster; every later call is a memory read. A
-    fetch failure serves the stale entry when there is one (better a
-    minute-old roster than a broken panel) and an empty roster on the
-    very first failure (the callers degrade to 'no member').
+    fetch failure serves the stale entry when there is one; an EMPTY
+    first fetch is NOT cached (the callers treat 'no roster' as 'do
+    not filter' — fail-open, an unresolvable roster must never blank
+    the dashboards).
     """
     guild_id = int(guild.id)
     entry = _cache.get(guild_id)
@@ -58,6 +59,11 @@ async def guild_members(guild: Any) -> dict[int, str]:
             if entry is not None:
                 return dict(entry[1])  # stale beats empty
             return {}
+        if not members and entry is None:
+            # an empty first fetch is a resolution failure (missing
+            # privileged intent, API hiccup) — not a guild of zero
+            # members; leave the cache unset so the callers fail open
+            return members
         _cache[guild_id] = (_now() + MEMBER_CACHE_TTL_S, members)
         return members
 

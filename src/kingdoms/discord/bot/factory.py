@@ -140,6 +140,7 @@ class KingdomsBot(discord.Client):
     ) -> None:
         """Create the client, the command tree and attach the services."""
         intents = discord.Intents.default()
+        intents.members = True  # the member cache's roster fetch + join/leave events
         super().__init__(intents=intents)
         self.config = config
         self.status_service = status

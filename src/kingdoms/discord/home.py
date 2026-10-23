@@ -1045,10 +1045,17 @@ async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, An
 
 
 async def _is_guild_member(guild: Any, user_id: int) -> bool:
-    """Whether one user is a member of the guild (the cached roster)."""
-    from kingdoms.discord.member_cache import is_guild_member as _cached
+    """Return whether one user is a member of the guild (the cached roster).
 
-    return await _cached(guild, user_id)
+    An unresolvable roster (empty fetch) accepts everyone — fail open:
+    an API hiccup must never blank the roster panel.
+    """
+    from kingdoms.discord.member_cache import guild_members
+
+    members = await guild_members(guild)
+    if not members:
+        return True
+    return user_id in members
 
 
 async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
@@ -1209,7 +1216,7 @@ def _view_users_for_game(game_key: str) -> Any:
         from kingdoms.discord.live import collect_profile_stats
 
         names = await collect_profile_stats(profile_ids, game_key)
-        lines = _roster_lines(game_key, by_user, guild, names)
+        lines = await _roster_lines(game_key, by_user, guild, names)
         if not lines:
             lines = [await reply(interaction, "profile.no_members_bound")]
         for view in _roster_views(game_key, lines):
@@ -1218,7 +1225,7 @@ def _view_users_for_game(game_key: str) -> Any:
     return _open
 
 
-def _roster_lines(
+async def _roster_lines(
     game_key: str,
     by_user: dict[str, list[dict[str, Any]]],
     guild: Any,
@@ -1231,14 +1238,14 @@ def _roster_lines(
     never the raw profile id.
     """
     names = names or {}
+    from kingdoms.discord.member_cache import guild_members
+
+    cached_members = await guild_members(guild) if guild is not None else {}
     entries: list[tuple[str, str, str]] = []
     for user_id, user_bindings in by_user.items():
-        member = guild.get_member(int(user_id)) if guild is not None else None
-        pseudo = (
-            getattr(member, "display_name", None)
-            or getattr(member, "name", None)  # no nickname: the Discord username
-            or ""
-        )
+        # the pseudo rides the member cache (the guild's own cache can be
+        # incomplete); fall back to the mention when the cache misses
+        pseudo = cached_members.get(int(user_id), "") if cached_members else ""
         mention = f"<@{user_id}>"
         profiles: list[str] = []
         for binding in sorted(user_bindings, key=lambda b: str(b.get("profile_id", ""))):

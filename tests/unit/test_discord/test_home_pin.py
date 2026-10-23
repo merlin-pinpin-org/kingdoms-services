@@ -1,5 +1,4 @@
 """The declared home menu pins through the static-pin machinery."""
-from typing import Any
 
 import pytest
 
@@ -34,8 +33,9 @@ async def test_the_root_home_menu_pins_as_a_declared_view() -> None:
     assert "view:open:panel:profile" in customs, "the declared buttons ride the pin"
 
 
-def test_roster_lines_sorted_with_mention_and_links() -> None:
+async def test_roster_lines_sorted_with_mention_and_links() -> None:
     """The roster lines: pseudo, mention, aoe2insights links — alphabetical."""
+
     from kingdoms.discord.home import _casefold_key, _roster_lines
 
     class _Member:
@@ -43,20 +43,33 @@ def test_roster_lines_sorted_with_mention_and_links() -> None:
             self.display_name = name
 
     class _Guild:
-        def get_member(self, uid: int) -> Any:
-            return {"10": _Member("Zoé"), "20": _Member("alice"), "30": _Member("Bob")}.get(str(uid))
+        id = 7
+
+        async def fetch_members(self, limit: int | None = None):
+            members = {"10": "Zoé", "20": "alice", "30": "Bob"}
+
+            class _M:
+                def __init__(self, uid: int, name: str) -> None:
+                    self.id = uid
+                    self.display_name = name
+
+            for uid, name in members.items():
+                yield _M(int(uid), name)
 
     by_user = {
         "10": [{"user_id": "10", "profile_id": "111", "profile": {"display_name": "ZoeAoe"}}],
         "20": [{"user_id": "20", "profile_id": "222", "profile": {"display_name": "AliceAoe"}}],
         "30": [{"user_id": "30", "profile_id": "333", "profile": {"display_name": "BobAoe"}}],
     }
-    lines = _roster_lines("aoe2", by_user, _Guild())
+    lines = await _roster_lines("aoe2", by_user, _Guild())
     assert lines[0].startswith("• **alice** — <@20>")
     assert lines[1].startswith("• **Bob** — <@30>")
     assert lines[2].startswith("• **Zoé** — <@10>")
     assert "https://www.aoe2insights.com/user/relic/222/" in lines[0]
     assert _casefold_key("Zoé") == "zoe"
+    from kingdoms.discord import member_cache
+
+    member_cache._cache.pop(7, None)
 
 
 def test_paginate_lines_splits_on_budget() -> None:

@@ -80,6 +80,8 @@ async def scope_snapshot_to_guild(
     from kingdoms.discord.member_cache import guild_members
 
     members = await guild_members(guild)
+    if not members:
+        return snapshot  # unresolvable roster — fail open, never blank
     kept = [
         player
         for player in snapshot.get("players", [])
@@ -608,7 +610,9 @@ async def ensure_live_dashboard(
         await _sweep_duplicate_dashboards(channel, keep=reused)
         return False
     await _sweep_duplicate_dashboards(channel, keep=None)
-    message = await channel.send(embed=embeds[0])
+    message = await channel.send(  # type: ignore[call-overload]  # embed+LayoutView is runtime-valid
+        embed=embeds[0], view=_dashboard_footer_view(game_key)
+    )
     try:
         await message.pin(reason="kingdoms: live dashboard (#147)")
     except Exception:
@@ -623,6 +627,18 @@ async def ensure_live_dashboard(
     )
     await _sync_extra_pages(guild_id, channel, registry, embeds)
     return True
+
+
+def _dashboard_footer_view(game_key: str) -> discord.ui.LayoutView:
+    """Build the dashboard's footer view: the id as a TextDisplay, outside.
+
+    Same convention as every other view (owner direction, asked 23
+    times): the id never rides INSIDE the embed — it is a separate
+    component under it.
+    """
+    from kingdoms.discord.ui.view_footer import add_view_footer
+
+    return add_view_footer(discord.ui.LayoutView(timeout=None), f"panel:game:{game_key}:live")
 
 
 def _page_key(game_key: str, page: int) -> str:
@@ -687,7 +703,9 @@ async def _sync_extra_pages(
         registered = await registry.resolve(PLATFORM, key, guild_id)
         if await _edit_registered(channel, registered, embed):
             continue
-        message = await channel.send(embed=embed)
+        message = await channel.send(  # type: ignore[call-overload]
+            embed=embed, view=_dashboard_footer_view(game_key)
+        )
         await registry.register(
             platform=PLATFORM,
             message_key=key,
@@ -790,9 +808,6 @@ def _dashboard_embed(
         description=description,
         colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
     )
-    from kingdoms.discord.ui.view_footer import embed_footer
-
-    embed_footer(embed, f"panel:game:{game_key}:live")
     if icon_url:
         embed.set_thumbnail(url=icon_url)
     return embed

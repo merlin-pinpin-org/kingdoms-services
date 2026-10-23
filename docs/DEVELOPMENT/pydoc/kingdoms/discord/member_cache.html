@@ -35,9 +35,10 @@ fetch),&nbsp;serves&nbsp;every&nbsp;check&nbsp;from&nbsp;memory,&nbsp;and&nbsp;t
 &nbsp;<br>
 The&nbsp;first&nbsp;call&nbsp;per&nbsp;guild&nbsp;(or&nbsp;after&nbsp;the&nbsp;TTL&nbsp;elapsed)&nbsp;does&nbsp;one&nbsp;chunked<br>
 fetch&nbsp;of&nbsp;the&nbsp;whole&nbsp;roster;&nbsp;every&nbsp;later&nbsp;call&nbsp;is&nbsp;a&nbsp;memory&nbsp;read.&nbsp;A<br>
-fetch&nbsp;failure&nbsp;serves&nbsp;the&nbsp;stale&nbsp;entry&nbsp;when&nbsp;there&nbsp;is&nbsp;one&nbsp;(better&nbsp;a<br>
-minute-old&nbsp;roster&nbsp;than&nbsp;a&nbsp;broken&nbsp;panel)&nbsp;and&nbsp;an&nbsp;empty&nbsp;roster&nbsp;on&nbsp;the<br>
-very&nbsp;first&nbsp;failure&nbsp;(the&nbsp;callers&nbsp;degrade&nbsp;to&nbsp;'no&nbsp;member').</span></dd></dl>
+fetch&nbsp;failure&nbsp;serves&nbsp;the&nbsp;stale&nbsp;entry&nbsp;when&nbsp;there&nbsp;is&nbsp;one;&nbsp;an&nbsp;EMPTY<br>
+first&nbsp;fetch&nbsp;is&nbsp;NOT&nbsp;cached&nbsp;(the&nbsp;callers&nbsp;treat&nbsp;'no&nbsp;roster'&nbsp;as&nbsp;'do<br>
+not&nbsp;filter'&nbsp;—&nbsp;fail-open,&nbsp;an&nbsp;unresolvable&nbsp;roster&nbsp;must&nbsp;never&nbsp;blank<br>
+the&nbsp;dashboards).</span></dd></dl>
  <dl><dt>async <a name="-is_guild_member"><strong>is_guild_member</strong></a>(guild: 'Any', user_id: 'str | int') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;whether&nbsp;one&nbsp;user&nbsp;is&nbsp;a&nbsp;member&nbsp;of&nbsp;the&nbsp;guild&nbsp;(the&nbsp;cached&nbsp;roster).</span></dd></dl>
  <dl><dt>async <a name="-member_display_name"><strong>member_display_name</strong></a>(guild: 'Any', user_id: 'str | int') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;member's&nbsp;display&nbsp;name&nbsp;(empty&nbsp;when&nbsp;not&nbsp;a&nbsp;member).</span></dd></dl>
  <dl><dt><a name="-on_member_join"><strong>on_member_join</strong></a>(member: 'Any') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;one&nbsp;join&nbsp;immediately&nbsp;(the&nbsp;cache&nbsp;stays&nbsp;fresh&nbsp;between&nbsp;TTLs).</span></dd></dl>

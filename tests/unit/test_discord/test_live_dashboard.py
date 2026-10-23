@@ -72,7 +72,9 @@ class _FakeChannel:
         """Return the channel's pinned messages (fake)."""
         return [m for m in self.messages.values() if m.pinned]
 
-    async def send(self, content: str = "", embed: object = None) -> _FakeMessage:
+    async def send(
+        self, content: str = "", embed: object = None, view: object = None
+    ) -> _FakeMessage:
         message = _FakeMessage(id=1000 + len(self.sent), content=content)
         if embed is not None:
             message.embeds.append(embed)
