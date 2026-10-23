@@ -35,6 +35,9 @@ def test_preset_now_mutates_the_shared_config() -> None:
     config = default_season_config()
     apply_beta_preset(config, "now")
     attacks = config.attacks
+    # planification-attaque-v1 (Drasah 23/10): the beta opens on TEN
+    # kingdoms by default — no extra admin action needed.
+    assert config.kingdoms_count == 10
     assert attacks.attacks_per_week == 10
     assert attacks.defenses_per_week == 10
     assert attacks.player_attack_delay_minutes == 10

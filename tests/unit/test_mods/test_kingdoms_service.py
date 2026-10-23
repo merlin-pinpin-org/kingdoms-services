@@ -35,6 +35,8 @@ class MemoryStore:
         self.kingdoms: dict[str, dict] = {}
         self.lords: dict[str, dict] = {}
         self.archives: dict[str, dict] = {}
+        # planification-attaque-v1 (Drasah 23/10): the plans collection.
+        self.plans: dict[str, dict] = {}
 
     async def upsert_season_archive(self, document: dict) -> None:
         self.archives[document["_id"]] = document
@@ -70,6 +72,16 @@ class MemoryStore:
         self.seasons.clear()
         self.kingdoms.clear()
         self.lords.clear()
+        self.plans.clear()
+
+    async def upsert_plan(self, document: dict) -> None:
+        self.plans[document["_id"]] = document
+
+    async def find_plans(self) -> list[dict]:
+        return list(self.plans.values())
+
+    async def delete_plan(self, plan_id: str) -> None:
+        self.plans.pop(plan_id, None)
 
 
 class MongoWireStore(MemoryStore):

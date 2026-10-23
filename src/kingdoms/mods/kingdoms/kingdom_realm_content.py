@@ -793,7 +793,10 @@ def _build_patrol(
         lines.append(strings["remparts_guard_stock"].format(stock))
     lines.append(strings["patrol_window"])
     body = "\n".join(lines)
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomDefenseManagerButton
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackManagerButton,
+        KingdomDefenseManagerButton,
+    )
     from kingdoms.mods.kingdoms.kingdom_persistent import (
         KingdomRempartsGuardButton,
         KingdomRempartsPatrouilleButton,
@@ -811,6 +814,12 @@ def _build_patrol(
             # Drasah 18/10: la vue privée du royaume défenseur — qui
             # défend quoi, l'effet de surprise restant public-board-free.
             KingdomDefenseManagerButton(strings.get("defense_manager_button", "🛡️ Gestion de la défense")),
+            # planification-attaque-v1 (Drasah 23/10): ⚔️ Gestion
+            # d'attaque — les déclarations en cours + les
+            # plannifications du royaume (3 choix visibles).
+            KingdomAttackManagerButton(
+                strings.get("attack_manager_button", "⚔️ Gestion d'attaque")
+            ),
         ],
     )
 

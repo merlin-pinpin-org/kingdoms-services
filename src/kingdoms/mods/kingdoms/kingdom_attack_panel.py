@@ -259,6 +259,42 @@ _STRINGS: dict[str, dict[str, str]] = {
         "defense_manager_waiting": "en attente de défenseur ⏳",
         "defense_manager_not_defender": "❌ Tu n'es pas un seigneur actif d'un royaume.",
         "defense_manager_no_service": "❌ Le service des attaques est indisponible.",
+        "plan_button": "📅 Planifier une attaque",
+        "plan_list_button": "📅 Mes planifications",
+        "plan_manager_button": "⚔️ Gestion d'attaque",
+        "plan_manager_title": "⚔️ Gestion d'attaque — **{kingdom}**",
+        "plan_manager_declared_section": "**⚔️ Attaques déclarées**",
+        "plan_manager_planned_section": "**📅 Attaques planifiées**",
+        "plan_manager_empty": "Aucune attaque en cours ni planifiée.",
+        "plan_manager_declared_row": "• **{map}** — RDV **{time}** (Paris) · {state}",
+        "plan_manager_planned_row": "• **{map}** — RDV **{time}** (Paris) · {lord} · choix {index}/{total}",
+        "plan_disclaimer": "⚠️ Une plannification ne réserve pas le territoire : si un autre royaume déclare une attaque dessus avant l'heure choisie, ta plannification basculera sur ton choix suivant — ou sera rompue s'il n'en reste aucun.",
+        "plan_time_modal_title": "📅 Planifier l'attaque",
+        "plan_time_label": "Heure du RDV (JJ/MM HH:MM, Paris)",
+        "plan_time_invalid": "❌ Format attendu : JJ/MM HH:MM (ex. 24/10 20:00), dans les 24h et au moins un itinéraire à l'avance.",
+        "plan_confirm_title": "📅 Planification — choix 1 : **{map}** · RDV **{time}** (Paris)",
+        "plan_choice2_placeholder": "Choix 2 (facultatif)",
+        "plan_choice3_placeholder": "Choix 3 (facultatif)",
+        "plan_confirm_button": "✅ Confirmer la planification",
+        "plan_dm_header": "📅 Plannification d'attaque — {map}",
+        "plan_choices_line": "Choix {n} : **{map}**{active}",
+        "plan_active_tag": " ✅",
+        "plan_dm_time": "RDV : **{time}** (Paris) — déclaration automatique à **{declare_time}** (Paris).",
+        "plan_dm_budget": "Le budget d'attaque (⚔️) sera consommé à la DÉCLARATION — pas maintenant.",
+        "plan_created_note": "📅 Plannification enregistrée — le récap est dans tes messages privés.",
+        "plan_no_dm": "⚠️ Plannification enregistrée, mais l'envoi du MP a échoué (MPs fermés ?).",
+        "plan_failed": "❌ La plannification a échoué : {message}",
+        "plan_list_title": "📅 Tes plannifications",
+        "plan_list_empty": "Aucune plannification en cours.",
+        "plan_list_row": "• **{map}** — RDV **{time}** (Paris) · choix {index}/{total}",
+        "plan_cancel_button": "❌ Annuler ma plannification",
+        "plan_cancelled_ephemeral": "❌ Plannification annulée — aucun budget n'a été consommé.",
+        "plan_event_executed": "✅ Ton attaque planifiée a été DÉCLARÉE sur **{map}** — RDV **{time}** (Paris). Le budget d'attaque a été consommé à la déclaration.",
+        "plan_event_switched": "⚠️ Ton choix sur **{old}** ne peut aboutir (la bataille a déjà été déclarée dessus) — bascule sur le choix suivant : **{map}**.",
+        "plan_event_broken": "⛔ Ton attaque planifiée ne peut aboutir : la bataille a déjà été déclarée sur **{map}** et aucun autre choix n'est disponible. Aucun budget n'a été consommé.",
+        "plan_event_cancelled": "❌ Ta plannification a été annulée — aucun budget n'a été consommé.",
+        "plan_no_service": "❌ Le service des attaques est indisponible.",
+        "lord_engaged": "⛔ Tu es engagé dans une bataille en cours — attends son issue avant d'attaquer, planifier, embusquer ou défendre.",
         "reveal_no_defense": "🏳️ Assaut irrésistible — aucune défense",
         "defender_pending": "en attente de défense",
         "defender_anon": "défense en place 🔒",
@@ -285,6 +321,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "patrol_kingdom": "**{name}** jusqu'à {end}h00",
         "ai_level_desc": "IA de défense : {level}/5 · {count} territoire(s)",
         "choose_territory": "🗺️ **Choisis le territoire de {kingdom} à attaquer :**",
+        "embuscade_button": "🎯 Embuscade ({count} restant)",
+        "embuscade_no_stock": "❌ Ton royaume n'a acheté aucune Embuscade sur le marché des technologies.",
+        "embuscade_choose": "🎯 **Embuscade — choisis le territoire cible :** (attaque exceptionnelle, hors budget hebdo)",
+        "embuscade_note": (
+            "🎯 **Embuscade déclarée sur {map}** — itinéraire **{delay} min**, rendez-vous à"
+            " **{time}** (heure de Paris). La défense ne consomme PAS le point hebdo."
+        ),
         "traquenard_hint": (
             "🪤 Info : un royaume peut activer un Traquenard sur son adversaire — l'IA de"
             " défense devient Facile pendant 6h et les mariages scellés prennent +2h de verrou."
@@ -560,6 +603,42 @@ _STRINGS: dict[str, dict[str, str]] = {
         "defense_manager_waiting": "waiting for a defender ⏳",
         "defense_manager_not_defender": "❌ You are no active lord of a kingdom.",
         "defense_manager_no_service": "❌ The attack service is unavailable.",
+        "plan_button": "📅 Plan an attack",
+        "plan_list_button": "📅 My plannings",
+        "plan_manager_button": "⚔️ Attack management",
+        "plan_manager_title": "⚔️ Attack management — **{kingdom}**",
+        "plan_manager_declared_section": "**⚔️ Declared attacks**",
+        "plan_manager_planned_section": "**📅 Planned attacks**",
+        "plan_manager_empty": "No ongoing or planned attack.",
+        "plan_manager_declared_row": "• **{map}** — meeting **{time}** (Paris) · {state}",
+        "plan_manager_planned_row": "• **{map}** — meeting **{time}** (Paris) · {lord} · choice {index}/{total}",
+        "plan_disclaimer": "⚠️ A planning reserves NOTHING: if another kingdom declares an attack on the territory before your chosen hour, your planning switches to your next choice — or breaks when none remains.",
+        "plan_time_modal_title": "📅 Plan the attack",
+        "plan_time_label": "Meeting time (JJ/MM HH:MM, Paris)",
+        "plan_time_invalid": "❌ Expected format: JJ/MM HH:MM (e.g. 24/10 20:00), within 24h and at least one travel delay ahead.",
+        "plan_confirm_title": "📅 Planning — choice 1: **{map}** · meeting **{time}** (Paris)",
+        "plan_choice2_placeholder": "Choice 2 (optional)",
+        "plan_choice3_placeholder": "Choice 3 (optional)",
+        "plan_confirm_button": "✅ Confirm the planning",
+        "plan_dm_header": "📅 Attack planning — {map}",
+        "plan_choices_line": "Choice {n}: **{map}**{active}",
+        "plan_active_tag": " ✅",
+        "plan_dm_time": "Meeting: **{time}** (Paris) — automatic declaration at **{declare_time}** (Paris).",
+        "plan_dm_budget": "The attack budget (⚔️) is consumed at the DECLARATION — not now.",
+        "plan_created_note": "📅 Planning saved — the recap is in your DMs.",
+        "plan_no_dm": "⚠️ Planning saved, but the DM failed (DMs closed?).",
+        "plan_failed": "❌ The planning failed: {message}",
+        "plan_list_title": "📅 Your plannings",
+        "plan_list_empty": "No ongoing planning.",
+        "plan_list_row": "• **{map}** — meeting **{time}** (Paris) · choice {index}/{total}",
+        "plan_cancel_button": "❌ Cancel my planning",
+        "plan_cancelled_ephemeral": "❌ Planning cancelled — no budget was consumed.",
+        "plan_event_executed": "✅ Your planned attack was DECLARED on **{map}** — meeting **{time}** (Paris). The attack budget was consumed at the declaration.",
+        "plan_event_switched": "⚠️ Your choice on **{old}** cannot proceed (the battle was already declared there) — switched to the next choice: **{map}**.",
+        "plan_event_broken": "⛔ Your planned attack cannot proceed: the battle was already declared on **{map}** and no other choice is available. No budget was consumed.",
+        "plan_event_cancelled": "❌ Your planning was cancelled — no budget was consumed.",
+        "plan_no_service": "❌ The attack service is unavailable.",
+        "lord_engaged": "⛔ You are engaged in an ongoing battle — wait for its outcome before attacking, planning, ambushing or defending.",
         "reveal_no_defense": "🏳️ Irresistible assault — no defense",
         "defender_pending": "waiting for a defender",
         "defender_anon": "defense in place 🔒",
@@ -586,6 +665,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "patrol_kingdom": "**{name}** until {end}:00",
         "ai_level_desc": "Defense AI: {level}/5 · {count} territor(y|ies)",
         "choose_territory": "🗺️ **Choose the territory of {kingdom} to attack:**",
+        "embuscade_button": "🎯 Ambush ({count} left)",
+        "embuscade_no_stock": "❌ Your kingdom bought no Ambush on the technology market.",
+        "embuscade_choose": "🎯 **Ambush — choose the target territory:** (exceptional attack, outside the weekly budget)",
+        "embuscade_note": (
+            "🎯 **Ambush declared on {map}** — itinerary **{delay} min**, meeting at"
+            " **{time}** (Paris time). The defense does NOT consume the weekly point."
+        ),
         "traquenard_hint": (
             "🪤 Info: a kingdom may activate a Traquenard on its adversary — the defense"
             " AI turns Easy for 6h and sealed marriages gain +2h of lock."
@@ -930,6 +1016,8 @@ def _declare_view(strings: dict[str, str]) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
     view.add_item(KingdomAttackDeclareButton(strings["declare_button"]))
     view.add_item(KingdomAttackHistoryButton(strings["history_button"]))
+    view.add_item(KingdomPlanButton(strings["plan_button"]))
+    view.add_item(KingdomPlanListButton(strings["plan_list_button"]))
     return view
 
 
@@ -1342,6 +1430,38 @@ async def _territory_select_view(
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
     view.add_item(select)
+    # planification-attaque-v1 (Drasah 23/10): the Embuscade button
+    # rides the declare flow's step 2 — shown ONLY when the kingdom
+    # bought at least one Embuscade on the technology market. It is
+    # an EXCEPTIONAL attack: outside the weekly budget, fixed 1h
+    # itinerary (10 min in beta), open-faced (no cover), and the
+    # defense it triggers is exceptional too (no weekly point).
+    embuscade_stock = 0
+    if wiring.attacks_service is not None:
+        try:
+            embuscade_stock = int(
+                (
+                    await wiring.attacks_service.technology_state(own_kingdom_id)
+                ).purchases.get("embuscade", 0)
+            )
+        except Exception:
+            embuscade_stock = 0
+    if embuscade_stock > 0:
+        embuscade: discord.ui.Button[Any] = discord.ui.Button(
+            label=str(strings["embuscade_button"]).format(count=embuscade_stock)[:80],
+            style=discord.ButtonStyle.danger,
+            custom_id="kingdoms:attack:embuscade",
+        )
+
+        async def on_embuscade(target: discord.Interaction[Any]) -> None:
+            # The ambush picks its OWN territory (its own select) — a
+            # classic click on the select above stays the normal flow.
+            await _open_embuscade_step(
+                wiring, target, strings, own_kingdom_id, kingdom_id, options
+            )
+
+        embuscade.callback = on_embuscade  # type: ignore[method-assign, assignment]
+        view.add_item(embuscade)
     # restructuration-serveur-v1 b: the « ⚔️ Itinéraire » line reads the
     # delay LIVE from the config (player vs Gaïa target — never hardcoded,
     # the beta reconfigures and the Corbeau 24h follow-up overrides it
@@ -1352,6 +1472,72 @@ async def _territory_select_view(
         lines.append(str(strings["itinerary_line"]).format(minutes=delay_minutes))
     lines.append(str(strings["traquenard_hint"]))
     return "\n".join(lines), view
+
+
+async def _open_embuscade_step(
+    wiring: Any,
+    interaction: discord.Interaction[Any],
+    strings: dict[str, str],
+    own_kingdom_id: str,
+    kingdom_id: str,
+    options: list[discord.SelectOption],
+) -> None:
+    """Step 2-Emb — the Embuscade's OWN territory pick (exceptional attack).
+
+    planification-attaque-v1 (Drasah 23/10): the ambush never goes
+    through the cover question (it strikes in the open) and consumes
+    a bought ``embuscade`` instead of the weekly attack budget. The
+    itinerary is fixed and unreducible (1h official, 10 min beta).
+    """
+    import discord  # noqa: F811 — local import mirrors the module's style
+
+    attacks = wiring.attacks_service
+    if attacks is None:
+        await interaction.response.send_message(strings["no_service"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:embuscade:territory",
+        placeholder=str(strings["embuscade_choose"])[:100],
+        options=options,
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await target.response.defer(ephemeral=True)
+        try:
+            attack = await attacks.declare_embuscade(str(target.user.id), chosen[0], "")
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await target.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            return
+        try:
+            delay_minutes = int((attack.expires_at - attack.declared_at).total_seconds() // 60)
+        except Exception:
+            delay_minutes = 0
+        note: Any = await _followup_send_ephemeral(
+            target,
+            strings["embuscade_note"].format(
+                map=attack.map_key,
+                delay=delay_minutes,
+                time=_fmt_paris(attack.expires_at),
+            ),
+        )
+        _arm_declared_note_timer(
+            str(attack.id), target, int(getattr(note, "id", 0) or 0), attack.expires_at
+        )
+        await _open_attack_salon_safe(target.guild, wiring, strings, attack)
+        await refresh_attack_panel_safe(target.guild, _locale(target))
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    await interaction.followup.send(
+        content=str(strings["embuscade_choose"]), view=view, ephemeral=True
+    )
 
 
 def _declare_delay_minutes(wiring: Any, kingdom: Any) -> int:
@@ -1934,6 +2120,641 @@ class KingdomDefenseManagerButton(
             view=view if list(view.children) else None,  # type: ignore[arg-type]
             ephemeral=True,
         )
+
+
+# ----------------------------------------------------------------------
+# planification-attaque-v1 (Drasah 23/10/2026) — the planning surface
+# ----------------------------------------------------------------------
+def _map_label(wiring: Any, map_key: str) -> str:
+    """The display name of a map key (fallback: the raw key)."""
+    catalog = {
+        str(getattr(entry, "key", "")): entry
+        for entry in getattr(getattr(wiring.kingdoms_service, "config", None), "maps", None) or ()
+    }
+    return str(getattr(catalog.get(str(map_key), None), "display_name", None) or map_key)
+
+
+async def _plan_enemy_territory_options(wiring: Any, own_kingdom_id: str, strings: dict[str, str]) -> list[Any]:
+    """The plan choice options: every enemy player territory (cap 25)."""
+    import discord
+
+    territories_service = wiring.territories_service
+    kingdoms_service = wiring.kingdoms_service
+    if territories_service is None or kingdoms_service is None:
+        return []
+    gaia_ids = {str(k.id) for k in await kingdoms_service.kingdoms() if getattr(k, "is_gaia", False)}
+    options: list[discord.SelectOption] = []
+    for territory in await territories_service.territories():
+        owner = str(territory.owner_kingdom_id)
+        if owner == str(own_kingdom_id) or owner in gaia_ids or getattr(territory, "sacred", False):
+            continue
+        options.append(
+            discord.SelectOption(
+                label=_map_label(wiring, str(territory.map_key))[:100],
+                value=str(territory.map_key)[:100],
+                description=_map_description(
+                    getattr(getattr(kingdoms_service, "config", None), "maps", None)
+                    and {
+                        str(getattr(entry, "key", "")): entry
+                        for entry in getattr(getattr(kingdoms_service, "config", None), "maps", None)
+                    }.get(str(territory.map_key), None),
+                    strings,
+                ),
+            )
+        )
+        if len(options) >= 25:
+            break
+    return options
+
+
+async def _plan_confirm_step(
+    wiring: Any,
+    interaction: Any,
+    strings: dict[str, str],
+    own_kingdom_id: str,
+    choice1: str,
+    meeting_at: Any,
+) -> None:
+    """The planning confirm step — récap + the optional choices 2 and 3."""
+    import discord
+
+    state: dict[str, Any] = {"choice2": None, "choice3": None}
+    options = await _plan_enemy_territory_options(wiring, own_kingdom_id, strings)
+    view = discord.ui.View(timeout=600)
+
+    def _extras() -> list[str]:
+        extras = [choice1]
+        if state.get("choice2"):
+            extras.append(str(state["choice2"]))
+        if state.get("choice3"):
+            extras.append(str(state["choice3"]))
+        return extras
+
+    def _remaining_options() -> list[discord.SelectOption]:
+        taken = set(_extras())
+        return [option for option in options if str(option.value) not in taken][:25]
+
+    async def _confirm(target: discord.Interaction[Any]) -> None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        attacks_service = _wiring().attacks_service
+        if attacks_service is None:
+            await target.followup.send(strings["plan_no_service"], ephemeral=True)
+            return
+        try:
+            plan = await attacks_service.plan_attack(
+                str(target.user.id), _extras(), meeting_at
+            )
+        except Exception as exc:
+            from kingdoms.mods.kingdoms.attacks import LordEngagedError
+
+            message = (
+                strings["lord_engaged"]
+                if isinstance(exc, LordEngagedError)
+                else strings["plan_failed"].format(message=getattr(exc, "message", None) or str(exc))
+            )
+            await target.followup.send(message, ephemeral=True)
+            return
+        content = _plan_recap_content(wiring, plan, strings)
+        view = discord.ui.View(timeout=None)
+        view.add_item(KingdomPlanCancelButton(plan.id, strings["plan_cancel_button"]))
+        dm = await _dm_user_safe(target.client, str(target.user.id), content, view)
+        if dm is not None:
+            await attacks_service.record_plan_dm(
+                plan.id, int(getattr(dm, "channel_id", 0) or 0), int(getattr(dm, "id", 0) or 0)
+            )
+            await target.followup.send(strings["plan_created_note"], ephemeral=True)
+        else:
+            await target.followup.send(strings["plan_no_dm"], ephemeral=True)
+        try:
+            await target.response.edit_message(content=strings["plan_created_note"], view=None)
+        except Exception:
+            logger.debug("kingdoms: plan confirm ephemeral edit failed", exc_info=True)
+
+    confirm = discord.ui.Button(
+        label=str(strings["plan_confirm_button"])[:80],
+        custom_id="kingdoms:attack:plan:confirm",
+        style=discord.ButtonStyle.success,
+    )
+    confirm.callback = _confirm  # type: ignore[method-assign, assignment]
+    view.add_item(confirm)
+    for slot, key in (("choice2", "plan_choice2_placeholder"), ("choice3", "plan_choice3_placeholder")):
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=f"kingdoms:attack:plan:{slot}",
+            placeholder=str(strings[key])[:100],
+            options=_remaining_options(),
+            min_values=1,
+            max_values=1,
+        )
+
+        async def on_pick(target: discord.Interaction[Any], slot: str = slot) -> None:
+            values = getattr(target, "data", None) or {}
+            picked = [str(v) for v in values.get("values", [])]
+            if picked:
+                state[slot] = picked[0]
+            # Redraw both selects without the taken choices.
+            for item in view.children:
+                if getattr(item, "custom_id", "") == "kingdoms:attack:plan:choice2":
+                    item.options = _remaining_options()  # type: ignore[union-attr]
+                elif getattr(item, "custom_id", "") == "kingdoms:attack:plan:choice3":
+                    rest = [o for o in _remaining_options() if str(o.value) != str(state.get("choice2"))][:25]
+                    item.options = rest  # type: ignore[union-attr]
+            await target.response.edit_message(content=_confirm_content(), view=view)
+
+        select.callback = on_pick  # type: ignore[method-assign, assignment]
+        view.add_item(select)
+
+    def _confirm_content() -> str:
+        lines = [
+            strings["plan_confirm_title"].format(
+                map=_map_label(wiring, choice1), time=_fmt_paris(meeting_at)
+            ),
+            strings["plan_dm_budget"],
+            strings["plan_disclaimer"],
+        ]
+        return "\n".join(lines)
+
+    try:
+        await interaction.response.edit_message(content=_confirm_content(), view=view)
+    except Exception:
+        logger.debug("kingdoms: plan confirm step edit failed", exc_info=True)
+
+
+def _plan_recap_content(wiring: Any, plan: Any, strings: dict[str, str]) -> str:
+    """The full player-facing récap of a plan (DM body)."""
+    from kingdoms.mods.kingdoms.attacks import AttackService  # noqa: F401 — typing only
+
+    lines = [strings["plan_dm_header"].format(map=_map_label(wiring, str(plan.active_choice or "")))]
+    for index, choice in enumerate(plan.choices, start=1):
+        lines.append(
+            strings["plan_choices_line"].format(
+                n=index,
+                map=_map_label(wiring, str(choice)),
+                active=strings["plan_active_tag"] if index - 1 == int(plan.active_index) else "",
+            )
+        )
+    attacks_service = getattr(wiring, "attacks_service", None)
+    declare_at: Any = plan.meeting_at
+    try:
+        declare_at = attacks_service._plan_declare_at(plan)  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    lines.append(
+        strings["plan_dm_time"].format(
+            time=_fmt_paris(plan.meeting_at), declare_time=_fmt_paris(declare_at)
+        )
+    )
+    lines.append(strings["plan_dm_budget"])
+    lines.append(strings["plan_disclaimer"])
+    return "\n".join(lines)
+
+
+class KingdomPlanTimeModal(discord.ui.Modal):
+    """The RDV-hour modal of a planning (JJ/MM HH:MM, Europe/Paris)."""
+
+    def __init__(self, wiring: Any, strings: dict[str, str], own_kingdom_id: str, choice1: str) -> None:
+        super().__init__(title=str(strings["plan_time_modal_title"])[:100], timeout=600)
+        self._wiring = wiring
+        self._strings = strings
+        self._own_kingdom_id = own_kingdom_id
+        self._choice1 = choice1
+        self.time_input = discord.ui.TextInput(
+            label=str(strings["plan_time_label"])[:100],
+            placeholder="24/10 20:00",
+            required=True,
+            max_length=32,
+        )
+        self.add_item(self.time_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Parse the hour and open the confirm step."""
+        from kingdoms.mods.kingdoms.beta_weekend import parse_beta_start
+        from kingdoms.mods.kingdoms.game_clock import game_now
+
+        strings = self._strings
+        try:
+            meeting_at = parse_beta_start(str(self.time_input.value or "").strip(), game_now())
+        except ValueError:
+            await interaction.response.send_message(strings["plan_time_invalid"], ephemeral=True)
+            return
+        # The 24h golden rule — the service re-checks, the early
+        # feedback spares a useless confirm step.
+        await _plan_confirm_step(
+            self._wiring, interaction, strings, self._own_kingdom_id, self._choice1, meeting_at
+        )
+
+
+class KingdomPlanButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:plan$",
+):
+    """The 📅 « Planifier une attaque » button of the declare panel."""
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:attack:plan",
+                style=discord.ButtonStyle.primary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomPlanButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(_strings(_locale(interaction))["plan_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Step 1 of the planning wizard — the choice-1 territory select."""
+        import discord
+
+        from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["plan_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None or getattr(lord, "kingdom_id", None) is None:
+            await interaction.response.send_message(
+                strings["defense_manager_not_defender"], ephemeral=True
+            )
+            return
+        from kingdoms.mods.kingdoms.attacks import LordEngagedError
+
+        try:
+            await wiring.attacks_service._refuse_engaged(str(interaction.user.id), game_now())
+        except LordEngagedError:
+            await interaction.response.send_message(strings["lord_engaged"], ephemeral=True)
+            return
+        options = await _plan_enemy_territory_options(wiring, str(lord.kingdom_id), strings)
+        if not options:
+            await interaction.response.send_message(strings["no_target"], ephemeral=True)
+            return
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="kingdoms:attack:plan:choice1",
+            placeholder=str(strings["choose_territory"]).split("—")[0].strip()[:100],
+            options=options,
+            min_values=1,
+            max_values=1,
+        )
+
+        async def on_pick(target: discord.Interaction[Any]) -> None:
+            values = getattr(target, "data", None) or {}
+            picked = [str(v) for v in values.get("values", [])]
+            if not picked:
+                return
+            await target.response.send_modal(
+                KingdomPlanTimeModal(wiring, strings, str(lord.kingdom_id), picked[0])
+            )
+
+        select.callback = on_pick  # type: ignore[method-assign, assignment]
+        view = discord.ui.View(timeout=600)
+        view.add_item(select)
+        lines = [str(strings["plan_list_title"]), strings["plan_disclaimer"]]
+        await interaction.response.send_message("\n".join(lines), view=view, ephemeral=True)
+
+
+class KingdomPlanListButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:plan-list$",
+):
+    """The 📅 « Mes planifications » button of the declare panel."""
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:attack:plan-list",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomPlanListButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(_strings(_locale(interaction))["plan_list_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """List the lord's live plans with a ❌ cancel button each."""
+        import discord
+
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+        from kingdoms.mods.kingdoms.models import PlanState
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["plan_no_service"], ephemeral=True)
+            return
+        plans = [
+            p
+            for p in await wiring.attacks_service.plans()
+            if str(p.lord_id) == str(interaction.user.id) and p.state is PlanState.PLANNED
+        ]
+        rows = [
+            strings["plan_list_row"].format(
+                map=_map_label(wiring, str(p.active_choice or "")),
+                time=_fmt_paris(p.meeting_at),
+                index=int(p.active_index) + 1,
+                total=len(p.choices),
+            )
+            for p in plans
+        ]
+        body = "\n".join(rows) if rows else strings["plan_list_empty"]
+        view = discord.ui.View(timeout=600)
+        for plan in plans[:10]:
+            view.add_item(KingdomPlanCancelButton(str(plan.id), strings["plan_cancel_button"]))
+        await interaction.response.send_message(
+            strings["plan_list_title"] + "\n" + body,
+            view=view if list(view.children) else None,  # type: ignore[arg-type]
+            ephemeral=True,
+        )
+
+
+class KingdomPlanCancelButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:plan:cancel:(?P<key>[0-9a-f]{16})",
+):
+    """The ❌ cancel button of one live plan (free — nothing consumed)."""
+
+    def __init__(self, plan_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:plan:cancel:{_room_key(plan_id)}",
+                style=discord.ButtonStyle.danger,
+            )
+        )
+        self.plan_id = plan_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomPlanCancelButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(
+            await _resolve_plan_id_by_key_async(match["key"]),
+            _strings(_locale(interaction))["plan_cancel_button"],
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Cancel the plan and edit the ephemeral in place."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["plan_no_service"], ephemeral=True)
+            return
+        try:
+            await wiring.attacks_service.cancel_plan(self.plan_id, str(interaction.user.id))
+        except Exception:
+            await interaction.response.send_message(
+                strings["plan_failed"].format(message="plannification introuvable"), ephemeral=True
+            )
+            return
+        try:
+            await interaction.response.edit_message(
+                content=strings["plan_cancelled_ephemeral"], view=None
+            )
+        except Exception:
+            await interaction.followup.send(strings["plan_cancelled_ephemeral"], ephemeral=True)
+
+
+async def _resolve_plan_id_by_key_async(key: str) -> str:
+    """Resolve the hashed plan key back to its id (restart-proof)."""
+    for plan in await _all_plans_async():
+        if _room_key(str(plan.id)) == str(key):
+            return str(plan.id)
+    return ""
+
+
+async def _all_plans_async() -> list[Any]:
+    """Every plan of the current data set (best effort)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    if wiring.attacks_service is None:
+        return []
+    try:
+        return await wiring.attacks_service.plans()
+    except Exception:
+        logger.debug("kingdoms: plan scan failed", exc_info=True)
+        return []
+
+
+class KingdomAttackManagerButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:attack-manager$",
+):
+    """The ⚔️ « Gestion d'attaque » button of the Remparts panel.
+
+    planification-attaque-v1 (Drasah 23/10): the kingdom members see
+    the DECLARED attacks AND the PLANNED ones (every lord's plans with
+    their 3 choices visible) — the kingdom's private war room.
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:attack:attack-manager",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomAttackManagerButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(_strings(_locale(interaction))["plan_manager_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show the kingdom's declared + planned attacks (ephemeral)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
+        from kingdoms.mods.kingdoms.models import PlanState
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["plan_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None or getattr(lord, "kingdom_id", None) is None:
+            await interaction.response.send_message(
+                strings["defense_manager_not_defender"], ephemeral=True
+            )
+            return
+        kingdom_id = str(lord.kingdom_id)
+        kingdom_name = await _kingdom_name(wiring.kingdoms_service, kingdom_id)
+        sections: list[str] = [strings["plan_manager_title"].format(kingdom=kingdom_name)]
+        attacks = [
+            a
+            for a in await wiring.attacks_service.attacks()
+            if not a.is_over
+            and str(getattr(a, "attacker_kingdom_id", "")) == kingdom_id
+        ]
+        plans = [
+            p
+            for p in await wiring.attacks_service.plans()
+            if p.state is PlanState.PLANNED and str(p.kingdom_id) == kingdom_id
+        ]
+        if not attacks and not plans:
+            sections.append(strings["plan_manager_empty"])
+        if attacks:
+            sections.append(strings["plan_manager_declared_section"])
+            for attack in attacks:
+                state = getattr(attack, "state", None)
+                state_label = str(getattr(state, "value", "") or "")
+                sections.append(
+                    strings["plan_manager_declared_row"].format(
+                        map=_map_label(wiring, str(attack.map_key)),
+                        time=_fmt_paris(attack.expires_at),
+                        state=state_label,
+                    )
+                )
+        if plans:
+            sections.append(strings["plan_manager_planned_section"])
+            for plan in plans:
+                lord_name = await _lord_name(wiring.kingdoms_service, str(plan.lord_id))
+                for index, choice in enumerate(plan.choices, start=1):
+                    sections.append(
+                        strings["plan_choices_line"].format(
+                            n=index,
+                            map=_map_label(wiring, str(choice)),
+                            active=strings["plan_active_tag"]
+                            if index - 1 == int(plan.active_index)
+                            else "",
+                        )
+                    )
+                sections.append(
+                    strings["plan_manager_planned_row"].format(
+                        map=_map_label(wiring, str(plan.active_choice or "")),
+                        time=_fmt_paris(plan.meeting_at),
+                        lord=lord_name,
+                        index=int(plan.active_index) + 1,
+                        total=len(plan.choices),
+                    )
+                )
+        await interaction.response.send_message("\n".join(sections), ephemeral=True)
+
+
+async def _update_plan_dm_safe(bot: Any, plan: Any, content: str) -> bool:
+    """Edit the plan's récap DM in place — False when impossible."""
+    channel_id = int(getattr(plan, "dm_channel_id", 0) or 0)
+    message_id = int(getattr(plan, "dm_message_id", 0) or 0)
+    if not channel_id or not message_id:
+        return False
+    try:
+        channel = getattr(bot, "get_channel", lambda _id: None)(channel_id)
+        if channel is None:
+            return False
+        message = channel.get_partial_message(message_id)
+        await message.edit(content=content)
+        return True
+    except Exception:
+        logger.debug("kingdoms: plan DM edit failed", exc_info=True)
+    return False
+
+
+async def _run_plan_events_safe(
+    bot: Any,
+    guild: Any,
+    attacks_service: Any,
+    kingdoms_service: Any,
+    strings: dict[str, str],
+    wiring: Any,
+) -> int:
+    """Play the due plans: execute/switch/break + the DM récap edits.
+
+    The executed declarations open their attack salon exactly like a
+    manual one; every plan event reaches the player through his récap
+    DM (edited in place, a fresh DM when the refs are lost).
+    """
+    dirty = 0
+    from kingdoms.mods.kingdoms.models import PlanState
+
+    for plan in await attacks_service.plan_events():
+        dirty += 1
+        executed_attack = None
+        if plan.last_event == "executed" and plan.executed_attack_id:
+            executed_attack = next(
+                (a for a in await attacks_service.attacks() if str(a.id) == str(plan.executed_attack_id)),
+                None,
+            )
+        # Build the event note FIRST (it reads last_event_map), then
+        # clear the flag service side.
+        note = ""
+        if plan.last_event == "executed" and executed_attack is not None:
+            note = strings["plan_event_executed"].format(
+                map=_map_label(wiring, str(executed_attack.map_key)),
+                time=_fmt_paris(executed_attack.expires_at),
+            )
+        elif plan.last_event == "switched":
+            note = strings["plan_event_switched"].format(
+                old=_map_label(wiring, str(plan.last_event_map or "")),
+                map=_map_label(wiring, str(plan.active_choice or "")),
+            )
+        elif plan.last_event in ("broken_by_declaration", "broken_target"):
+            note = strings["plan_event_broken"].format(
+                map=_map_label(wiring, str(plan.last_event_map or plan.active_choice or ""))
+            )
+        elif plan.last_event == "broken_budget":
+            note = strings["plan_event_broken"].format(
+                map=_map_label(wiring, str(plan.active_choice or ""))
+            )
+        elif plan.last_event == "broken_engaged":
+            note = strings["lord_engaged"]
+        elif plan.last_event == "broken_lords_day":
+            note = strings["plan_event_broken"].format(
+                map=_map_label(wiring, str(plan.active_choice or ""))
+            )
+        elif plan.last_event == "cancelled":
+            note = strings["plan_event_cancelled"]
+        if plan.state is not PlanState.PLANNED:
+            # The final states carry the event note as the DM's last
+            # body — the récap becomes the receipt.
+            recap = _plan_recap_content(wiring, plan, strings)
+            content = recap + "\n\n" + note
+        else:
+            content = _plan_recap_content(wiring, plan, strings) + "\n\n" + note
+        sent = await _update_plan_dm_safe(bot, plan, content)
+        if not sent:
+            dm = await _dm_user_safe(bot, str(plan.lord_id), content)
+            if dm is not None:
+                await attacks_service.record_plan_dm(
+                    str(plan.id),
+                    int(getattr(dm, "channel_id", 0) or 0),
+                    int(getattr(dm, "id", 0) or 0),
+                )
+        await attacks_service.clear_plan_event(str(plan.id))
+        # The executed declarations open their salon + refresh the panel.
+        if executed_attack is not None:
+            await _open_attack_salon_safe(guild, wiring, strings, executed_attack)
+    return dirty
 
 
 class KingdomAttackJoinButton(
@@ -2838,6 +3659,11 @@ async def _run_phases_announce_safe(
     """Play the per-attack-salon phases of one guild — never raise."""
     dirty = 0
     try:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        dirty += await _run_plan_events_safe(
+            bot, guild, attacks_service, kingdoms_service, strings, _wiring()
+        )
         dirty += await _run_reveals_safe(guild, attacks_service, kingdoms_service, strings)
         pickbans = await attacks_service.pick_ban_due()
         for attack in pickbans:

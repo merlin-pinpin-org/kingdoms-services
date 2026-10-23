@@ -17,6 +17,7 @@ LORDS_COLLECTION = "kingdoms_lords"
 TERRITORIES_COLLECTION = "kingdoms_territories"
 TECHNOLOGIES_COLLECTION = "kingdoms_technologies"
 ATTACKS_COLLECTION = "kingdoms_attacks"
+PLANS_COLLECTION = "kingdoms_plans"
 SHOWMATCH_COLLECTION = "kingdoms_showmatch"
 FFA_COLLECTION = "kingdoms_ffa"
 SEASON_ARCHIVES_COLLECTION = "kingdoms_season_archives"
@@ -79,6 +80,18 @@ class KingdomsStore(Protocol):
 
     async def delete_attack(self, attack_id: str) -> None:
         """Drop one attack document by ``_id``."""
+        ...
+
+    async def upsert_plan(self, document: dict[str, Any]) -> None:
+        """Insert or replace one planned-attack document by ``_id``."""
+        ...
+
+    async def find_plans(self) -> list[dict[str, Any]]:
+        """Return every planned-attack document of the current data set."""
+        ...
+
+    async def delete_plan(self, plan_id: str) -> None:
+        """Drop one planned-attack document by ``_id``."""
         ...
 
     async def upsert_technology(self, document: dict[str, Any]) -> None:
@@ -199,6 +212,21 @@ class MongoKingdomsStore:
     async def delete_attack(self, attack_id: str) -> None:
         """Drop one attack document by ``_id``."""
         await self._database[ATTACKS_COLLECTION].delete_one({"_id": attack_id})
+
+    async def upsert_plan(self, document: dict[str, Any]) -> None:
+        """Insert or replace one planned-attack document by ``_id``."""
+        await self._database[PLANS_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
+    async def find_plans(self) -> list[dict[str, Any]]:
+        """Return every planned-attack document of the current data set."""
+        cursor = self._database[PLANS_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
+    async def delete_plan(self, plan_id: str) -> None:
+        """Drop one planned-attack document by ``_id``."""
+        await self._database[PLANS_COLLECTION].delete_one({"_id": plan_id})
 
     async def upsert_technology(self, document: dict[str, Any]) -> None:
         """Insert or replace one technology document by ``_id``."""

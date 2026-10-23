@@ -28,6 +28,8 @@ from kingdoms.mods.kingdoms.models import (
     AttackKind,
     AttackModel,
     AttackState,
+    PlanState,
+    PlannedAttackModel,
     TechnologyState,
 )
 from kingdoms.mods.kingdoms.service import (
@@ -235,6 +237,34 @@ class EmbuscadeError(AttackError):
     message_key = "kingdoms.errors.embuscade"
 
 
+class LordEngagedError(AttackError):
+    """Raised when an engaged lord tries a new combat action.
+
+    planification-attaque-v1 (Drasah 23/10/2026): a lord who declared
+    (or defends) an attack is LOCKED from the declaration until the
+    result is announced — he can neither declare nor plan another
+    attack, nor defend, nor use an Embuscade. The lock is per LORD: the
+    other lords of his kingdom keep every action.
+    """
+
+    code = "KINGDOMS_LORD_ENGAGED"
+    message_key = "kingdoms.errors.lord_engaged"
+
+
+class PlanningError(AttackError):
+    """Raised when a planned attack cannot be created (Drasah 23/10)."""
+
+    code = "KINGDOMS_PLANNING"
+    message_key = "kingdoms.errors.planning"
+
+
+class PlanNotFoundError(AttackError):
+    """Raised when a planned attack does not exist or is not live."""
+
+    code = "KINGDOMS_PLAN_NOT_FOUND"
+    message_key = "kingdoms.errors.plan_not_found"
+
+
 PATROUILLE_SLOT_KEYS = ("patrouille_slot_1", "patrouille_slot_2")
 PATROUILLE_HOURS = 2
 PATROUILLE_REINFORCED_HOURS = 3
@@ -242,6 +272,9 @@ PATROUILLE_TZ = "Europe/Paris"
 AI_LEVEL_CAP = 5
 TRAQUENARD_LOCK_HOURS = 2
 TRAQUENARD_WINDOW_HOURS = 6
+# planification-attaque-v1 (Drasah 23/10): the preference order holds
+# up to 3 territory choices (bascule auto on rupture).
+PLANNING_CHOICES_MAX = 3
 
 
 def patrouille_slots(state: TechnologyState) -> tuple[int, ...]:
@@ -516,6 +549,9 @@ class AttackService:
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         timestamp = now or _now()
+        # planification-attaque-v1: an engaged lord (attacker or
+        # defender of an unresolved attack) declares NOTHING new.
+        await self._refuse_engaged(lord.id, timestamp)
         territory = await self._validate_attack_target(lord, map_key, timestamp)
         cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
         if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
@@ -579,6 +615,10 @@ class AttackService:
             " under cover" if cover else "",
             " through an active Traquenard" if traquenard else "",
         )
+        # planification-attaque-v1 (Drasah 23/10): the declaration is
+        # PRIORITY — it ruptures every plannification whose active
+        # choice is this territory (auto-switch or break, DM event).
+        await self._rupture_plans_on(territory.map_key, timestamp)
         return attack
 
     async def _lord_tracked_by_corbeau(self, lord_id: str, timestamp: datetime) -> bool:
@@ -611,6 +651,8 @@ class AttackService:
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         timestamp = now or _now()
+        # planification-attaque-v1: an engaged lord ambushes NOTHING.
+        await self._refuse_engaged(lord.id, timestamp)
         territory = await self._validate_attack_target(lord, map_key, timestamp)
         # Volière Lâcher de faucon (voliere-v1): the Embuscade is an
         # adverse technology effect — a released defender is immune.
@@ -621,8 +663,10 @@ class AttackService:
         # technology — Embuscade included.
         if territory.is_tech_protected_at(timestamp):
             raise EmbuscadeError("the territory's chantier resists the Embuscade (lieu-sacree-v1)")
-        if not lobby_url.strip():
-            raise AttackError("the attacker must provide the game lobby link")
+        # planification-attaque-v1: the Embuscade button follows the
+        # same flow as a classic declaration — the lobby URL is
+        # shared at the RDV through the meeting DM's 🔗 button, so an
+        # empty URL at the declaration is VALID here too.
         _refuse_lords_day_execution(
             await self._active_lords_day_window(timestamp),
             timestamp,
@@ -664,7 +708,325 @@ class AttackService:
             territory.map_key,
             attack.expires_at.isoformat(),
         )
+        # planification-attaque-v1: the Embuscade occupies the
+        # territory too — the declaration primes over every plan.
+        await self._rupture_plans_on(territory.map_key, timestamp)
         return attack
+
+    # ------------------------------------------------------------------
+    # Plannification (planification-attaque-v1, Drasah 23/10/2026)
+    # ------------------------------------------------------------------
+    async def plans(self) -> list[PlannedAttackModel]:
+        """Return every planned attack of the current data set."""
+        return [PlannedAttackModel.from_mongo(doc) for doc in await self._store.find_plans()]
+
+    async def _refuse_engaged(self, player_id: str, timestamp: datetime) -> None:
+        """Raise ``LordEngagedError`` when the lord is under the battle lock.
+
+        The lock covers the attacker AND the defender of every
+        unresolved attack — from the declaration to the announced
+        result (Drasah 23/10): no new declaration, no plannification,
+        no defense, no Embuscade. Per LORD: the other lords of the
+        kingdom keep every action (the kingdom may even pose its
+        technologies through them).
+        """
+        if bypass_guard(f"battle lock of lord {player_id}"):
+            return
+        for attack in await self.attacks():
+            if attack.is_over:
+                continue
+            if str(attack.attacker_lord_id) == str(player_id) or (
+                attack.defender_lord_id is not None and str(attack.defender_lord_id) == str(player_id)
+            ):
+                raise LordEngagedError("the lord is engaged in an unresolved battle")
+
+    def _plan_declare_at(self, plan: PlannedAttackModel) -> datetime:
+        """The scheduled declaration moment: T - itinéraire (Drasah 23/10).
+
+        The declaration cannot be skipped — the RDV keeps at least the
+        travel delay of a fresh declaration, whatever the itinéraire
+        (6h vs a player kingdom, 3h vs Gaïa, 10 min in beta — the
+        config value is the single source of truth).
+        """
+        delay = timedelta(minutes=int(self._config.attacks.player_attack_delay_minutes))
+        return plan.meeting_at - delay
+
+    async def plan_attack(
+        self,
+        player_id: str,
+        choices: list[str],
+        meeting_at: datetime,
+        *,
+        now: datetime | None = None,
+    ) -> PlannedAttackModel:
+        """Schedule an attack: 1-3 territories in order + the RDV hour T.
+
+        The plan reserves NOTHING (Drasah 23/10 — the declaration
+        primes): an adverse declaration on the active choice ruptures
+        it (auto-switch to the next choice, or break). The declaration
+        itself fires at T - itinéraire through ``plan_events`` — the
+        weekly budget is consumed THERE, never at the planning. The
+        golden rule: T never sits further than ``planning_max_hours``,
+        and never closer than now + itinéraire.
+        """
+        season = await self._require_running_season()
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        timestamp = now or _now()
+        await self._refuse_engaged(player_id, timestamp)
+        if not choices:
+            raise PlanningError("a plan needs at least one territory choice")
+        if len(choices) > PLANNING_CHOICES_MAX:
+            raise PlanningError(f"a plan holds at most {PLANNING_CHOICES_MAX} choices")
+        if len(set(choices)) != len(choices):
+            raise PlanningError("the same territory cannot be picked twice")
+        # The golden 24h rule + the minimum itinéraire before T.
+        max_horizon = timedelta(hours=int(self._config.attacks.planning_max_hours))
+        travel = timedelta(minutes=int(self._config.attacks.player_attack_delay_minutes))
+        if meeting_at <= timestamp + travel:
+            raise PlanningError("the RDV must land at least one itinéraire ahead")
+        if meeting_at > timestamp + max_horizon:
+            raise PlanningError(
+                f"the RDV cannot sit further than {int(self._config.attacks.planning_max_hours)}h ahead"
+            )
+        # The RDV must not land inside the active Lord's Day window
+        # (the execution re-checks at T - itinéraire anyway).
+        window = await self._active_lords_day_window(timestamp)
+        if window is not None and window[0] <= meeting_at <= window[1]:
+            raise LordsDayAttackError("the RDV would be played inside the Lord's Day window")
+        # Choice 1 must be a real attackable target NOW (the others are
+        # re-validated at the execution — protections may change).
+        validated: list[str] = []
+        for index, map_key in enumerate(choices):
+            territory = await self._territory_by_map(map_key)
+            if territory is None:
+                raise PlanningError(f"unknown territory: {map_key}")
+            if territory.owner_kingdom_id == lord.kingdom_id:
+                raise PlanningError("a kingdom cannot attack its own territory")
+            owner = await self._kingdom_by_id(territory.owner_kingdom_id)
+            if owner.is_gaia:
+                raise PlanningError("Gaïa territories are attacked through the free-for-all")
+            if territory.sacred:
+                raise PlanningError("the territory is SACRED — immune to every attack")
+            if index == 0:
+                # The active choice must be free right now — a busy
+                # choice would break the plan on its very first tick.
+                if await self._territory_busy(territory.id):
+                    raise TerritoryBusyError("the territory already has an ongoing attack")
+            validated.append(territory.map_key)
+        plan = PlannedAttackModel(
+            _id=f"{season.id}-plan-{lord.id}-{int(timestamp.timestamp())}",
+            season_id=season.id,
+            lord_id=lord.id,
+            kingdom_id=lord.kingdom_id,
+            choices=validated,
+            active_index=0,
+            meeting_at=meeting_at,
+            created_at=timestamp,
+        )
+        await self._store.upsert_plan(plan.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_ATTACK_DECLARED,
+            now=timestamp,
+            store=self._store,
+            map=validated[0],
+        )
+        logger.info(
+            "kingdoms: %s planned an attack on %s (RDV %s)",
+            lord.id,
+            validated[0],
+            meeting_at.isoformat(),
+        )
+        return plan
+
+    async def cancel_plan(self, plan_id: str, player_id: str, *, now: datetime | None = None) -> PlannedAttackModel:
+        """Withdraw a planned attack — free, the plan consumed nothing."""
+        plan = next((p for p in await self.plans() if str(p.id) == str(plan_id)), None)
+        if plan is None or not plan.is_live:
+            raise PlanNotFoundError("the plannification no longer exists")
+        if str(plan.lord_id) != str(player_id):
+            raise PlanNotFoundError("only the planificateur can cancel his plan")
+        plan.state = PlanState.CANCELLED
+        plan.last_event = "cancelled"
+        await self._store.upsert_plan(plan.to_mongo())
+        logger.info("kingdoms: %s cancelled the plan %s", player_id, plan.id)
+        return plan
+
+    async def record_plan_dm(self, plan_id: str, channel_id: int, message_id: int) -> None:
+        """Remember the récap DM refs — the panel edits THIS message."""
+        plan = next((p for p in await self.plans() if str(p.id) == str(plan_id)), None)
+        if plan is None:
+            return
+        plan.dm_channel_id = channel_id
+        plan.dm_message_id = message_id
+        await self._store.upsert_plan(plan.to_mongo())
+
+    async def clear_plan_event(self, plan_id: str) -> None:
+        """Clear the pending player-facing event (the DM went out)."""
+        plan = next((p for p in await self.plans() if str(p.id) == str(plan_id)), None)
+        if plan is None:
+            return
+        plan.last_event = None
+        await self._store.upsert_plan(plan.to_mongo())
+
+    async def _rupture_plans_on(self, map_key: str, timestamp: datetime) -> list[PlannedAttackModel]:
+        """Break/switch every live plan whose active choice is this map.
+
+        Called right after a successful declaration (or Embuscade): the
+        declaration is PRIORITY (Drasah 23/10). Each ruptured plan
+        advances to its first LATER choice that is not busy right now;
+        a plan without a remaining choice breaks (DM event). Nothing is
+        consumed — a plan never spent anything.
+        """
+        changed: list[PlannedAttackModel] = []
+        for plan in await self.plans():
+            if not plan.is_live or plan.active_choice != map_key:
+                continue
+            switched = False
+            for index in range(plan.active_index + 1, len(plan.choices)):
+                territory = await self._territory_by_map(plan.choices[index])
+                if territory is None or await self._territory_busy(territory.id):
+                    continue
+                plan.active_index = index
+                plan.last_event = "switched"
+                plan.last_event_map = map_key
+                switched = True
+                break
+            if not switched:
+                plan.state = PlanState.BROKEN
+                plan.last_event = "broken_by_declaration"
+                plan.last_event_map = map_key
+            await self._store.upsert_plan(plan.to_mongo())
+            changed.append(plan)
+            logger.info(
+                "kingdoms: plan %s ruptured on %s -> %s",
+                plan.id,
+                map_key,
+                plan.active_choice if switched else "broken",
+            )
+        return changed
+
+    async def plan_events(self, *, now: datetime | None = None) -> list[PlannedAttackModel]:
+        """Play every due plan: execute, switch or break — return the changed.
+
+        The panel tick calls this every pass: every live plan whose
+        declaration moment (T - itinéraire) came due is executed on
+        its ACTIVE choice through the ordinary ``declare_attack`` (the
+        budget is consumed at the declaration, the JdS window is
+        re-checked there, the attack salon opens through the panel);
+        a choice that became unavailable switches to the next one, a
+        plan without choices (or a locked/insolvent lord) breaks.
+        """
+        timestamp = now or _now()
+        changed: list[PlannedAttackModel] = []
+        for plan in await self.plans():
+            if not plan.is_live:
+                continue
+            if self._plan_declare_at(plan) > timestamp:
+                continue
+            changed.extend(await self._execute_plan(plan, timestamp))
+        # The rupture events of OTHER declarations (instant feedback):
+        for plan in await self.plans():
+            if plan.last_event and plan not in changed:
+                changed.append(plan)
+        return changed
+
+    async def _execute_plan(self, plan: PlannedAttackModel, timestamp: datetime) -> list[PlannedAttackModel]:
+        """Try to declare one due plan — execute, switch or break it."""
+        changed: list[PlannedAttackModel] = []
+        while plan.is_live and self._plan_declare_at(plan) <= timestamp:
+            map_key = plan.active_choice
+            if map_key is None:
+                plan.state = PlanState.BROKEN
+                plan.last_event = "broken_no_choice"
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                return changed
+            try:
+                attack = await self.declare_attack(plan.lord_id, map_key, "", now=timestamp)
+            except TerritoryBusyError:
+                # The active choice got declared by someone else —
+                # switch to the next one (the rupture switches the
+                # plan already; a stale race re-switches here).
+                plan.last_event = "switched"
+                plan.last_event_map = map_key
+                advanced = False
+                for index in range(plan.active_index + 1, len(plan.choices)):
+                    territory = await self._territory_by_map(plan.choices[index])
+                    if territory is None or await self._territory_busy(territory.id):
+                        continue
+                    plan.active_index = index
+                    advanced = True
+                    break
+                if not advanced:
+                    plan.state = PlanState.BROKEN
+                    plan.last_event = "broken_by_declaration"
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                if not advanced:
+                    return changed
+                continue
+            except LordEngagedError:
+                plan.state = PlanState.BROKEN
+                plan.last_event = "broken_engaged"
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                return changed
+            except NoBudgetError:
+                plan.state = PlanState.BROKEN
+                plan.last_event = "broken_budget"
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                return changed
+            except LordsDayAttackError:
+                plan.state = PlanState.BROKEN
+                plan.last_event = "broken_lords_day"
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                return changed
+            except (TerritoryNotAttackableError, PatrolProtectedError) as exc:
+                # Protected/patrol/sacred at the execution moment —
+                # try the next choice, the protection may not cover it.
+                plan.last_event = "switched"
+                plan.last_event_map = map_key
+                advanced = False
+                for index in range(plan.active_index + 1, len(plan.choices)):
+                    territory = await self._territory_by_map(plan.choices[index])
+                    if territory is None or await self._territory_busy(territory.id):
+                        continue
+                    plan.active_index = index
+                    advanced = True
+                    break
+                if not advanced:
+                    plan.state = PlanState.BROKEN
+                    plan.last_event = "broken_target"
+                    plan.last_event_map = map_key
+                    await self._store.upsert_plan(plan.to_mongo())
+                    changed.append(plan)
+                    logger.info(
+                        "kingdoms: plan %s broke at execution (%s)", plan.id, exc.message
+                    )
+                    return changed
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                continue
+            # The declaration succeeded — the plan is executed.
+            plan.state = PlanState.EXECUTED
+            plan.executed_attack_id = str(attack.id)
+            plan.last_event = "executed"
+            plan.last_event_map = map_key
+            await self._store.upsert_plan(plan.to_mongo())
+            changed.append(plan)
+            logger.info("kingdoms: plan %s executed as attack %s", plan.id, attack.id)
+            return changed
+        return changed
+
+    def _plan_probe_deadline(self, plans: list[PlannedAttackModel]) -> datetime | None:
+        """The earliest upcoming declaration moment of the live plans."""
+        due = [self._plan_declare_at(plan) for plan in plans if plan.is_live]
+        return min(due) if due else None
 
     async def _validate_attack_target(self, lord: LordModel, map_key: str, timestamp: datetime) -> TerritoryModel:
         """Run the shared declaration checks on one target territory."""
@@ -756,6 +1118,10 @@ class AttackService:
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
+        # planification-attaque-v1 (Drasah 23/10): an engaged lord
+        # defends NOTHING else — he is locked until his own battle's
+        # result is announced.
+        await self._refuse_engaged(lord.id, timestamp)
         # D59/D60: a fresh marriage locks the lord out of combat.
         if (
             lord.marriage_locked_until is not None
@@ -771,12 +1137,19 @@ class AttackService:
         ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
-        if lord.defense_used >= self._config.attacks.defenses_per_week and not bypass_guard(
+        # planification-attaque-v1 (Drasah 23/10): the Embuscade
+        # generates an EXCEPTIONAL defense — the defender neither
+        # spends nor needs his weekly defense point against one (the
+        # weekly budget covers the normal defenses only).
+        if attack.embuscade:
+            pass
+        elif lord.defense_used >= self._config.attacks.defenses_per_week and not bypass_guard(
             f"defense budget of {lord.display_name} ({lord.defense_used})"
         ):
             raise NoBudgetError("the weekly defense budget is spent")
-        lord.defense_used += 1
-        await self._store.upsert_lord(lord.to_mongo())
+        else:
+            lord.defense_used += 1
+            await self._store.upsert_lord(lord.to_mongo())
         attack.state = AttackState.DEFENDED
         attack.defender_lord_id = lord.id
         await self._store.upsert_attack(attack.to_mongo())
@@ -1657,6 +2030,17 @@ class AttackService:
                     continue
                 if nearest is None or candidate < nearest:
                     nearest = candidate
+        # planification-attaque-v1 (Drasah 23/10): a live plan's
+        # scheduled declaration (T - itinéraire) is a deadline like
+        # any phase — the loop wakes within the second of it.
+        plan_deadline = self._plan_probe_deadline(await self.plans())
+        if plan_deadline is not None and plan_deadline > timestamp:
+            if nearest is None or plan_deadline < nearest:
+                nearest = plan_deadline
+        elif plan_deadline is not None and plan_deadline <= timestamp:
+            # A due plan can execute RIGHT NOW — the loop must not
+            # sleep past its own declaration moment.
+            return timestamp
         return nearest
 
     async def _require_sabotage_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:

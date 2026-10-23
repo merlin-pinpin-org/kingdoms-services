@@ -54,6 +54,9 @@ BETA_PLAN_OFFSETS: dict[str, Any] = {
 # compressed to minutes (10-minute attack/Gaïa/Embuscade delays).
 BETA_PRESETS: dict[str, dict[str, Any]] = {
     "now": {
+        # planification-attaque-v1 (Drasah 23/10): the beta opens on
+        # TEN kingdoms by default — no extra admin action needed.
+        "kingdoms_count": 10,
         "attacks": {
             # Drasah 17/10 (soir): 10/10 — 2/2 was too thin to test the
             # whole attack cycle in one beta session.
@@ -150,6 +153,11 @@ def apply_beta_preset(config: KingdomsSeasonConfig, name: str) -> None:
     config.parish = ParishSettings(**{**config.parish.model_dump(), **preset["parish"]})
     config.technologies = TechnologyCosts(**{**config.technologies.model_dump(), **preset["technologies"]})
     config.ages = tuple(preset["ages"])
+    # planification-attaque-v1 (Drasah 23/10): the beta opens on 10
+    # kingdoms by default — the preset carries the ceiling itself.
+    kingdoms_count = preset.get("kingdoms_count")
+    if kingdoms_count is not None:
+        config.kingdoms_count = int(kingdoms_count)
 
 
 def beta_timezone() -> ZoneInfo:

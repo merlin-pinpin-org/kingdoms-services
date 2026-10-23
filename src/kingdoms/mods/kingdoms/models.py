@@ -459,6 +459,78 @@ class AttackModel(BaseModel):
         return self.state in (AttackState.RESOLVED, AttackState.EXPIRED, AttackState.CANCELLED)
 
 
+class PlanState(StrEnum):
+    """State machine of a planned attack (planification-attaque-v1).
+
+    ``planned`` waits for its scheduled declaration (at T - itinéraire);
+    ``executed`` became a real declared attack; ``broken`` lost every
+    choice to adverse declarations before its own could fire; a planned
+    attack never reserves anything — the declaration prime (Drasah
+    23/10/2026); ``cancelled`` is the lord's own withdrawal, free at
+    any time while planned.
+    """
+
+    PLANNED = "planned"
+    EXECUTED = "executed"
+    BROKEN = "broken"
+    CANCELLED = "cancelled"
+
+
+class PlannedAttackModel(BaseModel):
+    """A scheduled attack declaration (planification-attaque-v1, Drasah 23/10).
+
+    The lord picks 1 to 3 target territories in preference order
+    (choices) and the RDV hour T. The bot fires the DECLARATION itself
+    at T - itinéraire on the first attackable choice — the budget is
+    consumed at that declaration (not at the planning), and the
+    territory becomes occupied (D42) only then. Planning reserves
+    NOTHING: an adverse declaration on the active choice ruptures the
+    plan, which auto-switches to the next choice or breaks (DM).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: str = Field(alias="_id")
+    season_id: str
+    lord_id: str
+    kingdom_id: str
+    choices: list[str] = Field(default_factory=list)
+    """The target map keys in preference order (1 to 3, Drasah 23/10)."""
+    active_index: int = 0
+    meeting_at: datetime
+    """The chosen RDV T — the declaration fires at T - itinéraire."""
+    state: PlanState = PlanState.PLANNED
+    executed_attack_id: str | None = None
+    created_at: datetime
+    last_event: str | None = None
+    """The pending player-facing event (switched/broken/executed/…) —
+    the panel tick turns it into a DM edit and clears the flag."""
+    last_event_map: str | None = None
+    dm_channel_id: int | None = None
+    dm_message_id: int | None = None
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> PlannedAttackModel:
+        """Build from a MongoDB document."""
+        return _from_wire(cls, data)
+
+    @property
+    def is_live(self) -> bool:
+        """Whether the plan still waits for its scheduled declaration."""
+        return self.state is PlanState.PLANNED
+
+    @property
+    def active_choice(self) -> str | None:
+        """The map key of the current active choice (or None)."""
+        if 0 <= self.active_index < len(self.choices):
+            return self.choices[self.active_index]
+        return None
+
+
 class SeasonState(BaseModel):
     """The current season: its schedule and progression (D1, D38, D52).
 

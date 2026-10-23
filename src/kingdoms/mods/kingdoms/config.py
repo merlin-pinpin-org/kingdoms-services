@@ -174,6 +174,11 @@ class AttackSettings(BaseModel):
     is the window the ATTACKER gets to answer his own draft DM before
     the anti-blocking default (random civs, never a forfeit) applies.
     15 minutes: the exact window the human draft enjoys (T-15 → T)."""
+    planning_max_hours: int = Field(default=24, ge=1)
+    """planification-attaque-v1 (Drasah 23/10/2026): the golden 24h
+    rule — a planned attack's RDV (T) never sits further than this
+    horizon, and T is never closer than the declaration + itinéraire
+    (the scheduled declaration fires at T - travel delay)."""
     room_cleanup_delay_minutes: int = Field(default=30, ge=0)
     """Drasah 18/10 v4: the battle room survives this long (minutes)
     after the meeting resolved — the room only disappears once a
