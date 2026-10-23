@@ -27,6 +27,7 @@ from zoneinfo import ZoneInfo
 
 import discord
 
+from kingdoms.mods.kingdoms import game_clock
 from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
 from kingdoms.mods.kingdoms.game_clock import game_now
 
@@ -225,6 +226,50 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🏳️ **Attaque annulée** — budget d'attaque remboursé"
             " (défense remboursée aussi si elle était enregistrée). Le salon de l'attaque disparaît."
         ),
+        "when_question": (
+            "🕐 **Quand l'attaque doit-elle être déclarée ?**\n"
+            "**Maintenant** — le RDV est fixé à l'heure affichée (itinéraire classique).\n"
+            "**Planifier** — choisis l'heure du RDV (jusqu'à demain même heure, règle des 24h) :"
+            " le bot déclarera l'attaque tout seul à ce moment."
+        ),
+        "when_now_button": "🕐 Déclarer maintenant",
+        "when_schedule_button": "📅 Planifier le RDV",
+        "schedule_modal_title": "📅 Planifier une attaque",
+        "schedule_modal_label": "Heure du RDV (HH:MM)",
+        "schedule_modal_placeholder": "ex. 08:00",
+        "schedule_bad_format": (
+            "❌ Format attendu : **HH:MM** (ex. 08:00 ou 20h30). Une heure déjà passée"
+            " aujourd'hui est reportée à demain."
+        ),
+        "scheduled_note": (
+            "📅 **Attaque planifiée sur {map}** — le bot la déclarera tout seul"
+            " <t:{deadline}:R> (RDV <t:{deadline}:t>).\n"
+            "Le territoire est réservé, ton budget d'attaque est consommé. Tu peux l'annuler"
+            " gratuitement depuis **📅 Mes planifications** jusqu'à l'exécution."
+        ),
+        "scheduled_cover_done": "🕶️ Couverture enregistrée — l'attaque partira sous ce pseudo.",
+        "scheduled_cover_skipped": "📅 Attaque planifiée — sans couverture (à visage découvert).",
+        "scheduled_button": "📅 Mes planifications",
+        "scheduled_title": "📅 **Mes attaques planifiées**",
+        "scheduled_empty": "🔭 Aucune attaque planifiée pour l'instant.",
+        "scheduled_line": (
+            "• **{map}** — déclaration <t:{deadline}:R> (RDV <t:{deadline}:t>){cover}"
+        ),
+        "scheduled_cover_tag": " 🕶️ sous couverture",
+        "cancel_scheduled_button": "❌ Annuler la planification",
+        "cancel_scheduled_done": (
+            "🏳️ **Planification annulée** — budget d'attaque et couverture remboursés."
+            " Rien n'a été annoncé, le territoire est libéré."
+        ),
+        "scheduled_gone": "❌ Cette planification n'existe plus.",
+        "scheduled_executed_dm": (
+            "⚔️ **Ton attaque planifiée sur {map} vient d'être déclarée** — RDV <t:{deadline}:R>"
+            " (<t:{deadline}:t>). Le salon de bataille est ouvert, la défense peut répondre."
+        ),
+        "scheduled_failed_dm": (
+            "❌ **Ton attaque planifiée sur {map} n'a pas pu être déclarée** ({reason}) —"
+            " elle est annulée et ton budget d'attaque (et ta couverture) te sont remboursés."
+        ),
         "cancel_defense_button": "↩️ Retirer ma défense",
         "cancel_defense_done": "🛡️ Défense retirée — budget de défense remboursé.",
         "defend_wrong_kingdom": "❌ Vous ne pouvez défendre ce territoire.",
@@ -257,6 +302,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "defense_manager_row": "• **{map}** — RDV **{time}** (Paris) · {state}",
         "defense_manager_defended": "défendue par **{lord}** ✓",
         "defense_manager_waiting": "en attente de défenseur ⏳",
+        "defense_manager_scheduled_row": (
+            "• **{map}** — attaque planifiée par un autre royaume — déclaration"
+            " <t:{deadline}:R> (<t:{deadline}:t>) 📅"
+        ),
         "defense_manager_not_defender": "❌ Tu n'es pas un seigneur actif d'un royaume.",
         "defense_manager_no_service": "❌ Le service des attaques est indisponible.",
         "reveal_no_defense": "🏳️ Assaut irrésistible — aucune défense",
@@ -526,6 +575,48 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🏳️ **Attack cancelled** — attack budget refunded"
             " (the defense refunded too when one was recorded). The attack salon disappears."
         ),
+        "when_question": (
+            "🕐 **When should the attack be declared?**\n"
+            "**Now** — the meeting is set at the displayed time (classic itinerary).\n"
+            "**Schedule** — pick the meeting hour (up to the same time tomorrow, the 24h"
+            " rule): the bot declares the attack by itself at that moment."
+        ),
+        "when_now_button": "🕐 Declare now",
+        "when_schedule_button": "📅 Schedule the meeting",
+        "schedule_modal_title": "📅 Schedule an attack",
+        "schedule_modal_label": "Meeting time (HH:MM)",
+        "schedule_modal_placeholder": "e.g. 08:00",
+        "schedule_bad_format": (
+            "❌ Expected format: **HH:MM** (e.g. 08:00 or 20h30). An hour already passed"
+            " today rolls to tomorrow."
+        ),
+        "scheduled_note": (
+            "📅 **Attack scheduled on {map}** — the bot will declare it by itself"
+            " <t:{deadline}:R> (meeting <t:{deadline}:t>).\n"
+            "The territory is reserved, your attack budget is spent. You can cancel it"
+            " for free from **📅 My schedules** until the execution."
+        ),
+        "scheduled_cover_done": "🕶️ Cover recorded — the attack will go out under this name.",
+        "scheduled_cover_skipped": "📅 Attack scheduled — open-faced (no cover).",
+        "scheduled_button": "📅 My schedules",
+        "scheduled_title": "📅 **My scheduled attacks**",
+        "scheduled_empty": "🔭 No scheduled attack yet.",
+        "scheduled_line": "• **{map}** — declaration <t:{deadline}:R> (meeting <t:{deadline}:t>){cover}",
+        "scheduled_cover_tag": " 🕶️ under cover",
+        "cancel_scheduled_button": "❌ Cancel the schedule",
+        "cancel_scheduled_done": (
+            "🏳️ **Schedule cancelled** — attack budget and cover refunded."
+            " Nothing was announced, the territory is freed."
+        ),
+        "scheduled_gone": "❌ This schedule no longer exists.",
+        "scheduled_executed_dm": (
+            "⚔️ **Your scheduled attack on {map} has just been declared** — meeting <t:{deadline}:R>"
+            " (<t:{deadline}:t>). The battle salon is open, the defense may answer."
+        ),
+        "scheduled_failed_dm": (
+            "❌ **Your scheduled attack on {map} could not be declared** ({reason}) —"
+            " it is cancelled and your attack budget (and cover) are refunded."
+        ),
         "cancel_defense_button": "↩️ Withdraw my defense",
         "cancel_defense_done": "🛡️ Defense withdrawn — defense budget refunded.",
         "defend_wrong_kingdom": "❌ You cannot defend this territory.",
@@ -558,6 +649,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "defense_manager_row": "• **{map}** — meeting **{time}** (Paris) · {state}",
         "defense_manager_defended": "defended by **{lord}** ✓",
         "defense_manager_waiting": "waiting for a defender ⏳",
+        "defense_manager_scheduled_row": (
+            "• **{map}** — attack scheduled by another kingdom — declaration"
+            " <t:{deadline}:R> (<t:{deadline}:t>) 📅"
+        ),
         "defense_manager_not_defender": "❌ You are no active lord of a kingdom.",
         "defense_manager_no_service": "❌ The attack service is unavailable.",
         "reveal_no_defense": "🏳️ Irresistible assault — no defense",
@@ -929,6 +1024,7 @@ def _declare_view(strings: dict[str, str]) -> discord.ui.View:
     """
     view = discord.ui.View(timeout=None)
     view.add_item(KingdomAttackDeclareButton(strings["declare_button"]))
+    view.add_item(KingdomAttackScheduledButton(strings["scheduled_button"]))
     view.add_item(KingdomAttackHistoryButton(strings["history_button"]))
     return view
 
@@ -1330,14 +1426,22 @@ async def _territory_select_view(
                 await origin.delete_original_response()
             except Exception:
                 logger.debug("kingdoms: selector ephemeral delete failed", exc_info=True)
-        await _open_cover_step(
-            wiring,
-            target,
-            strings,
-            chosen[0],
-            own_kingdom_id,
-            is_gaia=bool(getattr(kingdom, "is_gaia", False)),
-        )
+        # planification-v1 (Drasah 23/10): a player target gets the
+        # « Quand ? » step BEFORE the cover question — the player may
+        # declare NOW (the legacy flow, unchanged) or SCHEDULE the
+        # declaration at a chosen RDV (within 24h). A Gaïa target skips
+        # it: the free-for-all keeps its declaration-time delay.
+        if getattr(kingdom, "is_gaia", False):
+            await _open_cover_step(
+                wiring,
+                target,
+                strings,
+                chosen[0],
+                own_kingdom_id,
+                is_gaia=True,
+            )
+            return
+        await _open_when_step(wiring, target, strings, chosen[0], own_kingdom_id)
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -1449,6 +1553,232 @@ async def _kingdom_other_lords(wiring: Any, kingdom_id: str, except_user_id: str
         and not getattr(lord, "left", False)
         and str(lord.id) != str(except_user_id)
     ]
+
+
+async def _open_when_step(
+    wiring: Any,
+    interaction: discord.Interaction[Any],
+    strings: dict[str, str],
+    map_key: str,
+    own_kingdom_id: str,
+) -> None:
+    """Step 2 bis — « Quand ? » : declare now or schedule the RDV (planification-v1).
+
+    Drasah 23/10: the player picks the RDV hour (e.g. 8h) instead of
+    being bound to « declaration + 6h » — the bot executes the
+    declaration alone at the chosen moment. Two buttons: 🕐 declare
+    NOW (the legacy flow, straight to the cover question) and 📅
+    SCHEDULE (a modal asks the RDV hour, today or tomorrow).
+    """
+    import discord
+
+    view = discord.ui.View(timeout=600)
+
+    async def on_now(target: discord.Interaction[Any]) -> None:
+        await _open_cover_step(wiring, target, strings, map_key, own_kingdom_id)
+
+    async def on_schedule(target: discord.Interaction[Any]) -> None:
+        await target.response.send_modal(KingdomScheduleAttackModal(strings, map_key, own_kingdom_id))
+
+    now_button: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["when_now_button"])[:80],
+        style=discord.ButtonStyle.primary,
+        custom_id="kingdoms:attack:when:now",
+    )
+    schedule_button: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["when_schedule_button"])[:80],
+        style=discord.ButtonStyle.success,
+        custom_id="kingdoms:attack:when:schedule",
+    )
+    now_button.callback = on_now  # type: ignore[method-assign, assignment]
+    schedule_button.callback = on_schedule  # type: ignore[method-assign, assignment]
+    view.add_item(now_button)
+    view.add_item(schedule_button)
+    await interaction.response.send_message(content=str(strings["when_question"]), view=view, ephemeral=True)
+
+
+class KingdomScheduleAttackModal(discord.ui.Modal):
+    """The planification-v1 modal — the RDV hour (HH:MM) of a scheduled attack.
+
+    One text field: the hour, ``HH:MM`` in the player's own timezone
+    (the server converts through the game clock). An hour already
+    passed today rolls to TOMORROW automatically — the « aujourd'hui /
+    demain » is derived, never asked (Drasah: « il faut que cela coule
+    de source »). The bounds ride the service: at least 5 minutes of
+    lead, at most 24 hours (the golden rule).
+    """
+
+    def __init__(self, strings: dict[str, str], map_key: str, own_kingdom_id: str) -> None:
+        super().__init__(title=str(strings["schedule_modal_title"])[:45])
+        self.strings = strings
+        self.map_key = map_key
+        self.own_kingdom_id = own_kingdom_id
+        self.hour_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
+            label=str(strings["schedule_modal_label"])[:45],
+            placeholder=str(strings["schedule_modal_placeholder"])[:100],
+            max_length=5,
+            required=True,
+        )
+        self.add_item(self.hour_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Parse the hour, schedule the attack, then run the cover step."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = self.strings
+        wiring = _wiring()
+        attacks = wiring.attacks_service
+        if attacks is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        raw = (self.hour_input.value or "").strip()
+        now = game_clock.game_now()
+        execute_at = _parse_schedule_hour(raw, now)
+        if execute_at is None:
+            await interaction.response.send_message(
+                strings["schedule_bad_format"], ephemeral=True
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            attack = await attacks.schedule_attack(
+                str(interaction.user.id), self.map_key, execute_at, now=now
+            )
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            return
+        await interaction.followup.send(
+            strings["scheduled_note"].format(
+                map=attack.map_key,
+                deadline=int(attack.expires_at.timestamp()),
+            ),
+            ephemeral=True,
+        )
+        # The cover question still runs (the charge is consumed when
+        # the cover is attached — refunded on cancellation/failed
+        # execution like the budget).
+        await _open_cover_step_scheduled(wiring, interaction, attack, strings)
+
+
+def _parse_schedule_hour(raw: str, now: datetime) -> datetime | None:
+    """Parse a ``HH:MM`` (or ``H:MM``/``HHhMM``) hour into the next occurrence.
+
+    The hour is read in the player's clock convention (Europe/Paris —
+    the community's timezone, same as the patrol slots). An hour
+    already passed today rolls to TOMORROW. ``None`` when the format
+    is wrong. The 5-minute / 24-hour bounds are enforced by the
+    service (single source of truth).
+    """
+    import re as _re
+
+    match = _re.fullmatch(r"(\d{1,2})\s*[:hH]\s*(\d{2})", raw.strip())
+    if match is None:
+        return None
+    hour, minute = int(match.group(1)), int(match.group(2))
+    if hour > 23 or minute > 59:
+        return None
+    try:
+        local = now.astimezone(_PARIS)
+    except Exception:
+        local = now
+    candidate = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if candidate <= local:
+        candidate = candidate + timedelta(days=1)
+    return candidate.astimezone(UTC)
+
+
+def _scheduled_cover_select(
+    lords: list[Any], strings: dict[str, str], on_pick: Any
+) -> discord.ui.Select[Any]:
+    """Build the cover-lord selector for a SCHEDULED attack (planification-v1)."""
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:schedule:cover",
+        placeholder=str(strings["choose_cover"])[:100],
+        options=[
+            discord.SelectOption(
+                label=str(getattr(lord, "display_name", lord.id))[:100],
+                value=str(lord.id)[:100],
+            )
+            for lord in lords
+        ][:25],
+    )
+
+    async def on_cover(chosen: discord.Interaction[Any]) -> None:
+        values = getattr(chosen, "data", None) or {}
+        picked = [str(v) for v in values.get("values", [])]
+        await on_pick(picked[0] if picked else None, chosen)
+
+    select.callback = on_cover  # type: ignore[method-assign, assignment]
+    return select
+
+
+async def _open_cover_step_scheduled(
+    wiring: Any,
+    interaction: discord.Interaction[Any],
+    attack: Any,
+    strings: dict[str, str],
+) -> None:
+    """Ask the cover question for a SCHEDULED attack (planification-v1).
+
+    Same question as the immediate flow, but it UPDATES the scheduled
+    attack (the cover lord is recorded on the placeholder — the
+    charge is consumed at the scheduling update, refunded on
+    cancellation/failed execution like the budget).
+    """
+    import discord
+
+    attacks_service = wiring.attacks_service
+    if attacks_service is None:
+        return
+    own_kingdom_id = str(attack.attacker_kingdom_id)
+    state = await attacks_service.technology_state(own_kingdom_id)
+    has_stock = state.purchases.get("contre_espionnage", 0) > 0
+    other_lords = await _kingdom_other_lords(wiring, own_kingdom_id, str(interaction.user.id))
+    if not has_stock or not other_lords:
+        if has_stock:
+            await interaction.followup.send(strings["cover_no_lords"], ephemeral=True)
+        return
+    view = discord.ui.View(timeout=600)
+
+    async def apply_cover(cover_lord_id: str | None, target: discord.Interaction[Any]) -> None:
+        if cover_lord_id is None:
+            return
+        try:
+            await attacks_service.attach_cover_to_scheduled(str(attack.id), cover_lord_id)
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await target.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            return
+        await target.followup.send(strings["scheduled_cover_done"], ephemeral=True)
+
+    async def on_yes(target: discord.Interaction[Any]) -> None:
+        lords = await _kingdom_other_lords(wiring, own_kingdom_id, str(target.user.id))
+        if not lords:
+            await target.followup.send(strings["cover_no_lords"], ephemeral=True)
+            return
+        cover_view = discord.ui.View(timeout=600)
+        cover_view.add_item(_scheduled_cover_select(lords, strings, apply_cover))
+        await target.response.edit_message(content=str(strings["choose_cover"]), view=cover_view)
+
+    async def on_no(target: discord.Interaction[Any]) -> None:
+        await target.response.edit_message(content=str(strings["scheduled_cover_skipped"]), view=None)
+
+    yes: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["cover_yes_button"])[:80],
+        style=discord.ButtonStyle.primary,
+        custom_id="kingdoms:attack:schedule:cover:yes",
+    )
+    no: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["cover_no_button"])[:80],
+        style=discord.ButtonStyle.secondary,
+        custom_id="kingdoms:attack:schedule:cover:no",
+    )
+    yes.callback = on_yes  # type: ignore[method-assign, assignment]
+    no.callback = on_no  # type: ignore[method-assign, assignment]
+    view.add_item(yes)
+    view.add_item(no)
+    await interaction.followup.send(content=str(strings["cover_question"]), view=view, ephemeral=True)
 
 
 async def _open_cover_step(
@@ -1900,10 +2230,25 @@ class KingdomDefenseManagerButton(
             ongoing = [
                 a
                 for a in await wiring.attacks_service.attacks()
-                if not a.is_over and str(getattr(a, "defender_kingdom_id", "")) == kingdom_id
+                # planification-v1: a SCHEDULED attack is invisible —
+                # the defense manager lists it only once declared.
+                if not a.is_over
+                and str(getattr(a, "state", "")) != "scheduled"
+                and str(getattr(a, "defender_kingdom_id", "")) == kingdom_id
+            ]
+            # planification-v1: the kingdom's OWN scheduled attacks
+            # ride a dedicated line (they reserved one of its
+            # territories — the defender must not be surprised at the
+            # execution, but nothing is announced before it).
+            own_scheduled = [
+                a
+                for a in await wiring.attacks_service.scheduled_attacks()
+                if str(getattr(a, "defender_kingdom_id", "")) == kingdom_id
+                and str(getattr(a, "attacker_lord_id", "")) != str(lord.id)
             ]
         except Exception:
             ongoing = []
+            own_scheduled = []
         from kingdoms.mods.kingdoms.models import AttackState
 
         for attack in ongoing:
@@ -1915,6 +2260,17 @@ class KingdomDefenseManagerButton(
             rows.append(
                 strings["defense_manager_row"].format(
                     map=attack.map_key, time=_fmt_paris(attack.expires_at), state=state
+                )
+            )
+        # planification-v1: an INCOMING scheduled attack is listed with
+        # a Discord timestamp (the execution) but NO attacker identity
+        # — the reservation is visible to the kingdom (it blocks the
+        # territory), the plan is not.
+        for attack in own_scheduled:
+            rows.append(
+                strings["defense_manager_scheduled_row"].format(
+                    map=attack.map_key,
+                    deadline=int(attack.expires_at.timestamp()),
                 )
             )
         body = "\n".join(rows) if rows else strings["defense_manager_empty"]
@@ -2152,7 +2508,15 @@ async def _history_lines(wiring: Any, strings: dict[str, str]) -> list[str]:
     if wiring.attacks_service is None or wiring.kingdoms_service is None:
         return []
     try:
-        attacks = [a for a in await wiring.attacks_service.attacks() if a.is_over]
+        # planification-v1: a scheduled attack superseded by its
+        # execution rides CANCELLED with ``scheduled_into`` — it is a
+        # trace, not a confrontation: the history shows the fresh
+        # declaration only (never twice the same battle).
+        attacks = [
+            a
+            for a in await wiring.attacks_service.attacks()
+            if a.is_over and not (a.effects or {}).get("scheduled_into")
+        ]
     except Exception:
         return []
     attacks.sort(key=lambda a: str(getattr(a, "resolved_at", None) or ""), reverse=True)
@@ -2214,6 +2578,137 @@ def _history_page_view(
         nxt.callback = _on_next  # type: ignore[method-assign,assignment]
         view.add_item(nxt)
     return view
+
+
+class KingdomAttackScheduledButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:scheduled",
+):
+    """The restart-proof 📅 Mes planifications button of the declare panel (planification-v1).
+
+    Ephemeral list of the SCHEDULED attacks of the clicking lord — one
+    ❌ Annuler button per row (free until the execution, budgets
+    refunded). Never shows other lords' schedules.
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:attack:scheduled",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomAttackScheduledButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(_strings(_locale(interaction))["scheduled_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show the lord's scheduled attacks with one cancel button each."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None:
+            await interaction.response.send_message(strings["not_a_lord"], ephemeral=True)
+            return
+        try:
+            scheduled = [
+                a
+                for a in await wiring.attacks_service.scheduled_attacks()
+                if str(a.attacker_lord_id) == str(lord.id)
+            ]
+        except Exception:
+            scheduled = []
+        scheduled.sort(key=lambda a: a.expires_at)
+        if not scheduled:
+            await interaction.response.send_message(strings["scheduled_empty"], ephemeral=True)
+            return
+        lines = [str(strings["scheduled_title"]), ""]
+        for attack in scheduled:
+            deadline = int(attack.expires_at.timestamp())
+            cover = str(strings["scheduled_cover_tag"]) if attack.cover_lord_id else ""
+            lines.append(
+                str(strings["scheduled_line"]).format(
+                    map=attack.map_key, deadline=deadline, cover=cover
+                )
+            )
+        view = discord.ui.View(timeout=600)
+        for attack in scheduled[:5]:
+            view.add_item(KingdomCancelScheduledButton(str(attack.id), strings["cancel_scheduled_button"]))
+        await interaction.response.send_message(
+            "\n".join(lines),
+            view=view if list(view.children) else None,  # type: ignore[arg-type]
+            ephemeral=True,
+        )
+
+
+class KingdomCancelScheduledButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:scheduled:cancel:(?P<key>[0-9a-f]{16})",
+):
+    """The restart-proof ❌ Annuler button of one scheduled attack (planification-v1).
+
+    The DECLARANT alone, at any moment before the execution — the
+    budgets consumed at the scheduling are refunded IN FULL (attack
+    budget + cover charge). Once the declaration executed, the
+    ordinary ``KingdomAttackCancelButton`` rules apply (10-minute
+    window).
+    """
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:scheduled:cancel:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.danger,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomCancelScheduledButton:
+        """Resolve the key back to an attack id (restart-safe)."""
+        return cls(
+            await _resolve_attack_id_by_key_async(match["key"]),
+            _strings(_locale(interaction))["cancel_scheduled_button"],
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Cancel the scheduled attack — budgets refunded (ephemeral confirm)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await wiring.attacks_service.cancel_scheduled(self.attack_id, str(interaction.user.id))
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            return
+        await interaction.followup.send(strings["cancel_scheduled_done"], ephemeral=True)
 
 
 class KingdomAttackHistoryButton(
@@ -2838,6 +3333,12 @@ async def _run_phases_announce_safe(
     """Play the per-attack-salon phases of one guild — never raise."""
     dirty = 0
     try:
+        # planification-v1 (Drasah 23/10): FIRST step of the tick — the
+        # scheduled executions run before everything else: a RDV that
+        # just came declares its attack, opens its salon and the whole
+        # D77 chain (reveal at T-15, meeting at T, no-show at T+5)
+        # starts from THIS tick.
+        dirty += await _run_scheduled_executions_safe(bot, guild, attacks_service, kingdoms_service, strings, locale)
         dirty += await _run_reveals_safe(guild, attacks_service, kingdoms_service, strings)
         pickbans = await attacks_service.pick_ban_due()
         for attack in pickbans:
@@ -2903,6 +3404,76 @@ async def _run_phases_announce_safe(
     except Exception:
         logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
     return dirty
+
+
+async def _run_scheduled_executions_safe(
+    bot: Any,
+    guild: Any,
+    attacks_service: Any,
+    kingdoms_service: Any,
+    strings: dict[str, str],
+    locale: str,
+) -> int:
+    """Execute the scheduled attacks whose RDV just came (planification-v1).
+
+    Drasah 23/10: the bot declares the attack ALONE at the player's
+    chosen hour — the player never has to be awake for it. On success
+    the fresh declaration opens its own salon (the visibility the
+    defender gets at a live declaration) and the player gets a DM; on
+    a failed re-check the scheduling is cancelled, the budgets are
+    refunded and the player gets a DM with the reason — the defender
+    never saw anything either way.
+    """
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    played = 0
+    try:
+        executed = await attacks_service.scheduled_due()
+    except Exception:
+        logger.warning("KINGDOM ATTACK: scheduled executions failed", exc_info=True)
+        return 0
+    for attack in executed:
+        played += 1
+        if attack.state is AttackState.DECLARED:
+            # Success: the fresh declaration replaced the placeholder
+            # (the placeholder rides ``effects["scheduled_into"]``).
+            fresh = next(
+                (
+                    item
+                    for item in await attacks_service.attacks()
+                    if str(item.id) == str((attack.effects or {}).get("scheduled_into", ""))
+                ),
+                None,
+            )
+            if fresh is None:
+                continue
+            await _dm_user_safe(
+                bot,
+                fresh.attacker_lord_id,
+                strings["scheduled_executed_dm"].format(
+                    map=fresh.map_key,
+                    deadline=int(fresh.expires_at.timestamp()),
+                ),
+            )
+            await _open_attack_salon_safe(guild, _wiring_safe(), strings, fresh)
+            await refresh_attack_panel_safe(guild, locale)
+        else:
+            # Failed re-check: cancelled + refunded by the service.
+            reason = str((attack.effects or {}).get("schedule_failure", "unknown"))
+            await _dm_user_safe(
+                bot,
+                attack.attacker_lord_id,
+                strings["scheduled_failed_dm"].format(map=attack.map_key, reason=reason),
+            )
+            await refresh_attack_panel_safe(guild, locale)
+    return played
+
+
+def _wiring_safe() -> Any:
+    """Return the panel wiring (never None — the declare panel needs it)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    return _wiring()
 
 
 async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: Any, strings: dict[str, str]) -> int:

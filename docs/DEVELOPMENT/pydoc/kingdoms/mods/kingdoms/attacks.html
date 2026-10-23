@@ -70,6 +70,12 @@ territory&nbsp;transfer&nbsp;on&nbsp;capture.</span></p>
 <dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#PickBanStateError">PickBanStateError</a>
 </dt></dl>
 </dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#ScheduleError">ScheduleError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#ScheduleWindowError">ScheduleWindowError</a>
+</dt></dl>
+</dd>
 <dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#SeasonClosedError">SeasonClosedError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#TechnologyError">TechnologyError</a>
 </dt><dd>
@@ -294,6 +300,15 @@ at&nbsp;``ai_ready_at``&nbsp;(30-90&nbsp;s&nbsp;random)&nbsp;—&nbsp;the&nbsp;t
 ``all_ready``&nbsp;flag,&nbsp;the&nbsp;panel&nbsp;then&nbsp;refreshes&nbsp;the&nbsp;scoreboard<br>
 (footer&nbsp;+&nbsp;🏆)&nbsp;and&nbsp;creates&nbsp;the&nbsp;match&nbsp;event&nbsp;like&nbsp;the&nbsp;human&nbsp;flow.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-attach_cover_to_scheduled"><strong>attach_cover_to_scheduled</strong></a>(self, attack_id: 'str', cover_lord_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Attach&nbsp;a&nbsp;cover&nbsp;lord&nbsp;to&nbsp;a&nbsp;SCHEDULED&nbsp;attack&nbsp;(planification-v1).<br>
+&nbsp;<br>
+The&nbsp;cover&nbsp;question&nbsp;runs&nbsp;AFTER&nbsp;the&nbsp;scheduling&nbsp;(the&nbsp;modal&nbsp;cannot<br>
+ask&nbsp;it&nbsp;before&nbsp;the&nbsp;RDV&nbsp;exists)&nbsp;—&nbsp;the&nbsp;charge&nbsp;is&nbsp;consumed&nbsp;HERE,<br>
+at&nbsp;the&nbsp;attachment,&nbsp;and&nbsp;refunded&nbsp;with&nbsp;the&nbsp;budget&nbsp;when&nbsp;the<br>
+scheduling&nbsp;is&nbsp;cancelled&nbsp;or&nbsp;its&nbsp;execution&nbsp;fails.&nbsp;The&nbsp;cover&nbsp;lord<br>
+must&nbsp;be&nbsp;another&nbsp;active&nbsp;lord&nbsp;of&nbsp;the&nbsp;attacker's&nbsp;kingdom&nbsp;(the<br>
+same&nbsp;bluff&nbsp;rules&nbsp;as&nbsp;the&nbsp;immediate&nbsp;declaration).</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-attacks"><strong>attacks</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-base_ai_level"><strong>base_ai_level</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;base&nbsp;AI&nbsp;level&nbsp;(D18&nbsp;scale,&nbsp;fallback&nbsp;1).</span></dd></dl>
@@ -324,7 +339,18 @@ budget&nbsp;is&nbsp;refunded&nbsp;with&nbsp;the&nbsp;same&nbsp;logic&nbsp;as&nbs
 Drasah's&nbsp;endcycle&nbsp;rule&nbsp;(2026-10-11):&nbsp;at&nbsp;the&nbsp;endcycle's&nbsp;Sunday<br>
 23:59&nbsp;the&nbsp;ongoing&nbsp;attacks&nbsp;(declared&nbsp;or&nbsp;defended)&nbsp;are&nbsp;CANCELLED<br>
 so&nbsp;the&nbsp;verdict&nbsp;counts&nbsp;a&nbsp;clean&nbsp;board&nbsp;—&nbsp;they&nbsp;move&nbsp;to&nbsp;``expired``<br>
-and&nbsp;never&nbsp;resolve&nbsp;afterwards.</span></dd></dl>
+and&nbsp;never&nbsp;resolve&nbsp;afterwards.&nbsp;planification-v1:&nbsp;a&nbsp;SCHEDULED<br>
+attack&nbsp;never&nbsp;executed&nbsp;is&nbsp;cancelled&nbsp;the&nbsp;same&nbsp;way&nbsp;(its&nbsp;budgets<br>
+stay&nbsp;consumed&nbsp;—&nbsp;the&nbsp;player&nbsp;chose&nbsp;the&nbsp;slot&nbsp;and&nbsp;the&nbsp;season&nbsp;ended<br>
+before&nbsp;the&nbsp;RDV;&nbsp;the&nbsp;weekly&nbsp;reset&nbsp;comes&nbsp;with&nbsp;the&nbsp;next&nbsp;cycle).</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-cancel_scheduled"><strong>cancel_scheduled</strong></a>(self, attack_id: 'str', player_id: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Cancel&nbsp;a&nbsp;scheduled&nbsp;attack&nbsp;at&nbsp;any&nbsp;moment&nbsp;before&nbsp;its&nbsp;execution&nbsp;(planification-v1).<br>
+&nbsp;<br>
+Drasah&nbsp;23/10:&nbsp;the&nbsp;scheduling&nbsp;cancellation&nbsp;is&nbsp;FREE&nbsp;and&nbsp;open<br>
+until&nbsp;the&nbsp;execution&nbsp;—&nbsp;the&nbsp;budgets&nbsp;were&nbsp;consumed&nbsp;at&nbsp;the<br>
+scheduling&nbsp;and&nbsp;are&nbsp;refunded&nbsp;IN&nbsp;FULL&nbsp;(attack&nbsp;budget&nbsp;+&nbsp;cover<br>
+charge).&nbsp;Once&nbsp;the&nbsp;declaration&nbsp;executed,&nbsp;the&nbsp;ordinary<br>
+``cancel_attack``&nbsp;rules&nbsp;apply&nbsp;(the&nbsp;10-minute&nbsp;window).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-counter_espionage"><strong>counter_espionage</strong></a>(self, attack_id: 'str', defender_kingdom_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;sabotage&nbsp;of&nbsp;an&nbsp;incoming&nbsp;attack&nbsp;(D11/D28).</span></dd></dl>
 
@@ -430,7 +456,11 @@ attacker's&nbsp;validation,&nbsp;a&nbsp;resolution&nbsp;past&nbsp;T)&nbsp;carry&
 ``_phase_advance_due``&nbsp;flags&nbsp;them&nbsp;and&nbsp;the&nbsp;probe&nbsp;returns&nbsp;``now``<br>
 so&nbsp;the&nbsp;loop&nbsp;runs&nbsp;its&nbsp;work&nbsp;within&nbsp;the&nbsp;second&nbsp;instead&nbsp;of&nbsp;waiting<br>
 the&nbsp;base&nbsp;tick.&nbsp;Every&nbsp;urgent&nbsp;step&nbsp;is&nbsp;a&nbsp;service-side&nbsp;state&nbsp;flip,<br>
-so&nbsp;one&nbsp;pass&nbsp;clears&nbsp;it&nbsp;—&nbsp;the&nbsp;loop&nbsp;never&nbsp;spins.</span></dd></dl>
+so&nbsp;one&nbsp;pass&nbsp;clears&nbsp;it&nbsp;—&nbsp;the&nbsp;loop&nbsp;never&nbsp;spins.<br>
+&nbsp;<br>
+planification-v1&nbsp;(Drasah&nbsp;23/10):&nbsp;a&nbsp;SCHEDULED&nbsp;attack&nbsp;is&nbsp;not<br>
+over&nbsp;—&nbsp;its&nbsp;execution&nbsp;time&nbsp;is&nbsp;a&nbsp;deadline&nbsp;like&nbsp;any&nbsp;other,&nbsp;so&nbsp;the<br>
+loop&nbsp;wakes&nbsp;up&nbsp;to&nbsp;run&nbsp;the&nbsp;declaration&nbsp;at&nbsp;the&nbsp;chosen&nbsp;RDV.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-open_meeting_now"><strong>open_meeting_now</strong></a>(self, attack_id: 'str') -&gt; 'AttackModel | None'</dt><dd><span class="code">Open&nbsp;the&nbsp;meeting&nbsp;early&nbsp;once&nbsp;both&nbsp;camps&nbsp;settled&nbsp;the&nbsp;sabotage.<br>
 &nbsp;<br>
@@ -572,6 +602,45 @@ Same&nbsp;storage&nbsp;as&nbsp;the&nbsp;Faucon&nbsp;—&nbsp;one&nbsp;shape&nbsp
 sabotage-consommable-v1&nbsp;(Drasah&nbsp;22/10):&nbsp;one&nbsp;bought&nbsp;charge&nbsp;is<br>
 CONSUMED&nbsp;at&nbsp;the&nbsp;snipe&nbsp;—&nbsp;like&nbsp;the&nbsp;Embuscade/Traquenard;&nbsp;the<br>
 2-per-attack&nbsp;side&nbsp;cap&nbsp;is&nbsp;independent&nbsp;of&nbsp;the&nbsp;bought&nbsp;stock.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-schedule_attack"><strong>schedule_attack</strong></a>(self, player_id: 'str', map_key: 'str', execute_at: 'datetime', *, cover_lord_id: 'str | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Schedule&nbsp;an&nbsp;attack:&nbsp;the&nbsp;declaration&nbsp;executes&nbsp;at&nbsp;``execute_at``.<br>
+&nbsp;<br>
+planification-v1&nbsp;(Drasah&nbsp;23/10):&nbsp;the&nbsp;player&nbsp;picks&nbsp;the&nbsp;RDV&nbsp;hour<br>
+(e.g.&nbsp;8h)&nbsp;in&nbsp;the&nbsp;declare&nbsp;panel&nbsp;and&nbsp;the&nbsp;bot&nbsp;executes&nbsp;the<br>
+declaration&nbsp;alone&nbsp;at&nbsp;that&nbsp;moment&nbsp;—&nbsp;no&nbsp;2&nbsp;a.m.&nbsp;click&nbsp;anymore.<br>
+&nbsp;<br>
+The&nbsp;golden&nbsp;rules&nbsp;Drasah&nbsp;fixed:<br>
+—&nbsp;the&nbsp;RDV&nbsp;lands&nbsp;within&nbsp;the&nbsp;next&nbsp;24&nbsp;hours&nbsp;at&nbsp;most,&nbsp;and&nbsp;at&nbsp;least<br>
+&nbsp;&nbsp;``SCHEDULE_MIN_LEAD_MINUTES``&nbsp;ahead&nbsp;(the&nbsp;scheduler&nbsp;must&nbsp;be<br>
+&nbsp;&nbsp;able&nbsp;to&nbsp;wake&nbsp;up&nbsp;for&nbsp;it);<br>
+—&nbsp;the&nbsp;territory&nbsp;is&nbsp;RESERVED&nbsp;right&nbsp;away&nbsp;(D42&nbsp;—&nbsp;no&nbsp;other&nbsp;attack<br>
+&nbsp;&nbsp;may&nbsp;target&nbsp;it&nbsp;before&nbsp;the&nbsp;execution);<br>
+—&nbsp;the&nbsp;attack&nbsp;budget&nbsp;and&nbsp;the&nbsp;cover&nbsp;charge&nbsp;are&nbsp;consumed&nbsp;AT&nbsp;THE<br>
+&nbsp;&nbsp;SCHEDULING&nbsp;(and&nbsp;refunded&nbsp;on&nbsp;cancellation&nbsp;or&nbsp;failed&nbsp;execution);<br>
+—&nbsp;the&nbsp;scheduled&nbsp;attack&nbsp;is&nbsp;INVISIBLE&nbsp;publicly:&nbsp;no&nbsp;salon,&nbsp;no<br>
+&nbsp;&nbsp;announcement&nbsp;—&nbsp;the&nbsp;defender&nbsp;sees&nbsp;nothing&nbsp;until&nbsp;the&nbsp;execution;<br>
+—&nbsp;a&nbsp;«&nbsp;suivi&nbsp;»&nbsp;lord&nbsp;(Corbeau)&nbsp;may&nbsp;schedule:&nbsp;the&nbsp;24h&nbsp;tracking<br>
+&nbsp;&nbsp;delay&nbsp;has&nbsp;no&nbsp;say&nbsp;on&nbsp;a&nbsp;chosen&nbsp;RDV;<br>
+—&nbsp;the&nbsp;Lord's&nbsp;Day&nbsp;rule&nbsp;reads&nbsp;the&nbsp;EXECUTION&nbsp;time:&nbsp;a&nbsp;RDV&nbsp;inside<br>
+&nbsp;&nbsp;the&nbsp;window&nbsp;is&nbsp;refused&nbsp;at&nbsp;the&nbsp;scheduling&nbsp;already.<br>
+&nbsp;<br>
+The&nbsp;attack&nbsp;document&nbsp;is&nbsp;stored&nbsp;in&nbsp;the&nbsp;new&nbsp;``SCHEDULED``&nbsp;state<br>
+with&nbsp;``expires_at``&nbsp;=&nbsp;the&nbsp;chosen&nbsp;RDV;&nbsp;the&nbsp;scheduler&nbsp;tick<br>
+(``scheduled_due``)&nbsp;executes&nbsp;it&nbsp;at&nbsp;that&nbsp;moment&nbsp;through&nbsp;the&nbsp;SAME<br>
+checks&nbsp;as&nbsp;a&nbsp;live&nbsp;declaration&nbsp;—&nbsp;a&nbsp;check&nbsp;that&nbsp;fails&nbsp;then&nbsp;cancels<br>
+the&nbsp;scheduling&nbsp;and&nbsp;refunds&nbsp;the&nbsp;budgets.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-scheduled_attacks"><strong>scheduled_attacks</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;waiting&nbsp;for&nbsp;its&nbsp;scheduled&nbsp;execution.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-scheduled_due"><strong>scheduled_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Execute&nbsp;every&nbsp;scheduled&nbsp;attack&nbsp;whose&nbsp;RDV&nbsp;just&nbsp;came&nbsp;(planification-v1).<br>
+&nbsp;<br>
+Idempotent&nbsp;through&nbsp;the&nbsp;state&nbsp;flip:&nbsp;a&nbsp;restart&nbsp;replays&nbsp;nothing.<br>
+Each&nbsp;execution&nbsp;re-runs&nbsp;the&nbsp;LIVE&nbsp;declaration&nbsp;checks&nbsp;(target&nbsp;free,<br>
+budget,&nbsp;locks,&nbsp;Lord's&nbsp;Day&nbsp;on&nbsp;the&nbsp;execution&nbsp;time)&nbsp;—&nbsp;the&nbsp;budgets<br>
+were&nbsp;consumed&nbsp;at&nbsp;the&nbsp;scheduling,&nbsp;so&nbsp;a&nbsp;failed&nbsp;execution&nbsp;REFUNDS<br>
+them&nbsp;(attack&nbsp;budget&nbsp;+&nbsp;cover&nbsp;charge)&nbsp;and&nbsp;moves&nbsp;the&nbsp;attack&nbsp;to<br>
+CANCELLED:&nbsp;the&nbsp;player&nbsp;gets&nbsp;a&nbsp;DM&nbsp;with&nbsp;the&nbsp;reason,&nbsp;nothing&nbsp;else<br>
+changes&nbsp;for&nbsp;the&nbsp;defender&nbsp;(he&nbsp;never&nbsp;saw&nbsp;the&nbsp;scheduling).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-score_confirm_due"><strong>score_confirm_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Confirm&nbsp;every&nbsp;un-contested&nbsp;lone&nbsp;declaration&nbsp;past&nbsp;its&nbsp;delay.<br>
 &nbsp;<br>
@@ -1738,6 +1807,177 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ScheduleError">class <strong>ScheduleError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ScheduleError">ScheduleError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;attack&nbsp;cannot&nbsp;be&nbsp;scheduled&nbsp;(planification-v1).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#ScheduleError">ScheduleError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_SCHEDULE_ERROR'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.schedule_unexpected'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="ScheduleError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="ScheduleError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="ScheduleError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="ScheduleError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ScheduleError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ScheduleError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ScheduleError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ScheduleError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ScheduleError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ScheduleError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ScheduleError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ScheduleError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ScheduleWindowError">class <strong>ScheduleWindowError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#ScheduleError">ScheduleError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ScheduleWindowError">ScheduleWindowError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;chosen&nbsp;RDV&nbsp;breaks&nbsp;the&nbsp;scheduling&nbsp;window&nbsp;(planification-v1).<br>
+&nbsp;<br>
+Drasah's&nbsp;golden&nbsp;rule&nbsp;(23/10):&nbsp;a&nbsp;scheduled&nbsp;attack&nbsp;executes&nbsp;within<br>
+the&nbsp;next&nbsp;24&nbsp;hours&nbsp;at&nbsp;most&nbsp;—&nbsp;never&nbsp;further,&nbsp;never&nbsp;sooner&nbsp;than&nbsp;the<br>
+minimum&nbsp;lead&nbsp;(the&nbsp;bot&nbsp;must&nbsp;be&nbsp;able&nbsp;to&nbsp;wake&nbsp;up&nbsp;for&nbsp;it).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#ScheduleWindowError">ScheduleWindowError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#ScheduleError">ScheduleError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_SCHEDULE_WINDOW'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.schedule_window'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="ScheduleWindowError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="ScheduleWindowError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="ScheduleWindowError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="ScheduleWindowError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ScheduleWindowError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ScheduleWindowError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ScheduleWindowError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ScheduleWindowError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ScheduleWindowError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ScheduleWindowError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ScheduleWindowError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ScheduleWindowError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="ScoreNotReadyError">class <strong>ScoreNotReadyError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackStateError">AttackStateError</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -2375,6 +2615,8 @@ Drasah&nbsp;18/10:&nbsp;a&nbsp;DECLARED&nbsp;attack&nbsp;keeps&nbsp;``siege``&nb
 <strong>PATROUILLE_REINFORCED_HOURS</strong> = 3<br>
 <strong>PATROUILLE_SLOT_KEYS</strong> = ('patrouille_slot_1', 'patrouille_slot_2')<br>
 <strong>PATROUILLE_TZ</strong> = 'Europe/Paris'<br>
+<strong>SCHEDULE_MAX_HORIZON_HOURS</strong> = 24<br>
+<strong>SCHEDULE_MIN_LEAD_MINUTES</strong> = 5<br>
 <strong>TRAQUENARD_LOCK_HOURS</strong> = 2<br>
 <strong>TRAQUENARD_WINDOW_HOURS</strong> = 6<br>
 <strong>TYPE_CHECKING</strong> = False<br>

@@ -372,7 +372,11 @@ class AttackState(StrEnum):
     winner (capture or conservation) and never moves again;
     ``cancelled`` (restructuration-serveur-v1 b, Drasah 19/10) is the
     declarant's withdrawal inside the 10-minute window — final too,
-    budgets refunded, the attack salon purged.
+    budgets refunded, the attack salon purged. ``scheduled``
+    (planification-v1, Drasah 23/10) is a declared-in-advance attack
+    waiting for its execution time — invisible publicly, the
+    territory is reserved (D42), the budgets are already consumed,
+    and the scheduler executes the declaration at the chosen RDV.
     """
 
     DECLARED = "declared"
@@ -381,6 +385,7 @@ class AttackState(StrEnum):
     EXPIRED = "expired"
     RESOLVED = "resolved"
     CANCELLED = "cancelled"  # restructuration-serveur-v1 b (Drasah 19/10)
+    SCHEDULED = "scheduled"  # planification-v1 (Drasah 23/10)
 
 
 class AttackModel(BaseModel):
@@ -430,6 +435,10 @@ class AttackModel(BaseModel):
     """Whether the attacker engaged a Traquenard (marche-v2 art. 2): the
     AI faced becomes Facile (level 1) whatever the base level, and the
     marriages active at the declaration take +2h of lock."""
+    scheduled_execute_at: datetime | None = None
+    """planification-v1 (Drasah 23/10): the chosen RDV of a scheduled
+    attack — the declaration executes at this moment (the scheduler
+    tick runs it). ``None`` on every other state."""
     pickban: dict[str, Any] = Field(default_factory=dict)
     """The pré-combat state (D77): attacker_picks/defender_picks (3 ranked
     civilizations each), sabotages (per side, 2 max), validated flags,

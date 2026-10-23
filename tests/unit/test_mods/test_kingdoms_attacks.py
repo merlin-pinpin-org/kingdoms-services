@@ -621,3 +621,285 @@ async def test_cancel_ongoing_expires_the_ongoing_attacks() -> None:
     assert states[second.id] is AttackState.EXPIRED
     # Idempotent: a second pass finds nothing ongoing.
     assert await bundle.attacks.cancel_ongoing() == []
+
+
+# ----------------------------------------------------------------------
+# planification-v1 (Drasah 23/10): the scheduled attack
+# ----------------------------------------------------------------------
+
+_SCHED_NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
+"""A Sunday 14:00 Paris moment — OUTSIDE the Lord's Day window."""
+
+
+async def test_schedule_attack_reserves_the_territory_and_consumes_the_budget() -> None:
+    """Nominal: the scheduling stores a SCHEDULED attack, budget spent."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    attack = await bundle.attacks.schedule_attack(
+        "king-a", target, execute_at, now=_SCHED_NOW
+    )
+    assert attack.state is AttackState.SCHEDULED
+    assert attack.scheduled_execute_at == execute_at
+    assert attack.expires_at == execute_at
+    assert attack.declared_at == _SCHED_NOW
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert lord.attack_used == 1
+    # D42: the territory is reserved — a live declaration on it fails.
+    with pytest.raises(TerritoryBusyError):
+        await bundle.attacks.declare_attack("lord-a", target, "aoe2de://x", now=_SCHED_NOW)
+    # The scheduling is listed for the tick probe.
+    scheduled = await bundle.attacks.scheduled_attacks()
+    assert [a.id for a in scheduled] == [attack.id]
+
+
+async def test_schedule_attack_enforces_the_24h_golden_rule() -> None:
+    """The RDV lands within [now + 5 min, now + 24 h] — nothing else."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    from kingdoms.mods.kingdoms.attacks import ScheduleWindowError
+
+    with pytest.raises(ScheduleWindowError):
+        await bundle.attacks.schedule_attack(
+            "king-a", target, _SCHED_NOW + timedelta(minutes=2), now=_SCHED_NOW
+        )
+    with pytest.raises(ScheduleWindowError):
+        await bundle.attacks.schedule_attack(
+            "king-a", target, _SCHED_NOW + timedelta(hours=24, minutes=1), now=_SCHED_NOW
+        )
+    # A naive (timezone-less) execution time is refused outright.
+    with pytest.raises(ScheduleWindowError):
+        await bundle.attacks.schedule_attack(
+            "king-a", target, _SCHED_NOW.replace(tzinfo=None), now=_SCHED_NOW  # type: ignore[arg-type]
+        )
+    # The boundary values are accepted.
+    ok = await bundle.attacks.schedule_attack(
+        "king-a", target, _SCHED_NOW + timedelta(hours=24), now=_SCHED_NOW
+    )
+    assert ok.state is AttackState.SCHEDULED
+
+
+async def test_schedule_attack_reads_the_lords_day_on_the_execution() -> None:
+    """A RDV landing inside the Lord's Day window is refused at the scheduling."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # Sunday 2026-10-11 21:40 UTC (23:40 Paris): the window is open and
+    # a RDV at 22:40 UTC lands inside it (before Monday 10:00 Paris).
+    now = datetime(2026, 10, 11, 21, 40, tzinfo=UTC)
+    with pytest.raises(LordsDayAttackError):
+        await bundle.attacks.schedule_attack(
+            "king-a", target, now + timedelta(hours=1), now=now
+        )
+
+
+async def test_scheduled_due_executes_the_declaration_at_the_rdv() -> None:
+    """The tick executes the scheduled attack at its RDV — nothing before."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    # Before the RDV: nothing is due.
+    assert await bundle.attacks.scheduled_due(now=execute_at - timedelta(minutes=1)) == []
+    assert (await bundle.attacks.attacks())[0].state is AttackState.SCHEDULED
+    # At the RDV: the declaration executes — a FRESH attack in DECLARED
+    # state, the placeholder superseded (CANCELLED trace).
+    executed = await bundle.attacks.scheduled_due(now=execute_at)
+    assert len(executed) == 1
+    fresh = executed[0]
+    assert fresh.state is AttackState.DECLARED
+    assert fresh.id != scheduled.id
+    assert fresh.expires_at == scheduled.expires_at
+    assert fresh.declared_at == execute_at
+    # The budget was consumed ONCE (at the scheduling) — the execution
+    # did not consume it again.
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert lord.attack_used == 1
+    placeholder = next(a for a in await bundle.attacks.attacks() if a.id == scheduled.id)
+    assert placeholder.state is AttackState.CANCELLED
+    assert placeholder.effects.get("scheduled_into") == fresh.id
+    # Idempotent: a second pass at the same moment finds nothing.
+    assert await bundle.attacks.scheduled_due(now=execute_at) == []
+    # The fresh declaration reserved the territory (D42).
+    with pytest.raises(TerritoryBusyError):
+        await bundle.attacks.declare_attack("lord-a", target, "aoe2de://x", now=execute_at)
+
+
+async def test_scheduled_due_refunds_and_cancels_when_a_check_fails_at_execution() -> None:
+    """A check failing at the execution cancels + refunds the scheduling."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    # The lord gets married between the scheduling and the execution —
+    # the marriage lock refuses the declaration at the RDV.
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    lord.marriage_locked_until = int((execute_at + timedelta(hours=1)).timestamp())
+    await bundle.store.upsert_lord(lord.to_mongo())
+    executed = await bundle.attacks.scheduled_due(now=execute_at)
+    assert len(executed) == 1
+    cancelled = executed[0]
+    assert cancelled.id == scheduled.id
+    assert cancelled.state is AttackState.CANCELLED
+    assert cancelled.effects.get("schedule_failure") == "KINGDOMS_LORD_LOCKED"
+    # The budget is refunded — the failed execution consumed nothing.
+    fresh_lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert fresh_lord.attack_used == 0
+    # The territory is freed (D42 no longer blocks it): another lord
+    # may declare on it right away.
+    assert await bundle.attacks.scheduled_attacks() == []
+    redeclared = await bundle.attacks.declare_attack("lord-a", target, "aoe2de://x", now=execute_at)
+    assert redeclared.state is AttackState.DECLARED
+    assert aquitaine
+
+
+async def test_scheduled_due_keeps_the_cover_and_refunds_it_on_failure() -> None:
+    """The cover attached at the scheduling rides the execution and refunds."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    state = TechnologyState(_id=aquitaine, season_id="s", tech_points=10)
+    await bundle.store.upsert_technology(state.to_mongo())
+    await bundle.attacks.buy_technology(aquitaine, "contre_espionnage")
+    await bundle.attacks.buy_technology(aquitaine, "contre_espionnage")
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    attached = await bundle.attacks.attach_cover_to_scheduled(scheduled.id, "lord-a")
+    assert attached.cover_lord_id == "lord-a"
+    left = (await bundle.attacks.technology_state(aquitaine)).purchases["contre_espionnage"]
+    assert left == 1
+    # Execution: the fresh declaration carries the cover.
+    executed = await bundle.attacks.scheduled_due(now=execute_at)
+    assert executed[0].cover_lord_id == "lord-a"
+    # A failed execution refunds the cover charge too (lord-a declares
+    # the second scheduling with his last budget point).
+    lord_a = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
+    lord_a.attack_used = 0
+    await bundle.store.upsert_lord(lord_a.to_mongo())
+    second = await bundle.attacks.schedule_attack(
+        "lord-a", (await bundle.owner_maps(bourgogne))[1], execute_at + timedelta(hours=1), now=_SCHED_NOW
+    )
+    await bundle.attacks.attach_cover_to_scheduled(second.id, "king-a")
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
+    lord.marriage_locked_until = int((execute_at + timedelta(hours=2)).timestamp())
+    await bundle.store.upsert_lord(lord.to_mongo())
+    await bundle.attacks.scheduled_due(now=execute_at + timedelta(hours=1))
+    # The failed execution refunded the second cover charge (the first
+    # one was consumed by the successful execution's cover attachment —
+    # a cover rides the attack, it is not returned when the attack runs).
+    refunded = (await bundle.attacks.technology_state(aquitaine)).purchases["contre_espionnage"]
+    assert refunded == 1
+
+
+async def test_cancel_scheduled_refunds_everything_at_any_moment() -> None:
+    """The declarant cancels a scheduled attack for free before the RDV."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    # Another lord cannot cancel it.
+    from kingdoms.mods.kingdoms.attacks import AttackStateError
+
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.cancel_scheduled(scheduled.id, "lord-a", now=_SCHED_NOW)
+    # The declarant can — at any moment before the execution.
+    cancelled = await bundle.attacks.cancel_scheduled(scheduled.id, "king-a", now=_SCHED_NOW)
+    assert cancelled.state is AttackState.CANCELLED
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert lord.attack_used == 0
+    # The territory is freed.
+    assert await bundle.attacks.scheduled_attacks() == []
+    # A second cancellation is refused (the attack is over).
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.cancel_scheduled(scheduled.id, "king-a", now=_SCHED_NOW)
+    # The legacy cancel_attack refuses a scheduled attack (its own rules).
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.cancel_attack(scheduled.id, "king-a", now=_SCHED_NOW)
+
+
+async def test_scheduled_attack_is_invisible_to_the_phase_probes() -> None:
+    """A SCHEDULED attack drives no phase — only its execution time."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    # The reveal/default/forfeit probes ignore it (nothing to reveal yet).
+    assert await bundle.attacks.reveal_due(now=_SCHED_NOW) == []
+    assert await bundle.attacks.pick_ban_due(now=_SCHED_NOW) == []
+    assert await bundle.attacks.expire_stale(now=_SCHED_NOW) == []
+    # The tick probe wakes up AT the execution time.
+    deadline = await bundle.attacks.next_phase_deadline(now=_SCHED_NOW)
+    assert deadline == execute_at
+    # The defense cannot answer a scheduled attack (not declared yet).
+    from kingdoms.mods.kingdoms.attacks import AttackStateError
+
+    scheduled = (await bundle.attacks.scheduled_attacks())[0]
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.respond_defense(scheduled.id, "lord-b", now=_SCHED_NOW)
+
+
+async def test_cancel_ongoing_expires_the_scheduled_attacks_too() -> None:
+    """The season end cancels a never-executed scheduled attack."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    scheduled = await bundle.attacks.schedule_attack(
+        "king-a", target, _SCHED_NOW + timedelta(hours=6), now=_SCHED_NOW
+    )
+    cancelled = await bundle.attacks.cancel_ongoing()
+    assert scheduled.id in {item.id for item in cancelled}
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == scheduled.id)
+    assert fresh.state is AttackState.EXPIRED
+
+
+async def test_a_tracked_lord_may_schedule_the_24h_delay_has_no_say() -> None:
+    """Corbeau: a « suivi » lord schedules at his chosen RDV (no +24h)."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    kingdom.corbeau_tracking = [
+        {"lord_id": "king-a", "until": int((_SCHED_NOW + timedelta(hours=24)).timestamp())}
+    ]
+    await bundle.store.upsert_kingdom(kingdom.to_mongo())
+    # An IMMEDIATE declaration by the TRACKED lord rides the 24h
+    # Corbeau delay (the tracking window has a say on the classic
+    # flow) — it spends his only weekly budget point.
+    immediate = await bundle.attacks.declare_attack(
+        "king-a", (await bundle.owner_maps(bourgogne))[1], "aoe2de://x", now=_SCHED_NOW
+    )
+    assert (immediate.expires_at - immediate.declared_at) == timedelta(hours=24)
+    # …a SCHEDULED one executes at the chosen RDV instead — declared
+    # by the other lord (king-a's budget is spent by the declaration).
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("lord-a", target, execute_at, now=_SCHED_NOW)
+    assert scheduled.expires_at == execute_at

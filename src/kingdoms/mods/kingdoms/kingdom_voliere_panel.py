@@ -590,7 +590,12 @@ async def _verify_flow(
     attacks = [
         a
         for a in await wiring.attacks_service.attacks()
-        if a.defender_kingdom_id == kingdom.id and not a.is_over
+        # planification-v1: a SCHEDULED attack is not declared yet —
+        # the Corbeau cannot verify its civilizations before the
+        # execution (there are none to see).
+        if a.defender_kingdom_id == kingdom.id
+        and not a.is_over
+        and str(getattr(a, "state", "")) != "scheduled"
     ]
     if not attacks:
         await interaction.response.edit_message(
@@ -725,6 +730,8 @@ async def _sabotage_flow(
         a
         for a in await wiring.attacks_service.attacks()
         if not a.is_over
+        # planification-v1: a SCHEDULED attack has no draft yet.
+        and str(getattr(a, "state", "")) != "scheduled"
         and kingdom.id in (a.attacker_kingdom_id, a.defender_kingdom_id)
         and bool((a.pickban or {}).get("sent"))
         and not bool((a.pickban or {}).get("resolved_pickban"))

@@ -51,6 +51,7 @@ KIND_ROYAL_MARRIAGE = "royal_marriage"
 
 # Combat
 KIND_ATTACK_DECLARED = "attack_declared"
+KIND_ATTACK_SCHEDULED = "attack_scheduled"  # planification-v1 (Drasah 23/10)
 KIND_EMBUSCADE = "embuscade"
 KIND_DEFENSE = "defense"
 KIND_PICKBAN = "pickban"

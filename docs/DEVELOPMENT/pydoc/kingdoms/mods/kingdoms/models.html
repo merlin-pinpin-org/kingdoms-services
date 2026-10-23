@@ -442,7 +442,7 @@ is&nbsp;a&nbsp;read-only&nbsp;view&nbsp;of&nbsp;the&nbsp;internal&nbsp;mapping.<
 <td class="section-title" colspan=3>&nbsp;<br><a name="AttackModel">class <strong>AttackModel</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#AttackModel">AttackModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;kind:&nbsp;kingdoms.mods.kingdoms.models.<a href="#AttackKind">AttackKind</a>,&nbsp;state:&nbsp;kingdoms.mods.kingdoms.models.<a href="#AttackState">AttackState</a>&nbsp;=&nbsp;&amp;lt;<a href="#AttackState">AttackState</a>.DECLARED:&nbsp;'declared'&amp;gt;,&nbsp;territory_id:&nbsp;str,&nbsp;map_key:&nbsp;str,&nbsp;defender_kingdom_id:&nbsp;str,&nbsp;attacker_lord_id:&nbsp;str,&nbsp;attacker_kingdom_id:&nbsp;str,&nbsp;lobby_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;declared_at:&nbsp;datetime.datetime,&nbsp;expires_at:&nbsp;datetime.datetime,&nbsp;defender_lord_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;resolved_at:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;winner_kingdom_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;restituted:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;participants:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;effects:&nbsp;dict[str,&nbsp;typing.Any]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;cover_lord_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;revealed:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;ai_defender:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;embuscade:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;traquenard:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;pickban:&nbsp;dict[str,&nbsp;typing.Any]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;score:&nbsp;dict[str,&nbsp;typing.Any]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AttackModel">AttackModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;kind:&nbsp;kingdoms.mods.kingdoms.models.<a href="#AttackKind">AttackKind</a>,&nbsp;state:&nbsp;kingdoms.mods.kingdoms.models.<a href="#AttackState">AttackState</a>&nbsp;=&nbsp;&amp;lt;<a href="#AttackState">AttackState</a>.DECLARED:&nbsp;'declared'&amp;gt;,&nbsp;territory_id:&nbsp;str,&nbsp;map_key:&nbsp;str,&nbsp;defender_kingdom_id:&nbsp;str,&nbsp;attacker_lord_id:&nbsp;str,&nbsp;attacker_kingdom_id:&nbsp;str,&nbsp;lobby_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;declared_at:&nbsp;datetime.datetime,&nbsp;expires_at:&nbsp;datetime.datetime,&nbsp;defender_lord_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;resolved_at:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;winner_kingdom_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;restituted:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;participants:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;effects:&nbsp;dict[str,&nbsp;typing.Any]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;cover_lord_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;revealed:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;ai_defender:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;embuscade:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;traquenard:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;scheduled_execute_at:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;pickban:&nbsp;dict[str,&nbsp;typing.Any]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;score:&nbsp;dict[str,&nbsp;typing.Any]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 An&nbsp;attack&nbsp;of&nbsp;the&nbsp;current&nbsp;season&nbsp;on&nbsp;one&nbsp;territory&nbsp;(§11-§13).<br>
 &nbsp;<br>
@@ -924,7 +924,11 @@ applied&nbsp;the&nbsp;no-defense&nbsp;outcome;&nbsp;``resolved``&nbsp;carries&nb
 winner&nbsp;(capture&nbsp;or&nbsp;conservation)&nbsp;and&nbsp;never&nbsp;moves&nbsp;again;<br>
 ``cancelled``&nbsp;(restructuration-serveur-v1&nbsp;b,&nbsp;Drasah&nbsp;19/10)&nbsp;is&nbsp;the<br>
 declarant's&nbsp;withdrawal&nbsp;inside&nbsp;the&nbsp;10-minute&nbsp;window&nbsp;—&nbsp;final&nbsp;too,<br>
-budgets&nbsp;refunded,&nbsp;the&nbsp;attack&nbsp;salon&nbsp;purged.<br>&nbsp;</span></td></tr>
+budgets&nbsp;refunded,&nbsp;the&nbsp;attack&nbsp;salon&nbsp;purged.&nbsp;``scheduled``<br>
+(planification-v1,&nbsp;Drasah&nbsp;23/10)&nbsp;is&nbsp;a&nbsp;declared-in-advance&nbsp;attack<br>
+waiting&nbsp;for&nbsp;its&nbsp;execution&nbsp;time&nbsp;—&nbsp;invisible&nbsp;publicly,&nbsp;the<br>
+territory&nbsp;is&nbsp;reserved&nbsp;(D42),&nbsp;the&nbsp;budgets&nbsp;are&nbsp;already&nbsp;consumed,<br>
+and&nbsp;the&nbsp;scheduler&nbsp;executes&nbsp;the&nbsp;declaration&nbsp;at&nbsp;the&nbsp;chosen&nbsp;RDV.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.mods.kingdoms.models.html#AttackState">AttackState</a></dd>
@@ -955,6 +959,8 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>MEETING</strong> = &lt;AttackState.MEETING: 'meeting'&gt;</dl>
 
 <dl><dt><strong>RESOLVED</strong> = &lt;AttackState.RESOLVED: 'resolved'&gt;</dl>
+
+<dl><dt><strong>SCHEDULED</strong> = &lt;AttackState.SCHEDULED: 'scheduled'&gt;</dl>
 
 <hr>
 Methods inherited from <a href="enum.html#StrEnum">enum.StrEnum</a>:<br>

@@ -235,6 +235,25 @@ class EmbuscadeError(AttackError):
     message_key = "kingdoms.errors.embuscade"
 
 
+class ScheduleError(AttackError):
+    """Raised when an attack cannot be scheduled (planification-v1)."""
+
+    code = "KINGDOMS_SCHEDULE_ERROR"
+    message_key = "kingdoms.errors.schedule_unexpected"
+
+
+class ScheduleWindowError(ScheduleError):
+    """Raised when the chosen RDV breaks the scheduling window (planification-v1).
+
+    Drasah's golden rule (23/10): a scheduled attack executes within
+    the next 24 hours at most — never further, never sooner than the
+    minimum lead (the bot must be able to wake up for it).
+    """
+
+    code = "KINGDOMS_SCHEDULE_WINDOW"
+    message_key = "kingdoms.errors.schedule_window"
+
+
 PATROUILLE_SLOT_KEYS = ("patrouille_slot_1", "patrouille_slot_2")
 PATROUILLE_HOURS = 2
 PATROUILLE_REINFORCED_HOURS = 3
@@ -339,6 +358,17 @@ cancellation window after the declaration — hardcoded on purpose
 (Drasah tranché : pas dans la config)."""
 
 
+SCHEDULE_MAX_HORIZON_HOURS = 24
+"""planification-v1 (Drasah 23/10): a scheduled attack executes within
+the next 24 hours at most — a golden rule, hardcoded on purpose
+(Drasah tranché : pas dans la config)."""
+
+SCHEDULE_MIN_LEAD_MINUTES = 5
+"""planification-v1 (Drasah 23/10): the minimum lead between the
+scheduling click and the execution — the scheduler tick must have a
+chance to wake up for it. Hardcoded with the horizon."""
+
+
 def _faucon_released(kingdom: Any, timestamp: datetime) -> bool:
     """Whether the kingdom runs an active Lâcher de faucon (voliere-v1)."""
     return int(getattr(kingdom, "faucon_release_until", 0) or 0) > int(timestamp.timestamp())
@@ -384,8 +414,15 @@ def _phase_deadlines(attack: AttackModel, config: KingdomsSeasonConfig) -> list[
     think time; MEETING tracks the AI's ``ai_ready_at`` and the T+5
     no-show line. Past deadlines stay in the list — the caller filters
     them against ``now`` (a single comparison for the whole board).
+
+    planification-v1 (Drasah 23/10): a SCHEDULED attack tracks its
+    execution time — the loop must wake up to run the declaration at
+    the player's chosen RDV.
     """
     deadlines: list[datetime] = []
+    if attack.state is AttackState.SCHEDULED:
+        deadlines.append(attack.scheduled_execute_at or attack.expires_at)
+        return deadlines
     if not attack.revealed:
         deadlines.append(attack.expires_at - timedelta(minutes=config.attacks.defense_cutoff_minutes))
     pickban = dict(attack.pickban)
@@ -516,32 +553,90 @@ class AttackService:
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         timestamp = now or _now()
-        territory = await self._validate_attack_target(lord, map_key, timestamp)
-        cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
-        if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
-            f"attack budget of {lord.display_name} ({lord.attack_used})"
-        ):
-            raise NoBudgetError("the weekly attack budget is spent")
+        # planification-v1 (Drasah 23/10): a scheduled execution skips
+        # the Corbeau 24h rule — the RDV is the player's chosen hour,
+        # not the configured delay.
+        return await self._declare_attack_now(
+            season, lord, map_key, lobby_url, cover_lord_id, timestamp, scheduled=False
+        )
+
+    async def _declare_attack_now(
+        self,
+        season: SeasonState,
+        lord: LordModel,
+        map_key: str,
+        lobby_url: str,
+        cover_lord_id: str | None,
+        timestamp: datetime,
+        *,
+        scheduled: bool,
+        except_attack_id: str | None = None,
+    ) -> AttackModel:
+        """Run the declaration checks and persist the attack (D27/D41/D42).
+
+        Shared by the immediate declaration (``declare_attack``) and the
+        scheduler execution of a scheduled attack (``_execute_scheduled``
+        — planification-v1). ``scheduled`` relaxes four things: the
+        Corbeau 24h delay override AND the meeting time itself (the
+        chosen RDV IS the attack's expiry — the whole D77 chain rides
+        it), the budget check AND its consumption (the budget was
+        consumed at the SCHEDULING — re-checking it here would refuse
+        the execution of the very attack that spent it), and the cover
+        consumption (same reason — the charge was spent at the
+        scheduling; the caller re-attaches the recorded cover lord).
+        ``except_attack_id`` exempts the scheduled placeholder from
+        the territory-busy scan (D42) at the execution.
+        """
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        own_kingdom_id = lord.kingdom_id
+        territory = await self._validate_attack_target(
+            lord, map_key, timestamp, except_attack_id=except_attack_id
+        )
+        cover = None
+        if scheduled:
+            # planification-v1: the cover charge was consumed at the
+            # scheduling (or at the cover attachment) — the execution
+            # re-attaches the RECORDED cover lord, it consumes nothing.
+            cover = cover_lord_id
+        elif cover_lord_id:
+            cover = await self._engage_cover(lord, cover_lord_id)
+        if not scheduled:
+            if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
+                f"attack budget of {lord.display_name} ({lord.attack_used})"
+            ):
+                raise NoBudgetError("the weekly attack budget is spent")
         # Drasah 18/10: the lobby URL is no longer asked at the
         # declaration — it is shared at the RDV (ready phase) through
         # the meeting DM's 🔗 button. An empty URL at the declaration
         # is therefore VALID for a player attack.
         # Volière Corbeau (voliere-v1): a « suivi » lord declares with
         # the 24h delay for the whole 24h tracking window.
-        delay_minutes = self._config.attacks.player_attack_delay_minutes
-        if await self._lord_tracked_by_corbeau(lord.id, timestamp):
-            delay_minutes = CORBEAU_TRACK_DELAY_MINUTES
+        # planification-v1: a scheduled execution keeps the CHOSEN RDV
+        # as its meeting time — the RDV the player picked IS the
+        # attack's expiry (the whole D77 chain rides it).
+        if scheduled:
+            delay_minutes = 0
+        else:
+            delay_minutes = self._config.attacks.player_attack_delay_minutes
+            if await self._lord_tracked_by_corbeau(lord.id, timestamp):
+                delay_minutes = CORBEAU_TRACK_DELAY_MINUTES
         # Drasah's Lord's Day window: declaring inside the window is
         # fine ONLY when the execution (the attack's expiry deadline)
         # lands after the window closes (Monday 10:00) — a game that
-        # would be played inside the window is refused.
+        # would be played inside the window is refused. A scheduled
+        # execution reads its OWN moment (the chosen RDV) — the
+        # placeholder was already refused at the scheduling when it
+        # landed inside the window, so this re-check only guards the
+        # window that opened between the scheduling and the RDV.
         _refuse_lords_day_execution(
             await self._active_lords_day_window(timestamp),
             timestamp,
-            delay_minutes,
+            0 if scheduled else delay_minutes,
         )
-        lord.attack_used += 1
-        await self._store.upsert_lord(lord.to_mongo())
+        if not scheduled:
+            lord.attack_used += 1
+            await self._store.upsert_lord(lord.to_mongo())
         target_kingdom = await self._kingdom_by_id(territory.owner_kingdom_id)
         traquenard = int(getattr(target_kingdom, "traquenard_until", 0) or 0) > int(timestamp.timestamp())
         attack = AttackModel(
@@ -555,7 +650,7 @@ class AttackService:
             map_key=territory.map_key,
             defender_kingdom_id=territory.owner_kingdom_id,
             attacker_lord_id=lord.id,
-            attacker_kingdom_id=lord.kingdom_id,
+            attacker_kingdom_id=own_kingdom_id,
             lobby_url=lobby_url.strip(),
             declared_at=timestamp,
             expires_at=timestamp + timedelta(minutes=delay_minutes),
@@ -579,6 +674,248 @@ class AttackService:
             " under cover" if cover else "",
             " through an active Traquenard" if traquenard else "",
         )
+        return attack
+
+    async def schedule_attack(
+        self,
+        player_id: str,
+        map_key: str,
+        execute_at: datetime,
+        *,
+        cover_lord_id: str | None = None,
+        now: datetime | None = None,
+    ) -> AttackModel:
+        """Schedule an attack: the declaration executes at ``execute_at``.
+
+        planification-v1 (Drasah 23/10): the player picks the RDV hour
+        (e.g. 8h) in the declare panel and the bot executes the
+        declaration alone at that moment — no 2 a.m. click anymore.
+
+        The golden rules Drasah fixed:
+        — the RDV lands within the next 24 hours at most, and at least
+          ``SCHEDULE_MIN_LEAD_MINUTES`` ahead (the scheduler must be
+          able to wake up for it);
+        — the territory is RESERVED right away (D42 — no other attack
+          may target it before the execution);
+        — the attack budget and the cover charge are consumed AT THE
+          SCHEDULING (and refunded on cancellation or failed execution);
+        — the scheduled attack is INVISIBLE publicly: no salon, no
+          announcement — the defender sees nothing until the execution;
+        — a « suivi » lord (Corbeau) may schedule: the 24h tracking
+          delay has no say on a chosen RDV;
+        — the Lord's Day rule reads the EXECUTION time: a RDV inside
+          the window is refused at the scheduling already.
+
+        The attack document is stored in the new ``SCHEDULED`` state
+        with ``expires_at`` = the chosen RDV; the scheduler tick
+        (``scheduled_due``) executes it at that moment through the SAME
+        checks as a live declaration — a check that fails then cancels
+        the scheduling and refunds the budgets.
+        """
+        season = await self._require_running_season()
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        timestamp = now or _now()
+        if execute_at.tzinfo is None:
+            raise ScheduleWindowError("the execution time must carry a timezone")
+        execute_at = execute_at.astimezone(UTC)
+        earliest = timestamp + timedelta(minutes=SCHEDULE_MIN_LEAD_MINUTES)
+        horizon = timestamp + timedelta(hours=SCHEDULE_MAX_HORIZON_HOURS)
+        if execute_at < earliest or execute_at > horizon:
+            raise ScheduleWindowError(
+                f"the execution must land between {SCHEDULE_MIN_LEAD_MINUTES} minutes "
+                f"and {SCHEDULE_MAX_HORIZON_HOURS} hours from now"
+            )
+        territory = await self._validate_attack_target(lord, map_key, timestamp)
+        cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
+        if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
+            f"attack budget of {lord.display_name} ({lord.attack_used})"
+        ):
+            raise NoBudgetError("the weekly attack budget is spent")
+        # Drasah's Lord's Day window reads the EXECUTION: a RDV that
+        # would be played inside the window is refused at the scheduling.
+        _refuse_lords_day_execution(
+            await self._active_lords_day_window(execute_at),
+            execute_at,
+            0,
+        )
+        lord.attack_used += 1
+        await self._store.upsert_lord(lord.to_mongo())
+        attack = AttackModel(
+            # attaques-score-v1: the epoch suffix makes the id unique.
+            _id=f"{season.id}-a-{territory.id}-{lord.id}-{int(timestamp.timestamp())}",
+            season_id=season.id,
+            kind=AttackKind.PLAYER,
+            state=AttackState.SCHEDULED,
+            territory_id=territory.id,
+            map_key=territory.map_key,
+            defender_kingdom_id=territory.owner_kingdom_id,
+            attacker_lord_id=lord.id,
+            attacker_kingdom_id=lord.kingdom_id,
+            lobby_url="",
+            declared_at=timestamp,
+            expires_at=execute_at,
+            cover_lord_id=cover,
+            scheduled_execute_at=execute_at,
+        )
+        await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_ATTACK_SCHEDULED,
+            now=timestamp,
+            store=self._store,
+            map=territory.map_key,
+            target=(await self._kingdom_by_id(territory.owner_kingdom_id)).name,
+            rdv=str(int(execute_at.timestamp())),
+        )
+        logger.info(
+            "kingdoms: %s scheduled an attack on %s (executes %s%s)",
+            lord.id,
+            territory.map_key,
+            attack.expires_at.isoformat(),
+            " under cover" if cover else "",
+        )
+        return attack
+
+    async def scheduled_attacks(self) -> list[AttackModel]:
+        """Return every attack waiting for its scheduled execution."""
+        return [a for a in await self.attacks() if a.state is AttackState.SCHEDULED]
+
+    async def attach_cover_to_scheduled(self, attack_id: str, cover_lord_id: str) -> AttackModel:
+        """Attach a cover lord to a SCHEDULED attack (planification-v1).
+
+        The cover question runs AFTER the scheduling (the modal cannot
+        ask it before the RDV exists) — the charge is consumed HERE,
+        at the attachment, and refunded with the budget when the
+        scheduling is cancelled or its execution fails. The cover lord
+        must be another active lord of the attacker's kingdom (the
+        same bluff rules as the immediate declaration).
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.state is not AttackState.SCHEDULED:
+            raise AttackStateError("only a scheduled attack can receive a cover")
+        lord = await self._require_lord(attack.attacker_lord_id)
+        cover = await self._engage_cover(lord, cover_lord_id)
+        attack.cover_lord_id = cover
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: cover %s attached to the scheduled attack on %s",
+            cover,
+            attack.map_key,
+        )
+        return attack
+
+    async def scheduled_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Execute every scheduled attack whose RDV just came (planification-v1).
+
+        Idempotent through the state flip: a restart replays nothing.
+        Each execution re-runs the LIVE declaration checks (target free,
+        budget, locks, Lord's Day on the execution time) — the budgets
+        were consumed at the scheduling, so a failed execution REFUNDS
+        them (attack budget + cover charge) and moves the attack to
+        CANCELLED: the player gets a DM with the reason, nothing else
+        changes for the defender (he never saw the scheduling).
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        executed: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.state is not AttackState.SCHEDULED:
+                continue
+            execute_at = attack.scheduled_execute_at or attack.expires_at
+            if timestamp < execute_at:
+                continue
+            outcome = await self._execute_scheduled(attack, timestamp)
+            if outcome is not None:
+                executed.append(outcome)
+        return executed
+
+    async def _execute_scheduled(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
+        """Run one scheduled declaration at its RDV — or cancel and refund it.
+
+        Returns the attack (DECLARED on success, CANCELLED on a failed
+        check), ``None`` when the season ended meanwhile (the attack
+        stays SCHEDULED until the season verdict cancels everything).
+        """
+        season = await self._kingdoms.current_season()
+        if season is None:
+            return None
+        if season.finished:
+            return None
+        lord = await self._require_lord(attack.attacker_lord_id)
+        try:
+            fresh = await self._declare_attack_now(
+                season,
+                lord,
+                attack.map_key,
+                "",
+                attack.cover_lord_id,
+                timestamp,
+                scheduled=True,
+                except_attack_id=str(attack.id),
+            )
+        except AttackError as exc:
+            # The scheduling is void: refund the budgets consumed at
+            # the scheduling (the failed declaration consumed nothing —
+            # the exception raised BEFORE any consumption) and cancel.
+            logger.warning(
+                "kingdoms: scheduled attack on %s failed at execution (%s) — cancelled and refunded",
+                attack.map_key,
+                exc,
+            )
+            await self._refund_scheduled(attack, lord)
+            attack.state = AttackState.CANCELLED
+            attack.resolved_at = timestamp
+            attack.effects = {**(attack.effects or {}), "schedule_failure": str(getattr(exc, "code", "error"))}
+            await self._store.upsert_attack(attack.to_mongo())
+            return attack
+        # The fresh declaration owns the territory reservation from now
+        # on — the scheduled placeholder is superseded (kept as a
+        # CANCELLED trace so the territory-busy scan never double
+        # counts it).
+        attack.state = AttackState.CANCELLED
+        attack.resolved_at = timestamp
+        attack.effects = {**(attack.effects or {}), "scheduled_into": str(fresh.id)}
+        await self._store.upsert_attack(attack.to_mongo())
+        fresh.effects = {**(fresh.effects or {}), "scheduled_into": str(fresh.id)}
+        return fresh
+
+    async def _refund_scheduled(self, attack: AttackModel, lord: LordModel) -> None:
+        """Refund the budgets consumed at the scheduling of ``attack``."""
+        if lord.attack_used > 0:
+            lord.attack_used -= 1
+            await self._store.upsert_lord(lord.to_mongo())
+        if attack.cover_lord_id:
+            state = await self.technology_state(attack.attacker_kingdom_id)
+            state.purchases["contre_espionnage"] = state.purchases.get("contre_espionnage", 0) + 1
+            await self._store.upsert_technology(state.to_mongo())
+
+    async def cancel_scheduled(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
+        """Cancel a scheduled attack at any moment before its execution (planification-v1).
+
+        Drasah 23/10: the scheduling cancellation is FREE and open
+        until the execution — the budgets were consumed at the
+        scheduling and are refunded IN FULL (attack budget + cover
+        charge). Once the declaration executed, the ordinary
+        ``cancel_attack`` rules apply (the 10-minute window).
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            raise AttackStateError("the attack is over")
+        if attack.state is not AttackState.SCHEDULED:
+            raise AttackStateError("only a scheduled attack can be cancelled here")
+        if str(player_id) != str(attack.attacker_lord_id):
+            raise AttackStateError("only the declarant may cancel the scheduled attack")
+        timestamp = now or _now()
+        lord = await self._require_lord(str(attack.attacker_lord_id))
+        await self._refund_scheduled(attack, lord)
+        attack.state = AttackState.CANCELLED
+        attack.resolved_at = timestamp
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info("kingdoms: scheduled attack on %s cancelled by %s", attack.map_key, player_id)
         return attack
 
     async def _lord_tracked_by_corbeau(self, lord_id: str, timestamp: datetime) -> bool:
@@ -666,8 +1003,21 @@ class AttackService:
         )
         return attack
 
-    async def _validate_attack_target(self, lord: LordModel, map_key: str, timestamp: datetime) -> TerritoryModel:
-        """Run the shared declaration checks on one target territory."""
+    async def _validate_attack_target(
+        self,
+        lord: LordModel,
+        map_key: str,
+        timestamp: datetime,
+        *,
+        except_attack_id: str | None = None,
+    ) -> TerritoryModel:
+        """Run the shared declaration checks on one target territory.
+
+        ``except_attack_id`` (planification-v1): the scheduler
+        execution of a scheduled attack re-runs these checks — the
+        SCHEDULED placeholder itself must not count as the ongoing
+        attack blocking its own territory (D42).
+        """
         territory = await self._territory_by_map(map_key)
         if territory.owner_kingdom_id == lord.kingdom_id:
             raise TerritoryNotAttackableError("a kingdom cannot attack its own territory")
@@ -703,7 +1053,7 @@ class AttackService:
         ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
-        if await self._territory_busy(territory.id):
+        if await self._territory_busy(territory.id, except_attack_id=except_attack_id):
             raise TerritoryBusyError("the territory already has an ongoing attack")
         return territory
 
@@ -1639,6 +1989,10 @@ class AttackService:
         so the loop runs its work within the second instead of waiting
         the base tick. Every urgent step is a service-side state flip,
         so one pass clears it — the loop never spins.
+
+        planification-v1 (Drasah 23/10): a SCHEDULED attack is not
+        over — its execution time is a deadline like any other, so the
+        loop wakes up to run the declaration at the chosen RDV.
         """
         timestamp = now or _now()
         nearest: datetime | None = None
@@ -2202,7 +2556,10 @@ class AttackService:
         Drasah's endcycle rule (2026-10-11): at the endcycle's Sunday
         23:59 the ongoing attacks (declared or defended) are CANCELLED
         so the verdict counts a clean board — they move to ``expired``
-        and never resolve afterwards.
+        and never resolve afterwards. planification-v1: a SCHEDULED
+        attack never executed is cancelled the same way (its budgets
+        stay consumed — the player chose the slot and the season ended
+        before the RDV; the weekly reset comes with the next cycle).
         """
         cancelled: list[AttackModel] = []
         for attack in await self.attacks():
@@ -2210,6 +2567,7 @@ class AttackService:
                 AttackState.DECLARED,
                 AttackState.DEFENDED,
                 AttackState.MEETING,
+                AttackState.SCHEDULED,
             ):
                 continue
             attack.state = AttackState.EXPIRED
@@ -2687,9 +3045,22 @@ class AttackService:
         """Return the configured cost of one technology (D9)."""
         return int(getattr(self._config.technologies, technology))
 
-    async def _territory_busy(self, territory_id: str) -> bool:
-        """Whether an ongoing attack targets the territory (D42)."""
-        return any(attack.territory_id == territory_id and not attack.is_over for attack in await self.attacks())
+    async def _territory_busy(self, territory_id: str, *, except_attack_id: str | None = None) -> bool:
+        """Whether an ongoing attack targets the territory (D42).
+
+        planification-v1: a SCHEDULED attack reserves its territory
+        too — invisible publicly, but it blocks any other attack on
+        the same target until its execution (or its cancellation).
+        ``except_attack_id`` exempts one attack (the scheduler
+        execution re-validating the placeholder it supersedes).
+        """
+        return any(
+            attack.territory_id == territory_id
+            and not attack.is_over
+            and attack.state is not AttackState.CANCELLED
+            and (except_attack_id is None or str(attack.id) != str(except_attack_id))
+            for attack in await self.attacks()
+        )
 
     async def _territory_by_map(self, map_key: str) -> TerritoryModel:
         """Resolve a territory by its map key."""

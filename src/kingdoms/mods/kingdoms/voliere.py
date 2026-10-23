@@ -368,6 +368,10 @@ class VoliereService:
         )
         if attack is None or attack.defender_kingdom_id != kingdom_id:
             raise VoliereTargetError("the attack does not target the kingdom")
+        # planification-v1: a SCHEDULED attack is not declared yet —
+        # the Corbeau cannot verify civilizations that do not exist.
+        if str(getattr(attack, "state", "")) == "scheduled":
+            raise VoliereTargetError("the attack is not declared yet")
         lords = await self._kingdoms.lords()
         attacker = next(
             (lord for lord in lords if lord.id == attack.attacker_lord_id), None
@@ -715,6 +719,10 @@ class VoliereService:
             raise VoliereTargetError("the attack does not exist")
         if kingdom_id not in (attack.attacker_kingdom_id, attack.defender_kingdom_id):
             raise VoliereTargetError("the kingdom is not part of the attack")
+        # planification-v1: a SCHEDULED attack has no draft — the Faucon
+        # strikes once the declaration executed (the live windows).
+        if str(getattr(attack, "state", "")) == "scheduled":
+            raise VoliereTargetError("the attack is not declared yet")
         pickban = dict(attack.pickban or {})
         # Drasah 18/10 v3: the Faucon also strikes from the battle room
         # (phase Sabotage du vocal) — the meeting state is a valid window.

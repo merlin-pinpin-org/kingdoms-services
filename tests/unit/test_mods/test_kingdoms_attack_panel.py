@@ -25,6 +25,22 @@ from .test_kingdoms_attack_score import ScoreBundle
 _SAFE_NOW = datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
 """Frozen INSIDE the [T-15, T] defense window (fresh attack T = 18:00)."""
 
+_SCHED_NOW = datetime(2026, 10, 21, 10, 0, tzinfo=UTC)
+"""planification-v1: a Wednesday 12:00 Paris moment — OUTSIDE the
+Lord's Day window (the panel tests freeze the service clock at
+``_SAFE_NOW``, so the scheduling tests pass their own ``now=``)."""
+
+
+@pytest.fixture()
+def _freeze_game_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """planification-v1: the modal parses against the GAME clock — freeze it."""
+    from kingdoms.mods.kingdoms import game_clock
+
+    monkeypatch.setattr(game_clock, "game_now", lambda: _SCHED_NOW)
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel_module
+
+    monkeypatch.setattr(panel_module, "game_now", lambda: _SCHED_NOW)
+
 
 @pytest.fixture(autouse=True)
 def _freeze_attacks_clock(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,8 +195,13 @@ async def test_deploy_attack_panel_pins_marker_and_buttons() -> None:
     assert ATTACK_PANEL_MARKER in (channel.sent[0].content or "")
     ids = [item.custom_id for item in channel.sent[0].view.children]
     # b: the declare + history buttons only (the attacks live in their
-    # own salons now — no rows, no defend button here).
-    assert ids == ["kingdoms:attack:declare", "kingdoms:attack:history"]
+    # own salons now — no rows, no defend button here). planification-v1
+    # adds the 📅 Mes planifications button between the two.
+    assert ids == [
+        "kingdoms:attack:declare",
+        "kingdoms:attack:scheduled",
+        "kingdoms:attack:history",
+    ]
     assert attack.map_key not in (channel.sent[0].content or "")
     # The pointer tells the players where the defenses live.
     assert "PROPRE salon" in (channel.sent[0].content or "")
@@ -496,10 +517,23 @@ async def test_declare_flow_declares_the_attack() -> None:
         data={"values": [target]},
         locale="fr",  # type: ignore[arg-type]
     )
+    # Step 2 bis — the « Quand ? » question (planification-v1) replaces
+    # the territory select; « Maintenant » runs the legacy flow.
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    when_view = step2.response.message and step2.response.message.view
+    assert when_view is not None
+    when_ids = [c.custom_id for c in when_view.children]
+    assert "kingdoms:attack:when:now" in when_ids
+    assert "kingdoms:attack:when:schedule" in when_ids
+    now_button = next(c for c in when_view.children if c.custom_id == "kingdoms:attack:when:now")
+    step3 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        locale="fr",  # type: ignore[arg-type]
+    )
     # Step 3 — no contre-espionnage stock: the attack declares
     # DIRECTLY (Drasah 18/10 — no modal: an empty modal is rejected
     # by Discord and killed the flow, live beta 18/10).
-    await territory_select.callback(step2)  # type: ignore[arg-type]
+    await now_button.callback(step3)  # type: ignore[arg-type]
     # battle-ai-rdv-v1: the map is chosen — the SELECTOR ephemeral dies
     # instantly (no stale wizard left behind after the declaration).
     assert click.original_deleted is True
@@ -508,9 +542,9 @@ async def test_declare_flow_declares_the_attack() -> None:
     assert str(attacks[0].state.value) == "declared"
     assert attacks[0].map_key == target
     assert attacks[0].lobby_url == ""
-    assert step2.response.deferred is True
-    assert step2.followup.messages
-    assert "Attaque déclarée" in (step2.followup.messages[0].content or "")
+    assert step3.response.deferred is True
+    assert step3.followup.messages
+    assert "Attaque déclarée" in (step3.followup.messages[0].content or "")
 
 
 async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
@@ -552,9 +586,19 @@ async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
         locale="fr",  # type: ignore[arg-type]
     )
     await territory_select.callback(step2)  # type: ignore[arg-type]
-    # The cover question (OUI/NON) replaces the territory select.
-    assert step2.response.message is not None
-    cover_view = step2.response.message.view
+    # planification-v1: the « Quand ? » question replaces the territory
+    # select; « Maintenant » leads to the cover question.
+    when_view = step2.response.message and step2.response.message.view
+    assert when_view is not None
+    now_button = next(c for c in when_view.children if c.custom_id == "kingdoms:attack:when:now")
+    step3 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await now_button.callback(step3)  # type: ignore[arg-type]
+    # The cover question (OUI/NON) appears next.
+    assert step3.response.message is not None
+    cover_view = step3.response.message.view
     assert cover_view is not None
     ids = [c.custom_id for c in cover_view.children]
     assert "kingdoms:attack:cover:yes" in ids
@@ -608,14 +652,24 @@ async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
         locale="fr",  # type: ignore[arg-type]
     )
     await territory_select.callback(step2)  # type: ignore[arg-type]
+    # planification-v1: the « Quand ? » question replaces the territory
+    # select; « Maintenant » runs the legacy flow.
+    when_view = step2.response.message and step2.response.message.view
+    assert when_view is not None
+    now_button = next(c for c in when_view.children if c.custom_id == "kingdoms:attack:when:now")
+    step3 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await now_button.callback(step3)  # type: ignore[arg-type]
     # Solo: the attack declares DIRECTLY — no OUI/NON question…
     attacks = await bundle.attacks.attacks()
     assert len(attacks) == 1
     assert attacks[0].cover_lord_id is None
-    assert step2.response.deferred is True
-    assert not step2.response.message
+    assert step3.response.deferred is True
+    assert not step3.response.message
     # …and the note explains WHY (no silent skip, no charge consumed).
-    bodies = [str(m.content or "") for m in step2.followup.messages]
+    bodies = [str(m.content or "") for m in step3.followup.messages]
     assert any("Attaque déclarée" in body for body in bodies)
     assert any("aucun autre seigneur actif" in body for body in bodies)
     fresh_state = await bundle.attacks.technology_state(aquitaine)
@@ -2223,3 +2277,296 @@ async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
         if task is not asyncio.current_task():
             task.cancel()
     await asyncio.sleep(0)
+
+
+# ----------------------------------------------------------------------
+# planification-v1 (Drasah 23/10): the « Quand ? » step, the schedule
+# modal, the 📅 Mes planifications button and the scheduled executions
+# ----------------------------------------------------------------------
+
+
+def test_parse_schedule_hour_accepts_hhmm_and_rolls_to_tomorrow() -> None:
+    """The modal's hour parsing: HH:MM/HHhMM, today then tomorrow."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _parse_schedule_hour
+
+    now = datetime(2026, 10, 21, 20, 30, tzinfo=UTC)  # 22:30 in Paris
+    # 08:00 already passed -> tomorrow 08:00 Paris (06:00 UTC, CEST+2).
+    assert _parse_schedule_hour("08:00", now) == datetime(2026, 10, 22, 6, 0, tzinfo=UTC)
+    # 23:00 is still ahead -> today 23:00 Paris (21:00 UTC).
+    assert _parse_schedule_hour("23:00", now) == datetime(2026, 10, 21, 21, 0, tzinfo=UTC)
+    # The « h » separator and a single-digit hour parse too.
+    assert _parse_schedule_hour("8h05", now) == datetime(2026, 10, 22, 6, 5, tzinfo=UTC)
+    # Garbage is refused (the modal shows the format hint).
+    assert _parse_schedule_hour("midi", now) is None
+    assert _parse_schedule_hour("25:00", now) is None
+    assert _parse_schedule_hour("08:75", now) is None
+    assert _parse_schedule_hour("", now) is None
+
+
+async def test_declare_flow_schedule_button_opens_the_modal(_freeze_game_clock: None) -> None:
+    """planification-v1: « 📅 Planifier le RDV » opens the hour modal."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        KingdomScheduleAttackModal,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    kingdom_view = click.response.message and click.response.message.view
+    kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    territory_view = step.response.message and step.response.message.view
+    territory_select = next(c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory")
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    when_view = step2.response.message and step2.response.message.view
+    assert when_view is not None
+    schedule_button = next(c for c in when_view.children if c.custom_id == "kingdoms:attack:when:schedule")
+    step3 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await schedule_button.callback(step3)  # type: ignore[arg-type]
+    modal = step3.response.modal
+    assert isinstance(modal, KingdomScheduleAttackModal)
+    assert modal.map_key == target
+
+
+async def test_schedule_modal_schedules_the_attack_and_confirms(_freeze_game_clock: None) -> None:
+    """The modal's submit: the scheduling lands, the confirmation shows the RDV."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomScheduleAttackModal,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    _wiring(bundle)
+    strings = _strings("fr")
+    modal = KingdomScheduleAttackModal(strings, target, "k-1")
+    modal.hour_input._value = "18:00"  # type: ignore[attr-defined]
+    submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await modal.on_submit(submit)  # type: ignore[arg-type]
+    scheduled = await bundle.attacks.scheduled_attacks()
+    assert len(scheduled) == 1
+    assert scheduled[0].state is AttackState.SCHEDULED
+    assert scheduled[0].map_key == target
+    assert submit.followup.messages
+    assert "planifiée" in (submit.followup.messages[0].content or "")
+    # The confirmation carries BOTH Discord timestamps (relative + absolute).
+    content = submit.followup.messages[0].content or ""
+    assert "<t:" in content and ":R>" in content and ":t>" in content
+
+
+async def test_schedule_modal_refuses_a_bad_format(_freeze_game_clock: None) -> None:
+    """A garbage hour never reaches the service."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomScheduleAttackModal,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    _wiring(bundle)
+    modal = KingdomScheduleAttackModal(_strings("fr"), "some-map", "k-1")
+    modal.hour_input._value = "demain matin"  # type: ignore[attr-defined]
+    submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await modal.on_submit(submit)  # type: ignore[arg-type]
+    assert await bundle.attacks.scheduled_attacks() == []
+    assert submit.response.message is not None
+    assert "HH:MM" in (submit.response.message.content or "")
+
+
+async def test_scheduled_button_lists_and_cancels_the_lords_schedules(_freeze_game_clock: None) -> None:
+    """📅 Mes planifications: the lord's schedules, one ❌ each, refund on cancel."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackScheduledButton,
+        KingdomCancelScheduledButton,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    _wiring(bundle)
+    strings = _strings("fr")
+    click = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    button = KingdomAttackScheduledButton(strings["scheduled_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    assert click.response.message is not None
+    content = click.response.message.content or ""
+    assert target in content
+    assert "<t:" in content  # the execution rides Discord timestamps
+    view = click.response.message.view
+    assert view is not None
+    cancel = next(c for c in view.children if isinstance(c, KingdomCancelScheduledButton))
+    assert cancel.attack_id == scheduled.id
+    # The cancel refunds the budget and frees the territory.
+    cancel_click = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await cancel.callback(cancel_click)  # type: ignore[arg-type]
+    assert cancel_click.followup.messages
+    assert (await bundle.attacks.attacks())[0].state is AttackState.CANCELLED
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert lord.attack_used == 0
+
+
+async def test_scheduled_button_hides_the_other_lords_schedules(_freeze_game_clock: None) -> None:
+    """A lord sees only HIS OWN schedules in the 📅 list."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackScheduledButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    maps = await bundle.owner_maps(bourgogne)
+    await bundle.attacks.schedule_attack("king-a", maps[0], _SCHED_NOW + timedelta(hours=6), now=_SCHED_NOW)
+    await bundle.attacks.schedule_attack("lord-a", maps[1], _SCHED_NOW + timedelta(hours=7), now=_SCHED_NOW)
+    _wiring(bundle)
+    click = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    button = KingdomAttackScheduledButton(_strings("fr")["scheduled_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    content = click.response.message.content or ""
+    assert maps[0] in content
+    assert maps[1] not in content
+    # lord-a sees his own schedule (and not king-a's).
+    click2 = MockInteraction(user=MockUser(id="lord-a"), locale="fr")  # type: ignore[arg-type]
+    await button.callback(click2)  # type: ignore[arg-type]
+    content2 = click2.response.message.content or ""
+    assert maps[1] in content2
+    assert maps[0] not in content2
+
+
+async def test_scheduled_execution_opens_the_salon_and_dms_the_attacker(
+    _freeze_game_clock: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The tick executes the schedule: fresh declaration, salon, DM, refresh."""
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _run_scheduled_executions_safe,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    _wiring(bundle)
+    guild = MockGuild()
+    declare_channel = await guild.create_text_channel("Déclarer une attaque")
+    bot = _FakeBot(bundle, declare_channel)
+    monkeypatch.setattr(attacks_module, "_now", lambda: execute_at)
+    played = await _run_scheduled_executions_safe(
+        bot, guild, bundle.attacks, bundle.kingdoms, _strings("fr"), "fr"
+    )
+    assert played == 1
+    attacks = await bundle.attacks.attacks()
+    fresh = next(a for a in attacks if a.state is AttackState.DECLARED)
+    assert fresh.map_key == target
+    assert fresh.expires_at == execute_at
+    # The attack salon opened under the declare salon.
+    salons = [c for c in guild.text_channels if c is not declare_channel]
+    assert salons, "the execution opened the attack salon"
+
+
+async def test_scheduled_execution_failure_dms_the_reason(
+    _freeze_game_clock: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed execution: cancelled + refunded, the attacker gets the reason DM."""
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _run_scheduled_executions_safe,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    # The lord gets married before the RDV — the execution fails.
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    lord.marriage_locked_until = int((execute_at + timedelta(hours=1)).timestamp())
+    await bundle.store.upsert_lord(lord.to_mongo())
+    _wiring(bundle)
+    guild = MockGuild()
+    bot = _FakeBot(bundle)
+    monkeypatch.setattr(attacks_module, "_now", lambda: execute_at)
+    played = await _run_scheduled_executions_safe(
+        bot, guild, bundle.attacks, bundle.kingdoms, _strings("fr"), "fr"
+    )
+    assert played == 1
+    scheduled = await bundle.attacks.scheduled_attacks()
+    assert scheduled == []
+    placeholder = next(a for a in await bundle.attacks.attacks() if a.map_key == target)
+    assert placeholder.state is AttackState.CANCELLED
+    assert placeholder.effects.get("schedule_failure") == "KINGDOMS_LORD_LOCKED"
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert lord.attack_used == 0
+
+
+async def test_history_hides_the_superseded_placeholder(_freeze_game_clock: None) -> None:
+    """The placeholder superseded by its execution never shows in the history."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _history_lines, _strings
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    execute_at = _SCHED_NOW + timedelta(hours=6)
+    scheduled = await bundle.attacks.schedule_attack("king-a", target, execute_at, now=_SCHED_NOW)
+    await bundle.attacks.scheduled_due(now=execute_at)
+    _wiring(bundle)
+    wiring = KingdomsPanelWiring(
+        kingdoms_service=bundle.kingdoms,
+        attacks_service=bundle.attacks,
+        territories_service=bundle.territories,
+    )
+    lines = await _history_lines(wiring, _strings("fr"))
+    # The placeholder is CANCELLED (a trace) — the fresh declaration is
+    # still DECLARED — the history shows NEITHER (nothing resolved yet).
+    assert lines == []
+    placeholder = next(a for a in await bundle.attacks.attacks() if a.id == scheduled.id)
+    assert placeholder.state is AttackState.CANCELLED
