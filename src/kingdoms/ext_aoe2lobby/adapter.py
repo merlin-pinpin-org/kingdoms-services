@@ -195,6 +195,9 @@ class Aoe2LobbyAdapter:
                             yield event
                         for event in self._sweep_pending_closes():
                             yield event
+                        if self._last_snapshot_at and _now_ms() - self._last_snapshot_at > self._refresh_s * 1000:
+                            logger.info("aoe2lobby ws refreshing: reconnect for a fresh snapshot")
+                            break
             except (TimeoutError, websockets.WebSocketException, OSError):
                 logger.warning("aoe2lobby ws disconnected; retrying in %ss", self._reconnect_delay_s)
             except Exception:
@@ -204,27 +207,28 @@ class Aoe2LobbyAdapter:
             await asyncio.sleep(self._reconnect_delay_s)
 
     async def _subscribe_all(self, ws: Any) -> None:
-        """Subscribe the players channel and LEAVE the matches channel.
+        """Subscribe both channels scoped to the enrolled profile ids.
 
-        The session's default carries the global matches feed (every
-        observable lobby and game — thousands of profiles, the
-        111-pages lesson). The server honors the per-profile filter
-        only when the global feed is explicitly left:
-        ``subscribe players`` + ``unsubscribe matches`` pushes exactly
-        the subscribed profiles' ``player_status`` and nothing else
-        (live-validated: 0 match frames, 0 stray profiles).
+        Neither subscription is global: the enrolled ids ride every
+        subscribe (matches and players). Live-validated: the players
+        channel alone pushes nothing — the states live in the matches
+        snapshots and deltas; the ids passed to the matches channel
+        are the server-side scope, and the strict enrolled-ids filter
+        stays the reducer's leak guard (the 111-pages lesson) whatever
+        the server actually honors.
         """
-        await ws.send(
-            json.dumps({"action": "unsubscribe", "type": "matches", "context": "lobby"})
-        )
-        await ws.send(
-            json.dumps({"action": "unsubscribe", "type": "matches", "context": "spectate"})
-        )
-        if self._subscribed_ids:
-            await self._send_subscription("subscribe", "players", sorted(self._subscribed_ids))
+        ids = sorted(self._subscribed_ids)
+        for context in _CONTEXTS:
+            await ws.send(
+                json.dumps(
+                    {"action": "subscribe", "type": "matches", "context": context, "ids": ids}
+                )
+            )
+        if ids:
+            await self._send_subscription("subscribe", "players", ids)
             logger.info(
-                "aoe2lobby session ready: players-only, %d profile(s) subscribed",
-                len(self._subscribed_ids),
+                "aoe2lobby session ready: matches + players, %d profile(s) enrolled",
+                len(ids),
             )
 
     def _reset_matches(self) -> None:

@@ -335,13 +335,13 @@ async def test_transition_carries_the_summary_metadata() -> None:
     assert events[0]["metadata"]["format"] == "solo"
 
 
-async def test_handshake_leaves_the_global_matches_feed() -> None:
-    """The session subscribes players and LEAVES the global matches feed.
+async def test_handshake_subscribes_matches_and_players() -> None:
+    """The session subscribes both channels; the strict filter keeps it lean.
 
-    The 111-pages lesson: the server honors the per-profile filter
-    only when the global matches channel is explicitly left — the
-    handshake sends unsubscribe matches THEN subscribe players.
-    Live-validated: exactly the subscribed profiles, nothing else.
+    Live-validated (2026-10-23): the players channel alone pushes
+    nothing — the states live in the matches snapshots/deltas. The
+    enrolled-ids reducer filter is the leak guard (the 111-pages
+    lesson), not the server-side channel selection.
     """
     import json as jsonlib
 
@@ -356,15 +356,19 @@ async def test_handshake_leaves_the_global_matches_feed() -> None:
     fake = _FakeWs()
     adapter._ws = fake  # the live session seam
     await adapter._subscribe_all(fake)
-    unsub = [m for m in sent if m["action"] == "unsubscribe"]
     sub = [m for m in sent if m["action"] == "subscribe"]
-    assert {(m["type"], m["context"]) for m in unsub} == {
+    assert {(m["type"], m["context"]) for m in sub} == {
         ("matches", "lobby"),
         ("matches", "spectate"),
+        ("players", "lobby"),
+        ("players", "spectate"),
     }
-    assert all(m["type"] == "players" for m in sub)
-    assert {m["context"] for m in sub} == {"lobby", "spectate"}
-    assert sub[0]["ids"] == ["10", "20"]
+    # the enrolled ids ride EVERY subscription — the server ignores
+    # them on the matches channel (live-validated), but the request
+    # stays scoped to the enrolled players, and the reducer filter
+    # is the actual leak guard.
+    assert all(m.get("ids") == ["10", "20"] for m in sub)
+    assert not [m for m in sent if m["action"] == "unsubscribe"]
 
 
 async def test_no_subscribers_emits_nothing() -> None:
