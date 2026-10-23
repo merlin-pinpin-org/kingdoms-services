@@ -86,3 +86,21 @@ async def test_unknown_event_type_ignored() -> None:
     await agg.apply_event(FakeEvent("chat_message", ("123",), 1_000))
     assert agg.snapshot()["players"] == []
     assert agg.pending_transitions() == 0
+
+
+async def test_roster_baseline_shows_enrolled_offline_players() -> None:
+    """Every enrolled player renders, offline when never seen in a match."""
+    agg = GameAoe2Aggregator()
+    agg.set_roster(
+        [
+            {"profile_id": "123", "user_id": "10"},
+            {"profile_id": "456", "user_id": "20"},
+        ]
+    )
+    await agg.apply_event(_summary_event("game_started"))
+    snap = agg.snapshot()
+    players = {p["profile_id"]: p for p in snap["players"]}
+    assert set(players) == {"123", "456"}
+    assert players["123"]["state"] == STATE_IN_GAME
+    assert players["456"]["state"] == STATE_OFFLINE
+    assert players["456"]["user_id"] == "20"

@@ -81,7 +81,9 @@ async def _sync_game_enrollments(aggregator: LiveAggregator) -> None:
             if profile_ids != last_ids and uri:
                 if client is None:
                     client = _GameDataClient(uri)
-                applied = await client.update_enrollments("aoe2", profile_ids)
+                applied = await client.update_enrollments(
+                    "aoe2", profile_ids, aggregator.user_ids()
+                )
                 if applied:
                     last_ids = profile_ids
                     logger.info("game enrollments synced: %d profiles", len(profile_ids))
@@ -98,8 +100,10 @@ class _GameDataClient:
     def __init__(self, uri: str) -> None:
         self._uri = uri
 
-    async def update_enrollments(self, game_key: str, profile_ids: list[str]) -> bool:
-        """Push one enrollment list; True when applied."""
+    async def update_enrollments(
+        self, game_key: str, profile_ids: list[str], user_ids: list[str]
+    ) -> bool:
+        """Push one enrollment list (profiles + owners); True when applied."""
         from kingdoms.core.rpc.client import build_channel
         from kingdoms.rpc_generated.kingdoms.v1 import gamedata_pb2, gamedata_pb2_grpc
 
@@ -107,7 +111,7 @@ class _GameDataClient:
             stub = gamedata_pb2_grpc.GameDataStub(channel)
             reply = await stub.UpdateEnrollments(
                 gamedata_pb2.UpdateEnrollmentsRequest(
-                    game_key=game_key, profile_ids=profile_ids
+                    game_key=game_key, profile_ids=profile_ids, user_ids=user_ids
                 )
             )
             return bool(reply.applied)

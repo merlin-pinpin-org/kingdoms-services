@@ -80,6 +80,15 @@ class LiveAggregator:
         """Return the bound profile ids — the provider's subscription list."""
         return tuple(sorted(self._profile_to_user))
 
+    def user_ids(self) -> list[str]:
+        """Return the profile owners, aligned with the sorted profile ids.
+
+        The game service's roster needs each profile's platform user —
+        the dashboard groups by account; the ids ride the enrollments
+        push parallel to the profile ids.
+        """
+        return [self._profile_to_user[pid] for pid in sorted(self._profile_to_user)]
+
     async def snapshot(self, game_key: str) -> dict[str, Any]:
         """Build the current dashboard snapshot for a game."""
         bindings = await self._db.list_bindings_for_game(game_key)

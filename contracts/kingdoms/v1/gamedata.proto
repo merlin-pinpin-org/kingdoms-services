@@ -102,6 +102,7 @@ message GamePlayerEvent {
 message UpdateEnrollmentsRequest {
   string game_key = 1;        // the game the profiles belong to
   repeated string profile_ids = 2; // full current list (idempotent reconciliation)
+  repeated string user_ids = 3;    // parallel to profile_ids: the platform user owning each profile
 }
 
 message UpdateEnrollmentsResponse {

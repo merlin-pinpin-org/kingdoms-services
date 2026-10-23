@@ -57,7 +57,12 @@ state;&nbsp;svc-core&nbsp;and&nbsp;the&nbsp;bot&nbsp;only&nbsp;see&nbsp;what&nbs
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#GameAoe2Aggregator">GameAoe2Aggregator</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-Fold&nbsp;provider&nbsp;events&nbsp;into&nbsp;enriched&nbsp;per-player&nbsp;dashboard&nbsp;states.<br>&nbsp;</span></td></tr>
+Fold&nbsp;provider&nbsp;events&nbsp;into&nbsp;enriched&nbsp;per-player&nbsp;dashboard&nbsp;states.<br>
+&nbsp;<br>
+The&nbsp;enrolled&nbsp;roster&nbsp;(pushed&nbsp;by&nbsp;svc-core&nbsp;through&nbsp;UpdateEnrollments)<br>
+is&nbsp;the&nbsp;dashboard's&nbsp;baseline:&nbsp;an&nbsp;enrolled&nbsp;player&nbsp;never&nbsp;seen&nbsp;in&nbsp;a<br>
+match&nbsp;renders&nbsp;OFFLINE&nbsp;—&nbsp;the&nbsp;dashboard&nbsp;shows&nbsp;every&nbsp;enrolled&nbsp;player,<br>
+not&nbsp;only&nbsp;those&nbsp;whose&nbsp;transitions&nbsp;already&nbsp;fired.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="GameAoe2Aggregator-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Start&nbsp;with&nbsp;an&nbsp;empty&nbsp;state;&nbsp;the&nbsp;first&nbsp;snapshot&nbsp;resolves&nbsp;it.</span></dd></dl>
@@ -72,7 +77,13 @@ Fold&nbsp;provider&nbsp;events&nbsp;into&nbsp;enriched&nbsp;per-player&nbsp;dash
 
 <dl><dt><a name="GameAoe2Aggregator-pending_transitions"><strong>pending_transitions</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Report&nbsp;the&nbsp;number&nbsp;of&nbsp;queued&nbsp;transitions&nbsp;(diagnostics,&nbsp;tests).</span></dd></dl>
 
-<dl><dt><a name="GameAoe2Aggregator-snapshot"><strong>snapshot</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;(every&nbsp;known&nbsp;player).</span></dd></dl>
+<dl><dt><a name="GameAoe2Aggregator-set_roster"><strong>set_roster</strong></a>(self, entries: 'list[Any]') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;enrolled&nbsp;roster&nbsp;(the&nbsp;dashboard's&nbsp;baseline).<br>
+&nbsp;<br>
+Entries&nbsp;are&nbsp;the&nbsp;enrollment&nbsp;records&nbsp;—&nbsp;dicts&nbsp;with&nbsp;profile_id&nbsp;and<br>
+user_id&nbsp;(the&nbsp;UpdateEnrollments&nbsp;push),&nbsp;or&nbsp;bare&nbsp;profile&nbsp;id<br>
+strings&nbsp;(tests,&nbsp;degraded&nbsp;paths).</span></dd></dl>
+
+<dl><dt><a name="GameAoe2Aggregator-snapshot"><strong>snapshot</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;(every&nbsp;enrolled&nbsp;player).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

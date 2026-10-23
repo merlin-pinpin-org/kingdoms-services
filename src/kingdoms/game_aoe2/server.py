@@ -38,7 +38,7 @@ async def _serve() -> None:
     from kingdoms.game_aoe2.rpc import GameDataServicer, add_gamedata_servicer
 
     aggregator = GameAoe2Aggregator()
-    enrollments = _EnrollmentPusher()
+    enrollments = _EnrollmentPusher(aggregator)
     from kingdoms.game_aoe2.aggregator import ProviderProber
 
     prober = ProviderProber()
@@ -67,19 +67,31 @@ async def _serve() -> None:
 
 
 class _EnrollmentPusher:
-    """Reconcile the platform's enrollments down to the realtime provider.
+    """Reconcile the platform's enrollments: roster + provider subscription.
 
-    Keeps the last applied list; the servicer hands over every
-    ``UpdateEnrollments`` call, and the pusher forwards it to the
-    realtime provider's ``UpdateSubscriptions`` (in-place deltas on its
-    single WebSocket session — no teardown).
+    The enrollments carry the roster (profile ids + their platform
+    users) — the dashboard's baseline, so every enrolled player
+    renders even before any transition fired — and the realtime
+    provider's ``UpdateSubscriptions`` (in-place deltas on its single
+    WebSocket session, no teardown).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, aggregator: Any) -> None:
+        self._aggregator = aggregator
         self._last_ids: list[str] | None = None
         self._client: Any = None
 
-    async def apply(self, game_key: str, profile_ids: list[str]) -> tuple[int, bool]:
+    async def apply(
+        self, game_key: str, profile_ids: list[str], user_ids: list[str] | None = None
+    ) -> tuple[int, bool]:
+        """Record the roster, then push the subscription down."""
+        self._aggregator.set_roster(
+            [
+                {"profile_id": pid, "user_id": uid}
+                for pid, uid in zip(profile_ids, user_ids or [], strict=False)
+            ]
+            or profile_ids
+        )
         """Push one enrollment list to the realtime provider for the game."""
         if game_key != "aoe2":
             return 0, False

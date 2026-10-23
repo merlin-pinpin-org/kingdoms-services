@@ -199,7 +199,7 @@ class GameDataServicer(gamedata_pb2_grpc.GameDataServicer):
         if self._enrollments is None:
             await context.abort(grpc.StatusCode.UNIMPLEMENTED, "enrollments not wired")
         subscribed, applied = await self._enrollments.apply(
-            request.game_key, list(request.profile_ids)
+            request.game_key, list(request.profile_ids), list(request.user_ids)
         )
         return gamedata_pb2.UpdateEnrollmentsResponse(subscribed=subscribed, applied=applied)
 

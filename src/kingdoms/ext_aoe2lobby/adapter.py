@@ -49,7 +49,7 @@ DEFAULT_WS_URL = _provider_url("aoe2lobby", "ws_url")
 SCHEMA_WS_URL = _provider_url("aoe2lobby", "schema_ws_url")
 DEFAULT_MAX_SIZE = 10 * 1024 * 1024
 DEFAULT_RECONNECT_DELAY_S = 5.0
-DEFAULT_HEARTBEAT_S = 90.0
+DEFAULT_HEARTBEAT_S = 90.0  # WS ping interval (transport keepalive)
 DEFAULT_REFRESH_S = 60.0
 
 CONTEXT_LOBBY = "lobby"
@@ -177,7 +177,12 @@ class Aoe2LobbyAdapter:
         """
         while True:
             try:
-                async with websockets.connect(self._ws_url, max_size=self._max_size) as ws:
+                async with websockets.connect(
+                    self._ws_url,
+                    max_size=self._max_size,
+                    ping_interval=self._heartbeat_s,
+                    ping_timeout=30.0,
+                ) as ws:
                     self._ws = ws
                     self._reset_matches()
                     if not self._schema:
@@ -185,14 +190,11 @@ class Aoe2LobbyAdapter:
                     await self._subscribe_all(ws)
                     logger.info("aoe2lobby ws connected: %s", self._ws_url)
                     while True:
-                        raw = await asyncio.wait_for(ws.recv(), timeout=self._heartbeat_s)
+                        raw = await ws.recv()
                         for event in self.apply_frame(raw):
                             yield event
                         for event in self._sweep_pending_closes():
                             yield event
-                        if self._last_snapshot_at and _now_ms() - self._last_snapshot_at > self._refresh_s * 1000:
-                            logger.info("aoe2lobby ws refreshing: reconnect for a fresh snapshot")
-                            break
             except (TimeoutError, websockets.WebSocketException, OSError):
                 logger.warning("aoe2lobby ws disconnected; retrying in %ss", self._reconnect_delay_s)
             except Exception:

@@ -58,20 +58,51 @@ class ProviderEvents(Protocol):
 
 
 class GameAoe2Aggregator:
-    """Fold provider events into enriched per-player dashboard states."""
+    """Fold provider events into enriched per-player dashboard states.
+
+    The enrolled roster (pushed by svc-core through UpdateEnrollments)
+    is the dashboard's baseline: an enrolled player never seen in a
+    match renders OFFLINE — the dashboard shows every enrolled player,
+    not only those whose transitions already fired.
+    """
 
     def __init__(self) -> None:
         """Start with an empty state; the first snapshot resolves it."""
         self._players: dict[str, dict[str, Any]] = {}
+        self._roster: dict[str, str] = {}
         self._degraded = True
         self._transitions: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
+    def set_roster(self, entries: list[Any]) -> None:
+        """Record the enrolled roster (the dashboard's baseline).
+
+        Entries are the enrollment records — dicts with profile_id and
+        user_id (the UpdateEnrollments push), or bare profile id
+        strings (tests, degraded paths).
+        """
+        roster: dict[str, str] = {}
+        for entry in entries:
+            if isinstance(entry, dict):
+                roster[str(entry.get("profile_id", ""))] = str(entry.get("user_id", ""))
+            else:
+                roster[str(entry)] = ""
+        self._roster = roster
+
     def snapshot(self) -> dict[str, Any]:
-        """Build the current dashboard snapshot (every known player)."""
-        players = [
-            dict(state)
-            for _, state in sorted(self._players.items())
-        ]
+        """Build the current dashboard snapshot (every enrolled player)."""
+        players = []
+        for profile_id, user_id in sorted(self._roster.items()):
+            state = self._players.get(profile_id)
+            if state is None:
+                state = _offline_state(profile_id)
+                state["user_id"] = user_id
+            elif user_id and not state.get("user_id"):
+                state = {**state, "user_id": user_id}
+            players.append(dict(state))
+        for profile_id, state in self._players.items():
+            if profile_id not in self._roster:
+                players.append(dict(state))
+        players.sort(key=lambda p: str(p.get("profile_id", "")))
         return {"players": players, "generated_at": _now_ms(), "degraded": self._degraded}
 
     async def apply_event(self, event: Any) -> None:
@@ -133,6 +164,17 @@ def _summary_of(event: Any) -> dict[str, Any]:
 def _now_ms() -> int:
     """Epoch milliseconds, the repo's timestamp convention."""
     return int(time.time() * 1000)
+
+def _offline_state(profile_id: str) -> dict[str, Any]:
+    """Build the offline baseline of an enrolled player never seen in a match."""
+    return {
+        "profile_id": profile_id,
+        "state": STATE_OFFLINE,
+        "match_ref": "",
+        "since": 0,
+        "match": {},
+    }
+
 
 PROBE_INTERVAL_S = 60.0
 

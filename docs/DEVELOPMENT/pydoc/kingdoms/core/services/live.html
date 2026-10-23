@@ -145,6 +145,12 @@ normalized&nbsp;``PlayerStatusEvent``&nbsp;for&nbsp;the&nbsp;Live&nbsp;event&nbs
 
 <dl><dt>async <a name="LiveAggregator-snapshot"><strong>snapshot</strong></a>(self, game_key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
+<dl><dt><a name="LiveAggregator-user_ids"><strong>user_ids</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;profile&nbsp;owners,&nbsp;aligned&nbsp;with&nbsp;the&nbsp;sorted&nbsp;profile&nbsp;ids.<br>
+&nbsp;<br>
+The&nbsp;game&nbsp;service's&nbsp;roster&nbsp;needs&nbsp;each&nbsp;profile's&nbsp;platform&nbsp;user&nbsp;—<br>
+the&nbsp;dashboard&nbsp;groups&nbsp;by&nbsp;account;&nbsp;the&nbsp;ids&nbsp;ride&nbsp;the&nbsp;enrollments<br>
+push&nbsp;parallel&nbsp;to&nbsp;the&nbsp;profile&nbsp;ids.</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
