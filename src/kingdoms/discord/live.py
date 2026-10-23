@@ -4,7 +4,7 @@ The live test dashboard: a dedicated ``live-dashboard`` channel hosts one
 persistent message showing every linked player's current state
 (offline / in lobby / in game, match ref, since when). The message is
 edited in place on every update — no spam. ``/live`` renders the same
-dashboard ephemerally; ``/game-link`` and ``/game-unlink`` manage the
+dashboard ephemerally; the profile menu (/home) manages the
 minimal profile links needed to test the providers (test-scoped, kept
 simple per #147).
 """
@@ -18,9 +18,7 @@ import time
 from typing import Any, Protocol
 
 import discord
-from discord import app_commands
 
-from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.discord.message_limits import MAX_EMBED_DESCRIPTION, truncate_body
 
 logger = logging.getLogger("kingdoms.live")
@@ -69,7 +67,14 @@ def render_dashboard(
         lines.append(_t(bot, locale, "degraded", degraded_fb))
     players = snapshot.get("players", [])
     if not players:
-        lines.append(_t(bot, locale, "no_players", "No linked players yet — link a profile with /game-link."))
+        lines.append(
+            _t(
+                bot,
+                locale,
+                "no_players",
+                "No linked players yet — add your AoE2 profile from the profile menu (/home → Profile).",
+            )
+        )
         return "\n".join(lines)
     now = now_ms if now_ms is not None else _now_ms()
     accounts = group_by_account(players, stats)
@@ -268,23 +273,6 @@ def _match_links(match: dict[str, Any], state: str) -> list[str]:
     if state == "in_lobby" and match.get("lobby_url"):
         links.append(f"[🌐 Lobby]({match['lobby_url']})")
     return links
-
-
-def register_live_commands(
-    tree: app_commands.CommandTree[discord.Client],
-    catalog: MessageCatalog | None = None,
-) -> None:
-    """Register nothing: every live surface is a pinned dashboard.
-
-    The live dashboard lives in its autopin channel (games/aoe2/live) and
-    the profile link/unlink lives in the home profile menu — /live,
-    /game-link and /game-unlink were removed 2026-10-16 (/home, /admin
-    and /status are the platform's only commands).
-    """
-    del tree, catalog
-def _locale(interaction: discord.Interaction) -> str:
-    """Best-effort locale: the user's Discord locale, defaulting to en."""
-    return str(interaction.locale) if interaction.locale else "en"
 
 
 def _now_ms() -> int:
@@ -670,9 +658,6 @@ def _dashboard_embed(
         description=description,
         colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
     )
-    from kingdoms.discord.ui.view_footer import embed_footer
-
-    embed_footer(embed, f"panel:game:{GAME_KEY}:live")
     if icon_url:
         embed.set_thumbnail(url=icon_url)
     return embed

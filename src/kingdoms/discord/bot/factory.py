@@ -816,14 +816,12 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
 
     from kingdoms.discord.admin import register_admin_command
-    from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
     register_status_command(bot.tree, status, sync_target=sync_target, catalog=bot.messages)
-    register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine
     bot.registration_service = registration_service
