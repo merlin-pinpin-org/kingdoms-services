@@ -592,7 +592,8 @@ async def ensure_live_dashboard(
     body = render_dashboard(snapshot, locale=locale, bot=bot)
     embeds = _dashboard_embeds(snapshot, body, bot, locale=locale, game_key=game_key)
     registered = await _resolve_page(registry, guild_id, game_key)
-    if await _edit_registered(channel, registered, embeds[0]):
+    page1_embed, page1_footer = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
+    if await _edit_registered(channel, registered, page1_embed, page1_footer):
         await _sync_extra_pages(guild_id, channel, registry, embeds)
         await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
         return False
@@ -610,8 +611,9 @@ async def ensure_live_dashboard(
         await _sweep_duplicate_dashboards(channel, keep=reused)
         return False
     await _sweep_duplicate_dashboards(channel, keep=None)
+    page1_embed, page1_footer = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
     message = await channel.send(  # type: ignore[call-overload]  # embed+LayoutView is runtime-valid
-        embed=embeds[0], view=_dashboard_footer_view(game_key)
+        embed=page1_embed, view=page1_footer
     )
     try:
         await message.pin(reason="kingdoms: live dashboard (#147)")
@@ -785,6 +787,32 @@ async def _reuse_pinned_dashboard(channel: discord.TextChannel, embed: discord.E
     return None
 
 
+def build_dashboard_view(
+    snapshot: dict[str, Any],
+    body: str,
+    bot: discord.Client | None = None,
+    locale: str = "en",
+    game_key: str = DEFAULT_GAME_KEY,
+    page_index: int = 1,
+    page_count: int = 1,
+) -> tuple[discord.Embed, discord.ui.LayoutView]:
+    """Build THE dashboard page: the embed, and the footer view under it.
+
+    The single rendering of the live dashboard (owner direction, after
+    18 prompts of two diverging implementations): the embed carries the
+    dashboard, the view id rides a TextDisplay UNDER it — never inside
+    the embed. The pinned channel, /live and the menu button all send
+    this exact pair (message = embed, components = the footer view).
+    """
+    embed = _dashboard_embed(
+        snapshot, body, bot, page_index=page_index, page_count=page_count, locale=locale, game_key=game_key
+    )
+    from kingdoms.discord.ui.view_footer import add_view_footer
+
+    view = add_view_footer(discord.ui.LayoutView(timeout=None), f"panel:game:{game_key}:live")
+    return embed, view
+
+
 def _dashboard_embed(
     snapshot: dict[str, Any],
     body: str,
@@ -817,13 +845,18 @@ async def _edit_registered(
     channel: discord.TextChannel,
     registered: RegisteredMessageLike | None,
     embed: discord.Embed,
+    view: discord.ui.LayoutView | None = None,
 ) -> bool:
-    """Edit the registered message in place; True when the edit landed."""
+    """Edit the registered message in place; True when the edit landed.
+
+    The unified view rides every edit — the footer (the view id) never
+    disappears on refresh.
+    """
     if registered is None or not str(registered.channel_id).isdigit() or not str(registered.message_id).isdigit():
         return False
     try:
         message = channel.get_partial_message(int(registered.message_id))
-        await message.edit(content=None, embed=embed)
+        await message.edit(content=None, embed=embed, view=view)
         return True
     except Exception:
         logger.warning(
@@ -981,6 +1014,8 @@ async def _push_snapshot(
     stats = await collect_profile_stats(active_ids)
     body = render_dashboard(snapshot, stats=stats)
     embeds = _dashboard_embeds(snapshot, body, bot)
+    _page1_embed, page1_footer = build_dashboard_view(snapshot, body, bot, game_key=game_key)
+    views = [page1_footer]
     for guild in list(bot.guilds):
         guild_id = str(guild.id)
         last_at, last_fp = _LAST_PUSH.get(guild_id, (0.0, ""))
@@ -1000,7 +1035,7 @@ async def _push_snapshot(
             continue  # the tree has not provisioned the game's live channel yet
         registered = await registry.resolve(PLATFORM, _page_key(game_key, 1), str(guild.id))
         try:
-            if not await _edit_registered(channel, registered, embeds[0]):
+            if not await _edit_registered(channel, registered, embeds[0], views[0]):
                 await ensure_live_dashboard(bot, guild_id, client, registry, game_key)
             else:
                 await _sync_extra_pages(guild_id, channel, registry, embeds, game_key)

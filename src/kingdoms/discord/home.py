@@ -140,7 +140,7 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     if registration is None:
         await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True, thinking=True)
     await _profile_followup(interaction)
 
 
@@ -855,7 +855,7 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     from kingdoms.discord.bot.factory import KingdomsBot
 
     bot = interaction.client
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True, thinking=True)
     games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
     games, counts = await _granted_games_with_counts(guild_id, games)
 
@@ -918,17 +918,18 @@ async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -
         if p.get("state") != "offline"
     ]
     stats = await collect_profile_stats(active_ids, game_key)
-    body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
-    from kingdoms.discord.message_limits import truncate_body
-    from kingdoms.discord.ui.view_footer import add_view_footer
+    body = render_dashboard(
+        snapshot, locale=str(interaction.locale or "en"), stats=stats
+    )
+    from kingdoms.discord.live import build_dashboard_view
 
-    # the ephemeral panel is a components-v2 view, not an embed: the view
-    # id rides its own -# line UNDER the container, backticked — never
-    # inside an embed footer
-    view = discord.ui.LayoutView(timeout=None)
-    view.add_item(discord.ui.Container(discord.ui.TextDisplay(truncate_body(body, 3800))))
-    await interaction.followup.send(
-        view=add_view_footer(view, f"panel:game:{game_key}:live"), ephemeral=True
+    # THE dashboard rendering (unified, owner direction): the same view
+    # the pinned channel shows — embed + the id under it, one code path.
+    embed, footer_view = build_dashboard_view(
+        snapshot, body, interaction.client, locale=str(interaction.locale or "en"), game_key=game_key
+    )
+    await interaction.followup.send(  # type: ignore[call-overload]
+        embed=embed, view=footer_view, ephemeral=True
     )
 
 
@@ -1061,7 +1062,7 @@ async def _is_guild_member(guild: Any, user_id: int) -> bool:
 async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
     """Render the guild's roster (DM re-dispatch friendly: ack first)."""
     if not interaction.response.is_done():
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=True, thinking=True)
     bot = interaction.client
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
@@ -1181,7 +1182,7 @@ def _view_users_for_game(game_key: str) -> Any:
     """
 
     async def _open(interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         bot = interaction.client
         roster = getattr(bot, "_registration_database", None)
         if roster is None:
@@ -1248,7 +1249,7 @@ async def _roster_lines(
         pseudo = cached_members.get(int(user_id), "") if cached_members else ""
         mention = f"<@{user_id}>"
         profiles: list[str] = []
-        for binding in sorted(user_bindings, key=lambda b: str(b.get("profile_id", ""))):
+        for binding in user_bindings:
             profile = binding.get("profile") or {}
             pid = str(binding.get("profile_id", "?"))
             name = (

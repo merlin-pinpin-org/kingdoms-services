@@ -44,7 +44,7 @@ class _FakePartialMessage:
         self._store = store
         self._id = message_id
 
-    async def edit(self, content: str = "", embed: object = None) -> None:
+    async def edit(self, content: str = "", embed: object = None, view: object = None) -> None:
         message = self._store.messages.get(self._id)
         if message is None:
             raise RuntimeError("message gone")

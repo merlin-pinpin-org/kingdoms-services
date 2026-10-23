@@ -237,7 +237,14 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-collect_profile_stats"><strong>collect_profile_stats</strong></a>(profile_ids: 'list[str]', game_key: 'str' = 'aoe2') -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Resolve&nbsp;per-profile&nbsp;enrichment:&nbsp;name,&nbsp;provider&nbsp;stats,&nbsp;last&nbsp;match.<br>
+<td class="singlecolumn"><dl><dt><a name="-build_dashboard_view"><strong>build_dashboard_view</strong></a>(snapshot: 'dict[str, Any]', body: 'str', bot: 'discord.Client | None' = None, locale: 'str' = 'en', game_key: 'str' = 'aoe2', page_index: 'int' = 1, page_count: 'int' = 1) -&gt; 'tuple[discord.Embed, discord.ui.LayoutView]'</dt><dd><span class="code">Build&nbsp;THE&nbsp;dashboard&nbsp;page:&nbsp;the&nbsp;embed,&nbsp;and&nbsp;the&nbsp;footer&nbsp;view&nbsp;under&nbsp;it.<br>
+&nbsp;<br>
+The&nbsp;single&nbsp;rendering&nbsp;of&nbsp;the&nbsp;live&nbsp;dashboard&nbsp;(owner&nbsp;direction,&nbsp;after<br>
+18&nbsp;prompts&nbsp;of&nbsp;two&nbsp;diverging&nbsp;implementations):&nbsp;the&nbsp;embed&nbsp;carries&nbsp;the<br>
+dashboard,&nbsp;the&nbsp;view&nbsp;id&nbsp;rides&nbsp;a&nbsp;TextDisplay&nbsp;UNDER&nbsp;it&nbsp;—&nbsp;never&nbsp;inside<br>
+the&nbsp;embed.&nbsp;The&nbsp;pinned&nbsp;channel,&nbsp;/live&nbsp;and&nbsp;the&nbsp;menu&nbsp;button&nbsp;all&nbsp;send<br>
+this&nbsp;exact&nbsp;pair&nbsp;(message&nbsp;=&nbsp;embed,&nbsp;components&nbsp;=&nbsp;the&nbsp;footer&nbsp;view).</span></dd></dl>
+ <dl><dt>async <a name="-collect_profile_stats"><strong>collect_profile_stats</strong></a>(profile_ids: 'list[str]', game_key: 'str' = 'aoe2') -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Resolve&nbsp;per-profile&nbsp;enrichment:&nbsp;name,&nbsp;provider&nbsp;stats,&nbsp;last&nbsp;match.<br>
 &nbsp;<br>
 Names&nbsp;come&nbsp;from&nbsp;the&nbsp;profile&nbsp;bindings;&nbsp;ratings/W-L&nbsp;come&nbsp;from&nbsp;the<br>
 provider&nbsp;stats&nbsp;cache&nbsp;(Redis&nbsp;TTL&nbsp;+&nbsp;Mongo,&nbsp;kingdoms.core.profile_stats);<br>
