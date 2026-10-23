@@ -54,8 +54,6 @@ game-aoe4&nbsp;process&nbsp;serves&nbsp;the&nbsp;same&nbsp;contract&nbsp;with&nb
 <td class="singlecolumn">Static methods defined here:<br>
 <dl><dt><a name="GameData-GetCoverage"><strong>GetCoverage</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
-<dl><dt><a name="GameData-GetMatchLinks"><strong>GetMatchLinks</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
-
 <dl><dt><a name="GameData-GetProviderTests"><strong>GetProviderTests</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
 <dl><dt><a name="GameData-UpdateEnrollments"><strong>UpdateEnrollments</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
@@ -90,9 +88,6 @@ game-aoe4&nbsp;process&nbsp;serves&nbsp;the&nbsp;same&nbsp;contract&nbsp;with&nb
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="GameDataServicer-GetCoverage"><strong>GetCoverage</strong></a>(self, request, context)</dt><dd><span class="code">Declare&nbsp;which&nbsp;games&nbsp;this&nbsp;service&nbsp;covers&nbsp;and&nbsp;per-game&nbsp;capabilities.</span></dd></dl>
-
-<dl><dt><a name="GameDataServicer-GetMatchLinks"><strong>GetMatchLinks</strong></a>(self, request, context)</dt><dd><span class="code">Resolve&nbsp;a&nbsp;match&nbsp;reference&nbsp;to&nbsp;the&nbsp;enriched&nbsp;join/spectate&nbsp;links<br>
-(aoe2lobby&nbsp;pages,&nbsp;aoe2de://&nbsp;deep&nbsp;link&nbsp;when&nbsp;available).</span></dd></dl>
 
 <dl><dt><a name="GameDataServicer-GetProviderTests"><strong>GetProviderTests</strong></a>(self, request, context)</dt><dd><span class="code">The&nbsp;providers'&nbsp;health-test&nbsp;results&nbsp;for&nbsp;a&nbsp;game:&nbsp;the&nbsp;game&nbsp;service<br>
 probes&nbsp;its&nbsp;providers&nbsp;periodically&nbsp;(capabilities&nbsp;ping,&nbsp;live&nbsp;stream<br>

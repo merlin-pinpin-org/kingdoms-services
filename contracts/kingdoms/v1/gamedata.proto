@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package kingdoms.v1;
 
-import "kingdoms/v1/game.proto";
+
 
 // Game data service (direction développeur, architecture cible):
 // one process per game (game-aoe2), the ONLY consumer of the external
@@ -32,9 +32,6 @@ service GameData {
   // reconciles its providers' subscriptions in place (no teardown).
   rpc UpdateEnrollments(UpdateEnrollmentsRequest) returns (UpdateEnrollmentsResponse);
 
-  // Resolve a match reference to the enriched join/spectate links
-  // (aoe2lobby pages, aoe2de:// deep link when available).
-  rpc GetMatchLinks(GetGameDataMatchRequest) returns (GameMatchLinks);
 
   // The providers' health-test results for a game: the game service
   // probes its providers periodically (capabilities ping, live stream
@@ -112,14 +109,6 @@ message UpdateEnrollmentsResponse {
   bool applied = 2;       // false: no realtime provider currently reachable
 }
 
-message GetGameDataMatchRequest {
-  string game_key = 1;
-  string match_ref = 2;
-}
-
-message GameMatchLinks {
-  repeated GameLink links = 1; // label + url + scheme_url (aoe2de:// when known)
-}
 
 message ProviderTestsRequest {
   string game_key = 1;      // e.g. "aoe2"; empty means every covered game

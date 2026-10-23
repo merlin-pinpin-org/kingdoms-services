@@ -448,8 +448,16 @@ class Aoe2LobbyAdapter:
             "slots_taken": str(match.get("slots_taken", len(players))),
             "slots_total": str(match.get("slots_total", 0)),
             "host": str(host["name"]) if host else "",
-            "players": ",".join(
-                f"{p['name']}({p['civilization'] or '?'})" for p in players
+            "players": json.dumps(
+                [
+                    {
+                        "profile_id": p["profile_id"],
+                        "name": p["name"],
+                        "civ": p["civilization"],
+                        "team": p["team"],
+                    }
+                    for p in players
+                ]
             ),
             "lobby_url": f"https://www.aoe2lobby.com/j/{match_ref}",
             "spectate_url": f"https://www.aoe2lobby.com/w/{match_ref}",

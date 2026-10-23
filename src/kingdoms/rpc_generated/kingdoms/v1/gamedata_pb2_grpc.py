@@ -64,11 +64,6 @@ class GameDataStub:
                 request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsRequest.SerializeToString,
                 response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsResponse.FromString,
                 _registered_method=True)
-        self.GetMatchLinks = channel.unary_unary(
-                '/kingdoms.v1.GameData/GetMatchLinks',
-                request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GetGameDataMatchRequest.SerializeToString,
-                response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GameMatchLinks.FromString,
-                _registered_method=True)
         self.GetProviderTests = channel.unary_unary(
                 '/kingdoms.v1.GameData/GetProviderTests',
                 request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.ProviderTestsRequest.SerializeToString,
@@ -122,14 +117,6 @@ class GameDataServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetMatchLinks(self, request, context):
-        """Resolve a match reference to the enriched join/spectate links
-        (aoe2lobby pages, aoe2de:// deep link when available).
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def GetProviderTests(self, request, context):
         """The providers' health-test results for a game: the game service
         probes its providers periodically (capabilities ping, live stream
@@ -161,11 +148,6 @@ def add_GameDataServicer_to_server(servicer, server):
                     servicer.UpdateEnrollments,
                     request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsRequest.FromString,
                     response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsResponse.SerializeToString,
-            ),
-            'GetMatchLinks': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetMatchLinks,
-                    request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GetGameDataMatchRequest.FromString,
-                    response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GameMatchLinks.SerializeToString,
             ),
             'GetProviderTests': grpc.unary_unary_rpc_method_handler(
                     servicer.GetProviderTests,
@@ -291,33 +273,6 @@ class GameData:
             '/kingdoms.v1.GameData/UpdateEnrollments',
             kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsRequest.SerializeToString,
             kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetMatchLinks(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/kingdoms.v1.GameData/GetMatchLinks',
-            kingdoms_dot_v1_dot_gamedata__pb2.GetGameDataMatchRequest.SerializeToString,
-            kingdoms_dot_v1_dot_gamedata__pb2.GameMatchLinks.FromString,
             options,
             channel_credentials,
             insecure,

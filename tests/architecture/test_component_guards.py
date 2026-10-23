@@ -350,3 +350,35 @@ def test_action_rows_hold_one_select() -> None:
         "at render time — the 2026-10-17 Roles lesson): "
         + "; ".join(sorted(offenders))
     )
+
+
+def test_games_admin_items_guard_their_callbacks() -> None:
+    """Every games-admin DynamicItem must check admin at click time.
+
+    The runtime permission mandate (AGENTS.md): seeing a button never
+    implies being allowed to click it — every item of the games admin
+    namespace validates through the admin guard inside its callback.
+    The 2026-10-23 lesson: three buttons (create, rename, duplicate)
+    opened their modals unguarded.
+    """
+    import ast as _ast
+
+    path = ROOT / "src/kingdoms/discord/admin_panel_games.py"
+    tree = _ast.parse(path.read_text(encoding="utf-8"))
+    offenders: list[str] = []
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.ClassDef):
+            continue
+        bases = [getattr(b, "id", getattr(b, "attr", "")) for b in node.bases]
+        if not any("DynamicItem" in str(b) for b in bases):
+            continue
+        for sub in _ast.walk(node):
+            if not (isinstance(sub, _ast.AsyncFunctionDef) and sub.name == "callback"):
+                continue
+            body_src = _ast.unparse(sub)
+            if "guard" not in body_src and "require_admin" not in body_src:
+                offenders.append(f"{node.name}.callback has no admin guard")
+    assert not offenders, (
+        "These games-admin callbacks open their surface without the click-time "
+        "admin check (the runtime permission mandate): " + "; ".join(sorted(offenders))
+    )

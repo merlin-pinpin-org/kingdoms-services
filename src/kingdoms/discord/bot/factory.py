@@ -852,7 +852,12 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     import os as _os
 
     _core_uri = _os.environ.get("CORE_URI", "")
-    if _core_uri:
+    _game_uri = _os.environ.get("GAME_AOE2_URI", "")
+    if _game_uri:
+        from kingdoms.game_aoe2.client import GameDataClient
+
+        bot.live_client = GameDataClient(_game_uri)
+    elif _core_uri:
         from kingdoms.core.rpc.live import LiveClient
 
         bot.live_client = LiveClient(_core_uri)

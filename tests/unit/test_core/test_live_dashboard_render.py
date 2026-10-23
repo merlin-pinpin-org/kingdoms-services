@@ -113,3 +113,37 @@ def test_degraded_banner_still_shown() -> None:
     body = render_dashboard({"players": [], "generated_at": 0, "degraded": True})
     assert "Providers unreachable" in body
     assert "No linked players" in body
+
+
+def test_render_enriched_line_with_and_against() -> None:
+    """The active line carries elo, civ, and the enrolled co-players by team."""
+    match = {
+        "map": "Arabia",
+        "format": "2v2",
+        "players": [
+            {"profile_id": "A", "name": "Alice", "civ": "Mayans", "team": 1},
+            {"profile_id": "B", "name": "Bob", "civ": "Goths", "team": 1},
+            {"profile_id": "C", "name": "Carol", "civ": "Franks", "team": 2},
+            {"profile_id": "X", "name": "Stranger", "civ": "Persians", "team": 2},
+        ],
+        "lobby_url": "https://www.aoe2lobby.com/j/111",
+    }
+    body = render_dashboard(
+        _snapshot(
+            [
+                {**_player("10", "A", STATE_IN_LOBBY, "111", 1_000), "match": match},
+                {**_player("20", "B", STATE_IN_LOBBY, "111", 1_000), "match": match},
+                {**_player("30", "C", STATE_IN_LOBBY, "111", 1_000), "match": match},
+            ]
+        ),
+        stats={
+            "A": _stats("Alice", "1650", "10", "4", 0),
+        },
+    )
+    assert "Mayans" in body
+    assert "1650 elo" in body
+    assert "🤝 <@20>" in body
+    assert "⚔️ <@30>" in body
+    assert "Stranger" not in body  # unenrolled players are never rendered
+    assert "[🌐 Lobby](https://www.aoe2lobby.com/j/111)" in body
+    assert "aoe2de://" not in body  # the scheme does not render in Discord

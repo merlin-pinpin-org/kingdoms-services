@@ -73,6 +73,11 @@ def render_dashboard(
         return "\n".join(lines)
     now = now_ms if now_ms is not None else _now_ms()
     accounts = group_by_account(players, stats)
+    accounts_by_profile = {
+        p["profile_id"]: accounts[p["user_id"]]
+        for p in players
+        if p.get("user_id") in accounts and p.get("profile_id")
+    }
     visible = [a for a in accounts.values() if a["active"] or now - a["last_match_ms"] < OFFLINE_GRACE_MS]
     ordered = sorted(visible, key=_account_sort_key)
     offline_seen = False
@@ -80,7 +85,7 @@ def render_dashboard(
         if not offline_seen and not account["active"]:
             lines.append(_t(bot, locale, "offline_separator", "— offline —"))
             offline_seen = True
-        lines.append(_render_account(account))
+        lines.append(_render_account(account, accounts_by_profile, stats or {}))
     if not ordered:
         lines.append(_t(bot, locale, "all_offline", "Everyone is offline for more than an hour."))
     return "\n".join(lines)
@@ -125,7 +130,11 @@ def _account_sort_key(account: dict[str, Any]) -> tuple[int, int]:
     return (0 if account["active"] else 1, -account["last_match_ms"])
 
 
-def _render_account(account: dict[str, Any]) -> str:
+def _render_account(
+    account: dict[str, Any],
+    accounts_by_profile: dict[str, dict[str, Any]] | None = None,
+    stats: dict[str, dict[str, Any]] | None = None,
+) -> str:
     """One line per Discord user: mention, fused state, last-match stamp.
 
     Each active profile renders its enriched match context (map,
@@ -140,12 +149,24 @@ def _render_account(account: dict[str, Any]) -> str:
     for profile in account["profiles"]:
         if profile["state"] == "offline":
             continue
-        lines.append(_render_active_profile(account, profile))
+        lines.append(
+            _render_active_profile(account, profile, accounts_by_profile, stats)
+        )
     return "\n".join(lines)
 
 
-def _render_active_profile(account: dict[str, Any], profile: dict[str, Any]) -> str:
-    """One sub-line per active profile: map, format, civ, links."""
+def _render_active_profile(
+    account: dict[str, Any],
+    profile: dict[str, Any],
+    accounts_by_profile: dict[str, dict[str, Any]] | None = None,
+    stats: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """One sub-line per active profile: map, format, civ, elo, with/against, links.
+
+    ``accounts_by_profile`` maps a profile id to the account record of
+    the enrolled player — the other enrolled players of the same match
+    render as mentions, split by team (with/against).
+    """
     match = profile.get("match") or {}
     state_icon = _STATE_ICONS.get(profile["state"], "⚫")
     sub = f"  {state_icon} "
@@ -155,41 +176,97 @@ def _render_active_profile(account: dict[str, Any], profile: dict[str, Any]) -> 
         parts.append(f"🗺️ {match['map']}")
     if match.get("format"):
         parts.append(f"{match['format']}")
-    civ = _profile_civ(match, profile["display_name"])
+    civ = _profile_civ(match, profile["profile_id"])
     if civ:
         parts.append(f"🏛️ {civ}")
+    elo = _profile_elo(stats or {}, profile["profile_id"])
+    if elo:
+        parts.append(f"⚡ {elo}")
     if parts:
         sub += " — " + " · ".join(parts)
+    others = _enrolled_others(match, profile["profile_id"], accounts_by_profile or {})
+    if others:
+        sub += f"\n    {' · '.join(others)}"
     links = _match_links(match, profile["state"])
     if links:
         sub += f"\n    ⛓️ {' | '.join(links)}"
     return sub
 
 
-def _profile_civ(match: dict[str, Any], display_name: str) -> str:
-    """Resolve the profile's civilization from the match summary players.
+def _profile_civ(match: dict[str, Any], profile_id: str) -> str:
+    """Resolve the profile's civilization from the match's player slots.
 
-    The summary's players ride as ``Name(Civ),...``; the entry whose
-    name matches the profile's display name carries its civ.
+    The summary's players ride as structured slots (profile_id, name,
+    civ, team) — the slot carrying this profile id holds its civ.
     """
-    players = str(match.get("players", ""))
-    for entry in players.split(","):
-        name, _, civ = entry.partition("(")
-        if name.strip() == display_name and civ.rstrip(")").strip():
-            return civ.rstrip(")").strip()
+    for entry in _match_players(match):
+        if entry.get("profile_id") == profile_id and entry.get("civ"):
+            return str(entry["civ"])
     return ""
 
 
+def _profile_elo(stats: dict[str, dict[str, Any]], profile_id: str) -> str:
+    """Render the profile's best-board elo (the 1v1 ladder when present)."""
+    boards = (stats.get(profile_id) or {}).get("boards") or []
+    for board in boards:
+        if str(board.get("key", "")) == "rm_1v1" or "1v1" in str(board.get("label", "")):
+            return f"{board.get('rating', '')} elo"
+    return ""
+
+
+def _enrolled_others(
+    match: dict[str, Any],
+    profile_id: str,
+    accounts_by_profile: dict[str, dict[str, Any]],
+) -> list[str]:
+    """Render the other enrolled players of the match: with, then against.
+
+    Same team = with (🤝), other team = against (⚔️); each renders as
+    the Discord mention of the account owning that profile.
+    """
+    my_team = 0
+    for entry in _match_players(match):
+        if entry.get("profile_id") == profile_id:
+            my_team = int(entry.get("team", 0) or 0)
+            break
+    with_me: list[str] = []
+    against_me: list[str] = []
+    for entry in _match_players(match):
+        other_id = str(entry.get("profile_id", ""))
+        if not other_id or other_id == profile_id:
+            continue
+        account = accounts_by_profile.get(other_id)
+        if account is None:
+            continue
+        mention = f"<@{account['user_id']}>"
+        if int(entry.get("team", 0) or 0) == my_team:
+            with_me.append(f"🤝 {mention}")
+        else:
+            against_me.append(f"⚔️ {mention}")
+    return with_me + against_me
+
+
+def _match_players(match: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return the match summary's player slots (structured)."""
+    players = match.get("players")
+    if isinstance(players, list):
+        return [p for p in players if isinstance(p, dict)]
+    return []
+
+
 def _match_links(match: dict[str, Any], state: str) -> list[str]:
-    """Render the join/spectate/deep links of the profile's match."""
+    """Render the match's aoe2lobby links.
+
+    The aoe2de:// deep link does not render as clickable in Discord
+    (non-http schemes are stripped by the client) — the lobby page
+    carries the join button itself, so the aoe2lobby URLs serve both
+    states.
+    """
     links = []
     if state == "in_game" and match.get("spectate_url"):
         links.append(f"[▶ Watch]({match['spectate_url']})")
-    if state == "in_lobby":
-        if match.get("deep_link"):
-            links.append(f"[🎮 Join]({match['deep_link']})")
-        if match.get("lobby_url"):
-            links.append(f"[🌐 Lobby]({match['lobby_url']})")
+    if state == "in_lobby" and match.get("lobby_url"):
+        links.append(f"[🌐 Lobby]({match['lobby_url']})")
     return links
 
 

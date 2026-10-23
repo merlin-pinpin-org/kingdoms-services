@@ -41,17 +41,30 @@ def summary_to_wire(summary: dict[str, Any]) -> gamedata_pb2.GameMatchSummary:
 
 
 def _parse_players(compact: str) -> list[gamedata_pb2.GamePlayerSlot]:
-    """Parse the compact ``Name(Civ),...`` string into typed slots."""
+    """Parse the summary's players JSON into typed slots.
+
+    The adapter ships the occupied slots as a JSON array
+    (profile_id, name, civ, team) — the wire stays typed, the
+    consumers (dashboard rendering, mod notifications) never re-parse
+    display strings.
+    """
+    import json
+
+    try:
+        entries = json.loads(compact) if compact else []
+    except (json.JSONDecodeError, TypeError):
+        return []
     slots: list[gamedata_pb2.GamePlayerSlot] = []
-    for entry in compact.split(","):
-        entry = entry.strip()
-        if not entry:
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
             continue
-        name, _, civ = entry.partition("(")
         slots.append(
             gamedata_pb2.GamePlayerSlot(
-                name=name.strip(),
-                civilization=civ.rstrip(")").strip(),
+                profile_id=str(entry.get("profile_id", "")),
+                name=str(entry.get("name", "")),
+                civilization=str(entry.get("civ", "")),
+                team=int(entry.get("team", 0) or 0),
+                filled=True,
             )
         )
     return slots
@@ -134,9 +147,15 @@ def summary_from_wire(wire: gamedata_pb2.GameMatchSummary) -> dict[str, Any]:
         "slots_taken": str(wire.slots_taken),
         "slots_total": str(wire.slots_total),
         "host": wire.host_name,
-        "players": ",".join(
-            f"{p.name}({p.civilization or '?'})" for p in wire.players
-        ),
+        "players": [
+            {
+                "profile_id": p.profile_id,
+                "name": p.name,
+                "civ": p.civilization,
+                "team": p.team,
+            }
+            for p in wire.players
+        ],
         "lobby_url": wire.lobby_url,
         "spectate_url": wire.spectate_url,
         "deep_link": wire.deep_link,

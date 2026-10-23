@@ -327,7 +327,11 @@ class GamesPoolCreateButton(
         return cls(match.group("game_key"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the creation modal."""
+        """Guard, then open the creation modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
         await interaction.response.send_modal(GamesPoolCreateModal(self.game_key))
 
 
@@ -488,7 +492,11 @@ class GamesPoolRenameButton(
         return cls(match.group("pool_id"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the rename modal."""
+        """Guard, then open the rename modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
         if not self.pool_id:
             await interaction.response.send_message("Pool introuvable - rouvre l'editeur.", ephemeral=True)
             return
@@ -935,7 +943,11 @@ class GamesPoolDuplicateButton(
         return cls(match.group("pool_id"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Duplicate under a fresh name, then open the editable copy."""
+        """Guard, then duplicate under a fresh name."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
         service = _games_wiring()
         if service is None:
             await interaction.response.send_message(
