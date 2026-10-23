@@ -129,6 +129,8 @@ class BotConfig:
 class KingdomsBot(discord.Client):
     """Discord client with a command tree; core services are attached, not inherited."""
 
+    games: tuple[str, ...] = ()
+
     def __init__(
         self,
         config: BotConfig,
@@ -154,7 +156,6 @@ class KingdomsBot(discord.Client):
         self.permission_service: PermissionService | None = None
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
-        self._live_dashboard_task: asyncio.Future[None] | None = None
         self.roles_service: RolesService | None = None
         self.role_grants_service: Any | None = None
         self.registration_engine: WorkflowEngine | None = None
@@ -275,7 +276,14 @@ class KingdomsBot(discord.Client):
                 register_maps_forum_sync()
                 register_pools_forum_sync()
                 register_entity_forum_sync(factions_forum_spec(self))
-        self._live_dashboard_task = _start_live_dashboard(self)
+        # The live dashboard channel machinery is retired (owner direction
+        # 2026-10-23): the live surface is the /live command and the aoe2
+        # menu panel — no dedicated autopin channel. The player-events
+        # stream (the mods' notifications) stays: it feeds the router.
+        from kingdoms.discord.player_status import start_player_status_stream
+
+        start_player_status_stream(self)
+        self._live_dashboard_task = _start_live_dashboards(self)
         if self._synced:
             return
         self._synced = True
@@ -753,11 +761,8 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
-        for task in (
-            self._live_dashboard_task,
-        ):
-            if task is not None:
-                task.cancel()
+        if self._live_dashboard_task is not None:
+            self._live_dashboard_task.cancel()
         if self.registration_engine is not None:
             await self.registration_engine.stop()
         if self.state_service is not None:
@@ -798,6 +803,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     )
     shared_state = _build_shared_state(resolved)
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
+    bot.games = games
     bot.state_service = shared_state
     bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
     # the freshly built service carries the native-locale resolver: the
@@ -816,12 +822,14 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.home import register_live_command
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
     register_status_command(bot.tree, status, sync_target=sync_target, catalog=bot.messages)
+    register_live_command(bot.tree, catalog=bot.messages, games=games)
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine
     bot.registration_service = registration_service
@@ -890,33 +898,34 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     return bot
 
 
-def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
-    """Run the live dashboard refresh loop when its stack is wired (#147)."""
-    from kingdoms.core.rpc.live import LiveClient
+def _start_live_dashboards(bot: KingdomsBot) -> asyncio.Task[None] | None:
+    """Run the per-game live dashboard refresh loops when wired.
+
+    Generic (owner direction 2026-10-23): every installed game with a
+    configured game service gets its own dashboard stream and channel.
+    The game-service URI convention is ``GAME_<KEY>_URI`` (uppercase
+    game key); aoe2 is the first game.
+    """
     from kingdoms.discord.live import start_live_dashboard_refresh
     from kingdoms.discord.messages_platform import build_message_registry
 
-    core_uri = os.environ.get("CORE_URI", "")
     registry = build_message_registry()
-    if not core_uri or registry is None:
+    if registry is None:
         return None
+    clients: dict[str, Any] = {}
+    for game_key in getattr(bot, "games", ()) or ():
+        uri = os.environ.get(f"GAME_{game_key.upper()}_URI", "")
+        if not uri:
+            continue
+        if game_key == "aoe2":
+            from kingdoms.game_aoe2.client import GameDataClient
 
-    game_uri = os.environ.get("GAME_AOE2_URI", "")
-    if game_uri:
-        from kingdoms.game_aoe2.client import GameDataClient
-
-        client: Any = GameDataClient(game_uri)
-    else:
-        client = LiveClient(core_uri)
-
-    async def _run() -> None:
-        await start_live_dashboard_refresh(bot, client, registry)
-
-    from kingdoms.discord.player_status import start_player_status_stream
-
-    start_player_status_stream(bot)
-    return asyncio.create_task(_run())
-
+            clients[game_key] = GameDataClient(uri)
+        else:
+            logger.warning("live dashboard: no client for game %s yet", game_key)
+    if not clients:
+        return None
+    return asyncio.create_task(start_live_dashboard_refresh(bot, clients, registry))  # type: ignore[arg-type]
 
 
 def _build_home_channel_service(

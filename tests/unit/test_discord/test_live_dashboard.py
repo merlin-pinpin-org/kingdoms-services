@@ -14,10 +14,12 @@ import pytest
 
 from kingdoms.core.models.registered_message import RegisteredMessageModel
 from kingdoms.discord.live import (
-    GAME_KEY,
-    LIVE_MESSAGE_KEY,
+    DEFAULT_GAME_KEY as GAME_KEY,
+)
+from kingdoms.discord.live import (
     PLATFORM,
     ensure_live_dashboard,
+    live_view_key,
 )
 
 
@@ -200,12 +202,12 @@ async def test_first_refresh_creates_and_registers_the_message(stored_live_chann
     client = _FakeLiveClient(_snapshot("offline"))
     registry = _FakeRegistry()
 
-    created = await ensure_live_dashboard(bot, "42", client, registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", client, registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
     assert len(channel.sent) == 1, "exactly one dashboard message is created"
     assert client.watch_calls == [GAME_KEY]
-    key = f"{PLATFORM}:{LIVE_MESSAGE_KEY}:42"
+    key = f"{PLATFORM}:{live_view_key(GAME_KEY)}:42"
     assert key in registry.messages, "the message is registered by its logical key"
 
 
@@ -216,9 +218,9 @@ async def test_refresh_edits_in_place_without_spam(stored_live_channel) -> None:
     _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
-    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry)  # type: ignore[arg-type]
+    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry, GAME_KEY)  # type: ignore[arg-type]
 
-    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_lobby")), registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_lobby")), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is False
     assert len(channel.sent) == 1, "the refresh never adds a message"
@@ -233,10 +235,10 @@ async def test_deleted_message_is_recreated_and_reregistered(stored_live_channel
     _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
-    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry)  # type: ignore[arg-type]
+    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry, GAME_KEY)  # type: ignore[arg-type]
     channel.messages.clear()
 
-    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_game")), registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_game")), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
     assert len(channel.sent) == 2, "a fresh message replaces the deleted one"
@@ -256,7 +258,7 @@ async def test_provider_failure_degrades_to_offline_dashboard(stored_live_channe
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
 
-    created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
     body = channel.sent[0].edits[-1] if channel.sent[0].edits else channel.sent[0].embeds[0].description

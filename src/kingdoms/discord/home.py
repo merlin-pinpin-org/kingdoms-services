@@ -267,6 +267,24 @@ PROFILE_PROVIDER = "ext-librematch (aoe2)"
 GAME_LABELS = {"aoe2": "Age of Empires II"}
 
 
+def _live_client_for(bot: Any, game_key: str) -> Any:
+    """Resolve the dashboard client of one game (None when unwired).
+
+    The URI convention is ``GAME_<KEY>_URI``; aoe2 is served by the
+    game service's GameData client.
+    """
+    import os
+
+    uri = os.environ.get(f"GAME_{game_key.upper()}_URI", "")
+    if not uri:
+        return None
+    if game_key == "aoe2":
+        from kingdoms.game_aoe2.client import GameDataClient
+
+        return GameDataClient(uri)
+    return None
+
+
 def _game_label(game_key: str) -> str:
     """Render one game key as its display name."""
     return GAME_LABELS.get(game_key, game_key)
@@ -655,7 +673,7 @@ class ProfileRenameModal(discord.ui.Modal):
                 user = await identity.get_or_create_user(
                     platform="discord",
                     platform_user_id=str(interaction.user.id),
-                    display_name=str(interaction.user.display_name),
+                    display_name=str(interaction.user.display_name or interaction.user.name),
                 )
             await identity.set_display_name(user.id, str(self.name.value))
         except ValueError:
@@ -877,20 +895,20 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     await interaction.followup.send(view=view, ephemeral=True)
 
 
-async def _view_live(interaction: discord.Interaction) -> None:
-    """Render the aoe2 live dashboard ephemerally (from the home/aoe2 menu)."""
+async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -> None:
+    """Render one game's live dashboard ephemerally (/live, the menu panel)."""
     await interaction.response.defer(ephemeral=True, thinking=True)
     from kingdoms.discord.live import collect_profile_stats, render_dashboard
 
     snapshot: dict[str, Any] = {"players": [], "generated_at": 0, "degraded": True}
-    client = getattr(interaction.client, "live_client", None)
+    client = _live_client_for(interaction.client, game_key)
     if client is not None:
         try:
-            snapshot = await client.watch("aoe2")
+            snapshot = await client.watch(game_key)
         except Exception:
-            logger.warning("HOME: live snapshot failed", exc_info=True)
+            logger.warning("HOME: live snapshot failed (game %s)", game_key, exc_info=True)
     stats = await collect_profile_stats(
-        [str(p.get("profile_id", "")) for p in snapshot.get("players", [])]
+        [str(p.get("profile_id", "")) for p in snapshot.get("players", [])], game_key
     )
     body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
     from kingdoms.discord.message_limits import truncate_body
@@ -902,7 +920,7 @@ async def _view_live(interaction: discord.Interaction) -> None:
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(truncate_body(body, 3800))))
     await interaction.followup.send(
-        view=add_view_footer(view, "panel:game:aoe2:live"), ephemeral=True
+        view=add_view_footer(view, f"panel:game:{game_key}:live"), ephemeral=True
     )
 
 
@@ -1085,6 +1103,61 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
     await interaction.followup.send(view=view, ephemeral=True)
 
 
+class LiveGamePicker(discord.ui.Modal):
+    """The /live game picker: one select, the installed games.
+
+    A modal (not a bare select response) per the owner's direction —
+    the picker presents the games, the chosen game's dashboard renders
+    ephemerally on submit.
+    """
+
+    def __init__(self, games: list[tuple[str, str]]) -> None:
+        super().__init__(title="Live dashboard — pick a game")
+        self._games = dict(games)
+        self.game_select: discord.ui.Select[Any] = discord.ui.Select(
+            placeholder="Game",
+            options=[
+                discord.SelectOption(label=label, value=game_key)
+                for game_key, label in games
+            ],
+        )
+        self.add_item(self.game_select)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Render the chosen game's dashboard ephemerally."""
+        game_key = self.game_select.values[0] if self.game_select.values else "aoe2"
+        await _view_live(interaction, game_key)
+
+
+def register_live_command(
+    tree: app_commands.CommandTree[discord.Client],
+    catalog: Any = None,
+    games: tuple[str, ...] = ("aoe2",),
+) -> None:
+    """Register the /live command: pick a game, see its live dashboard.
+
+    Generic (owner direction 2026-10-23): a modal + select lists the
+    installed games; the chosen game's dashboard renders ephemerally.
+    """
+
+    @tree.command(
+        name=localized("commands.live_name", "live"),
+        description=localized(
+            "commands.live_description",
+            "Live dashboard: pick a game, see its linked players",
+        ),
+    )
+    async def live_command(interaction: discord.Interaction) -> None:
+        """Open the game picker modal."""
+        options = [(game_key, _game_label(game_key)) for game_key in games]
+        if len(options) == 1:
+            await _view_live(interaction, options[0][0])
+            return
+        await interaction.response.send_modal(LiveGamePicker(options))
+
+    del catalog
+
+
 def _view_users_for_game(game_key: str) -> Any:
     """Build the players panel opener for one game (generic, per game).
 
@@ -1117,7 +1190,11 @@ def _view_users_for_game(game_key: str) -> Any:
                 by_user[user_id].append(binding)
 
         guild = bot.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
-        lines = _roster_lines(game_key, by_user, guild)
+        profile_ids = [str(b.get("profile_id", "")) for bs in by_user.values() for b in bs]
+        from kingdoms.discord.live import collect_profile_stats
+
+        names = await collect_profile_stats(profile_ids, game_key)
+        lines = _roster_lines(game_key, by_user, guild, names)
         if not lines:
             lines = [await reply(interaction, "profile.no_members_bound")]
         for view in _roster_views(game_key, lines):
@@ -1126,21 +1203,37 @@ def _view_users_for_game(game_key: str) -> Any:
     return _open
 
 
-def _roster_lines(game_key: str, by_user: dict[str, list[dict[str, Any]]], guild: Any) -> list[str]:
-    """One line per member (pseudo, mention, profile links), alphabetical by pseudo."""
+def _roster_lines(
+    game_key: str,
+    by_user: dict[str, list[dict[str, Any]]],
+    guild: Any,
+    names: dict[str, dict[str, Any]] | None = None,
+) -> list[str]:
+    """One line per member (pseudo, mention, profile links), alphabetical by pseudo.
+
+    A profile link's label is the profile's NAME — the binding's stored
+    display name, else the provider-resolved alias (librematch identity),
+    never the raw profile id.
+    """
+    names = names or {}
     entries: list[tuple[str, str, str]] = []
     for user_id, user_bindings in by_user.items():
         member = guild.get_member(int(user_id)) if guild is not None else None
-        pseudo = getattr(member, "display_name", None) or ""
+        pseudo = (
+            getattr(member, "display_name", None)
+            or getattr(member, "name", None)  # no nickname: the Discord username
+            or ""
+        )
         mention = f"<@{user_id}>"
         profiles: list[str] = []
         for binding in sorted(user_bindings, key=lambda b: str(b.get("profile_id", ""))):
             profile = binding.get("profile") or {}
+            pid = str(binding.get("profile_id", "?"))
             name = (
                 str(profile.get("display_name") or profile.get("name") or "")
-                or str(binding.get("profile_id", "?"))
+                or str((names.get(pid) or {}).get("display_name") or "")
+                or pid
             )
-            pid = str(binding.get("profile_id", "?"))
             url = _game_account_url(game_key, pid)
             profiles.append(f"[{name}]({url})" if url else name)
         entries.append((pseudo or mention, mention, ", ".join(profiles)))

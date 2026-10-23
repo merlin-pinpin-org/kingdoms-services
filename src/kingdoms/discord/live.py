@@ -1,12 +1,11 @@
-"""The /live dashboard command and its dedicated channel (#147).
+"""The per-game live dashboard (#147): channels, panels, the /live command.
 
-The live test dashboard: a dedicated ``live-dashboard`` channel hosts one
-persistent message showing every linked player's current state
-(offline / in lobby / in game, match ref, since when). The message is
-edited in place on every update — no spam. ``/live`` renders the same
-dashboard ephemerally; the profile menu (/home) manages the
-minimal profile links needed to test the providers (test-scoped, kept
-simple per #147).
+Generic across games (owner direction, 2026-10-23): every game gets its
+own live dashboard channel (the tree folder ``games/<game_key>`` hosts
+the ``live`` channel and one pinned message, edited in place on every
+state change); the /live command and the aoe2 menu panel render the
+same dashboard ephemerally. A game with no game service configured
+degrades to its empty dashboard — the machinery is game-agnostic.
 """
 
 from __future__ import annotations
@@ -23,10 +22,20 @@ from kingdoms.discord.message_limits import MAX_EMBED_DESCRIPTION, truncate_body
 
 logger = logging.getLogger("kingdoms.live")
 
-GAME_KEY = "aoe2"
-LIVE_CHANNEL_NAME = "📡-live-dashboard"
-LIVE_LEGACY_CHANNEL_NAME = "live-dashboard"
-LIVE_MESSAGE_KEY = "view:aoe2:live"
+# The live machinery is game-generic: the game key rides the channel
+# keys, the tree scope and every snapshot call. aoe2 is the first game.
+DEFAULT_GAME_KEY = "aoe2"
+
+
+def live_view_key(game_key: str) -> str:
+    """Return the logical message key of a game's pinned dashboard message."""
+    return f"view:{game_key}:live"
+
+
+def live_page_key(game_key: str, page: int) -> str:
+    """Return the logical message key of one dashboard page (2..N)."""
+    suffix = "" if page <= 1 else f":{page}"
+    return f"{live_view_key(game_key)}{suffix}"
 
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
 
@@ -275,6 +284,13 @@ def _match_links(match: dict[str, Any], state: str) -> list[str]:
     return links
 
 
+def game_label(game_key: str) -> str:
+    """Return one game key's display label (the game's own name)."""
+    from kingdoms.discord.home import _game_label
+
+    return _game_label(game_key)
+
+
 def _now_ms() -> int:
     """Epoch milliseconds, the repo's timestamp convention."""
     return int(time.time() * 1000)
@@ -327,7 +343,9 @@ class MessageRegistryServiceLike(Protocol):
         ...
 
 
-async def collect_profile_stats(profile_ids: list[str], game_key: str = GAME_KEY) -> dict[str, dict[str, Any]]:
+async def collect_profile_stats(
+    profile_ids: list[str], game_key: str = DEFAULT_GAME_KEY
+) -> dict[str, dict[str, Any]]:
     """Resolve per-profile enrichment: name, provider stats, last match.
 
     Names come from the profile bindings; ratings/W-L come from the
@@ -404,22 +422,24 @@ async def _last_completed_match_ms(matches: Any, profile_id: str) -> int:
     return last
 
 
-async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextChannel:
-    """Resolve the guild's live channel through the tree's stored id.
+async def ensure_live_dashboard_channel(
+    guild: discord.Guild, game_key: str
+) -> discord.TextChannel:
+    """Resolve the guild's live channel for one game through the tree's stored id.
 
-    The channel lives in the ``games/aoe2`` scope folder (key ``live``),
-    provisioned and persisted by the Panels SDK; the name never drives
-    the resolution. Raises LookupError when the tree has not provided
-    it yet (the caller degrades quietly).
+    The channel lives in the game's tree scope folder (``games/<game_key>``,
+    key ``live``), provisioned and persisted by the Panels SDK; the name
+    never drives the resolution. Raises LookupError when the tree has
+    not provided it yet (the caller degrades quietly).
     """
     from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
-    stored = await stored_channel_id(str(guild.id), "games/aoe2", "live")
+    stored = await stored_channel_id(str(guild.id), f"games/{game_key}", "live")
     if stored and stored.isdigit():
         channel = guild.get_channel(int(stored))
         if channel is not None and not isinstance(channel, (discord.CategoryChannel, discord.ForumChannel)):
             return channel  # type: ignore[return-value]
-    raise LookupError("the tree has no live channel yet (games/aoe2:live)")
+    raise LookupError(f"the tree has no live channel yet (games/{game_key}:live)")
 
 
 async def ensure_live_dashboard(
@@ -427,6 +447,7 @@ async def ensure_live_dashboard(
     guild_id: str,
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> bool:
     """Ensure the guild's dashboard channel holds one up-to-date dashboard message.
 
@@ -442,20 +463,25 @@ async def ensure_live_dashboard(
     if guild is None:
         return False
     try:
-        channel = await ensure_live_dashboard_channel(guild)
+        channel = await ensure_live_dashboard_channel(guild, game_key)
     except LookupError:
-        return False  # the tree has not provisioned games/aoe2:live yet
+        return False  # the tree has not provisioned the game's live channel yet
     try:
-        snapshot = await client.watch(GAME_KEY)
+        snapshot = await client.watch(game_key)
     except Exception:
-        logger.warning("live dashboard fetch failed (guild %s) — best-effort", guild_id, exc_info=True)
+        logger.warning(
+            "live dashboard fetch failed (guild %s, game %s) — best-effort",
+            guild_id,
+            game_key,
+            exc_info=True,
+        )
         snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
     from kingdoms.discord.content_posts import guild_locale
 
     locale = await guild_locale(guild_id, bot)
     body = render_dashboard(snapshot, locale=locale, bot=bot)
-    embeds = _dashboard_embeds(snapshot, body, bot, locale=locale)
-    registered = await _resolve_page(registry, guild_id)
+    embeds = _dashboard_embeds(snapshot, body, bot, locale=locale, game_key=game_key)
+    registered = await _resolve_page(registry, guild_id, game_key)
     if await _edit_registered(channel, registered, embeds[0]):
         await _sync_extra_pages(guild_id, channel, registry, embeds)
         await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
@@ -464,7 +490,7 @@ async def ensure_live_dashboard(
     if reused is not None:
         await registry.register(
             platform=PLATFORM,
-            message_key=_page_key(1),
+            message_key=_page_key(game_key, 1),
             entity_id=guild_id,
             channel_id=str(channel.id),
             message_id=reused,
@@ -481,7 +507,7 @@ async def ensure_live_dashboard(
         logger.warning("live dashboard pin failed (guild %s) — best-effort", guild_id, exc_info=True)
     await registry.register(
         platform=PLATFORM,
-        message_key=_page_key(1),
+        message_key=_page_key(game_key, 1),
         entity_id=guild_id,
         channel_id=str(channel.id),
         message_id=str(message.id),
@@ -491,22 +517,17 @@ async def ensure_live_dashboard(
     return True
 
 
-def _page_key(page: int) -> str:
-    """Build the registry key of one dashboard page.
+def _page_key(game_key: str, page: int) -> str:
+    """Build the registry key of one game's dashboard page.
 
-    The view convention is ``view:<scope>:<slug>`` (``view:aoe2:live``);
-    extra pages suffix it. The pre-convention key (``live-dashboard``)
-    stays as the legacy fallback for the page-1 resolve.
+    The view convention is ``view:<game>:live``; extra pages suffix it.
     """
-    return LIVE_MESSAGE_KEY if page == 1 else f"{LIVE_MESSAGE_KEY}-{page}"
+    return live_page_key(game_key, page)
 
 
-async def _resolve_page(registry: Any, guild_id: str, page: int = 1) -> Any:
-    """Resolve a dashboard page's message: current key, then legacy."""
-    registered = await registry.resolve(PLATFORM, _page_key(page), guild_id)
-    if registered is None and page == 1:
-        registered = await registry.resolve(PLATFORM, "live-dashboard", guild_id)
-    return registered
+async def _resolve_page(registry: Any, guild_id: str, game_key: str, page: int = 1) -> Any:
+    """Resolve a game's dashboard page message."""
+    return await registry.resolve(PLATFORM, _page_key(game_key, page), guild_id)
 
 
 def _dashboard_embeds(
@@ -514,6 +535,7 @@ def _dashboard_embeds(
     body: str,
     bot: discord.Client | None = None,
     locale: str = "en",
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> list[discord.Embed]:
     """Build the dashboard embeds: as many as the player list needs.
 
@@ -537,7 +559,7 @@ def _dashboard_embeds(
         pages = [body]
     return [
         _dashboard_embed(
-            snapshot, page, bot, page_index=i + 1, page_count=len(pages), locale=locale
+            snapshot, page, bot, page_index=i + 1, page_count=len(pages), locale=locale, game_key=game_key
         )
         for i, page in enumerate(pages)
     ]
@@ -548,10 +570,11 @@ async def _sync_extra_pages(
     channel: discord.TextChannel,
     registry: MessageRegistryServiceLike,
     embeds: list[discord.Embed],
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> None:
     """Keep pages 2..N alive: edit in place, create, or clean up as needed."""
     for page_number in range(2, len(embeds) + 1):
-        key = _page_key(page_number)
+        key = _page_key(game_key, page_number)
         embed = embeds[page_number - 1]
         registered = await registry.resolve(PLATFORM, key, guild_id)
         if await _edit_registered(channel, registered, embed):
@@ -568,7 +591,7 @@ async def _sync_extra_pages(
     from kingdoms.discord.pinned_marks import is_pinned_view
 
     for page_number in range(len(embeds) + 1, len(embeds) + 10):
-        registered = await registry.resolve(PLATFORM, _page_key(page_number), guild_id)
+        registered = await registry.resolve(PLATFORM, _page_key(game_key, page_number), guild_id)
         if registered is None:
             break
         try:
@@ -643,6 +666,7 @@ def _dashboard_embed(
     page_index: int = 1,
     page_count: int = 1,
     locale: str = "en",
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> discord.Embed:
     """Build one dashboard page's embed: title, icon, and the players' states."""
     user = getattr(bot, "user", None) if bot is not None else None
@@ -650,7 +674,7 @@ def _dashboard_embed(
     icon_url = getattr(icon, "url", None) if icon else None
 
     description = truncate_body(body, MAX_EMBED_DESCRIPTION)
-    title = _t(bot, locale, "title", "🎮 Live dashboard")
+    title = _t(bot, locale, "title", "🎮 Live dashboard") + f" — {game_label(game_key)}"
     if page_count > 1:
         title += f" ({page_index}/{page_count})"
     embed = discord.Embed(
@@ -660,7 +684,7 @@ def _dashboard_embed(
     )
     from kingdoms.discord.ui.view_footer import embed_footer
 
-    embed_footer(embed, f"panel:game:{GAME_KEY}:live")
+    embed_footer(embed, f"panel:game:{game_key}:live")
     if icon_url:
         embed.set_thumbnail(url=icon_url)
     return embed
@@ -689,31 +713,39 @@ async def _edit_registered(
 
 async def start_live_dashboard_refresh(
     bot: discord.Client,
-    client: LiveClientLike,
+    clients: dict[str, LiveClientLike],
     registry: MessageRegistryServiceLike,
 ) -> asyncio.Task[None]:
-    """Refresh every guild's dashboard on change: a stream watcher plus a self-healing interval.
+    """Refresh every guild's per-game dashboards: streams + a self-healing interval.
 
-    The stream consumes WatchDashboard frames — the server emits one per
-    player-state change — and every frame lands on the dashboard within
-    seconds. The interval pass remains as the safety net (recreating a
-    deleted message, healing a broken stream).
+    One stream watcher per game (``clients`` maps a game key to its
+    dashboard client); the interval pass remains as the safety net
+    (recreating a deleted message, healing a broken stream) — it walks
+    every game of every guild.
     """
 
     async def _run() -> None:
-        watcher = asyncio.create_task(_watch_stream(bot, client, registry))
+        watchers = [
+            asyncio.create_task(_watch_stream(bot, client, registry, game_key))
+            for game_key, client in clients.items()
+        ]
         try:
             while True:
                 for guild in list(bot.guilds):
-                    try:
-                        await ensure_live_dashboard(bot, str(guild.id), client, registry)
-                    except Exception:
-                        logger.warning(
-                            "live dashboard refresh failed (guild %s) — best-effort", guild.id, exc_info=True
-                        )
+                    for game_key, client in clients.items():
+                        try:
+                            await ensure_live_dashboard(bot, str(guild.id), client, registry, game_key)
+                        except Exception:
+                            logger.warning(
+                                "live dashboard refresh failed (guild %s, game %s) — best-effort",
+                                guild.id,
+                                game_key,
+                                exc_info=True,
+                            )
                 await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
         finally:
-            watcher.cancel()
+            for watcher in watchers:
+                watcher.cancel()
 
     return asyncio.create_task(_run())
 
@@ -779,16 +811,18 @@ async def _watch_stream(
     bot: discord.Client,
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
+    game_key: str,
 ) -> None:
-    """Consume the WatchDashboard stream; every changed frame refreshes the dashboards.
+    """Consume one game's WatchDashboard stream; every changed frame refreshes.
 
     Works with either client: the Live seam (svc-core) or the enriched
-    GameData client (game-aoe2) — both expose ``stream_snapshots``.
+    GameData client — both expose ``stream_snapshots``. One stream per
+    game (each game has its own game service and channels).
     """
     while True:
         try:
-            async for snapshot in client.stream_snapshots(GAME_KEY):
-                await _push_snapshot(bot, client, registry, snapshot)
+            async for snapshot in client.stream_snapshots(game_key):
+                await _push_snapshot(bot, client, registry, snapshot, game_key)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -801,6 +835,7 @@ async def _push_snapshot(
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
     snapshot: dict[str, Any],
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> None:
     """Edit every guild's dashboard message — throttled, on change only.
 
@@ -832,15 +867,15 @@ async def _push_snapshot(
             continue
         _LAST_PUSH[guild_id] = (now, fingerprint)
         try:
-            channel = await ensure_live_dashboard_channel(guild)
+            channel = await ensure_live_dashboard_channel(guild, game_key)
         except LookupError:
-            continue  # the tree has not provisioned games/aoe2:live yet
-        registered = await registry.resolve(PLATFORM, _page_key(1), str(guild.id))
+            continue  # the tree has not provisioned the game's live channel yet
+        registered = await registry.resolve(PLATFORM, _page_key(game_key, 1), str(guild.id))
         try:
             if not await _edit_registered(channel, registered, embeds[0]):
-                await ensure_live_dashboard(bot, guild_id, client, registry)
+                await ensure_live_dashboard(bot, guild_id, client, registry, game_key)
             else:
-                await _sync_extra_pages(guild_id, channel, registry, embeds)
+                await _sync_extra_pages(guild_id, channel, registry, embeds, game_key)
             await _remember_sent_fingerprint(guild_id, fingerprint)
         except Exception:
             logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)

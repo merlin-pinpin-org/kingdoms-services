@@ -107,59 +107,14 @@ def test_render_dashboard_degraded_and_empty() -> None:
     assert "🟢 <@10>" in populated
 
 
-def test_snapshot_fingerprint_ignores_generated_at() -> None:
-    """An unchanged roster never triggers an edit: generated_at is excluded."""
-    from kingdoms.discord.live import _snapshot_fingerprint
-
-    base = {"players": [{"profile_id": "A", "state": "in_lobby"}], "degraded": False}
-    first = _snapshot_fingerprint(base)
-    second = _snapshot_fingerprint({**base, "generated_at": 12345})
-    third = _snapshot_fingerprint({**base, "generated_at": 99999})
-    assert first == second == third
 
 
-def test_snapshot_fingerprint_tracks_state_changes() -> None:
-    """A real state change produces a different fingerprint."""
-    from kingdoms.discord.live import _snapshot_fingerprint
+def test_live_keys_are_per_game() -> None:
+    """The live message keys carry the game key — one channel message per game."""
+    from kingdoms.discord.live import _page_key, live_view_key
 
-    idle = {"players": [{"profile_id": "A", "state": "offline"}], "degraded": False}
-    in_game = {"players": [{"profile_id": "A", "state": "in_game"}], "degraded": False}
-    assert _snapshot_fingerprint(idle) != _snapshot_fingerprint(in_game)
-
-
-async def test_transitions_queued_for_the_event_stream() -> None:
-    """Each effective status change queues a normalized transition."""
-    bindings = [
-        {"user_id": "10", "game_key": "aoe2", "profile_id": "A"},
-        {"user_id": "20", "game_key": "aoe2", "profile_id": "B"},
-    ]
-    agg = LiveAggregator(FakeBindings(bindings))
-    await agg.refresh_bindings()
-    await agg.apply_event(FakeEvent(EVENT_LOBBY_OPENED, ("A",), 1_000, "match-1"))
-    transition = await agg.next_transition()
-    assert transition["profile_id"] == "A"
-    assert transition["user_id"] == "10"
-    assert transition["old_status"] == "offline"
-    assert transition["new_status"] == "in_lobby"
-    assert transition["match_ref"] == "match-1"
-
-
-async def test_no_transition_on_stateless_event() -> None:
-    """An event type that maps to no player state queues nothing."""
-    agg = LiveAggregator(_bindings())
-    await agg.apply_event(FakeEvent("unknown_type", ("A",), 1_000))
-    assert agg.pending_transitions() == 0
-
-
-async def test_profile_ids_lists_bound_profiles_sorted() -> None:
-    """The bound profile ids are the provider's subscription list."""
-    agg = LiveAggregator(
-        FakeBindings(
-            [
-                {"user_id": "10", "game_key": "aoe2", "profile_id": "B"},
-                {"user_id": "20", "game_key": "aoe2", "profile_id": "A"},
-            ]
-        )
-    )
-    await agg.refresh_bindings()
-    assert agg.profile_ids() == ("A", "B")
+    assert live_view_key("aoe2") == "view:aoe2:live"
+    assert live_view_key("aoe4") == "view:aoe4:live"
+    assert _page_key("aoe2", 1) == "view:aoe2:live"
+    assert _page_key("aoe2", 2) == "view:aoe2:live:2"
+    assert _page_key("aoe4", 3) == "view:aoe4:live:3"
