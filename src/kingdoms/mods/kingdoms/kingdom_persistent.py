@@ -133,10 +133,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomSabotageOpenButton,
         KingdomSabotagePassButton,
     )
-    from kingdoms.mods.kingdoms.kingdom_distributor_panel import (
-        KingdomDistributorButton,
-        KingdomTavernDrinkButton,
-    )
+    from kingdoms.mods.kingdoms.kingdom_distributor_panel import KingdomDistributorButton
     from kingdoms.mods.kingdoms.kingdom_scriptorium import (
         KingdomSeigneurieButton,
         KingdomSeigneurieSelect,
