@@ -179,23 +179,31 @@ async def apply_read_only_policy(
             read_message_history=True,
         )
         if channel is not None and isinstance(channel, discord.TextChannel):
-            await channel.set_permissions(
-                guild.default_role,
-                overwrite=overwrite,
-                reason=f"kingdoms: pinned channel read-only policy ({category})",
-            )
-            member = getattr(guild, "me", None)
-            if member is not None:
-                await channel.set_permissions(
-                    member,
-                    overwrite=discord.PermissionOverwrite(
+            # Rate-limit lesson (Checks 89/92/101, livelock 24/10): the
+            # read-only pass runs on every policy resolution — one bulk
+            # edit, zero write when already converged (per-target
+            # ``set_permissions`` storms Discord's overwrite throttle).
+            desired = {
+                guild.default_role: overwrite,
+                **(
+                    {getattr(guild, "me"): discord.PermissionOverwrite(
                         view_channel=True,
                         send_messages=True,
                         read_message_history=True,
                         manage_messages=True,
-                    ),
-                    reason=f"kingdoms: pinned channel bot keeps writing ({category})",
-                )
+                    )}
+                    if getattr(guild, "me", None) is not None
+                    else {}
+                ),
+            }
+            live = dict(getattr(channel, "overwrites", None) or {})
+            if all(live.get(target) == ow for target, ow in desired.items()):
+                return
+            merged = dict(live)
+            merged.update(desired)
+            await channel.edit(
+                overwrites=merged, reason=f"kingdoms: pinned channel read-only policy ({category})"
+            )
     except Exception:
         logger.warning("read-only policy apply failed (%s) — best-effort", category, exc_info=True)
 
