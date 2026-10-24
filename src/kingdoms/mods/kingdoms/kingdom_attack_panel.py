@@ -3308,12 +3308,20 @@ async def _edit_dm_message_safe(
     view: discord.ui.View | None,
     files: list[discord.File] | None = None,
 ) -> bool:
-    """Edit a stored DM message (channel_id + message_id) — best effort."""
+    """Edit a stored DM message (channel_id + message_id) — best effort.
+
+    dm-crest-edit-fix (Drasah 24/10): the edit used a PartialMessage,
+    whose ``edit`` accepts NO ``files`` — since civ-crests-v1 every
+    reveal edit carrying the blason PNGs raised TypeError and fell
+    back to a NEW DM (duplicates, the original stuck on its old
+    text). The message is now FETCHED full (``Message.edit`` accepts
+    ``files``); a lost or deleted message still falls back.
+    """
     try:
         channel = getattr(bot, "get_channel", lambda _id: None)(int(ref["channel_id"]))
         if channel is None:
             channel = await bot.fetch_channel(int(ref["channel_id"]))
-        message = channel.get_partial_message(int(ref["message_id"]))
+        message = await channel.fetch_message(int(ref["message_id"]))
         await message.edit(content=content, view=view, files=files)
         return True
     except Exception:
