@@ -24,9 +24,10 @@ import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.attacks import NotEnrolledError
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import LordModel
-from kingdoms.mods.kingdoms.service import KingdomsModError, NoSeasonError, NotEnrolledError
+from kingdoms.mods.kingdoms.service import KingdomsModError, NoSeasonError
 
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig, TavernDrink

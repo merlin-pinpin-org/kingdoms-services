@@ -148,3 +148,34 @@ def test_ensure_kingdoms_services_fails_once(monkeypatch: pytest.MonkeyPatch) ->
     assert kingdoms_pkg.ensure_kingdoms_services(bot) is None
     assert kingdoms_pkg.ensure_kingdoms_services(bot) is None
     assert len(calls) == 1
+
+
+def test_tavern_import_chain_builds_services() -> None:
+    """The 2026-10-24 incident: tavern.py imported NotEnrolledError from
+    service.py where it does not exist — _build_services raised ImportError
+    at boot and the whole kingdoms service stack degraded silently."""
+    import importlib
+
+    tavern = importlib.import_module("kingdoms.mods.kingdoms.tavern")
+    assert tavern.TavernService is not None
+
+
+def test_every_service_import_resolves() -> None:
+    """Static scan: every name imported from kingdoms.mods.kingdoms.service
+    anywhere in src/ must exist there — the ImportError class of bug (the
+    2026-10-24 unwired boot) can never reach a deployed image again."""
+    import pathlib
+    import re
+
+    service = pathlib.Path("src/kingdoms/mods/kingdoms/service.py").read_text()
+    defined = set(re.findall(r"^(?:class|def) (\w+)", service, re.M))
+    defined |= set(re.findall(r"^(\w+)(?::| =)", service, re.M))
+    bad: list[str] = []
+    for path in pathlib.Path("src").rglob("*.py"):
+        for match in re.finditer(
+            r"from kingdoms\.mods\.kingdoms\.service import ([\w, ]+)", path.read_text()
+        ):
+            for name in (item.strip() for item in match.group(1).split(",")):
+                if name and name not in defined:
+                    bad.append(f"{path}:{name}")
+    assert not bad, f"unknown imports from kingdoms service: {bad}"

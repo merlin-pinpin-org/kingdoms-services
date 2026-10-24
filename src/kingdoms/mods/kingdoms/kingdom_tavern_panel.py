@@ -306,7 +306,7 @@ def _error_context(exc: Exception) -> dict[str, str]:
 def _error_note(exc: Exception, strings: dict[str, str]) -> str:
     """Map a service error to its player-facing note (module strings)."""
     from kingdoms.mods.kingdoms.game_clock import game_now
-    from kingdoms.mods.kingdoms.service import NotEnrolledError
+    from kingdoms.mods.kingdoms.attacks import NotEnrolledError
     from kingdoms.mods.kingdoms.tavern import (
         TavernCooldownError,
         TavernDrinkNotFoundError,
