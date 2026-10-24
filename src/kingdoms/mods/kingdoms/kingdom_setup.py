@@ -14,6 +14,7 @@ provisioning it.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import unicodedata
 from typing import Any, cast
@@ -444,8 +445,27 @@ async def _migrate_gaia_into_kingdoms(guild: discord.Guild) -> None:
         logger.warning("KINGDOM SETUP: retired Gaïa category delete failed", exc_info=True)
 
 
+_PROVISION_LOCKS: dict[int, asyncio.Lock] = {}
+
+
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
     """Provision the declared salons-first structure through the core.
+
+    Serialised per guild: concurrent triggers (startup provisioning,
+    /kingdom, 🚀 Déployer clicks) used to stack parallel Discord API
+    storms — a second run now waits for the first (idempotent, cheap
+    once converged) instead of doubling the rate-limit pressure
+    (rate-limit lesson Checks 89/92, livelock 24/10).
+    """
+    lock = _PROVISION_LOCKS.setdefault(guild.id, asyncio.Lock())
+    if lock.locked():
+        logger.info("KINGDOM SETUP: provisioning already running for guild %s — waiting", guild.id)
+    async with lock:
+        return await _provision_structure_locked(guild)
+
+
+async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], list[str]]:
+    """The actual provisioning flow (called under the guild lock).
 
     The declaration (``config/mods/kingdoms.yaml``) is the single source
     of truth: groups in declaration order, then each group's channels —

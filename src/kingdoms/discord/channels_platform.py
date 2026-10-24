@@ -182,11 +182,22 @@ class DiscordChannelsPlatform:
     async def apply_access_policy(
         self, guild_id: str, channel_id: str, policy: dict[str, Any]
     ) -> None:
-        """Apply a category's declared access policy as overwrites (#57).
+        """Apply a channel's declared access policy as overwrites (#57).
 
-        The bot overwrite is set first so the bot can never lock itself
+        Rate-limit lesson (Checks 89/92): permission edits are heavily
+        throttled by Discord (per-channel), so the desired overwrites
+        are computed in-memory first and applied through ONE
+        ``channel.edit(overwrites=...)`` — never one ``set_permissions``
+        per target, which rate-limit-storms live provisioning. The call
+        is skipped entirely when the live overwrites already match
+        (idempotent re-provisioning stays free of API writes).
+
+        The bot overwrite is always part of the desired set (unless
+        ``bot_overwrite`` is false) so the bot can never lock itself
         out; then @everyone, then the declared roles (resolved by name
-        through the guild's role list — logical keys map to role names).
+        through the guild's role list — logical keys map to role
+        names). Foreign overwrites (set by other flows) are preserved:
+        the managed targets are updated inside the live mapping.
         """
         guild = await self._guild(guild_id)
         if guild is None or not channel_id.isdigit():
@@ -194,42 +205,43 @@ class DiscordChannelsPlatform:
         channel = guild.get_channel(int(channel_id))
         # permissions-serveur-v1: the declared access policies cover the
         # Support forums too (kind: forum) — both channel types carry
-        # the same set_permissions seam.
+        # the same overwrites seam.
         if not isinstance(channel, (discord.TextChannel, discord.ForumChannel)):
             return
+        desired: dict[Any, discord.PermissionOverwrite] = {}
         if bool(policy.get("bot_overwrite", True)):
-            await channel.set_permissions(
-                guild.me,
-                overwrite=discord.PermissionOverwrite(
-                    view_channel=True, send_messages=True, read_message_history=True, manage_messages=True
-                ),
-                reason="kingdoms: access policy bot overwrite",
+            desired[guild.me] = discord.PermissionOverwrite(
+                view_channel=True, send_messages=True, read_message_history=True, manage_messages=True
             )
         everyone_view = bool(policy.get("everyone_view", True))
         everyone_post = bool(policy.get("everyone_post", False))
-        await channel.set_permissions(
-            guild.default_role,
-            overwrite=discord.PermissionOverwrite(
-                view_channel=everyone_view,
-                send_messages=everyone_post if not everyone_view else None,
-                read_message_history=everyone_view,
-            ),
-            reason="kingdoms: access policy everyone overwrite",
+        desired[guild.default_role] = discord.PermissionOverwrite(
+            view_channel=everyone_view,
+            send_messages=everyone_post if not everyone_view else None,
+            read_message_history=everyone_view,
         )
         role_keys: list[str] = list(policy.get("view") or ()) + list(policy.get("post") or ())
         for role_key in role_keys:
             role = discord.utils.get(guild.roles, name=role_key)
             if role is None:
                 continue
-            await channel.set_permissions(
-                role,
-                overwrite=discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=role_key in (policy.get("post") or ()),
-                    read_message_history=True,
-                ),
-                reason="kingdoms: access policy role overwrite",
+            desired[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=role_key in (policy.get("post") or ()),
+                read_message_history=True,
             )
+        live = dict(getattr(channel, "overwrites", None) or {})
+        if all(live.get(target) == overwrite for target, overwrite in desired.items()):
+            return  # converged — zero API write
+        merged = dict(live)
+        merged.update(desired)
+        await channel.edit(overwrites=merged, reason="kingdoms: access policy overwrites")
+        logger.info(
+            "ACCESS POLICY applied: guild=%s channel=%s targets=%d",
+            guild_id,
+            channel_id,
+            len(desired),
+        )
 
     async def ensure_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
         """Find or create a text channel (under a category); return its id."""
