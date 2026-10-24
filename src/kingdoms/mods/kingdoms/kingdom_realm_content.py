@@ -933,17 +933,20 @@ async def deploy_gaia_content(
     wiring: Any,
     locale: str = "fr",
 ) -> dict[str, bool]:
-    """Deploy the Gaïa category's single view (the Territoire salon, c).
+    """Deploy the Gaïa territory view (the Territoire salon, c).
 
     restructuration-serveur-v1 c (Drasah 19/10): the Gaïa category drops
     to ONE salon — the AI level lives in the Territoire view and the
-    FFA lives in its ephemeral salon. Best effort: a missing category,
-    salon or kingdom simply reports False, never raises.
+    FFA lives in its ephemeral salon. restructuration-gaia-v1
+    (Drasah 24/10): the retired Gaïa category's Territoire salon now
+    lives inside the renamed Kingdoms-Gaia structure category — the
+    lookup goes through it (the realm-category path is gone with the
+    category). Best effort: a missing category, salon or kingdom simply
+    reports False, never raises.
     """
-    from kingdoms.mods.kingdoms.kingdom_realms import GAIA_KINGDOM_DISPLAY, _find_realm_category
-    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+    from kingdoms.mods.kingdoms.kingdom_setup import _find_category, _slug
 
-    category = _find_realm_category(guild, GAIA_KINGDOM_DISPLAY)
+    category = _find_category(guild, "Kingdoms-Gaia") or _find_category(guild, "Kingdoms")
     if category is None:
         return {}
     service = getattr(wiring, "kingdoms_service", None)

@@ -25,6 +25,7 @@ from kingdoms.mods.kingdoms.kingdom_setup import (
     _enforce_player_category_gating,
     _ensure_charte_dividers,
     _hide_conscription_from_players,
+    _migrate_gaia_into_kingdoms,
     _slug,
     cleanup_legacy_structure,
 )
@@ -42,6 +43,10 @@ def test_slug_is_decoration_blind() -> None:
     assert _slug("🛒 marché") == _slug("Marché") == "marche"
     assert _slug("✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ") == _slug("Conscription") == "conscription"
     assert _slug("🏰 ᴋɪɴɢᴅᴏᴍs") == "kingdoms"
+    # restructuration-gaia-v1 (Drasah 24/10): the renamed structure
+    # category slugs « kingdoms-gaia » — the realm sweep and the player
+    # gating must recognize it.
+    assert _slug("🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ") == _slug("Kingdoms-Gaia") == "kingdoms-gaia"
     assert _slug("⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ") == "champs-de-bataille"
     assert _slug("🗺️ Géopolitique") == "geopolitique"
     # the decorative divider slugs to nothing — it can never collide
@@ -65,7 +70,7 @@ async def test_charte_renames_the_live_structure_and_is_idempotent() -> None:
 
     names = {c.name for c in guild.categories}
     assert "✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ" in names
-    assert "🏰 ᴋɪɴɢᴅᴏᴍs" in names
+    assert "🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ" in names
     assert "Royaume Avalon" in names  # untouched: realm renames belong to kingdom_realms
     salons = {c.name for c in guild.text_channels}
     assert "📝 postuler" in salons and "📥 candidatures" in salons and "🛒 marché" in salons
@@ -309,3 +314,54 @@ async def test_player_category_gating_skips_absent_categories() -> None:
     """A guild missing the categories (e.g. mid-provision) is a no-op."""
     guild = MockGuild()
     await _enforce_player_category_gating(guild)  # must not raise
+
+
+# --------------------------------------------- restructuration-gaia-v1
+
+
+async def test_gaia_migration_moves_territoire_and_deletes_the_category() -> None:
+    """The retired Gaïa category's salons join Kingdoms-Gaia BEFORE the
+    core provisions — the core adopts by name INSIDE the declared group,
+    so moving after would duplicate the Territoire salon (Check 87)."""
+    guild = MockGuild()
+    kingdoms = await guild.create_category("🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ")
+    await guild.create_text_channel("📜 scriptorium", category=kingdoms)
+    gaia = await guild.create_category("🏰 ɢᴀɪᴀ")
+    territory = await guild.create_text_channel("🗺️ territoire", category=gaia)
+
+    await _migrate_gaia_into_kingdoms(guild)
+
+    assert territory.category is kingdoms
+    assert gaia.id not in {c.id for c in guild.categories}
+
+    # idempotent: a second pass is a silent no-op
+    await _migrate_gaia_into_kingdoms(guild)
+    assert territory.category is kingdoms
+
+
+async def test_gaia_migration_keeps_the_category_when_a_move_fails() -> None:
+    """A failed move leaves the Gaïa category in place for the next
+    pass — the migration NEVER strands a salon in a deleted category."""
+
+    class _StuckChannel:
+        name = "🗺️ territoire"
+
+        async def edit(self, **kwargs: object) -> None:
+            raise RuntimeError("no permission")
+
+    guild = MockGuild()
+    kingdoms = await guild.create_category("🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ")
+    gaia = await guild.create_category("🏰 ɢᴀɪᴀ")
+    stuck = _StuckChannel()
+    gaia.add_channel(stuck)  # type: ignore[arg-type]
+
+    await _migrate_gaia_into_kingdoms(guild)
+
+    assert gaia.id in {c.id for c in guild.categories}
+
+
+async def test_gaia_migration_without_gaia_category_is_silent() -> None:
+    guild = MockGuild()
+    await guild.create_category("🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ")
+    await _migrate_gaia_into_kingdoms(guild)  # must not raise
+    assert {c.name for c in guild.categories} == {"🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ"}

@@ -18,10 +18,11 @@ channel_groups:
   # GONE ENTIRELY (Taverne + the vocal) — nothing is kept or moved.
   - key: conscription
     display_name: ✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ
+  # restructuration-gaia-v1 (Drasah 24/10): the Gaïa group RETIRES —
+  # its Territoire salon moves into the Kingdoms category, which is
+  # renamed « Kingdoms-Gaia »; the Taverne (taverne-v1) is born here.
   - key: kingdoms
-    display_name: 🏰 ᴋɪɴɢᴅᴏᴍs
-  - key: gaia
-    display_name: 🏰 ɢᴀɪᴀ
+    display_name: 🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ
   - key: battlefield
     display_name: ⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ
   - key: admin
@@ -80,10 +81,16 @@ channels:
   - key: territory
     display_name: 🗺️ territoire
     description: Territories and their cadastre effects — plus the Gaïa AI level (restructuration-serveur-v1 c, Drasah 19/10)
-    group: gaia
-    # restructuration-serveur-v1 c (Drasah 19/10): patrol (AI level)
-    # merged into this Territoire view; exploration is an EPHEMERAL FFA
-    # salon opened when a free-for-all manifests — both salons retire.
+    # restructuration-gaia-v1 (Drasah 24/10): moved from the retired
+    # gaia group into kingdoms (Kingdoms-Gaia).
+    group: kingdoms
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
+  - key: tavern
+    display_name: 🍺 taverne
+    description: The lords' tavern — drinks, rumors, bets and the Mercenary Chief (taverne-v1)
+    group: kingdoms
     access:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]

@@ -553,8 +553,10 @@ async def delete_orphan_realm_categories(guild: discord.Guild, kingdoms: Any) ->
     keep |= {_slug(f"Royaume {k.name}") for k in kingdoms if not k.is_gaia}
     # ordre-salons-v1: the charte realm categories are « 🏰 Nom » — the
     # 🏰 prefix also covers the structure categories: their naked slugs
-    # are exempt, gaia is kept above.
-    structure_exempt = {"kingdoms", "gaia"}
+    # are exempt, gaia is kept above. restructuration-gaia-v1
+    # (Drasah 24/10): « kingdoms-gaia » joins the exempt set (the
+    # renamed structure category) — gaia stays (mid-migration guild).
+    structure_exempt = {"kingdoms", "kingdoms-gaia", "gaia"}
     deleted = 0
     for category in list(getattr(guild, "categories", [])):
         raw_name = str(getattr(category, "name", ""))

@@ -583,17 +583,22 @@ class _GaiaWiring(_Wiring):
 
 
 async def test_deploy_gaia_content_pins_the_single_territory_view() -> None:
-    """The Gaïa category carries ONE view: the Territoire salon (c)."""
+    """restructuration-gaia-v1 (Drasah 24/10): the Territoire salon lives
+    inside the renamed Kingdoms-Gaia structure category — the Gaïa
+    realm-category lookup is gone with the retired category."""
     from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_gaia_content
 
     guild = MockGuild()
-    await ensure_realm_structure(guild, _GaiaKingdom(), [])
+    kingdoms = await guild.create_category("🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ")
+    await guild.create_text_channel("🗺️ territoire", category=kingdoms)
 
     results = await deploy_gaia_content(guild, _GaiaWiring(), "fr")
 
     assert results == {"territoire-gaia": True}
     salon = next(
-        c for c in guild.text_channels if c.name == "🗺️ territoire" and c.category and c.category.name == "🏰 Gaïa"
+        c
+        for c in guild.text_channels
+        if c.name == "🗺️ territoire" and c.category and c.category.name == "🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ"
     )
     live = _live(salon)
     assert len(live) == 1

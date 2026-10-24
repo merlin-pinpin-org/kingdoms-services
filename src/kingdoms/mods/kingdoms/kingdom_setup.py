@@ -120,8 +120,10 @@ async def _enforce_admin_category_deny(guild: discord.Guild) -> None:
 _CHARTE_CATEGORY_DISPLAY: dict[str, str] = {
     "profils": "👤 ᴘʀᴏꜰɪʟs",
     "conscription": "✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ",
-    "kingdoms": "🏰 ᴋɪɴɢᴅᴏᴍs",
-    "gaia": "🏰 ɢᴀɪᴀ",
+    # restructuration-gaia-v1 (Drasah 24/10): the Gaïa category
+    # retires — the Kingdoms category absorbs its Territoire salon and
+    # is renamed « Kingdoms-Gaia » (the Taverne is born here too).
+    "kingdoms": "🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ",
     "champs-de-bataille": "⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ",
     "admin": "⚙️ ᴀᴅᴍɪɴ",
 }
@@ -138,6 +140,7 @@ _CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
     # no geopolitics here: its live name is owned by refresh_age_pin
     # (the age emoji is dynamic) — the charte must never fight it.
     "territoire": "🗺️ territoire",
+    "taverne": "🍺 taverne",
     "declarer-une-attaque": "⚔️ déclarer une attaque",
     "pourparlers": "🕊️ pourparlers",
     "parametres": "⚙️ paramètres",
@@ -159,6 +162,7 @@ _CHARTE_TOPICS: dict[str, str] = {
     "scriptorium": "La bibliothèque du royaume : cadastre, diplomatie et seigneurie y sont consignés.",
     "marche": "Les marchands croisent le fer — ressources, trocs et étals du royaume.",
     "territoire": "Les terres de Gaïa — son niveau d'éveil et le cadastre du monde.",
+    "taverne": "Le feu crépite et les langues se délient — bois un coup, écoute les rumeurs et parie sur les prochaines batailles.",
     "declarer-une-attaque": "Le pas des bannières — déclare ta guerre, seigneur.",
     "pourparlers": "Sous la tente blanche : les négociations entre royaumes en guerre.",
     "parametres": "Les réglages du mod — réservés aux mains qui tirent les ficelles.",
@@ -181,7 +185,16 @@ _CONSCRIPTION_ROLE_CANDIDATES: tuple[tuple[str, ...], ...] = (
     ("kingdoms_king", "Kingdoms King"),
 )
 
-_PLAYER_CATEGORY_SLUGS: tuple[str, ...] = ("profils", "kingdoms", "gaia", "champs-de-bataille")
+_PLAYER_CATEGORY_SLUGS: tuple[str, ...] = (
+    "profils",
+    # restructuration-gaia-v1 (Drasah 24/10): the renamed form leads;
+    # the plain « kingdoms » covers a category renamed back by hand,
+    # « gaia » covers a not-yet-migrated guild (decoration-blind slugs).
+    "kingdoms-gaia",
+    "kingdoms",
+    "gaia",
+    "champs-de-bataille",
+)
 """permissions-serveur-v1 (Drasah 20/10): the player-facing categories gated
 to @everyone — a newcomer sees only Beta and Conscription (headers included)."""
 
@@ -368,9 +381,12 @@ async def _enforce_category_order(guild: discord.Guild) -> None:
     # the realms keep their current relative order (Discord drops a
     # fresh category at the bottom of the sidebar)
     realms.sort(key=lambda c: getattr(c, "position", 0))
+    # restructuration-gaia-v1 (Drasah 24/10): « kingdoms-gaia » leads;
+    # the plain « kingdoms » and « gaia » slugs cover a guild the charte
+    # pass has not renamed yet (idempotent, both filtered by presence).
     ordered: list[discord.CategoryChannel] = [
         by_slug[slug]
-        for slug in ("beta", "conscription", "champs-de-bataille", "kingdoms", "gaia")
+        for slug in ("beta", "conscription", "champs-de-bataille", "kingdoms-gaia", "kingdoms", "gaia")
         if slug in by_slug
     ]
     ordered += realms
@@ -389,6 +405,43 @@ async def _enforce_category_order(guild: discord.Guild) -> None:
             await profiles.edit(position=len(ordered))
         except Exception:
             logger.warning("KINGDOM SETUP: profiles bottom order failed", exc_info=True)
+
+
+async def _migrate_gaia_into_kingdoms(guild: discord.Guild) -> None:
+    """Move the Gaïa salons into Kingdoms-Gaia, then delete the category.
+
+    restructuration-gaia-v1 (Drasah 24/10): the Gaïa category retires —
+    its children (in practice the 🗺️ Territoire salon) join the renamed
+    Kingdoms-Gaia category. This runs AFTER the charte pass renamed the
+    live « Kingdoms » to « Kingdoms-Gaia » and BEFORE the core
+    provisions: the core adopts a channel by name INSIDE its declared
+    group, so a territory salon still sitting in the old Gaïa category
+    would be DUPLICATED (the Check 87 bug class) and the legacy purge
+    would then kill the orphan. Moving first makes the core adopt the
+    very channel (id and pinned views preserved). Idempotent: a guild
+    without a Gaïa category is a silent no-op; a move failure leaves
+    the category in place for the next pass (the purge never touches it).
+    """
+    kingdoms = _find_category(guild, "Kingdoms-Gaia") or _find_category(guild, "Kingdoms")
+    gaia = _find_category(guild, "Gaïa")
+    if kingdoms is None or gaia is None or gaia.id == kingdoms.id:
+        return
+    for channel in list(getattr(gaia, "channels", []) or []):
+        try:
+            await channel.edit(category=kingdoms)
+            logger.info("KINGDOM SETUP: gaia salon %s moved into Kingdoms-Gaia", channel.name)
+        except Exception:
+            logger.warning(
+                "KINGDOM SETUP: gaia salon move failed (%s) — category kept for retry",
+                getattr(channel, "name", "?"),
+                exc_info=True,
+            )
+            return
+    try:
+        await gaia.delete()
+        logger.info("KINGDOM SETUP: retired Gaïa category deleted")
+    except Exception:
+        logger.warning("KINGDOM SETUP: retired Gaïa category delete failed", exc_info=True)
 
 
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
@@ -412,6 +465,11 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     if channel_service is None:
         raise RuntimeError("the ChannelService is not wired — the salons-first bootstrap needs the platform services")
     await _apply_structure_charte(guild)
+    # restructuration-gaia-v1 (Drasah 24/10): the Gaïa children move
+    # into the renamed Kingdoms-Gaia category BEFORE the core provisions
+    # (the core adopts by name INSIDE the declared group — moving after
+    # would duplicate the Territoire salon).
+    await _migrate_gaia_into_kingdoms(guild)
     report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
     # permissions-serveur-v1: the Admin category stays hidden from
     # non-admins even when it was adopted long before the flag.
@@ -464,9 +522,9 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     "saison",
     "update",
     "suggestion",
-    # restructuration-serveur-v1 e (Drasah 19/10): the general group
-    # disappears ENTIRELY — the Taverne leaves with its category.
-    "taverne",
+    # restructuration-gaia-v1 (Drasah 24/10): the Taverne is REBORN in
+    # the Kingdoms-Gaia category — it left the purge pool (the old
+    # general-group Taverne is already gone from the live guild).
     # permissions-serveur-v1 (Drasah 19/10): the dedicated 🏺 Âge salon
     # retires — the age (emoji + pinned message) lives in Géopolitique.
     # ordre-salons-v1: the slug is decoration-blind — the retired salon
@@ -486,8 +544,10 @@ announcements into each attack's OWN salon (the per-attack salons carry
 long slugs, never the bare « attaques » — safe to purge), the retired
 Gaïa salons (restructuration-serveur-v1 c), the retired Général salons
 (restructuration-serveur-v1 d: rules/presentation live in the
-Scriptorium buttons; saison/update/annonce/suggestion go away) and the
-Taverne (restructuration-serveur-v1 e: the general group is gone)."""
+Scriptorium buttons; saison/update/annonce/suggestion go away). The
+Taverne LEFT this pool: restructuration-gaia-v1 (Drasah 24/10) re-creates
+it inside the Kingdoms-Gaia category (the purge would delete the fresh
+salon right after provisioning)."""
 
 LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium", "Général", "Support")
 """The retired group categories — the epoch salon now lives under
@@ -508,10 +568,13 @@ KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
     "📜 scriptorium",
     "🛒 marché",
     "🌍 géopolitique",
+    "🗺️ territoire",
+    "🍺 taverne",
 )
-"""Drasah's chosen order of the Kingdoms-category salons
+"""Drasah's chosen order of the Kingdoms-Gaia-category salons
 (permissions-serveur-v1: the 🏺 Âge salon retired — the age lives in
-Géopolitique's pinned message)."""
+Géopolitique's pinned message; restructuration-gaia-v1 24/10: Territoire
+moved in from the retired Gaïa category, the Taverne closes the row)."""
 
 
 async def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
@@ -585,8 +648,10 @@ async def _cleanup_legacy_battle_categories(guild: discord.Guild) -> list[str]:
 
 
 async def _reorder_kingdoms_salons(guild: discord.Guild) -> None:
-    """Force Drasah's order of the four Kingdoms-category salons."""
-    category = _find_category(guild, "Kingdoms")
+    """Force Drasah's order of the Kingdoms-Gaia-category salons."""
+    # restructuration-gaia-v1: the category slugs « kingdoms-gaia »
+    # after the rename — the plain form covers a hand-renamed guild.
+    category = _find_category(guild, "Kingdoms-Gaia") or _find_category(guild, "Kingdoms")
     if category is None:
         return
     for position, name in enumerate(KINGDOMS_CATEGORY_ORDER):
