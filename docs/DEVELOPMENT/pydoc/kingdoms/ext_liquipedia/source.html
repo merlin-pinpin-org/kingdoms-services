@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.ext_liquipedia.source</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.ext_liquipedia.html" class="white">ext_liquipedia</a>.source</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_liquipedia/source.py">SOURCE_ROOT/ext_liquipedia/source.py</a></td></tr></table>
+    <p><span class="code">ext-liquipedia&nbsp;source:&nbsp;Liquipedia&nbsp;access&nbsp;+&nbsp;the&nbsp;provider's&nbsp;own&nbsp;tables.<br>
+&nbsp;<br>
+The&nbsp;``LiquipediaMapsProvider``&nbsp;(moved&nbsp;from&nbsp;``kingdoms.mapsdata``)<br>
+carries&nbsp;the&nbsp;MediaWiki&nbsp;access&nbsp;with&nbsp;its&nbsp;terms-of-use&nbsp;compliance&nbsp;(custom<br>
+User-Agent,&nbsp;rate&nbsp;limits,&nbsp;licence&nbsp;guard).&nbsp;This&nbsp;module&nbsp;wraps&nbsp;it&nbsp;with&nbsp;the<br>
+provider's&nbsp;persistence:&nbsp;every&nbsp;fetched&nbsp;page&nbsp;is&nbsp;stored&nbsp;raw&nbsp;in&nbsp;Mongo<br>
+(``liquipedia_pages``,&nbsp;cache-aside&nbsp;with&nbsp;a&nbsp;TTL)&nbsp;and&nbsp;every&nbsp;resolved&nbsp;map<br>
+descriptor&nbsp;in&nbsp;``liquipedia_maps``&nbsp;—&nbsp;the&nbsp;raw&nbsp;data&nbsp;lives&nbsp;at&nbsp;the&nbsp;provider,<br>
+debuggable&nbsp;and&nbsp;replayable,&nbsp;and&nbsp;a&nbsp;repeated&nbsp;import&nbsp;never&nbsp;re-requests&nbsp;a<br>
+fresh&nbsp;page&nbsp;while&nbsp;the&nbsp;cache&nbsp;holds.<br>
+&nbsp;<br>
+The&nbsp;in-memory&nbsp;cache&nbsp;of&nbsp;the&nbsp;underlying&nbsp;provider&nbsp;stays&nbsp;(the&nbsp;process<br>
+lifetime);&nbsp;Mongo&nbsp;adds&nbsp;the&nbsp;cross-restart&nbsp;durability&nbsp;the&nbsp;in-process<br>
+module&nbsp;never&nbsp;had.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.ext_liquipedia.source.html#LiquipediaSource">LiquipediaSource</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LiquipediaSource">class <strong>LiquipediaSource</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LiquipediaSource">LiquipediaSource</a>(provider:&nbsp;'LiquipediaMapsProvider',&nbsp;database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;Content&nbsp;source:&nbsp;Liquipedia&nbsp;access&nbsp;+&nbsp;Mongo-backed&nbsp;cache.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LiquipediaSource-__init__"><strong>__init__</strong></a>(self, provider: 'LiquipediaMapsProvider', database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;upstream&nbsp;access&nbsp;and&nbsp;the&nbsp;provider's&nbsp;own&nbsp;database.</span></dd></dl>
+
+<dl><dt><a name="LiquipediaSource-faction_content"><strong>faction_content</strong></a>(self, key: 'str', locale: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">No&nbsp;faction&nbsp;content&nbsp;on&nbsp;this&nbsp;source.</span></dd></dl>
+
+<dl><dt><a name="LiquipediaSource-faction_keys"><strong>faction_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Liquipedia&nbsp;serves&nbsp;maps,&nbsp;not&nbsp;factions&nbsp;—&nbsp;the&nbsp;contract&nbsp;degrades.</span></dd></dl>
+
+<dl><dt><a name="LiquipediaSource-map_content"><strong>map_content</strong></a>(self, key: 'str', locale: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content&nbsp;(name&nbsp;+&nbsp;attribution&nbsp;link).</span></dd></dl>
+
+<dl><dt><a name="LiquipediaSource-map_seed"><strong>map_seed</strong></a>(self, game_key: 'str', map_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;map&nbsp;name&nbsp;into&nbsp;its&nbsp;full&nbsp;descriptor.<br>
+&nbsp;<br>
+The&nbsp;persisted&nbsp;descriptor&nbsp;serves&nbsp;first&nbsp;(cache-aside);&nbsp;a&nbsp;miss<br>
+fetches&nbsp;the&nbsp;page&nbsp;upstream,&nbsp;persists&nbsp;raw&nbsp;+&nbsp;descriptor,&nbsp;then<br>
+answers.&nbsp;A&nbsp;page&nbsp;absent&nbsp;upstream&nbsp;answers&nbsp;None&nbsp;(the&nbsp;caller<br>
+falls&nbsp;back&nbsp;to&nbsp;admin-entered&nbsp;fields).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-resolve_source"><strong>resolve_source</strong></a>(database: 'Any') -&gt; 'LiquipediaSource'</dt><dd><span class="code">Build&nbsp;the&nbsp;source&nbsp;from&nbsp;the&nbsp;environment&nbsp;(LIQUIPEDIA_CONTACT).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>MAPS_COLLECTION</strong> = 'liquipedia_maps'<br>
+<strong>PAGES_COLLECTION</strong> = 'liquipedia_pages'<br>
+<strong>PAGE_CACHE_TTL_S</strong> = 604800<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ext_liquipedia (WARNING)&gt;</td></tr></table>
+</body></html>

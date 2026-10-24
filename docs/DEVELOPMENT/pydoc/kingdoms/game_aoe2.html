@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.game_aoe2</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.game_aoe2</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/__init__.py">SOURCE_ROOT/game_aoe2/__init__.py</a></td></tr></table>
+    <p><span class="code">game_aoe2&nbsp;—&nbsp;the&nbsp;AoE2&nbsp;game&nbsp;data&nbsp;service&nbsp;process.<br>
+&nbsp;<br>
+Direction&nbsp;développeur&nbsp;(architecture&nbsp;cible)&nbsp;:&nbsp;one&nbsp;game&nbsp;service&nbsp;per&nbsp;game,<br>
+the&nbsp;ONLY&nbsp;consumer&nbsp;of&nbsp;the&nbsp;external&nbsp;providers&nbsp;for&nbsp;that&nbsp;game.&nbsp;It&nbsp;owns&nbsp;the<br>
+AoE2&nbsp;domain&nbsp;tables&nbsp;(players,&nbsp;matches,&nbsp;stats),&nbsp;exploits&nbsp;the&nbsp;raw&nbsp;provider<br>
+data,&nbsp;and&nbsp;serves&nbsp;the&nbsp;consolidated,&nbsp;enriched&nbsp;state&nbsp;over<br>
+``kingdoms.v1.GameData``.&nbsp;svc-core&nbsp;never&nbsp;talks&nbsp;to&nbsp;the&nbsp;providers,&nbsp;and<br>
+vice&nbsp;versa.<br>
+&nbsp;<br>
+This&nbsp;process&nbsp;consumes:<br>
+-&nbsp;ext-aoe2lobby&nbsp;(realtime&nbsp;lobby/game&nbsp;states,&nbsp;match&nbsp;summaries,&nbsp;links)<br>
+-&nbsp;ext-librematch&nbsp;(stats,&nbsp;results&nbsp;—&nbsp;the&nbsp;source&nbsp;of&nbsp;truth)<br>
+&nbsp;<br>
+and&nbsp;serves&nbsp;the&nbsp;bot's&nbsp;live&nbsp;dashboard&nbsp;and&nbsp;the&nbsp;generic&nbsp;player-events<br>
+mod&nbsp;feed,&nbsp;with&nbsp;the&nbsp;full&nbsp;match&nbsp;summary&nbsp;(map,&nbsp;civs,&nbsp;format,&nbsp;links).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.game_aoe2.aggregator.html">aggregator</a><br>
+</td><td class="multicolumn"><a href="kingdoms.game_aoe2.client.html">client</a><br>
+</td><td class="multicolumn"><a href="kingdoms.game_aoe2.rpc.html">rpc</a><br>
+</td><td class="multicolumn"><a href="kingdoms.game_aoe2.server.html">server</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>PROCESS_LABEL</strong> = 'game-aoe2'</td></tr></table>
+</body></html>

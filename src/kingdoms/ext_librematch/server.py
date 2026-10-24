@@ -20,7 +20,7 @@ def main() -> None:
     from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
     from kingdoms.core_process.ext_server import serve_game_provider
     from kingdoms.ext_librematch import DECLARED_CAPABILITIES, PROVIDER_ID
-    from kingdoms.ext_librematch.adapter import LibrematchAdapter
+    from kingdoms.ext_librematch.adapter import DEFAULT_BASE_URL, LibrematchAdapter
 
     # The community leaderboard endpoint is PUBLIC — no API key gates
     # player_stats (the 2026-10-16 lesson: the key gate rejected every
@@ -37,7 +37,7 @@ def main() -> None:
         )
 
     adapter = LibrematchAdapter(
-        base_url=os.environ.get("LIBREMATCH_API_URL", "https://aoe-api.worldsedgelink.com"),
+        base_url=os.environ.get("LIBREMATCH_API_URL", "") or DEFAULT_BASE_URL,
         rate_limiter=rate_limiter,
     )
 

@@ -44,10 +44,16 @@
 <td class="decor title-decor" colspan=2><span class="code"><a href="#Live">Live</a>&nbsp;test&nbsp;dashboard&nbsp;(kingdoms-services#147):&nbsp;svc-core&nbsp;aggregates&nbsp;the<br>
 provider&nbsp;event&nbsp;streams&nbsp;(ext-aoe2lobby&nbsp;live&nbsp;layer,&nbsp;ext-librematch&nbsp;as&nbsp;the<br>
 source&nbsp;of&nbsp;truth)&nbsp;and&nbsp;serves&nbsp;the&nbsp;per-player&nbsp;dashboard&nbsp;state&nbsp;to&nbsp;the&nbsp;bot.<br>
-The&nbsp;bot&nbsp;renders&nbsp;it&nbsp;through&nbsp;/live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel.<br>&nbsp;</span></td></tr>
+The&nbsp;bot&nbsp;renders&nbsp;it&nbsp;through&nbsp;/live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel.<br>
+&nbsp;<br>
+WatchPlayerEvents&nbsp;streams&nbsp;the&nbsp;generic&nbsp;player&nbsp;status&nbsp;transitions&nbsp;(see<br>
+kingdoms.core.services.player_events):&nbsp;each&nbsp;transition&nbsp;is&nbsp;dispatched<br>
+by&nbsp;the&nbsp;consumer&nbsp;to&nbsp;the&nbsp;mods&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Static methods defined here:<br>
 <dl><dt><a name="Live-WatchDashboard"><strong>WatchDashboard</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Live-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -66,11 +72,17 @@ Data descriptors defined here:<br>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#Live">Live</a>&nbsp;test&nbsp;dashboard&nbsp;(kingdoms-services#147):&nbsp;svc-core&nbsp;aggregates&nbsp;the<br>
 provider&nbsp;event&nbsp;streams&nbsp;(ext-aoe2lobby&nbsp;live&nbsp;layer,&nbsp;ext-librematch&nbsp;as&nbsp;the<br>
 source&nbsp;of&nbsp;truth)&nbsp;and&nbsp;serves&nbsp;the&nbsp;per-player&nbsp;dashboard&nbsp;state&nbsp;to&nbsp;the&nbsp;bot.<br>
-The&nbsp;bot&nbsp;renders&nbsp;it&nbsp;through&nbsp;/live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel.<br>&nbsp;</span></td></tr>
+The&nbsp;bot&nbsp;renders&nbsp;it&nbsp;through&nbsp;/live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel.<br>
+&nbsp;<br>
+WatchPlayerEvents&nbsp;streams&nbsp;the&nbsp;generic&nbsp;player&nbsp;status&nbsp;transitions&nbsp;(see<br>
+kingdoms.core.services.player_events):&nbsp;each&nbsp;transition&nbsp;is&nbsp;dispatched<br>
+by&nbsp;the&nbsp;consumer&nbsp;to&nbsp;the&nbsp;mods&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LiveServicer-WatchDashboard"><strong>WatchDashboard</strong></a>(self, request, context)</dt><dd><span class="code">Server-stream&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;state:&nbsp;one&nbsp;snapshot&nbsp;immediately,<br>
 then&nbsp;a&nbsp;new&nbsp;snapshot&nbsp;on&nbsp;every&nbsp;aggregated&nbsp;state&nbsp;change.</span></dd></dl>
+
+<dl><dt><a name="LiveServicer-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(self, request, context)</dt><dd><span class="code">Server-stream&nbsp;player&nbsp;status&nbsp;transitions&nbsp;as&nbsp;they&nbsp;are&nbsp;aggregated.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -91,7 +103,11 @@ Data descriptors defined here:<br>
 <a href="#Live">Live</a>&nbsp;test&nbsp;dashboard&nbsp;(kingdoms-services#147):&nbsp;svc-core&nbsp;aggregates&nbsp;the<br>
 provider&nbsp;event&nbsp;streams&nbsp;(ext-aoe2lobby&nbsp;live&nbsp;layer,&nbsp;ext-librematch&nbsp;as&nbsp;the<br>
 source&nbsp;of&nbsp;truth)&nbsp;and&nbsp;serves&nbsp;the&nbsp;per-player&nbsp;dashboard&nbsp;state&nbsp;to&nbsp;the&nbsp;bot.<br>
-The&nbsp;bot&nbsp;renders&nbsp;it&nbsp;through&nbsp;/live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel.<br>&nbsp;</span></td></tr>
+The&nbsp;bot&nbsp;renders&nbsp;it&nbsp;through&nbsp;/live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel.<br>
+&nbsp;<br>
+WatchPlayerEvents&nbsp;streams&nbsp;the&nbsp;generic&nbsp;player&nbsp;status&nbsp;transitions&nbsp;(see<br>
+kingdoms.core.services.player_events):&nbsp;each&nbsp;transition&nbsp;is&nbsp;dispatched<br>
+by&nbsp;the&nbsp;consumer&nbsp;to&nbsp;the&nbsp;mods&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LiveStub-__init__"><strong>__init__</strong></a>(self, channel)</dt><dd><span class="code">Constructor.<br>

@@ -159,13 +159,9 @@ fr:
     admin_name: admin
     admin_description: Panneau admin (opérateurs du bot et admins du serveur uniquement)
     register_name: inscription
-    register_description: Lier votre profil AoE2 à votre compte (inscription en DM)
     live_name: live
-    live_description: 'Dashboard de test en direct : joueurs liés, lobbys et parties'
-    game_link_name: game-link
-    game_link_description: Lier votre profil AoE2 à votre compte (portée test)
-    game_unlink_name: game-unlink
-    game_unlink_description: Détachez votre profil AoE2 de votre compte
+    live_description: 'Dashboard AoE2 en direct : joueurs liés, lobbies et parties'
+    register_description: Lier votre profil AoE2 à votre compte (inscription en DM)
     home_name: home
     home_description: Le menu d'accueil du serveur
     ladder_name: ladder
@@ -178,7 +174,7 @@ fr:
     joined_queue: Tu as rejoint la file.
     join_failed: 'Impossible de rejoindre : {reason}'
     join_unconfigured: L'inscription n'est pas configurée — les profils ne peuvent pas être vérifiés.
-    join_no_profile: Aucun profil AoE2 lié — utilise /inscription d'abord.
+    join_no_profile: Aucun profil AoE2 lié — ajoutez-en un depuis le menu profil (/home → Profil).
     season_state:
       scheduled: planifiée
       active: en cours
@@ -311,10 +307,10 @@ fr:
   live:
     title: 🎮 Dashboard en direct
     offline_separator: — hors ligne —
-    no_players: Aucun joueur lié — liez un profil avec /game-link.
+    no_players: Aucun joueur lié — ajoutez votre profil AoE2 depuis le menu profil (/home → Profil).
     all_offline: Tout le monde est hors ligne depuis plus d'une heure.
     unavailable: 'Dashboard indisponible : CORE_URI n''est pas configuré.'
-    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez /game-link pour lier d'autres profils.
+    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Ajoutez-en d'autres depuis le menu profil (/home → Profil).
     unlinked: Profil `{profile}` délié.
     no_link: Aucun lien pour le profil `{profile}`.
     degraded: ⚠️ Fournisseurs injoignables — états potentiellement périmés, tout le monde hors ligne.
@@ -476,6 +472,7 @@ fr:
       heading_actions: 🎩 Actions
       btn_add_map: Ajouter une map
       btn_create_pool: Créer un map pool
+      btn_providers: Providers (santé & tests)
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
       btn_sync: Synchroniser

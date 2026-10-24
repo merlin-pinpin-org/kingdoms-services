@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ui.emoji</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.emoji</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/emoji.py">SOURCE_ROOT/discord/ui/emoji.py</a></td></tr></table>
+    <p><span class="code">Discord-valid&nbsp;emoji&nbsp;allowlist&nbsp;—&nbsp;the&nbsp;one&nbsp;place&nbsp;to&nbsp;pick&nbsp;a&nbsp;component&nbsp;emoji.<br>
+&nbsp;<br>
+Discord's&nbsp;API&nbsp;rejects&nbsp;codepoints&nbsp;outside&nbsp;its&nbsp;emoji&nbsp;set&nbsp;with<br>
+**50035&nbsp;Invalid&nbsp;Form&nbsp;Body&nbsp;(Invalid&nbsp;emoji)**&nbsp;—&nbsp;the&nbsp;component&nbsp;(button,<br>
+select&nbsp;option)&nbsp;is&nbsp;then&nbsp;silently&nbsp;dead:&nbsp;it&nbsp;renders&nbsp;nowhere&nbsp;and&nbsp;the&nbsp;click<br>
+never&nbsp;opens&nbsp;(the&nbsp;2026-10-16&nbsp;lesson,&nbsp;twice).&nbsp;The&nbsp;block&nbsp;where&nbsp;the&nbsp;invalid<br>
+codepoints&nbsp;concentrate&nbsp;is&nbsp;U+1F500-U+1F5FF&nbsp;(U+1F5F2&nbsp;and&nbsp;U+1F5AE&nbsp;were<br>
+both&nbsp;rejected&nbsp;live),&nbsp;but&nbsp;the&nbsp;rule&nbsp;is:&nbsp;**every**&nbsp;emoji&nbsp;on&nbsp;a&nbsp;component<br>
+comes&nbsp;from&nbsp;this&nbsp;allowlist&nbsp;—&nbsp;a&nbsp;new&nbsp;candidate&nbsp;is&nbsp;live-checked&nbsp;first&nbsp;(the<br>
+test&nbsp;env&nbsp;renders&nbsp;it&nbsp;on&nbsp;a&nbsp;real&nbsp;button),&nbsp;then&nbsp;added&nbsp;here.<br>
+&nbsp;<br>
+Usage&nbsp;—&nbsp;pick&nbsp;a&nbsp;semantic&nbsp;constant,&nbsp;never&nbsp;a&nbsp;raw&nbsp;literal:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;from&nbsp;kingdoms.discord.ui.emoji&nbsp;import&nbsp;EMOJI<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;button&nbsp;=&nbsp;discord.ui.Button(emoji=EMOJI.MAP,&nbsp;...)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;option&nbsp;=&nbsp;discord.SelectOption(label=...,&nbsp;emoji=EMOJI.GREEN_CIRCLE)<br>
+&nbsp;<br>
+The&nbsp;architecture&nbsp;guard&nbsp;(tests/architecture/test_component_guards.py)<br>
+derives&nbsp;its&nbsp;scan&nbsp;from&nbsp;this&nbsp;module:&nbsp;an&nbsp;emoji&nbsp;outside&nbsp;the&nbsp;allowlist&nbsp;in<br>
+``src/kingdoms/**``&nbsp;fails&nbsp;CI&nbsp;with&nbsp;the&nbsp;exact&nbsp;codepoint.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-is_allowed"><strong>is_allowed</strong></a>(emoji: 'str') -&gt; 'bool'</dt><dd><span class="code">Report&nbsp;whether&nbsp;every&nbsp;codepoint&nbsp;of&nbsp;an&nbsp;emoji&nbsp;is&nbsp;allowlisted.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ALLOWED_CODEPOINTS</strong> = frozenset({9876, 9878, 9881, 9888, 9898, 9939, ...})<br>
+<strong>EMOJI</strong> = &lt;kingdoms.discord.ui.emoji._Emoji object&gt;<br>
+<strong>Final</strong> = typing.Final<br>
+<strong>__annotations__</strong> = {'ALLOWED_CODEPOINTS': 'Final[frozenset[int]]', 'EMOJI': 'Final[_Emoji]', '_EMOJI_VALUES': 'Final[tuple[str, ...]]'}</td></tr></table>
+</body></html>

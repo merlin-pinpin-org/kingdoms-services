@@ -14,11 +14,29 @@ import pytest
 
 from kingdoms.core.models.registered_message import RegisteredMessageModel
 from kingdoms.discord.live import (
-    GAME_KEY,
-    LIVE_MESSAGE_KEY,
+    DEFAULT_GAME_KEY as GAME_KEY,
+)
+from kingdoms.discord.live import (
     PLATFORM,
     ensure_live_dashboard,
+    live_view_key,
 )
+
+
+def _view_text(view: object) -> str:
+    """Flatten a LayoutView's TextDisplays (real or fake) into text."""
+    if view is None:
+        return ""
+    parts: list[str] = []
+    for item in getattr(getattr(view, "children", []), "__iter__", lambda: [])():
+        for child in getattr(item, "children", []) or []:
+            text = getattr(child, "content", "") or getattr(child, "label", "")
+            if isinstance(text, str):
+                parts.append(text)
+        text = getattr(item, "content", "") or getattr(item, "label", "")
+        if isinstance(text, str):
+            parts.append(text)
+    return "\n".join(parts)
 
 
 @dataclass
@@ -26,6 +44,8 @@ class _FakeMessage:
     id: int
     content: str = ""
     edits: list[str] = field(default_factory=list)
+    author: object = field(default_factory=lambda: _FakeAuthor())
+    flags: object = None
     embeds: list[object] = field(default_factory=list)
     author_id: int = 999
     pinned: bool = False
@@ -42,7 +62,7 @@ class _FakePartialMessage:
         self._store = store
         self._id = message_id
 
-    async def edit(self, content: str = "", embed: object = None) -> None:
+    async def edit(self, content: str = "", embed: object = None, view: object = None) -> None:
         message = self._store.messages.get(self._id)
         if message is None:
             raise RuntimeError("message gone")
@@ -50,7 +70,12 @@ class _FakePartialMessage:
             message.content = content
         if embed is not None:
             message.embeds.append(embed)
-        message.edits.append(content or getattr(embed, "description", ""))
+        if view is not None:
+            self._store.sent_views.append(view)
+        # the unified dashboard edits ride the VIEW (components-v2):
+        # capture its text content so the render asserts keep working
+        view_text = _view_text(view)
+        message.edits.append(content or getattr(embed, "description", "") or view_text)
 
 
 class _FakeChannel:
@@ -61,6 +86,7 @@ class _FakeChannel:
         self.name = "📡-live-dashboard"
         self.messages: dict[int, _FakeMessage] = {}
         self.sent: list[_FakeMessage] = []
+        self.sent_views: list[object] = []
         self.guild = _FakeGuildRef(self)
 
     def get_partial_message(self, message_id: int) -> _FakePartialMessage:
@@ -70,13 +96,21 @@ class _FakeChannel:
         """Return the channel's pinned messages (fake)."""
         return [m for m in self.messages.values() if m.pinned]
 
-    async def send(self, content: str = "", embed: object = None) -> _FakeMessage:
+    async def send(
+        self, content: str = "", embed: object = None, view: object = None
+    ) -> _FakeMessage:
         message = _FakeMessage(id=1000 + len(self.sent), content=content)
         if embed is not None:
             message.embeds.append(embed)
+        if view is not None:
+            self.sent_views.append(view)
         self.messages[message.id] = message
         self.sent.append(message)
         return message
+
+
+class _FakeAuthor:
+    id: int = 999
 
 
 class _FakeGuildRef:
@@ -103,6 +137,26 @@ class _FakeGuild:
 
     def get_channel(self, channel_id: int) -> _FakeChannel | None:
         return self._channel if channel_id == self._channel.id else None
+
+    def get_member(self, user_id: int) -> Any:
+        """Membership seam: every platform user is a member (test default)."""
+        return object()
+
+    async def fetch_member(self, user_id: int) -> Any:
+        """Fetch fallback: same as the cache (member)."""
+        return object()
+
+    async def fetch_members(self, limit: int | None = None) -> Any:
+        """The member cache's chunked fetch: the snapshot's users are members."""
+
+        class _M:
+            def __init__(self, uid: int) -> None:
+                self.id = uid
+                self.display_name = f"member{uid}"
+
+        ids = {10, 20}
+        for uid in sorted(ids):
+            yield _M(uid)
 
 
 @pytest.fixture
@@ -200,12 +254,12 @@ async def test_first_refresh_creates_and_registers_the_message(stored_live_chann
     client = _FakeLiveClient(_snapshot("offline"))
     registry = _FakeRegistry()
 
-    created = await ensure_live_dashboard(bot, "42", client, registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", client, registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
     assert len(channel.sent) == 1, "exactly one dashboard message is created"
     assert client.watch_calls == [GAME_KEY]
-    key = f"{PLATFORM}:{LIVE_MESSAGE_KEY}:42"
+    key = f"{PLATFORM}:{live_view_key(GAME_KEY)}:42"
     assert key in registry.messages, "the message is registered by its logical key"
 
 
@@ -216,9 +270,9 @@ async def test_refresh_edits_in_place_without_spam(stored_live_channel) -> None:
     _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
-    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry)  # type: ignore[arg-type]
+    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry, GAME_KEY)  # type: ignore[arg-type]
 
-    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_lobby")), registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_lobby")), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is False
     assert len(channel.sent) == 1, "the refresh never adds a message"
@@ -233,10 +287,10 @@ async def test_deleted_message_is_recreated_and_reregistered(stored_live_channel
     _STORED["42"] = str(channel.id)
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
-    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry)  # type: ignore[arg-type]
+    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry, GAME_KEY)  # type: ignore[arg-type]
     channel.messages.clear()
 
-    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_game")), registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_game")), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
     assert len(channel.sent) == 2, "a fresh message replaces the deleted one"
@@ -256,8 +310,38 @@ async def test_provider_failure_degrades_to_offline_dashboard(stored_live_channe
     bot = _FakeBot(_FakeGuild(42, channel))
     registry = _FakeRegistry()
 
-    created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry)  # type: ignore[arg-type]
+    created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry, GAME_KEY)  # type: ignore[arg-type]
 
     assert created is True
-    body = channel.sent[0].edits[-1] if channel.sent[0].edits else channel.sent[0].embeds[0].description
-    assert "Providers unreachable" in body, "the degraded note is shown"
+    # the created message carries the unified view (Container + footer)
+    body = channel.sent_views[0] if channel.sent_views else ""
+    flat = _view_text(body) if not isinstance(body, str) else body
+    assert "Providers unreachable" in flat, "the degraded note is shown"
+
+
+async def test_scope_snapshot_filters_by_cached_members() -> None:
+    """The dashboard scope keeps only the guild's members."""
+    from kingdoms.discord import member_cache
+    from kingdoms.discord.live import scope_snapshot_to_guild
+
+    class _Guild:
+        id = 42
+
+        async def fetch_members(self, limit: int | None = None):
+            class _M:
+                def __init__(self, uid: int, name: str) -> None:
+                    self.id = uid
+                    self.display_name = name
+
+            yield _M(10, "Merlin")
+
+    snapshot = {
+        "players": [
+            {"user_id": "10", "profile_id": "A"},
+            {"user_id": "99", "profile_id": "B"},
+            {"user_id": "", "profile_id": "C"},
+        ]
+    }
+    scoped = await scope_snapshot_to_guild(snapshot, _Guild())
+    assert [p["profile_id"] for p in scoped["players"]] == ["A"]
+    member_cache._cache.pop(42, None)

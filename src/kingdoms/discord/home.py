@@ -140,7 +140,7 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     if registration is None:
         await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True, thinking=True)
     await _profile_followup(interaction)
 
 
@@ -165,7 +165,7 @@ async def _profile_game_blocks(
             profile = entry.get("profile") or {}
             aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
             name = (
-                str(profile.get("display_name") or profile.get("name") or "")
+                str(profile.get("profile_name") or "")
                 or (aliases[0] if aliases else "")
                 or "?"
             )
@@ -238,7 +238,24 @@ async def _profile_followup(
 PROFILE_PROVIDER = "ext-librematch (aoe2)"
 
 GAME_LABELS = {"aoe2": "Age of Empires II"}
-GAME_INSIGHTS_URL = "https://www.aoe2insights.com/user/"
+
+
+def _live_client_for(bot: Any, game_key: str) -> Any:
+    """Resolve the dashboard client of one game (None when unwired).
+
+    The URI convention is ``GAME_<KEY>_URI``; aoe2 is served by the
+    game service's GameData client.
+    """
+    import os
+
+    uri = os.environ.get(f"GAME_{game_key.upper()}_URI", "")
+    if not uri:
+        return None
+    if game_key == "aoe2":
+        from kingdoms.game_aoe2.client import GameDataClient
+
+        return GameDataClient(uri)
+    return None
 
 
 def _game_label(game_key: str) -> str:
@@ -246,16 +263,53 @@ def _game_label(game_key: str) -> str:
     return GAME_LABELS.get(game_key, game_key)
 
 
-def _game_account_url(game_key: str, relic_id: str) -> str:
-    """Build the profile's public page URL (insights for aoe2; empty when unknown).
+def _profile_sites(game_key: str) -> list[tuple[str, str, str]]:
+    """List the game's declared profile sites: (key, label, no-url)."""
+    from kingdoms.core.services.profile_sites import profile_sites_registry
 
-    The insights site keys profiles by its own user id on the plain
-    /user/<id>/ path; the relic id needs the relic path
-    (``/user/relic/<relic_id>/``) — the plain path with a relic id 404s.
+    return [(s.key, s.label, "") for s in profile_sites_registry().sites_for(game_key)]
+
+
+def _game_account_url(game_key: str, relic_id: str, site_key: str = "") -> str:
+    """Build the profile's public page URL on the chosen (or default) site.
+
+    The sites are declared in ``config/games/<game>/profile_sites.yaml``
+    — never hard-coded; the user's preferred site rides their settings.
     """
-    if game_key == "aoe2" and relic_id.isdigit():
-        return f"{GAME_INSIGHTS_URL}relic/{relic_id}/"
-    return ""
+    from kingdoms.core.services.profile_sites import format_profile_url
+
+    return format_profile_url(game_key, relic_id, site_key)
+
+
+async def _user_preferred_site(interaction: discord.Interaction, game_key: str) -> str:
+    """Read the user's preferred profile site for a game ('' = default)."""
+    logs_service = getattr(interaction.client, "logs_service", None)
+    if logs_service is None:
+        return ""
+    try:
+        settings = await logs_service._safe(
+            logs_service._db.get_user_settings(str(interaction.user.id))
+        ) or {}
+    except Exception:
+        return ""
+    return str(settings.get(f"profile_site:{game_key}", ""))
+
+
+async def _set_user_preferred_site(
+    interaction: discord.Interaction, game_key: str, site_key: str
+) -> None:
+    """Persist the user's preferred profile site for a game."""
+    logs_service = getattr(interaction.client, "logs_service", None)
+    if logs_service is None:
+        return
+    import time as _time
+
+    settings = await logs_service._safe(
+        logs_service._db.get_user_settings(str(interaction.user.id))
+    ) or {}
+    settings[f"profile_site:{game_key}"] = site_key
+    settings["updated_at"] = int(_time.time())
+    await logs_service._db.set_user_settings(str(interaction.user.id), settings)
 
 
 async def _report_profile_error(
@@ -499,6 +553,70 @@ class ProfileRenameButton(
         )
 
 
+class ProfileSiteSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=r"home:profile:site:(?P<game>[a-z0-9]+)",
+):
+    """Pick the preferred profile site for a game (persisted per user).
+
+    The sites come from ``config/games/<game>/profile_sites.yaml`` —
+    the select is rebuilt from the registry at every profile render,
+    so a config change shows up without a deploy.
+    """
+
+    def __init__(self, game_key: str, options: list[discord.SelectOption]) -> None:
+        super().__init__(
+            discord.ui.Select(
+                placeholder="Site de profil préféré",
+                options=options,
+                custom_id=f"home:profile:site:{game_key}",
+            )
+        )
+        self.game_key = game_key
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> ProfileSiteSelect:
+        """Rebuild the picker from the wire (registry options)."""
+        game_key = str(match.group("game"))
+        return cls(game_key, _site_options(interaction, game_key))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Persist the choice and re-render the profile in place."""
+        data = getattr(interaction, "data", None) or {}
+        values = [str(v) for v in data.get("values", [])]
+        if not values:
+            return
+        await _set_user_preferred_site(interaction, self.game_key, values[0])
+        await _profile_followup(
+            interaction,
+            banner=f"Site de profil préféré : **{values[0]}**.",
+        )
+
+
+def _site_options(interaction: discord.Interaction, game_key: str) -> list[discord.SelectOption]:
+    """Build the site options from the registry (current choice marked)."""
+    from kingdoms.core.services.profile_sites import profile_sites_registry
+
+    registry = profile_sites_registry()
+    current = ""
+    default = registry.default_site(game_key)
+    options = [
+        discord.SelectOption(
+            label=site.label,
+            value=site.key,
+            default=(site.key == current) or (not current and default is not None and site.key == default.key),
+        )
+        for site in registry.sites_for(game_key)
+    ]
+    return options
+
+
 class ProfileRenameModal(discord.ui.Modal):
     """The rename form: the user's chosen name (1-16 chars)."""
 
@@ -528,7 +646,7 @@ class ProfileRenameModal(discord.ui.Modal):
                 user = await identity.get_or_create_user(
                     platform="discord",
                     platform_user_id=str(interaction.user.id),
-                    display_name=str(interaction.user.display_name),
+                    display_name=str(interaction.user.display_name or interaction.user.name),
                 )
             await identity.set_display_name(user.id, str(self.name.value))
         except ValueError:
@@ -710,7 +828,7 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     from kingdoms.discord.bot.factory import KingdomsBot
 
     bot = interaction.client
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True, thinking=True)
     games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
     games, counts = await _granted_games_with_counts(guild_id, games)
 
@@ -750,33 +868,39 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     await interaction.followup.send(view=view, ephemeral=True)
 
 
-async def _view_live(interaction: discord.Interaction) -> None:
-    """Render the aoe2 live dashboard ephemerally (from the home/aoe2 menu)."""
+async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -> None:
+    """Render one game's live dashboard ephemerally (/live, the menu panel)."""
     await interaction.response.defer(ephemeral=True, thinking=True)
     from kingdoms.discord.live import collect_profile_stats, render_dashboard
 
     snapshot: dict[str, Any] = {"players": [], "generated_at": 0, "degraded": True}
-    client = getattr(interaction.client, "live_client", None)
+    client = _live_client_for(interaction.client, game_key)
     if client is not None:
         try:
-            snapshot = await client.watch("aoe2")
+            snapshot = await client.watch(game_key)
         except Exception:
-            logger.warning("HOME: live snapshot failed", exc_info=True)
-    stats = await collect_profile_stats(
-        [str(p.get("profile_id", "")) for p in snapshot.get("players", [])]
-    )
-    body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
-    from kingdoms.discord.message_limits import truncate_body
-    from kingdoms.discord.ui.view_footer import add_view_footer
+            logger.warning("HOME: live snapshot failed (game %s)", game_key, exc_info=True)
+    guild = interaction.client.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
+    if guild is not None:
+        from kingdoms.discord.live import scope_snapshot_to_guild
 
-    # the ephemeral panel is a components-v2 view, not an embed: the view
-    # id rides its own -# line UNDER the container, backticked — never
-    # inside an embed footer
-    view = discord.ui.LayoutView(timeout=None)
-    view.add_item(discord.ui.Container(discord.ui.TextDisplay(truncate_body(body, 3800))))
-    await interaction.followup.send(
-        view=add_view_footer(view, "panel:game:aoe2:live"), ephemeral=True
-    )
+        snapshot = await scope_snapshot_to_guild(snapshot, guild)
+    active_ids = [
+        str(p.get("profile_id", ""))
+        for p in snapshot.get("players", [])
+        if p.get("state") != "offline"
+    ]
+    stats = await collect_profile_stats(active_ids, game_key)
+    from kingdoms.discord.content_posts import guild_locale
+
+    locale = await guild_locale(str(interaction.guild_id), interaction.client)
+    body = render_dashboard(snapshot, locale=locale, stats=stats)
+    from kingdoms.discord.live import build_dashboard_view
+
+    # THE dashboard rendering (unified, owner direction): the same view
+    # the pinned channel shows — Container + the id under it, one code path.
+    view = build_dashboard_view(snapshot, body, interaction.client, locale=locale, game_key=game_key)
+    await interaction.followup.send(view=view, ephemeral=True)
 
 
 async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
@@ -892,19 +1016,23 @@ async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, An
 
 
 async def _is_guild_member(guild: Any, user_id: int) -> bool:
-    """Whether one user is a member of the guild (cache first, then fetch)."""
-    if guild.get_member(user_id) is not None:
+    """Return whether one user is a member of the guild (the cached roster).
+
+    An unresolvable roster (empty fetch) accepts everyone — fail open:
+    an API hiccup must never blank the roster panel.
+    """
+    from kingdoms.discord.member_cache import guild_members
+
+    members = await guild_members(guild)
+    if not members:
         return True
-    try:
-        return await guild.fetch_member(user_id) is not None
-    except Exception:
-        return False
+    return user_id in members
 
 
 async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
     """Render the guild's roster (DM re-dispatch friendly: ack first)."""
     if not interaction.response.is_done():
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=True, thinking=True)
     bot = interaction.client
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
@@ -958,17 +1086,73 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
     await interaction.followup.send(view=view, ephemeral=True)
 
 
+class LiveGamePicker(discord.ui.Modal):
+    """The /live game picker: one select, the installed games.
+
+    A modal (not a bare select response) per the owner's direction —
+    the picker presents the games, the chosen game's dashboard renders
+    ephemerally on submit.
+    """
+
+    def __init__(self, games: list[tuple[str, str]]) -> None:
+        super().__init__(title="Live dashboard — pick a game")
+        self._games = dict(games)
+        self.game_select: discord.ui.Select[Any] = discord.ui.Select(
+            placeholder="Game",
+            options=[
+                discord.SelectOption(label=label, value=game_key)
+                for game_key, label in games
+            ],
+        )
+        self.add_item(self.game_select)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Render the chosen game's dashboard ephemerally."""
+        game_key = self.game_select.values[0] if self.game_select.values else "aoe2"
+        await _view_live(interaction, game_key)
+
+
+def register_live_command(
+    tree: app_commands.CommandTree[discord.Client],
+    catalog: Any = None,
+    games: tuple[str, ...] = ("aoe2",),
+) -> None:
+    """Register the /live command: pick a game, see its live dashboard.
+
+    Generic (owner direction 2026-10-23): a modal + select lists the
+    installed games; the chosen game's dashboard renders ephemerally.
+    """
+
+    @tree.command(
+        name=localized("commands.live_name", "live"),
+        description=localized(
+            "commands.live_description",
+            "Live dashboard: pick a game, see its linked players",
+        ),
+    )
+    async def live_command(interaction: discord.Interaction) -> None:
+        """Open the game picker modal."""
+        options = [(game_key, _game_label(game_key)) for game_key in games]
+        if len(options) == 1:
+            await _view_live(interaction, options[0][0])
+            return
+        await interaction.response.send_modal(LiveGamePicker(options))
+
+    del catalog
+
+
 def _view_users_for_game(game_key: str) -> Any:
     """Build the players panel opener for one game (generic, per game).
 
-    One line per registered member: their bold display name, then
-    every profile of that game as an aoe2insights link. The header
-    carries the game's long label (never the game key), the footer
-    the view id.
+    One line per registered member — pseudo, Discord mention, then
+    every profile of that game as an aoe2insights link — sorted
+    alphabetically by pseudo. The whole roster shows: the lines are
+    paginated across as many ephemeral messages as the 4000-char V2
+    text budget needs (no [:25] truncation).
     """
 
     async def _open(interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         bot = interaction.client
         roster = getattr(bot, "_registration_database", None)
         if roster is None:
@@ -980,7 +1164,6 @@ def _view_users_for_game(game_key: str) -> Any:
             logger.warning("PLAYERS PANEL roster read failed (%s)", game_key, exc_info=True)
             bindings = []
 
-        # group by Discord user: one line per member, all their profiles
         from collections import defaultdict
 
         by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -989,37 +1172,119 @@ def _view_users_for_game(game_key: str) -> Any:
             if user_id:
                 by_user[user_id].append(binding)
 
-        lines: list[str] = []
         guild = bot.get_guild(int(interaction.guild_id)) if interaction.guild_id else None
-        for user_id, user_bindings in list(by_user.items())[:25]:
-            member = guild.get_member(int(user_id)) if guild is not None else None
-            pseudo = getattr(member, "display_name", None) or f"<@{user_id}>"
-            profiles: list[str] = []
-            for binding in user_bindings:
-                profile = binding.get("profile") or {}
-                name = (
-                    str(profile.get("display_name") or profile.get("name") or "")
-                    or str(binding.get("profile_id", "?"))
-                )
-                pid = str(binding.get("profile_id", "?"))
-                url = _game_account_url(game_key, pid)
-                profiles.append(f"[{name}]({url})" if url else name)
-            lines.append(f"\u2022 **{pseudo}**: {', '.join(profiles)}")
+        # guild-scoped: only the enrolled players who are MEMBERS of this
+        # guild render (owner direction — the platform's roster, not the
+        # game's global one)
+        if guild is not None:
+            member_ids = [
+                user_id
+                for user_id in by_user
+                if await _is_guild_member(guild, int(user_id))
+            ]
+            by_user = {user_id: by_user[user_id] for user_id in member_ids}
+        profile_ids = [str(b.get("profile_id", "")) for bs in by_user.values() for b in bs]
+        from kingdoms.discord.live import collect_profile_stats
 
-        body = "\n".join(lines) if lines else await reply(interaction, "profile.no_members_bound")
-        from kingdoms.core.ids import footer
+        names = await collect_profile_stats(profile_ids, game_key)
+        lines = await _roster_lines(game_key, by_user, guild, names)
+        if not lines:
+            lines = [await reply(interaction, "profile.no_members_bound")]
+        for view in _roster_views(game_key, lines):
+            await interaction.followup.send(view=view, ephemeral=True)
 
+    return _open
+
+
+async def _roster_lines(
+    game_key: str,
+    by_user: dict[str, list[dict[str, Any]]],
+    guild: Any,
+    names: dict[str, dict[str, Any]] | None = None,
+) -> list[str]:
+    """One line per member (pseudo, mention, profile links), alphabetical by pseudo.
+
+    A profile link's label is the profile's NAME — the binding's stored
+    display name, else the provider-resolved alias (librematch identity),
+    never the raw profile id.
+    """
+    names = names or {}
+    from kingdoms.discord.member_cache import guild_members
+
+    cached_members = await guild_members(guild) if guild is not None else {}
+    entries: list[tuple[str, str, str]] = []
+    for user_id, user_bindings in by_user.items():
+        # the pseudo rides the member cache (the guild's own cache can be
+        # incomplete); fall back to the mention when the cache misses
+        pseudo = cached_members.get(int(user_id), "") if cached_members else ""
+        mention = f"<@{user_id}>"
+        profiles: list[str] = []
+        for binding in user_bindings:
+            # the link label is the STORED profile name (owner direction)
+            profile = binding.get("profile") or {}
+            pid = str(binding.get("profile_id", "?"))
+            aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
+            name = (
+                str(profile.get("profile_name") or "")
+                or (aliases[0] if aliases else "")
+                or pid
+            )
+            url = _game_account_url(game_key, pid)
+            profiles.append(f"[{name}]({url})" if url else name)
+        entries.append((pseudo or mention, mention, ", ".join(profiles)))
+    entries.sort(key=lambda e: _casefold_key(e[0]))
+    return [f"\u2022 **{pseudo}** \u2014 {mention}: {profiles}" for pseudo, mention, profiles in entries]
+
+
+def _roster_views(game_key: str, lines: list[str]) -> list[Any]:
+    """Build the roster's V2 views: one per page of the character budget."""
+    from kingdoms.core.ids import footer
+
+    header = f"# \U0001F465 {_game_label(game_key)}\n\n"
+    view_id = f"panel:game:{game_key}:players"
+    budget = 4000 - len(header) - len(footer(view_id)) - 64
+    pages = _paginate_lines(lines, budget)
+    views: list[Any] = []
+    for page_index, page in enumerate(pages):
+        title = header
+        if len(pages) > 1:
+            title += f"*({page_index + 1}/{len(pages)})*\n\n"
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(
             discord.ui.Container(
-                discord.ui.TextDisplay(f"# \U0001F465 {_game_label(game_key)}\n\n{body}"),
+                discord.ui.TextDisplay(title + page),
                 accent_colour=discord.Colour(0x5865F2),
             )
         )
-        view.add_item(discord.ui.TextDisplay(footer(f"panel:game:{game_key}:players")))
-        await interaction.followup.send(view=view, ephemeral=True)
+        view.add_item(discord.ui.TextDisplay(footer(view_id)))
+        views.append(view)
+    return views
 
-    return _open
+
+def _casefold_key(text: str) -> str:
+    """Sort key that ignores case and diacritics (pseudo alphabetical order)."""
+    import unicodedata
+
+    stripped = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in stripped if not unicodedata.combining(ch)).casefold()
+
+
+def _paginate_lines(lines: list[str], budget: int) -> list[str]:
+    """Split lines into pages that each fit the character budget."""
+    pages: list[str] = []
+    current: list[str] = []
+    used = 0
+    for line in lines:
+        cost = len(line) + 1
+        if current and used + cost > budget:
+            pages.append("\n".join(current))
+            current = []
+            used = 0
+        current.append(line)
+        used += cost
+    if current:
+        pages.append("\n".join(current))
+    return pages or [""]
 
 
 async def open_home_view_for_guild(interaction: discord.Interaction, view_key: str, guild_id: str) -> None:

@@ -22,10 +22,12 @@ from kingdoms.core.debug import capture
 from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
 from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats, Slot, StatsBlock, StatsEntry
 from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
+from kingdoms.core.services.provider_endpoints import provider_url
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
+
+DEFAULT_BASE_URL = provider_url("librematch", "api_url")
 LOBBIES_PATH = "/community/advertisement/findAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
 PERSONAL_STAT_PATH = "/community/leaderboard/GetPersonalStat"

@@ -159,13 +159,9 @@ en:
     admin_name: admin
     admin_description: Admin panel (bot operators and guild admins only)
     register_name: register
-    register_description: Link your AoE2 profile to your account (DM enrollment)
     live_name: live
-    live_description: 'Live test dashboard: linked players, lobbies and games'
-    game_link_name: game-link
-    game_link_description: Link your AoE2 profile id to your account (test scope)
-    game_unlink_name: game-unlink
-    game_unlink_description: Unlink your AoE2 profile from your account
+    live_description: 'Live AoE2 dashboard: linked players, lobbies and games'
+    register_description: Link your AoE2 profile to your account (DM enrollment)
     home_name: home
     home_description: The guild's home menu
     ladder_name: ladder
@@ -195,7 +191,7 @@ en:
     admin_season_name_required: The name is required.
     admin_title_seasons: Ladder admin — seasons
     join_failed: 'Could not join: {reason}'
-    join_no_profile: No linked AoE2 profile — use /game-link first.
+    join_no_profile: No linked AoE2 profile — add one from the profile menu (/home → Profile).
     join_unconfigured: Registration is not configured — profiles cannot resolve.
     joined_queue: You joined the queue.
     leaderboard_empty: No players yet.
@@ -311,10 +307,10 @@ en:
   live:
     title: 🎮 Live dashboard
     offline_separator: — offline —
-    no_players: No linked players yet — link a profile with /game-link.
+    no_players: No linked players yet — add your AoE2 profile from the profile menu (/home → Profile).
     all_offline: Everyone is offline for more than an hour.
     unavailable: 'Live dashboard unavailable: CORE_URI not configured.'
-    linked: Linked profile `{profile}` to <@{user}> — the dashboard will show it. Link more profiles by running /game-link again.
+    linked: Linked profile `{profile}` to <@{user}> — the dashboard will show it. Add more from the profile menu (/home → Profile).
     unlinked: Profile `{profile}` unlinked.
     no_link: No link found for profile `{profile}`.
     degraded: ⚠️ Providers unreachable — states may be stale, all shown offline.
@@ -476,6 +472,7 @@ en:
       heading_actions: 🎩 Actions
       btn_add_map: Add a map
       btn_create_pool: Create a map pool
+      btn_providers: Providers (health & tests)
       btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.
       btn_sync: Sync now

@@ -144,6 +144,13 @@ class MongoRegistrationDatabase:
         return [dict(doc) async for doc in cursor]
 
 
+def _site_of(site_key: str) -> Any:
+    """Return one declared site by key (the registry lookup)."""
+    from kingdoms.core.services.profile_sites import profile_sites_registry
+
+    return profile_sites_registry().site("aoe2", site_key)
+
+
 class ProviderStatsUnavailableError(RuntimeError):
     """The provider declares no player-stats capability (configuration gap)."""
 
@@ -189,9 +196,19 @@ class Aoe2ProfileValidationSeam:
                 "ext-librematch ne sert pas les stats de profil "
                 "(provider mal configur\u00e9 ou injoignable \u2014 vois les logs du bot)"
             )
-        # A pasted insights URL always resolves first: the id it carries is
-        # the insights user id, never the relic id the provider wants.
         typed = profile_id.strip()
+        # Any known site's URL parses through the profile-sites registry:
+        # a relic-keyed site (aoe2.GG, ageofempires.com) carries the relic
+        # id directly — no resolution needed; the insights URL keeps its
+        # resolve path (its id is the site's own).
+        from kingdoms.core.services.profile_sites import ID_KIND_RELIC, parse_profile_url
+
+        parsed = parse_profile_url("aoe2", typed)
+        if parsed is not None:
+            _site_key, site_id = parsed
+            site = _site_of(parsed[0])
+            if site is not None and site.id_kind == ID_KIND_RELIC:
+                return await self._validate_with_client(client, site_id)
         if extract_insights_user_id(typed) is not None:
             relic_id = await resolve_relic_id(typed)
             if relic_id is None:
@@ -217,7 +234,11 @@ class Aoe2ProfileValidationSeam:
         aliases = [e.value for e in entries if e.key == "alias"]
         if not aliases:
             aliases = [e.value for e in entries][:5]
+        # the profile name rides the binding (owner direction): the stored
+        # name of each profile id, so every link renders it without a
+        # provider round-trip
         return {
             "profile_id": profile_id,
+            "profile_name": aliases[0] if aliases else "",
             "aliases": aliases[:5],
         }

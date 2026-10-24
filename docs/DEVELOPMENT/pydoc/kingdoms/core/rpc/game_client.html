@@ -75,6 +75,13 @@ The&nbsp;generator&nbsp;yields&nbsp;MatchEvent&nbsp;models&nbsp;as&nbsp;they&nbs
 lost&nbsp;stream&nbsp;it&nbsp;yields&nbsp;nothing&nbsp;and&nbsp;returns&nbsp;—&nbsp;the&nbsp;caller&nbsp;(the<br>
 live&nbsp;aggregator&nbsp;loop)&nbsp;retries&nbsp;with&nbsp;backoff.</span></dd></dl>
 
+<dl><dt>async <a name="GameProviderClient-update_subscriptions"><strong>update_subscriptions</strong></a>(self, profile_ids: 'list[str]') -&gt; 'bool'</dt><dd><span class="code">Push&nbsp;the&nbsp;subscribed&nbsp;profile&nbsp;ids,&nbsp;degrading&nbsp;to&nbsp;False.<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;reconciles&nbsp;its&nbsp;upstream&nbsp;subscriptions&nbsp;in&nbsp;place;<br>
+False&nbsp;means&nbsp;the&nbsp;push&nbsp;was&nbsp;not&nbsp;applied&nbsp;(provider&nbsp;offline&nbsp;or<br>
+without&nbsp;the&nbsp;capability)&nbsp;and&nbsp;the&nbsp;caller&nbsp;should&nbsp;retry&nbsp;later&nbsp;—<br>
+the&nbsp;provider&nbsp;re-syncs&nbsp;the&nbsp;full&nbsp;list&nbsp;on&nbsp;its&nbsp;next&nbsp;reconnect.</span></dd></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>provider_id</strong></dt>

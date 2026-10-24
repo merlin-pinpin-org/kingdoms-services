@@ -182,12 +182,14 @@ class GameServicer(game_pb2_grpc.GameServicer):
         list_maps: Callable[[], Awaitable[list[GameMap]]] | None = None,
         match_events: Callable[[], AsyncIterator[MatchEvent]] | None = None,
         player_stats: Callable[[str], Awaitable[PlayerStats | None]] | None = None,
+        update_subscriptions: Callable[[list[str]], Awaitable[bool]] | None = None,
     ) -> None:
         self._capabilities = capabilities
         self._match_details = match_details
         self._list_maps = list_maps
         self._match_events = match_events
         self._player_stats = player_stats
+        self._update_subscriptions = update_subscriptions
 
     async def GetCapabilities(
         self,
@@ -233,6 +235,20 @@ class GameServicer(game_pb2_grpc.GameServicer):
         if stats is None:
             await context.abort(grpc.StatusCode.NOT_FOUND, "unknown profile_id")
         return player_stats_to_wire(stats)
+
+    async def UpdateSubscriptions(
+        self,
+        request: game_pb2.UpdateSubscriptionsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> game_pb2.UpdateSubscriptionsResponse:
+        """Push the subscribed profile ids; the provider reconciles in place."""
+        if self._update_subscriptions is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "subscriptions not available")
+        applied = await self._update_subscriptions(list(request.profile_ids))
+        return game_pb2.UpdateSubscriptionsResponse(
+            subscribed=len(request.profile_ids),
+            applied=applied,
+        )
 
     async def StreamMatchEvents(
         self,

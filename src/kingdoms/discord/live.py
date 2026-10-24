@@ -1,12 +1,11 @@
-"""The /live dashboard command and its dedicated channel (#147).
+"""The per-game live dashboard (#147): channels, panels, the /live command.
 
-The live test dashboard: a dedicated ``live-dashboard`` channel hosts one
-persistent message showing every linked player's current state
-(offline / in lobby / in game, match ref, since when). The message is
-edited in place on every update — no spam. ``/live`` renders the same
-dashboard ephemerally; ``/game-link`` and ``/game-unlink`` manage the
-minimal profile links needed to test the providers (test-scoped, kept
-simple per #147).
+Generic across games (owner direction, 2026-10-23): every game gets its
+own live dashboard channel (the tree folder ``games/<game_key>`` hosts
+the ``live`` channel and one pinned message, edited in place on every
+state change); the /live command and the aoe2 menu panel render the
+same dashboard ephemerally. A game with no game service configured
+degrades to its empty dashboard — the machinery is game-agnostic.
 """
 
 from __future__ import annotations
@@ -18,19 +17,33 @@ import time
 from typing import Any, Protocol
 
 import discord
-from discord import app_commands
-
-from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.discord.message_limits import MAX_EMBED_DESCRIPTION, truncate_body
 
 logger = logging.getLogger("kingdoms.live")
 
-GAME_KEY = "aoe2"
-LIVE_CHANNEL_NAME = "📡-live-dashboard"
-LIVE_LEGACY_CHANNEL_NAME = "live-dashboard"
-LIVE_MESSAGE_KEY = "view:aoe2:live"
+# The live machinery is game-generic: the game key rides the channel
+# keys, the tree scope and every snapshot call. aoe2 is the first game.
+DEFAULT_GAME_KEY = "aoe2"
+
+
+def live_view_key(game_key: str) -> str:
+    """Return the logical message key of a game's pinned dashboard message."""
+    return f"view:{game_key}:live"
+
+
+def live_page_key(game_key: str, page: int) -> str:
+    """Return the logical message key of one dashboard page (2..N)."""
+    suffix = "" if page <= 1 else f":{page}"
+    return f"{live_view_key(game_key)}{suffix}"
 
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
+
+_LABELS = {"watch": ("Regarder", "Watch"), "join": ("Rejoindre", "Join")}
+
+
+def _live_label(key: str, locale: str = "fr") -> str:
+    """Render one short label (fr default, en variant) — the catalog-less fallback."""
+    fr, en = _LABELS[key]
+    return en if locale == "en" else fr
 
 
 OFFLINE_GRACE_MS = 3600 * 1000
@@ -46,6 +59,34 @@ def _t(bot: Any, locale: str, key: str, fallback: str) -> str:
     except Exception:
         return fallback
     return rendered if rendered != f"live.{key}" else fallback
+
+
+async def scope_snapshot_to_guild(
+    snapshot: dict[str, Any],
+    guild: Any,
+) -> dict[str, Any]:
+    """Keep only the players whose platform user is a member of the guild.
+
+    The membership rides the member cache (one chunked fetch per guild
+    per hour, kept fresh by the member events) — the dashboard render
+    stays fast; a missing membership never crashes it, the player is
+    simply out of this guild's dashboard.
+    """
+    if guild is None:
+        return snapshot
+
+    from kingdoms.discord.member_cache import guild_members
+
+    members = await guild_members(guild)
+    if not members:
+        return snapshot  # unresolvable roster — fail open, never blank
+    kept = [
+        player
+        for player in snapshot.get("players", [])
+        if str(player.get("user_id", "")).isdigit()
+        and int(str(player.get("user_id", ""))) in members
+    ]
+    return {**snapshot, "players": kept}
 
 
 def render_dashboard(
@@ -69,21 +110,112 @@ def render_dashboard(
         lines.append(_t(bot, locale, "degraded", degraded_fb))
     players = snapshot.get("players", [])
     if not players:
-        lines.append(_t(bot, locale, "no_players", "No linked players yet — link a profile with /game-link."))
+        lines.append(
+            _t(
+                bot,
+                locale,
+                "no_players",
+                "No linked players yet — add your AoE2 profile from the profile menu (/home → Profile).",
+            )
+        )
         return "\n".join(lines)
     now = now_ms if now_ms is not None else _now_ms()
     accounts = group_by_account(players, stats)
+    accounts_by_profile = {
+        p["profile_id"]: accounts[p["user_id"]]
+        for p in players
+        if p.get("user_id") in accounts and p.get("profile_id")
+    }
+
+    # one section per match (owner direction): the active players grouped
+    # by their match_ref, the section header carrying the match context
+    active_players = [p for p in players if p.get("state") != "offline"]
+    by_match: dict[str, list[dict[str, Any]]] = {}
+    for player in active_players:
+        by_match.setdefault(str(player.get("match_ref", "")), []).append(player)
+    for match_ref in sorted(by_match):
+        if not match_ref:
+            for player in by_match[match_ref]:
+                lines.append(_render_account(accounts[player["user_id"]], accounts_by_profile, stats))
+            continue
+        lines.append(_render_match_section(by_match[match_ref], accounts, accounts_by_profile, stats, bot, locale))
+
+    # the offline tail: the members who were recently in a match
     visible = [a for a in accounts.values() if a["active"] or now - a["last_match_ms"] < OFFLINE_GRACE_MS]
-    ordered = sorted(visible, key=_account_sort_key)
-    offline_seen = False
-    for account in ordered:
-        if not offline_seen and not account["active"]:
-            lines.append(_t(bot, locale, "offline_separator", "— offline —"))
-            offline_seen = True
-        lines.append(_render_account(account))
-    if not ordered:
+    offline = [a for a in visible if not a["active"]]
+    if offline:
+        lines.append(_t(bot, locale, "offline_separator", "— offline —"))
+        for account in sorted(offline, key=_account_sort_key):
+            lines.append(_render_account(account, accounts_by_profile, stats or {}))
+    if not by_match and not offline:
         lines.append(_t(bot, locale, "all_offline", "Everyone is offline for more than an hour."))
     return "\n".join(lines)
+
+
+def _render_match_section(
+    players: list[dict[str, Any]],
+    accounts: dict[str, dict[str, Any]],
+    accounts_by_profile: dict[str, dict[str, Any]],
+    stats: dict[str, dict[str, Any]] | None,
+    bot: Any,
+    locale: str,
+) -> str:
+    """Render one match section: header, then the players.
+
+    The header carries the match context (mode, map, link); each player
+    line carries the player (mention, name, elo, civ, enrolled
+    co-players) — no repetition between the two.
+    """
+    first = players[0]
+    match = first.get("match") or {}
+    state_icon = _STATE_ICONS.get(str(first.get("state", "")), "⚫")
+    mode_bits: list[str] = []
+    match_type = str(match.get("match_type", ""))
+    if match_type:
+        mode_bits.append(match_type)
+    fmt = str(match.get("format", ""))
+    if fmt and fmt != match_type:
+        mode_bits.append(fmt)
+    header = f"{state_icon} **{' '.join(mode_bits)}**" if mode_bits else state_icon
+    if match.get("map"):
+        header += f" — {match['map']}"
+    links = _match_links(match, str(first.get("state", "")))
+    if links:
+        header += f" · {' · '.join(links)}"
+    lines = [header]
+    for player in players:
+        account = accounts.get(str(player.get("user_id", "")))
+        if account is None:
+            continue
+        lines.append(_render_section_player(player, account, accounts_by_profile, stats))
+    return "\n".join(lines)
+
+
+def _render_section_player(
+    player: dict[str, Any],
+    account: dict[str, Any],
+    accounts_by_profile: dict[str, dict[str, Any]],
+    stats: dict[str, dict[str, Any]] | None,
+) -> str:
+    """One player line inside a match section: mention, name, elo, civ, co-players.
+
+    The match context (map, link) lives on the section header — the line
+    carries the player only.
+    """
+    match = player.get("match") or {}
+    profile_id = str(player.get("profile_id", ""))
+    display_name = str((stats or {}).get(profile_id, {}).get("display_name", "")) or profile_id
+    line = f"  <@{account['user_id']}> · **{display_name}**"
+    elo = _profile_elo(stats or {}, profile_id)
+    if elo:
+        line += f" · {elo}"
+    civ = _profile_civ(match, str(player.get("profile_id", "")))
+    if civ:
+        line += f" · {civ}"
+    others = _enrolled_others(match, str(player.get("profile_id", "")), accounts_by_profile)
+    if others:
+        line += " · " + " · ".join(others)
+    return line
 
 
 def group_by_account(
@@ -111,6 +243,7 @@ def group_by_account(
                 "display_name": str(profile_stats.get("display_name", "")) or profile_id,
                 "boards": profile_stats.get("boards", []),
                 "last_match_ms": profile_stats.get("last_match_ms", 0),
+                "match": dict(p.get("match") or {}),
             }
         )
         if state in ("in_lobby", "in_game"):
@@ -124,30 +257,145 @@ def _account_sort_key(account: dict[str, Any]) -> tuple[int, int]:
     return (0 if account["active"] else 1, -account["last_match_ms"])
 
 
-def _render_account(account: dict[str, Any]) -> str:
-    """One line per Discord user: mention, fused state, last-match stamp."""
-    icon = "🟢" if account["active"] else "⚫"
-    header = f"{icon} <@{account['user_id']}>"
+def _render_account(
+    account: dict[str, Any],
+    accounts_by_profile: dict[str, dict[str, Any]] | None = None,
+    stats: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """One block per Discord user: mention header, then the active match lines.
+
+    Readability (owner direction): the mention and the display name on
+    ONE line, the match context on the next — a clean two-line block
+    per active player, no emoji salad, the links inline at the end.
+    """
+    lines: list[str] = []
+    for profile in account["profiles"]:
+        if profile["state"] == "offline":
+            continue
+        lines.append(_render_active_profile(account, profile, accounts_by_profile, stats))
+    if lines:
+        return "\n".join(lines)
+    header = f"⚫ <@{account['user_id']}>"
     if account["last_match_ms"]:
-        header += f" — last match <t:{account['last_match_ms'] // 1000}:R>"
+        header += f" · {_t(None, '', 'last_match', 'dernière partie')} <t:{account['last_match_ms'] // 1000}:R>"
     return header
 
 
-def register_live_commands(
-    tree: app_commands.CommandTree[discord.Client],
-    catalog: MessageCatalog | None = None,
-) -> None:
-    """Register nothing: every live surface is a pinned dashboard.
+def _render_active_profile(
+    account: dict[str, Any],
+    profile: dict[str, Any],
+    accounts_by_profile: dict[str, dict[str, Any]] | None = None,
+    stats: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """One block per active profile — readable, dense, no decoration noise.
 
-    The live dashboard lives in its autopin channel (games/aoe2/live) and
-    the profile link/unlink lives in the home profile menu — /live,
-    /game-link and /game-unlink were removed 2026-10-16 (/home, /admin
-    and /status are the platform's only commands).
+    Line 1: state icon, mention, display name, elo.
+    Line 2 (indented): map, format, civ, the enrolled co-players
+    (🤝 with / ⚔️ against), the aoe2lobby link.
     """
-    del tree, catalog
-def _locale(interaction: discord.Interaction) -> str:
-    """Best-effort locale: the user's Discord locale, defaulting to en."""
-    return str(interaction.locale) if interaction.locale else "en"
+    match = profile.get("match") or {}
+    state_icon = _STATE_ICONS.get(profile["state"], "⚫")
+    line1 = f"{state_icon} <@{account['user_id']}> · **{profile['display_name']}**"
+    elo = _profile_elo(stats or {}, profile["profile_id"])
+    if elo:
+        line1 += f" · {elo}"
+    details: list[str] = []
+    if match.get("map"):
+        details.append(str(match["map"]))
+    if match.get("format"):
+        details.append(str(match["format"]))
+    civ = _profile_civ(match, profile["profile_id"])
+    if civ:
+        details.append(civ)
+    others = _enrolled_others(match, profile["profile_id"], accounts_by_profile or {})
+    details.extend(others)
+    links = _match_links(match, profile["state"])
+    line2 = "  > " + " · ".join(details) if details else ""
+    if links:
+        line2 = f"{line2} · {' | '.join(links)}" if line2 else "  > " + " | ".join(links)
+    return line1 + (f"\n{line2}" if line2 else "")
+
+
+def _profile_civ(match: dict[str, Any], profile_id: str) -> str:
+    """Resolve the profile's civilization from the match's player slots.
+
+    The summary's players ride as structured slots (profile_id, name,
+    civ, team) — the slot carrying this profile id holds its civ.
+    """
+    for entry in _match_players(match):
+        if entry.get("profile_id") == profile_id and entry.get("civ"):
+            return str(entry["civ"])
+    return ""
+
+
+def _profile_elo(stats: dict[str, dict[str, Any]], profile_id: str) -> str:
+    """Render the profile's best-board elo (the 1v1 ladder when present)."""
+    boards = (stats.get(profile_id) or {}).get("boards") or []
+    for board in boards:
+        if str(board.get("key", "")) == "rm_1v1" or "1v1" in str(board.get("label", "")):
+            return f"{board.get('rating', '')} elo"
+    return ""
+
+
+def _enrolled_others(
+    match: dict[str, Any],
+    profile_id: str,
+    accounts_by_profile: dict[str, dict[str, Any]],
+) -> list[str]:
+    """Render the other enrolled players of the match: with, then against.
+
+    Same team = with (🤝), other team = against (⚔️); each renders as
+    the Discord mention of the account owning that profile.
+    """
+    my_team = 0
+    for entry in _match_players(match):
+        if entry.get("profile_id") == profile_id:
+            my_team = int(entry.get("team", 0) or 0)
+            break
+    with_me: list[str] = []
+    against_me: list[str] = []
+    for entry in _match_players(match):
+        other_id = str(entry.get("profile_id", ""))
+        if not other_id or other_id == profile_id:
+            continue
+        account = accounts_by_profile.get(other_id)
+        if account is None:
+            continue
+        mention = f"<@{account['user_id']}>"
+        if int(entry.get("team", 0) or 0) == my_team:
+            with_me.append(f"🤝 {mention}")
+        else:
+            against_me.append(f"⚔️ {mention}")
+    return with_me + against_me
+
+
+def _match_players(match: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return the match summary's player slots (structured)."""
+    players = match.get("players")
+    if isinstance(players, list):
+        return [p for p in players if isinstance(p, dict)]
+    return []
+
+
+def _match_links(match: dict[str, Any], state: str) -> list[str]:
+    """Render the match's aoe2lobby link (one, labelled by state).
+
+    The aoe2de:// deep link does not render as clickable in Discord
+    (non-http schemes are stripped) — the aoe2lobby pages carry the
+    join/spectate actions themselves.
+    """
+    if state == "in_game" and match.get("spectate_url"):
+        return [f"[{_live_label('watch')}]({match['spectate_url']})"]
+    if state == "in_lobby" and match.get("lobby_url"):
+        return [f"[{_live_label('join')}]({match['lobby_url']})"]
+    return []
+
+
+def game_label(game_key: str) -> str:
+    """Return one game key's display label (the game's own name)."""
+    from kingdoms.discord.home import _game_label
+
+    return _game_label(game_key)
 
 
 def _now_ms() -> int:
@@ -156,10 +404,14 @@ def _now_ms() -> int:
 
 
 class LiveClientLike(Protocol):
-    """The svc-core live client seam (LiveClient)."""
+    """The dashboard client seam (LiveClient or the GameDataClient)."""
 
     async def watch(self, game_key: str) -> dict[str, Any]:
         """Fetch the current dashboard snapshot for a game."""
+        ...
+
+    def stream_snapshots(self, game_key: str) -> Any:
+        """Yield dashboard snapshots continuously (async iterator)."""
         ...
 
 
@@ -198,7 +450,9 @@ class MessageRegistryServiceLike(Protocol):
         ...
 
 
-async def collect_profile_stats(profile_ids: list[str], game_key: str = GAME_KEY) -> dict[str, dict[str, Any]]:
+async def collect_profile_stats(
+    profile_ids: list[str], game_key: str = DEFAULT_GAME_KEY
+) -> dict[str, dict[str, Any]]:
     """Resolve per-profile enrichment: name, provider stats, last match.
 
     Names come from the profile bindings; ratings/W-L come from the
@@ -275,22 +529,24 @@ async def _last_completed_match_ms(matches: Any, profile_id: str) -> int:
     return last
 
 
-async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextChannel:
-    """Resolve the guild's live channel through the tree's stored id.
+async def ensure_live_dashboard_channel(
+    guild: discord.Guild, game_key: str
+) -> discord.TextChannel:
+    """Resolve the guild's live channel for one game through the tree's stored id.
 
-    The channel lives in the ``games/aoe2`` scope folder (key ``live``),
-    provisioned and persisted by the Panels SDK; the name never drives
-    the resolution. Raises LookupError when the tree has not provided
-    it yet (the caller degrades quietly).
+    The channel lives in the game's tree scope folder (``games/<game_key>``,
+    key ``live``), provisioned and persisted by the Panels SDK; the name
+    never drives the resolution. Raises LookupError when the tree has
+    not provided it yet (the caller degrades quietly).
     """
     from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
-    stored = await stored_channel_id(str(guild.id), "games/aoe2", "live")
+    stored = await stored_channel_id(str(guild.id), f"games/{game_key}", "live")
     if stored and stored.isdigit():
         channel = guild.get_channel(int(stored))
         if channel is not None and not isinstance(channel, (discord.CategoryChannel, discord.ForumChannel)):
             return channel  # type: ignore[return-value]
-    raise LookupError("the tree has no live channel yet (games/aoe2:live)")
+    raise LookupError(f"the tree has no live channel yet (games/{game_key}:live)")
 
 
 async def ensure_live_dashboard(
@@ -298,6 +554,7 @@ async def ensure_live_dashboard(
     guild_id: str,
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> bool:
     """Ensure the guild's dashboard channel holds one up-to-date dashboard message.
 
@@ -313,143 +570,126 @@ async def ensure_live_dashboard(
     if guild is None:
         return False
     try:
-        channel = await ensure_live_dashboard_channel(guild)
+        channel = await ensure_live_dashboard_channel(guild, game_key)
     except LookupError:
-        return False  # the tree has not provisioned games/aoe2:live yet
+        return False  # the tree has not provisioned the game's live channel yet
     try:
-        snapshot = await client.watch(GAME_KEY)
+        snapshot = await client.watch(game_key)
     except Exception:
-        logger.warning("live dashboard fetch failed (guild %s) — best-effort", guild_id, exc_info=True)
+        logger.warning(
+            "live dashboard fetch failed (guild %s, game %s) — best-effort",
+            guild_id,
+            game_key,
+            exc_info=True,
+        )
         snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
+    snapshot = await scope_snapshot_to_guild(snapshot, guild)
     from kingdoms.discord.content_posts import guild_locale
 
     locale = await guild_locale(guild_id, bot)
     body = render_dashboard(snapshot, locale=locale, bot=bot)
-    embeds = _dashboard_embeds(snapshot, body, bot, locale=locale)
-    registered = await _resolve_page(registry, guild_id)
-    if await _edit_registered(channel, registered, embeds[0]):
-        await _sync_extra_pages(guild_id, channel, registry, embeds)
+    registered = await _resolve_page(registry, guild_id, game_key)
+    page_view = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
+    if await _edit_registered(channel, registered, None, page_view):
         await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
         return False
-    reused = await _reuse_pinned_dashboard(channel, embeds[0])
+    reused = await _reuse_pinned_dashboard(channel, page_view)
     if reused is not None:
         await registry.register(
             platform=PLATFORM,
-            message_key=_page_key(1),
+            message_key=_page_key(game_key, 1),
             entity_id=guild_id,
             channel_id=str(channel.id),
             message_id=reused,
             guild_id=guild_id,
         )
-        await _sync_extra_pages(guild_id, channel, registry, embeds)
         await _sweep_duplicate_dashboards(channel, keep=reused)
         return False
     await _sweep_duplicate_dashboards(channel, keep=None)
-    message = await channel.send(embed=embeds[0])
+    message = await channel.send(view=page_view)
     try:
         await message.pin(reason="kingdoms: live dashboard (#147)")
     except Exception:
         logger.warning("live dashboard pin failed (guild %s) — best-effort", guild_id, exc_info=True)
     await registry.register(
         platform=PLATFORM,
-        message_key=_page_key(1),
+        message_key=_page_key(game_key, 1),
         entity_id=guild_id,
         channel_id=str(channel.id),
         message_id=str(message.id),
         guild_id=guild_id,
     )
-    await _sync_extra_pages(guild_id, channel, registry, embeds)
     return True
 
 
-def _page_key(page: int) -> str:
-    """Build the registry key of one dashboard page.
+def _page_key(game_key: str, page: int) -> str:
+    """Build the registry key of one game's dashboard page.
 
-    The view convention is ``view:<scope>:<slug>`` (``view:aoe2:live``);
-    extra pages suffix it. The pre-convention key (``live-dashboard``)
-    stays as the legacy fallback for the page-1 resolve.
+    The view convention is ``view:<game>:live``; extra pages suffix it.
     """
-    return LIVE_MESSAGE_KEY if page == 1 else f"{LIVE_MESSAGE_KEY}-{page}"
+    return live_page_key(game_key, page)
 
 
-async def _resolve_page(registry: Any, guild_id: str, page: int = 1) -> Any:
-    """Resolve a dashboard page's message: current key, then legacy."""
-    registered = await registry.resolve(PLATFORM, _page_key(page), guild_id)
-    if registered is None and page == 1:
-        registered = await registry.resolve(PLATFORM, "live-dashboard", guild_id)
-    return registered
+async def _resolve_page(registry: Any, guild_id: str, game_key: str, page: int = 1) -> Any:
+    """Resolve a game's dashboard page message."""
+    return await registry.resolve(PLATFORM, _page_key(game_key, page), guild_id)
 
 
-def _dashboard_embeds(
+async def _reuse_pinned_dashboard(
+    channel: discord.TextChannel, view: discord.ui.LayoutView
+) -> str | None:
+    """Reuse an already-pinned dashboard message instead of adding a new one.
+
+    The registry may point at a dead message (deleted, channel wiped) while
+    the channel still holds the pinned dashboard: adopting it keeps one
+    dashboard message per channel instead of accumulating a new message
+    per refresh failure.
+    """
+    try:
+        for message in await channel.pins():
+            if message.author.id != channel.guild.me.id:
+                continue
+            if not (message.flags and int(message.flags.value) & (1 << 15)):
+                continue  # not a components-v2 dashboard of ours (bit 15 = IS_COMPONENTS_V2)
+            await message.edit(content=None, embed=None, view=view)
+            return str(message.id)
+    except Exception:
+        logger.warning("live dashboard pin adoption failed — best-effort", exc_info=True)
+    return None
+
+
+def build_dashboard_view(
     snapshot: dict[str, Any],
     body: str,
     bot: discord.Client | None = None,
     locale: str = "en",
-) -> list[discord.Embed]:
-    """Build the dashboard embeds: as many as the player list needs.
+    game_key: str = DEFAULT_GAME_KEY,
+    page_index: int = 1,
+    page_count: int = 1,
+) -> discord.ui.LayoutView:
+    """Build THE dashboard view — the players-panel look, one code path.
 
-    Discord caps one embed description at 4096 chars; a long player
-    list is split across several messages (one embed each) instead of
-    being silently truncated.
+    A components-v2 Container (accent colour, like an embed) holding the
+    body, the view id as a TextDisplay UNDER it. No embed anywhere (an
+    embed cannot share a message with components-v2 — 50035). The
+    pinned channel, /live and the menu button all send this exact view.
     """
-    lines = body.split("\n")
-    pages: list[str] = []
-    current: list[str] = []
-    for line in lines:
-        candidate = "\n".join([*current, line])
-        if len(candidate) > (MAX_EMBED_DESCRIPTION - 128) and current:
-            pages.append("\n".join(current))
-            current = [line]
-        else:
-            current.append(line)
-    if current:
-        pages.append("\n".join(current))
-    if not pages:
-        pages = [body]
-    return [
-        _dashboard_embed(
-            snapshot, page, bot, page_index=i + 1, page_count=len(pages), locale=locale
+    from kingdoms.discord.message_limits import truncate_body
+
+    title = _t(bot, locale, "title", "🎮 Live dashboard") + f" — {game_label(game_key)}"
+    if page_count > 1:
+        title += f" ({page_index}/{page_count})"
+    colour = 0xE74C3C if snapshot.get("degraded") else 0xF1C40F
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"# {title}\n\n{truncate_body(body, 3500)}"),
+            accent_colour=discord.Colour(colour),
         )
-        for i, page in enumerate(pages)
-    ]
+    )
+    from kingdoms.discord.ui.view_footer import add_view_footer
 
-
-async def _sync_extra_pages(
-    guild_id: str,
-    channel: discord.TextChannel,
-    registry: MessageRegistryServiceLike,
-    embeds: list[discord.Embed],
-) -> None:
-    """Keep pages 2..N alive: edit in place, create, or clean up as needed."""
-    for page_number in range(2, len(embeds) + 1):
-        key = _page_key(page_number)
-        embed = embeds[page_number - 1]
-        registered = await registry.resolve(PLATFORM, key, guild_id)
-        if await _edit_registered(channel, registered, embed):
-            continue
-        message = await channel.send(embed=embed)
-        await registry.register(
-            platform=PLATFORM,
-            message_key=key,
-            entity_id=guild_id,
-            channel_id=str(channel.id),
-            message_id=str(message.id),
-            guild_id=guild_id,
-        )
-    from kingdoms.discord.pinned_marks import is_pinned_view
-
-    for page_number in range(len(embeds) + 1, len(embeds) + 10):
-        registered = await registry.resolve(PLATFORM, _page_key(page_number), guild_id)
-        if registered is None:
-            break
-        try:
-            stale = await channel.get_partial_message(int(registered.message_id)).fetch()
-            if is_pinned_view(stale):
-                await stale.edit(content=None, embed=None)
-                continue
-            await channel.get_partial_message(int(registered.message_id)).delete()
-        except Exception:
-            logger.warning("live dashboard page %s cleanup failed", page_number, exc_info=True)
+    return add_view_footer(view, f"panel:game:{game_key}:live")
 
 
 async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | None) -> int:
@@ -486,68 +726,24 @@ async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | 
     return removed
 
 
-async def _reuse_pinned_dashboard(channel: discord.TextChannel, embed: discord.Embed) -> str | None:
-    """Reuse an already-pinned dashboard message instead of adding a new one.
-
-    The registry may point at a dead message (deleted, channel wiped) while
-    the channel still holds the pinned dashboard: adopting it keeps one
-    dashboard message per channel instead of accumulating a new message
-    per refresh failure.
-    """
-    try:
-        for message in await channel.pins():
-            if message.author.id != channel.guild.me.id:
-                continue
-            if not any("Live dashboard" in (e.title or "") for e in message.embeds):
-                continue
-            await message.edit(content=None, embed=embed)
-            return str(message.id)
-    except Exception:
-        logger.warning("live dashboard pin adoption failed — best-effort", exc_info=True)
-    return None
-
-
-def _dashboard_embed(
-    snapshot: dict[str, Any],
-    body: str,
-    bot: discord.Client | None = None,
-    page_index: int = 1,
-    page_count: int = 1,
-    locale: str = "en",
-) -> discord.Embed:
-    """Build one dashboard page's embed: title, icon, and the players' states."""
-    user = getattr(bot, "user", None) if bot is not None else None
-    icon = getattr(user, "display_avatar", None) if user else None
-    icon_url = getattr(icon, "url", None) if icon else None
-
-    description = truncate_body(body, MAX_EMBED_DESCRIPTION)
-    title = _t(bot, locale, "title", "🎮 Live dashboard")
-    if page_count > 1:
-        title += f" ({page_index}/{page_count})"
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
-    )
-    from kingdoms.discord.ui.view_footer import embed_footer
-
-    embed_footer(embed, f"panel:game:{GAME_KEY}:live")
-    if icon_url:
-        embed.set_thumbnail(url=icon_url)
-    return embed
 
 
 async def _edit_registered(
     channel: discord.TextChannel,
     registered: RegisteredMessageLike | None,
-    embed: discord.Embed,
+    embed: discord.Embed | None,
+    view: discord.ui.LayoutView,
 ) -> bool:
-    """Edit the registered message in place; True when the edit landed."""
+    """Edit the registered message in place; True when the edit landed.
+
+    The unified view rides every edit — the footer (the view id) never
+    disappears on refresh.
+    """
     if registered is None or not str(registered.channel_id).isdigit() or not str(registered.message_id).isdigit():
         return False
     try:
         message = channel.get_partial_message(int(registered.message_id))
-        await message.edit(content=None, embed=embed)
+        await message.edit(content=None, embed=embed, view=view)
         return True
     except Exception:
         logger.warning(
@@ -560,31 +756,39 @@ async def _edit_registered(
 
 async def start_live_dashboard_refresh(
     bot: discord.Client,
-    client: LiveClientLike,
+    clients: dict[str, LiveClientLike],
     registry: MessageRegistryServiceLike,
 ) -> asyncio.Task[None]:
-    """Refresh every guild's dashboard on change: a stream watcher plus a self-healing interval.
+    """Refresh every guild's per-game dashboards: streams + a self-healing interval.
 
-    The stream consumes WatchDashboard frames — the server emits one per
-    player-state change — and every frame lands on the dashboard within
-    seconds. The interval pass remains as the safety net (recreating a
-    deleted message, healing a broken stream).
+    One stream watcher per game (``clients`` maps a game key to its
+    dashboard client); the interval pass remains as the safety net
+    (recreating a deleted message, healing a broken stream) — it walks
+    every game of every guild.
     """
 
     async def _run() -> None:
-        watcher = asyncio.create_task(_watch_stream(bot, client, registry))
+        watchers = [
+            asyncio.create_task(_watch_stream(bot, client, registry, game_key))
+            for game_key, client in clients.items()
+        ]
         try:
             while True:
                 for guild in list(bot.guilds):
-                    try:
-                        await ensure_live_dashboard(bot, str(guild.id), client, registry)
-                    except Exception:
-                        logger.warning(
-                            "live dashboard refresh failed (guild %s) — best-effort", guild.id, exc_info=True
-                        )
+                    for game_key, client in clients.items():
+                        try:
+                            await ensure_live_dashboard(bot, str(guild.id), client, registry, game_key)
+                        except Exception:
+                            logger.warning(
+                                "live dashboard refresh failed (guild %s, game %s) — best-effort",
+                                guild.id,
+                                game_key,
+                                exc_info=True,
+                            )
                 await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
         finally:
-            watcher.cancel()
+            for watcher in watchers:
+                watcher.cancel()
 
     return asyncio.create_task(_run())
 
@@ -650,16 +854,18 @@ async def _watch_stream(
     bot: discord.Client,
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
+    game_key: str,
 ) -> None:
-    """Consume the WatchDashboard stream; every changed frame refreshes the dashboards."""
-    from kingdoms.core.rpc.live import LiveClient
+    """Consume one game's WatchDashboard stream; every changed frame refreshes.
 
-    if not isinstance(client, LiveClient):
-        return
+    Works with either client: the Live seam (svc-core) or the enriched
+    GameData client — both expose ``stream_snapshots``. One stream per
+    game (each game has its own game service and channels).
+    """
     while True:
         try:
-            async for snapshot in client.stream_snapshots(GAME_KEY):
-                await _push_snapshot(bot, client, registry, snapshot)
+            async for snapshot in client.stream_snapshots(game_key):
+                await _push_snapshot(bot, client, registry, snapshot, game_key)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -672,6 +878,7 @@ async def _push_snapshot(
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
     snapshot: dict[str, Any],
+    game_key: str = DEFAULT_GAME_KEY,
 ) -> None:
     """Edit every guild's dashboard message — throttled, on change only.
 
@@ -686,9 +893,15 @@ async def _push_snapshot(
     if fingerprint == _LAST_PUSH.get("_global", (0.0, ""))[1]:
         return
     _LAST_PUSH["_global"] = (now, fingerprint)
-    stats = await collect_profile_stats([str(p.get("profile_id", "")) for p in snapshot.get("players", [])])
+    active_ids = [
+        str(p.get("profile_id", ""))
+        for p in snapshot.get("players", [])
+        if p.get("state") != "offline"
+    ]
+    stats = await collect_profile_stats(active_ids)
     body = render_dashboard(snapshot, stats=stats)
-    embeds = _dashboard_embeds(snapshot, body, bot)
+    page_view = build_dashboard_view(snapshot, body, bot, game_key=game_key)
+    views = [page_view]
     for guild in list(bot.guilds):
         guild_id = str(guild.id)
         last_at, last_fp = _LAST_PUSH.get(guild_id, (0.0, ""))
@@ -703,15 +916,13 @@ async def _push_snapshot(
             continue
         _LAST_PUSH[guild_id] = (now, fingerprint)
         try:
-            channel = await ensure_live_dashboard_channel(guild)
+            channel = await ensure_live_dashboard_channel(guild, game_key)
         except LookupError:
-            continue  # the tree has not provisioned games/aoe2:live yet
-        registered = await registry.resolve(PLATFORM, _page_key(1), str(guild.id))
+            continue  # the tree has not provisioned the game's live channel yet
+        registered = await registry.resolve(PLATFORM, _page_key(game_key, 1), str(guild.id))
         try:
-            if not await _edit_registered(channel, registered, embeds[0]):
-                await ensure_live_dashboard(bot, guild_id, client, registry)
-            else:
-                await _sync_extra_pages(guild_id, channel, registry, embeds)
+            if not await _edit_registered(channel, registered, None, views[0]):
+                await ensure_live_dashboard(bot, guild_id, client, registry, game_key)
             await _remember_sent_fingerprint(guild_id, fingerprint)
         except Exception:
             logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)

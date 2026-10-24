@@ -16,16 +16,22 @@ live&nbsp;layer,&nbsp;ext-librematch&nbsp;the&nbsp;source&nbsp;of&nbsp;truth),&n
 to&nbsp;platform&nbsp;users&nbsp;through&nbsp;the&nbsp;registration&nbsp;bindings,&nbsp;and&nbsp;maintains&nbsp;the<br>
 per-player&nbsp;dashboard&nbsp;state&nbsp;served&nbsp;over&nbsp;``kingdoms.v1.Live``.<br>
 &nbsp;<br>
-Degradation&nbsp;is&nbsp;a&nbsp;first-class&nbsp;state:&nbsp;with&nbsp;no&nbsp;provider&nbsp;reachable,&nbsp;every<br>
-linked&nbsp;player&nbsp;shows&nbsp;offline&nbsp;and&nbsp;the&nbsp;snapshot&nbsp;is&nbsp;flagged&nbsp;degraded.</span></p>
+Every&nbsp;real&nbsp;status&nbsp;change&nbsp;also&nbsp;emits&nbsp;a&nbsp;normalized&nbsp;``PlayerStatusEvent``<br>
+(the&nbsp;generic,&nbsp;game-agnostic&nbsp;transition)&nbsp;into&nbsp;an&nbsp;internal&nbsp;queue&nbsp;—&nbsp;the<br>
+``WatchPlayerEvents``&nbsp;stream&nbsp;serves&nbsp;it&nbsp;to&nbsp;the&nbsp;bot,&nbsp;which&nbsp;dispatches&nbsp;it<br>
+to&nbsp;the&nbsp;mods&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled&nbsp;(reference:&nbsp;player_events<br>
+module).&nbsp;Degradation&nbsp;is&nbsp;a&nbsp;first-class&nbsp;state:&nbsp;with&nbsp;no&nbsp;provider<br>
+reachable,&nbsp;every&nbsp;linked&nbsp;player&nbsp;shows&nbsp;offline&nbsp;and&nbsp;the&nbsp;snapshot&nbsp;is<br>
+flagged&nbsp;degraded.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="time.html">time</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -111,27 +117,39 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="LiveAggregator">class <strong>LiveAggregator</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LiveAggregator">LiveAggregator</a>(database:&nbsp;'<a href="#BindingsDatabase">BindingsDatabase</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LiveAggregator">LiveAggregator</a>(database:&nbsp;'<a href="#BindingsDatabase">BindingsDatabase</a>',&nbsp;game_key:&nbsp;'str'&nbsp;=&nbsp;'aoe2')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Aggregate&nbsp;provider&nbsp;events&nbsp;into&nbsp;per-player&nbsp;dashboard&nbsp;snapshots.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="LiveAggregator-__init__"><strong>__init__</strong></a>(self, database: 'BindingsDatabase') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;bindings&nbsp;seam;&nbsp;the&nbsp;player&nbsp;state&nbsp;starts&nbsp;empty.</span></dd></dl>
+<dl><dt><a name="LiveAggregator-__init__"><strong>__init__</strong></a>(self, database: 'BindingsDatabase', game_key: 'str' = 'aoe2') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;bindings&nbsp;seam;&nbsp;the&nbsp;player&nbsp;state&nbsp;starts&nbsp;empty.</span></dd></dl>
 
 <dl><dt>async <a name="LiveAggregator-apply_event"><strong>apply_event</strong></a>(self, event: 'Any') -&gt; 'None'</dt><dd><span class="code">Fold&nbsp;one&nbsp;provider&nbsp;MatchEvent&nbsp;into&nbsp;the&nbsp;player&nbsp;state.<br>
 &nbsp;<br>
 lobby_opened/game_started&nbsp;set&nbsp;per-profile&nbsp;state;&nbsp;lobby_closed<br>
 keeps&nbsp;the&nbsp;state&nbsp;for&nbsp;the&nbsp;AoE2&nbsp;grace&nbsp;period&nbsp;(the&nbsp;game&nbsp;module's<br>
-15&nbsp;s)&nbsp;before&nbsp;downgrading&nbsp;—&nbsp;approximated&nbsp;here&nbsp;by&nbsp;applying&nbsp;the<br>
-downgrade&nbsp;immediately&nbsp;on&nbsp;lobby_closed/game_ended&nbsp;for&nbsp;the<br>
-dashboard,&nbsp;which&nbsp;is&nbsp;display-only;&nbsp;the&nbsp;ladder&nbsp;domain&nbsp;applies&nbsp;the<br>
-real&nbsp;grace&nbsp;period&nbsp;(#134/#146).</span></dd></dl>
+15&nbsp;s)&nbsp;before&nbsp;downgrading.&nbsp;Every&nbsp;effective&nbsp;change&nbsp;also&nbsp;queues&nbsp;a<br>
+normalized&nbsp;``PlayerStatusEvent``&nbsp;for&nbsp;the&nbsp;Live&nbsp;event&nbsp;stream.</span></dd></dl>
 
 <dl><dt><a name="LiveAggregator-mark_degraded"><strong>mark_degraded</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Flag&nbsp;the&nbsp;aggregated&nbsp;state&nbsp;as&nbsp;provider-less&nbsp;(all&nbsp;offline).</span></dd></dl>
 
 <dl><dt><a name="LiveAggregator-mark_healthy"><strong>mark_healthy</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Clear&nbsp;the&nbsp;degraded&nbsp;flag&nbsp;once&nbsp;a&nbsp;provider&nbsp;stream&nbsp;is&nbsp;live.</span></dd></dl>
 
+<dl><dt>async <a name="LiveAggregator-next_transition"><strong>next_transition</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Await&nbsp;the&nbsp;next&nbsp;normalized&nbsp;transition&nbsp;(WatchPlayerEvents).</span></dd></dl>
+
+<dl><dt><a name="LiveAggregator-pending_transitions"><strong>pending_transitions</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Report&nbsp;the&nbsp;number&nbsp;of&nbsp;queued&nbsp;transitions&nbsp;(diagnostics&nbsp;and&nbsp;tests).</span></dd></dl>
+
+<dl><dt><a name="LiveAggregator-profile_ids"><strong>profile_ids</strong></a>(self) -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;bound&nbsp;profile&nbsp;ids&nbsp;—&nbsp;the&nbsp;provider's&nbsp;subscription&nbsp;list.</span></dd></dl>
+
+<dl><dt>async <a name="LiveAggregator-refresh_bindings"><strong>refresh_bindings</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Reload&nbsp;the&nbsp;profile→user&nbsp;resolution&nbsp;from&nbsp;the&nbsp;bindings&nbsp;store.</span></dd></dl>
+
 <dl><dt>async <a name="LiveAggregator-snapshot"><strong>snapshot</strong></a>(self, game_key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt><a name="LiveAggregator-user_ids"><strong>user_ids</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;profile&nbsp;owners,&nbsp;aligned&nbsp;with&nbsp;the&nbsp;sorted&nbsp;profile&nbsp;ids.<br>
+&nbsp;<br>
+The&nbsp;game&nbsp;service's&nbsp;roster&nbsp;needs&nbsp;each&nbsp;profile's&nbsp;platform&nbsp;user&nbsp;—<br>
+the&nbsp;dashboard&nbsp;groups&nbsp;by&nbsp;account;&nbsp;the&nbsp;ids&nbsp;ride&nbsp;the&nbsp;enrollments<br>
+push&nbsp;parallel&nbsp;to&nbsp;the&nbsp;profile&nbsp;ids.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

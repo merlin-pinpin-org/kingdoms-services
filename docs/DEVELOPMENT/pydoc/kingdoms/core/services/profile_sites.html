@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.profile_sites</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.profile_sites</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/profile_sites.py">SOURCE_ROOT/core/services/profile_sites.py</a></td></tr></table>
+    <p><span class="code">Profile&nbsp;sites&nbsp;registry:&nbsp;typed&nbsp;URL&nbsp;formatting&nbsp;and&nbsp;parsing,&nbsp;per&nbsp;game.<br>
+&nbsp;<br>
+Every&nbsp;external&nbsp;site&nbsp;that&nbsp;hosts&nbsp;a&nbsp;player's&nbsp;public&nbsp;profile&nbsp;page<br>
+(aoe2insights,&nbsp;aoe2.GG,&nbsp;ageofempires.com,&nbsp;...)&nbsp;is&nbsp;declared&nbsp;once&nbsp;in<br>
+``config/games/&lt;game_key&gt;/profile_sites.yaml``&nbsp;—&nbsp;never&nbsp;hard-coded,&nbsp;never<br>
+in&nbsp;the&nbsp;translations.&nbsp;This&nbsp;module&nbsp;owns&nbsp;the&nbsp;typed&nbsp;access:<br>
+&nbsp;<br>
+-&nbsp;``<a href="#ProfileSite">ProfileSite</a>``&nbsp;—&nbsp;one&nbsp;declared&nbsp;site&nbsp;(label,&nbsp;id&nbsp;kind,&nbsp;url&nbsp;template,<br>
+&nbsp;&nbsp;parse&nbsp;pattern);<br>
+-&nbsp;``<a href="#ProfileSitesRegistry">ProfileSitesRegistry</a>``&nbsp;—&nbsp;loads&nbsp;the&nbsp;per-game&nbsp;declarations,&nbsp;builds<br>
+&nbsp;&nbsp;every&nbsp;site's&nbsp;URL&nbsp;from&nbsp;a&nbsp;profile&nbsp;id&nbsp;(``format_url``),&nbsp;and&nbsp;extracts&nbsp;a<br>
+&nbsp;&nbsp;profile&nbsp;id&nbsp;from&nbsp;a&nbsp;pasted&nbsp;URL&nbsp;(``parse_url``)&nbsp;so&nbsp;the&nbsp;profile-add&nbsp;flow<br>
+&nbsp;&nbsp;accepts&nbsp;any&nbsp;known&nbsp;site's&nbsp;page.<br>
+&nbsp;<br>
+Adding&nbsp;a&nbsp;site&nbsp;is&nbsp;a&nbsp;config&nbsp;change,&nbsp;never&nbsp;a&nbsp;deploy:&nbsp;the&nbsp;profile&nbsp;view,<br>
+the&nbsp;home&nbsp;accounts&nbsp;and&nbsp;the&nbsp;admin&nbsp;surfaces&nbsp;read&nbsp;this&nbsp;registry.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.profile_sites.html#ProfileSite">ProfileSite</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.profile_sites.html#ProfileSitesRegistry">ProfileSitesRegistry</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileSite">class <strong>ProfileSite</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileSite">ProfileSite</a>(key:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;id_kind:&nbsp;'str',&nbsp;url_template:&nbsp;'str',&nbsp;parse_pattern:&nbsp;'re.Pattern[str]')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;declared&nbsp;profile&nbsp;site&nbsp;for&nbsp;a&nbsp;game.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProfileSite-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__init__"><strong>__init__</strong></a>(self, key: 'str', label: 'str', id_kind: 'str', url_template: 'str', parse_pattern: 're.Pattern[str]') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="ProfileSite-format_url"><strong>format_url</strong></a>(self, profile_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;site's&nbsp;profile&nbsp;page&nbsp;URL&nbsp;from&nbsp;the&nbsp;platform&nbsp;profile&nbsp;id.<br>
+&nbsp;<br>
+The&nbsp;template's&nbsp;``{relic_id}``&nbsp;placeholder&nbsp;carries&nbsp;the&nbsp;platform's<br>
+profile&nbsp;id;&nbsp;``{profile_id}``&nbsp;is&nbsp;accepted&nbsp;as&nbsp;an&nbsp;alias&nbsp;so&nbsp;templates<br>
+stay&nbsp;readable.&nbsp;A&nbsp;site&nbsp;keyed&nbsp;by&nbsp;its&nbsp;own&nbsp;user&nbsp;id&nbsp;(``site_id``)<br>
+cannot&nbsp;format&nbsp;from&nbsp;a&nbsp;relic&nbsp;id&nbsp;—&nbsp;it&nbsp;returns&nbsp;empty&nbsp;and&nbsp;the&nbsp;caller<br>
+falls&nbsp;back&nbsp;to&nbsp;the&nbsp;other&nbsp;sites.</span></dd></dl>
+
+<dl><dt><a name="ProfileSite-parse_url"><strong>parse_url</strong></a>(self, url: 'str') -&gt; 'str | None'</dt><dd><span class="code">Extract&nbsp;the&nbsp;profile&nbsp;id&nbsp;a&nbsp;pasted&nbsp;URL&nbsp;of&nbsp;this&nbsp;site&nbsp;carries.<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;id&nbsp;as&nbsp;a&nbsp;string,&nbsp;or&nbsp;None&nbsp;when&nbsp;the&nbsp;URL&nbsp;is&nbsp;not&nbsp;one&nbsp;of<br>
+this&nbsp;site's&nbsp;profile&nbsp;pages.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>id_kind</strong></dt>
+</dl>
+<dl><dt><strong>key</strong></dt>
+</dl>
+<dl><dt><strong>label</strong></dt>
+</dl>
+<dl><dt><strong>parse_pattern</strong></dt>
+</dl>
+<dl><dt><strong>url_template</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'id_kind': 'str', 'key': 'str', 'label': 'str', 'parse_pattern': 're.Pattern[str]', 'url_template': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'id_kind': Field(name='id_kind',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label': Field(name='label',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'parse_pattern': Field(name='parse_pattern',type='re.Pattern[str]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'url_template': Field(name='url_template',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'label', 'id_kind', 'url_template', 'parse_pattern')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileSitesRegistry">class <strong>ProfileSitesRegistry</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileSitesRegistry">ProfileSitesRegistry</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;per-game&nbsp;registry&nbsp;of&nbsp;profile&nbsp;sites&nbsp;(config-loaded).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProfileSitesRegistry-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Start&nbsp;empty;&nbsp;the&nbsp;games&nbsp;load&nbsp;their&nbsp;declarations&nbsp;on&nbsp;demand.</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-default_site"><strong>default_site</strong></a>(self, game_key: 'str') -&gt; 'ProfileSite | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;game's&nbsp;default&nbsp;site&nbsp;(declaration&nbsp;order&nbsp;fallback).</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-format_all"><strong>format_all</strong></a>(self, game_key: 'str', profile_id: 'str') -&gt; 'list[tuple[str, str, str]]'</dt><dd><span class="code">Build&nbsp;every&nbsp;site's&nbsp;URL:&nbsp;(site_key,&nbsp;label,&nbsp;url)&nbsp;triples.</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-format_url"><strong>format_url</strong></a>(self, game_key: 'str', profile_id: 'str', site_key: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;profile&nbsp;page&nbsp;URL&nbsp;on&nbsp;the&nbsp;chosen&nbsp;(or&nbsp;default)&nbsp;site.</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-load_game"><strong>load_game</strong></a>(self, game_key: 'str', config_path: 'Path') -&gt; 'None'</dt><dd><span class="code">Load&nbsp;one&nbsp;game's&nbsp;site&nbsp;declarations&nbsp;from&nbsp;its&nbsp;YAML&nbsp;file.</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-parse_url"><strong>parse_url</strong></a>(self, game_key: 'str', url: 'str') -&gt; 'tuple[str, str] | None'</dt><dd><span class="code">Extract&nbsp;(site_key,&nbsp;profile_id)&nbsp;from&nbsp;a&nbsp;pasted&nbsp;URL&nbsp;of&nbsp;any&nbsp;site.</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-site"><strong>site</strong></a>(self, game_key: 'str', site_key: 'str') -&gt; 'ProfileSite | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;declared&nbsp;site;&nbsp;None&nbsp;when&nbsp;undeclared.</span></dd></dl>
+
+<dl><dt><a name="ProfileSitesRegistry-sites_for"><strong>sites_for</strong></a>(self, game_key: 'str') -&gt; 'list[ProfileSite]'</dt><dd><span class="code">List&nbsp;a&nbsp;game's&nbsp;declared&nbsp;sites,&nbsp;in&nbsp;declaration&nbsp;order.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-any_dict"><strong>any_dict</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">Expose&nbsp;the&nbsp;registry's&nbsp;internal&nbsp;state&nbsp;(diagnostics,&nbsp;admin&nbsp;views).</span></dd></dl>
+ <dl><dt><a name="-format_profile_url"><strong>format_profile_url</strong></a>(game_key: 'str', profile_id: 'str', site_key: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Format&nbsp;the&nbsp;profile&nbsp;page&nbsp;URL&nbsp;on&nbsp;the&nbsp;chosen&nbsp;(or&nbsp;default)&nbsp;site.</span></dd></dl>
+ <dl><dt><a name="-parse_profile_url"><strong>parse_profile_url</strong></a>(game_key: 'str', url: 'str') -&gt; 'tuple[str, str] | None'</dt><dd><span class="code">Parse&nbsp;a&nbsp;pasted&nbsp;URL&nbsp;of&nbsp;any&nbsp;known&nbsp;site&nbsp;into&nbsp;(site_key,&nbsp;profile_id).</span></dd></dl>
+ <dl><dt><a name="-profile_sites_registry"><strong>profile_sites_registry</strong></a>() -&gt; 'ProfileSitesRegistry'</dt><dd><span class="code">Return&nbsp;the&nbsp;process-wide&nbsp;registry,&nbsp;loading&nbsp;the&nbsp;known&nbsp;games&nbsp;once.</span></dd></dl>
+ <dl><dt><a name="-reset_registry_for_tests"><strong>reset_registry_for_tests</strong></a>(config_dir: 'Path | None' = None) -&gt; 'None'</dt><dd><span class="code">Reload&nbsp;the&nbsp;registry&nbsp;from&nbsp;an&nbsp;explicit&nbsp;config&nbsp;dir&nbsp;(tests).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ID_KIND_RELIC</strong> = 'relic_id'<br>
+<strong>ID_KIND_SITE</strong> = 'site_id'</td></tr></table>
+</body></html>

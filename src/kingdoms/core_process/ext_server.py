@@ -25,6 +25,7 @@ async def serve_game_provider(
     list_maps: object | None = None,
     match_events: object | None = None,
     player_stats: object | None = None,
+    update_subscriptions: object | None = None,
 ) -> None:
     """Serve the kingdoms.v1.Game contract until terminated.
 
@@ -40,6 +41,7 @@ async def serve_game_provider(
             list_maps=list_maps,
             match_events=match_events,
             player_stats=player_stats,
+            update_subscriptions=update_subscriptions,
         ),
         server,
     )

@@ -1,190 +1,655 @@
 """ext-aoe2lobby live adapter: WebSocket client (aoe2lobby.com).
 
-The live layer (developer direction): aoe2lobby aggregates Worlds Edge
-Link lobby data and pushes real-time updates over a WebSocket — lobby
-opened, closed, game started. It uses LibreMatch's data underneath, so
-anything it reports is cross-checked against ext-librematch (the
-source of truth) by the consumer, never trusted blindly here.
+Real protocol (validated on a live integration): the server pushes global
+state deltas over ``wss://data.aoe2lobby.com/ws/``. Two subscription
+channels coexist on one single session:
 
-Events are mapped to the wire ``MatchEvent`` shape and exposed as an
-async iterator; reconnection with backoff is the caller's policy,
-implemented once in the server loop.
+- ``matches`` (contexts lobby + spectate): global snapshots
+  (``*_match_all``) and deltas (``*_match_update``/``*_match_remove``)
+  for every observable lobby/game — the reducer filters them
+  client-side against the subscribed profile ids;
+- ``players``: per-profile ``player_status`` pushes for exactly the
+  subscribed profile ids, updated **in place** (subscribe/unsubscribe
+  deltas, no session teardown — the site's own frontend does the same).
+
+The adapter owns exactly one WebSocket session at a time: every
+disconnection path (transport error, server error, heartbeat timeout,
+unexpected exception) falls into the same reconnect loop, which
+re-subscribes both channels with the last known profile ids before
+resuming the stream. Snapshots after a reconnect rebuild the state; the
+derived player statuses survive so the snapshot diff yields exactly the
+real transitions.
+
+Known traps covered here (aoe2lobby reference §4/§7): a ~15 s gap
+separates ``lobby_match_remove`` from the matching ``spectate_match_*``
+when a game launches — a removal is never downgraded before the grace
+period elapses; ``*_player_remove`` lists profile ids while
+``*_match_remove`` lists match ids; profile ids compare as ``str``;
+frames can exceed 1 MB (max_size raised); ``*_all`` payloads can be
+``null``.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
 import websockets
 
-from kingdoms.core.games.aoe2.grace import LobbyClosedGrace
+from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S, LobbyClosedGrace
+from kingdoms.core.services.provider_endpoints import provider_url as _provider_url
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WS_URL = "wss://data.aoe2lobby.com/ws/"
 
-_EVENT_TYPES = {
-    "lobby_opened": "lobby_opened",
-    "lobby_created": "lobby_opened",
-    "lobby_closed": "lobby_closed",
-    "game_started": "game_started",
-    "game_ended": "game_ended",
-}
+DEFAULT_WS_URL = _provider_url("aoe2lobby", "ws_url")
+SCHEMA_WS_URL = _provider_url("aoe2lobby", "schema_ws_url")
+DEFAULT_MAX_SIZE = 10 * 1024 * 1024
+DEFAULT_RECONNECT_DELAY_S = 5.0
+DEFAULT_HEARTBEAT_S = 90.0  # WS ping interval (transport keepalive)
+DEFAULT_REFRESH_S = 60.0
+
+CONTEXT_LOBBY = "lobby"
+CONTEXT_SPECTATE = "spectate"
+_CONTEXTS = (CONTEXT_LOBBY, CONTEXT_SPECTATE)
+
+STATUS_LOBBY = "lobby"
+STATUS_GAME = "game"
+
+EVENT_LOBBY_OPENED = "lobby_opened"
+EVENT_LOBBY_CLOSED = "lobby_closed"
+EVENT_GAME_STARTED = "game_started"
+EVENT_GAME_ENDED = "game_ended"
+
+PLAYER_STATUS_FIELD = "player_status"
+STATUS_FIELD = "status"
+MATCHID_FIELD = "matchid"
+SCHEMA_FIELD = "schema"
+
+DEEP_LINK_URL = "aoe2de://1/-"
 
 
 class Aoe2LobbyAdapter:
-    """WebSocket client streaming live lobby/game events."""
+    """One-session WebSocket client reducing aoe2lobby deltas to transitions."""
 
     def __init__(
         self,
         ws_url: str = DEFAULT_WS_URL,
-        reconnect_delay_s: float = 5.0,
-        grace: LobbyClosedGrace | None = None,
-        subscribe_profile_ids: tuple[str, ...] = (),
+        reconnect_delay_s: float = DEFAULT_RECONNECT_DELAY_S,
+        grace_s: float = GRACE_PERIOD_S,
+        heartbeat_s: float = DEFAULT_HEARTBEAT_S,
+        max_size: int = DEFAULT_MAX_SIZE,
+        refresh_s: float = DEFAULT_REFRESH_S,
     ) -> None:
         self._ws_url = ws_url
         self._reconnect_delay_s = reconnect_delay_s
-        self._grace = grace or LobbyClosedGrace()
-        self._subscribe_profile_ids = tuple(subscribe_profile_ids)
+        self._grace_s = grace_s
+        self._heartbeat_s = heartbeat_s
+        self._max_size = max_size
+        self._refresh_s = refresh_s
+        self._matches: dict[str, dict[str, dict[str, Any]]] = {c: {} for c in _CONTEXTS}
+        self._player_status: dict[str, tuple[str, str]] = {}
+        self._close_refs: dict[str, str] = {}
+        self._grace = LobbyClosedGrace(grace_s=int(grace_s))
+        self._last_snapshot_at = 0
+        self._subscribed_ids: set[str] = set()
+        self._ws: Any = None
+        self._schema: dict[str, Any] = {}
+
+    async def set_subscribed_profiles(self, profile_ids: list[str] | tuple[str, ...]) -> bool:
+        """Reconcile the players subscription in place (no session teardown).
+
+        Diffs the requested list against the current subscription and
+        sends the subscribe/unsubscribe deltas on the live session;
+        the full list is re-sent on the next (re)connect. Returns True
+        when applied on a live session, False when queued for the next
+        connect (the adapter never opens a second session).
+        """
+        requested = {str(pid) for pid in profile_ids}
+        adds = sorted(requested - self._subscribed_ids)
+        removes = sorted(self._subscribed_ids - requested)
+        self._subscribed_ids = requested
+        if not adds and not removes:
+            return True
+        if self._ws is None:
+            logger.info(
+                "aoe2lobby players subscription queued (no session): +%d/-%d",
+                len(adds),
+                len(removes),
+            )
+            return False
+        for profile_id in removes:
+            await self._send_subscription("unsubscribe", "players", [profile_id])
+        if adds:
+            await self._send_subscription("subscribe", "players", adds)
+        logger.info("aoe2lobby players subscription updated: +%d/-%d", len(adds), len(removes))
+        return True
+
+    async def _send_subscription(self, action: str, sub_type: str, ids: list[str]) -> None:
+        """Send one subscription delta on the current session (best-effort)."""
+        if self._ws is None:
+            return
+        for context in _CONTEXTS:
+            try:
+                await self._ws.send(
+                    json.dumps({"action": action, "type": sub_type, "context": context, "ids": ids})
+                )
+            except Exception:
+                logger.warning("aoe2lobby %s %s failed (will re-sync on reconnect)", action, sub_type)
+
+    async def fetch_schema(self, timeout_s: float = 15.0) -> dict[str, Any]:
+        """Capture the ws schema frame (civ labels, reference §7).
+
+        The schema frame is only pushed on the contextual endpoints
+        (``/ws/lobby/``); the main session never carries it. One short
+        dedicated connection at bootstrap captures it; failures degrade
+        to raw ids (the summaries still render, with numeric civs).
+        """
+        try:
+            async with websockets.connect(SCHEMA_WS_URL, max_size=self._max_size) as ws:
+                raw = await asyncio.wait_for(ws.recv(), timeout=timeout_s)
+                frame = json.loads(raw)
+                while not isinstance(frame, dict) or "schema" not in frame:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=timeout_s)
+                    frame = json.loads(raw)
+                if isinstance(frame.get("schema"), dict):
+                    self._schema = frame["schema"]
+                    logger.info("aoe2lobby schema captured: %d key(s)", len(self._schema))
+        except Exception:
+            logger.warning("aoe2lobby schema capture failed — civs stay as raw ids")
+        return self._schema
+
+    async def _run_session(self, ws: Any) -> AsyncIterator[dict[str, Any]]:
+        """Run one connected session: frames + timed grace closes.
+
+        The reader task feeds raw frames; the sweeper task consumes the
+        grace windows on a timer (a lobby exit can leave the session
+        silent — the stale-lobby lesson); both meet on one queue the
+        generator drains. Ends on the reader's sentinel (server closed)
+        or the snapshot refresh (the caller reconnects).
+        """
+        queue: asyncio.Queue[Any] = asyncio.Queue()
+
+
+
+        reader = asyncio.ensure_future(_frame_reader(ws, queue))
+        sweeper = asyncio.ensure_future(_grace_sweeper(self, queue))
+        try:
+            while True:
+                item = await queue.get()
+                if isinstance(item, str) and not item:
+                    break  # the reader ended (sentinel)
+                if isinstance(item, dict):
+                    yield item  # a grace-close event from the sweeper
+                else:
+                    for event in self.apply_frame(item):
+                        yield event
+                if self._snapshot_due():
+                    break
+        finally:
+            reader.cancel()
+            sweeper.cancel()
+
+
+    def _snapshot_due(self) -> bool:
+        """Report whether the periodic snapshot refresh is due."""
+        if not self._last_snapshot_at:
+            return False
+        if _now_ms() - self._last_snapshot_at > self._refresh_s * 1000:
+            logger.info("aoe2lobby ws refreshing: reconnect for a fresh snapshot")
+            return True
+        return False
 
     async def stream_events(self) -> AsyncIterator[dict[str, Any]]:
         """Yield normalized event dicts from the WebSocket, forever.
 
-        Reconnects with a fixed backoff on transport errors and yields
-        nothing while disconnected — the stream stays alive, the
-        consumer sees silence, not failures.
+        Exactly one session is open at any time. Every failure path —
+        transport error, server-side close, heartbeat timeout,
+        unexpected exception — falls into the same reconnect loop:
+        fixed backoff, re-subscribe both channels with the last known
+        profile ids, then resume. Yields nothing while disconnected:
+        the stream stays alive, the consumer sees silence, not
+        failures. The state is kept across reconnects so the snapshot
+        diff yields exactly the real transitions (deltas may be sparse
+        server-side).
         """
-        import asyncio
-
         while True:
             try:
-                async with websockets.connect(self._ws_url) as ws:
-                    await self._subscribe(ws)
-                    async for raw in ws:
-                        event = self._normalize(raw)
-                        if event is not None:
-                            self._track_grace(event)
-                            yield event
-            except websockets.WebSocketException:
+                async with websockets.connect(
+                    self._ws_url,
+                    max_size=self._max_size,
+                    ping_interval=self._heartbeat_s,
+                    ping_timeout=30.0,
+                ) as ws:
+                    self._ws = ws
+                    self._reset_matches()
+                    if not self._schema:
+                        await self.fetch_schema()
+                    await self._subscribe_all(ws)
+                    logger.info("aoe2lobby ws connected: %s", self._ws_url)
+                    async for event in self._run_session(ws):
+                        yield event
+            except (TimeoutError, websockets.WebSocketException, OSError):
                 logger.warning("aoe2lobby ws disconnected; retrying in %ss", self._reconnect_delay_s)
+            except Exception:
+                logger.exception("aoe2lobby ws unexpected error; retrying in %ss", self._reconnect_delay_s)
+            finally:
+                self._ws = None
             await asyncio.sleep(self._reconnect_delay_s)
 
-    async def _subscribe(self, ws: Any) -> None:
-        """Send the documented subscription messages on connect.
+    async def _subscribe_all(self, ws: Any) -> None:
+        """Subscribe both channels scoped to the enrolled profile ids.
 
-        Feeds per the aoe2lobby API (LibreMatch wiki, example-lobby-browser):
-        lobby matches (all open lobbies) plus, when profile ids are wired,
-        player status updates for the subscribed players.
+        Neither subscription is global: the enrolled ids ride every
+        subscribe (matches and players). Live-validated: the players
+        channel alone pushes nothing — the states live in the matches
+        snapshots and deltas; the ids passed to the matches channel
+        are the server-side scope, and the strict enrolled-ids filter
+        stays the reducer's leak guard (the 111-pages lesson) whatever
+        the server actually honors.
         """
-        await ws.send(json.dumps({"action": "subscribe", "type": "matches", "context": "lobby"}))
-        if self._subscribe_profile_ids:
+        ids = sorted(self._subscribed_ids)
+        for context in _CONTEXTS:
             await ws.send(
                 json.dumps(
-                    {
-                        "action": "subscribe",
-                        "type": "players",
-                        "context": "lobby",
-                        "ids": list(self._subscribe_profile_ids),
-                    }
+                    {"action": "subscribe", "type": "matches", "context": context, "ids": ids}
                 )
             )
+        if ids:
+            await self._send_subscription("subscribe", "players", ids)
+            logger.info(
+                "aoe2lobby session ready: matches + players, %d profile(s) enrolled",
+                len(ids),
+            )
 
-    def _normalize_player_status(self, statuses: dict[str, Any]) -> dict[str, Any]:
-        """Map a player_status frame to one event per reported player.
+    def _reset_matches(self) -> None:
+        """Reset the live matches only: statuses survive across reconnects.
 
-        Shape per the aoe2lobby API doc: ``{profile_id: {status, matchid,
-        steam_lobbyid}}`` with status "lobby" or "playing"; mapped to the
-        normalized event shape the consumer already understands.
+        The next ``match_all`` rebuilds the matches; the derived player
+        statuses and pending closes are kept so the snapshot diff after
+        a reconnect yields exactly the real transitions.
         """
-        return {
-            "match_ref": "",
-            "type": "player_status",
-            "occurred_at": 0,
-            "profile_ids": [str(pid) for pid in statuses],
-            "metadata": {
-                str(pid): str(info.get("status", "")) for pid, info in statuses.items() if isinstance(info, dict)
-            },
-        }
+        self._matches = {c: {} for c in _CONTEXTS}
+        self._last_snapshot_at = _now_ms()
 
-    def _normalize_lobby_snapshot(self, matches: dict[str, Any]) -> dict[str, Any]:
-        """Map a lobby_match_all snapshot frame to one aggregate event.
+    def apply_frame(self, raw: str | bytes) -> list[dict[str, Any]]:
+        """Fold one raw WS frame; return the resulting transition events.
 
-        Shape per the aoe2lobby API: one entry per open lobby keyed by
-        matchid, with slots (profileid, civilization, name, country) and
-        lobby settings (map, ranked, password, slots_taken/total).
-        """
-        return {
-            "match_ref": "",
-            "type": "lobby_snapshot",
-            "occurred_at": 0,
-            "profile_ids": [
-                str(slot.get("profileid"))
-                for match in matches.values()
-                if isinstance(match, dict)
-                for slot in self._match_slots(match)
-                if slot.get("profileid") not in (None, "")
-            ],
-            "metadata": {
-                "lobby_count": str(len(matches)),
-                "match_ids": ",".join(str(k) for k in matches),
-            },
-        }
-
-    def _match_slots(self, match: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract the occupied slot dicts of one lobby payload."""
-        slots = match.get("slots")
-        if not isinstance(slots, dict):
-            return []
-        return [s for s in slots.values() if isinstance(s, dict)]
-
-    def _track_grace(self, event: dict[str, Any]) -> None:
-        """Feed the adapter-side grace window (reference 5.2 known trap).
-
-        The consumer asks ``grace.should_downgrade`` before acting on a
-        lobby_closed; a game_started inside the window cancels it.
-        """
-        if event["type"] == "lobby_closed":
-            self._grace.on_lobby_closed(event["match_ref"], now=float(event.get("occurred_at", 0)))
-        elif event["type"] == "game_started":
-            self._grace.on_game_started(event["match_ref"])
-        elif event["type"] == "game_ended":
-            self._grace.forget(event["match_ref"])
-
-    def _normalize(self, raw: str | bytes) -> dict[str, Any] | None:
-        """Map one raw WS frame to the normalized event shape.
-
-        Unparseable frames are skipped (warned), unknown event types
-        are dropped — the live layer is best-effort by contract.
+        Unknown top-level keys are ignored cleanly (the schema may
+        evolve); undecodable frames are skipped with a warning.
         """
         try:
             frame = json.loads(raw)
         except (json.JSONDecodeError, UnicodeDecodeError):
             logger.warning("undecodable ws frame: %r", raw[:120])
-            return None
+            return []
         if not isinstance(frame, dict):
-            return None
-        if "player_status" in frame and isinstance(frame["player_status"], dict):
-            return self._normalize_player_status(frame["player_status"])
-        if "lobby_match_all" in frame and isinstance(frame["lobby_match_all"], dict):
-            return self._normalize_lobby_snapshot(frame["lobby_match_all"])
-        raw_type = str(frame.get("type", frame.get("event", "")))
-        event_type = _EVENT_TYPES.get(raw_type)
-        if event_type is None:
-            return None
-        profiles = frame.get("profile_ids", frame.get("players", []))
-        if not isinstance(profiles, list):
-            profiles = []
+            return []
+        schema = frame.get(SCHEMA_FIELD)
+        if isinstance(schema, dict):
+            self._schema = schema
+            logger.info("aoe2lobby schema captured: %d key(s)", len(schema))
+            return []
+        events = self._reduce_player_status(frame.get(PLAYER_STATUS_FIELD))
+        if events:
+            return events
+        touched: dict[str, dict[str, Any]] = {}
+        for context in _CONTEXTS:
+            self._apply_context_deltas(context, frame, touched)
+        return self._reduce_touched(touched)
+
+    def _reduce_player_status(self, statuses: object) -> list[dict[str, Any]]:
+        """Fold one ``player_status`` push for the subscribed profiles.
+
+        Shape per the aoe2lobby protocol: ``{profile_id: {status,
+        matchid, steam_lobbyid}}`` with status "lobby"/"playing" (or
+        null once the player leaves). The match url derives from the
+        status; a matchid change is a transition even at constant
+        status (player switched lobby).
+        """
+        if not isinstance(statuses, dict):
+            return []
+        events: list[dict[str, Any]] = []
+        for profile_id, info in statuses.items():
+            if not isinstance(info, dict):
+                continue
+            events.extend(self._apply_player_status(str(profile_id), info))
+        return events
+
+    def _apply_player_status(self, profile_id: str, info: dict[str, Any]) -> list[dict[str, Any]]:
+        """Derive transitions from one player's pushed status entry."""
+        if profile_id not in self._subscribed_ids:
+            return []
+        status = info.get(STATUS_FIELD)
+        match_ref = str(info.get(MATCHID_FIELD) or "")
+        if status == STATUS_LOBBY:
+            return self._record_status(profile_id, STATUS_LOBBY, match_ref)
+        if status in ("playing", "spectate", "game"):
+            return self._record_status(profile_id, STATUS_GAME, match_ref)
+        return self._record_status(profile_id, None, match_ref)
+
+    def _record_status(
+        self, profile_id: str, status: str | None, match_ref: str
+    ) -> list[dict[str, Any]]:
+        """Record one derived status and emit the transition when it changed."""
+        previous = self._player_status.get(profile_id)
+        if status is None:
+            if previous is None:
+                return []
+            self._schedule_close(profile_id, previous[1], _now_ms())
+            return []
+        if (status, match_ref) == previous:
+            self._cancel_close(profile_id)
+            return []
+        self._cancel_close(profile_id)
+        event = self._transition_event(
+            profile_id, previous[0] if previous else None, status, match_ref
+        )
+        self._player_status[profile_id] = (status, match_ref)
+        return [event]
+
+    def _apply_context_deltas(
+        self, context: str, frame: dict[str, Any], touched: dict[str, dict[str, Any]]
+    ) -> None:
+        """Fold one context's deltas into the state, touching the changed matches."""
+        if f"{context}_match_all" in frame:
+            snapshot = _as_match_dict(frame.get(f"{context}_match_all"))
+            for stale_id in self._matches[context]:
+                if stale_id not in snapshot:
+                    touched.setdefault(stale_id, self._matches[context][stale_id])
+            self._matches[context] = snapshot
+            touched.update(snapshot)
+        if f"{context}_match_update" in frame:
+            updates = _as_match_dict(frame.get(f"{context}_match_update"))
+            self._matches[context].update(updates)
+            touched.update(updates)
+        removes = frame.get(f"{context}_match_remove")
+        if isinstance(removes, list):
+            for match_id in removes:
+                match = self._matches[context].pop(str(match_id), None)
+                if match is not None:
+                    touched[str(match_id)] = match
+        player_removes = frame.get(f"{context}_player_remove")
+        if isinstance(player_removes, list):
+            for profile_id in player_removes:
+                self._schedule_close(str(profile_id), "", _now_ms())
+
+    def _reduce_touched(self, touched: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+        """Derive per-profile transitions from the matches touched by a frame."""
+        events: list[dict[str, Any]] = []
+        for profile_id in sorted(_profiles_of(touched)):
+            if profile_id not in self._subscribed_ids:
+                continue
+            status, match_ref = self._current_status(profile_id)
+            previous = self._player_status.get(profile_id)
+            if status is None:
+                if previous is not None:
+                    self._schedule_close(profile_id, previous[1], _now_ms())
+                continue
+            if (status, match_ref) == previous:
+                self._cancel_close(profile_id)
+                continue
+            events.append(
+                self._transition_event(
+                    profile_id, previous[0] if previous else None, status, match_ref
+                )
+            )
+            self._player_status[profile_id] = (status, match_ref)
+            self._cancel_close(profile_id)
+        return events
+
+    def _current_status(self, profile_id: str) -> tuple[str | None, str]:
+        """Resolve the current (status, match_ref) of a profile across both contexts.
+
+        Spectate wins over lobby (a launched game supersedes the closing
+        lobby); profile ids always compare as ``str`` (heterogeneous
+        server-side types, reference §3).
+        """
+        for context in (CONTEXT_SPECTATE, CONTEXT_LOBBY):
+            status = STATUS_GAME if context == CONTEXT_SPECTATE else STATUS_LOBBY
+            for match_id, match in self._matches[context].items():
+                if profile_id in _profiles_of({match_id: match}):
+                    return status, match_id
+        return None, ""
+
+    def _transition_event(
+        self, profile_id: str, old_status: str | None, status: str, match_ref: str
+    ) -> dict[str, Any]:
+        """Build one normalized transition event in the MatchEvent shape.
+
+        The metadata carries the full match summary (map, format, civs,
+        teams, host, join/spectate links, aoe2de deep link) so consumers
+        render rich notifications without any extra provider call.
+        """
+        event_type = EVENT_GAME_STARTED if status == STATUS_GAME else EVENT_LOBBY_OPENED
+        metadata: dict[str, str] = {}
+        if match_ref:
+            metadata["match_url"] = (
+                "https://www.aoe2lobby.com/w/" if status == STATUS_GAME else "https://www.aoe2lobby.com/j/"
+            ) + match_ref
+            summary = self.match_summary(match_ref, status)
+            for key, value in summary.items():
+                if value not in ("", None):
+                    metadata[str(key)] = str(value)
+        if old_status is not None:
+            metadata["old_status"] = old_status
         return {
-            "match_ref": str(frame.get("match_id", frame.get("lobby_id", ""))),
+            "match_ref": match_ref,
             "type": event_type,
-            "occurred_at": int(frame.get("timestamp", 0)),
-            "profile_ids": [str(p) for p in profiles],
-            "metadata": {
-                str(k): str(v)
-                for k, v in frame.items()
-                if k not in {"type", "event", "match_id", "lobby_id", "timestamp", "players", "profile_ids"}
-            },
+            "occurred_at": _now_ms(),
+            "profile_ids": [profile_id],
+            "metadata": metadata,
         }
+
+    def _civ_label(self, civ_id: object) -> str:
+        """Resolve a civilization id to its label through the ws schema.
+
+        The server pushes a ``schema`` frame on connect (wsSchema.json,
+        reference §7); civilization maps civ ids to labels. Falls back
+        to the raw id when the schema is missing or the id unknown.
+        """
+        raw = str(civ_id if civ_id not in (None, "") else "")
+        if not raw:
+            return ""
+        civs = self._schema.get("civilization")
+        if isinstance(civs, dict):
+            label = civs.get(raw) or civs.get(int(raw)) if raw.isdigit() else civs.get(raw)
+            if isinstance(label, str) and label:
+                return label
+        return raw
+
+    def _match_type_label(self, match: dict[str, Any]) -> str:
+        """Resolve the game mode label (RandomMap, FFA, ...) via the schema.
+
+        The match's ``match_typeid`` indexes the ws schema's
+        ``match_typeid`` map; the format (1v1, 2v2...) stays separate —
+        the label names the MODE, the format the team layout.
+        """
+        raw = match.get("match_typeid")
+        if raw in (None, ""):
+            return ""
+        types = self._schema.get("match_typeid")
+        if isinstance(types, dict):
+            label = types.get(str(raw)) or (types.get(int(raw)) if str(raw).isdigit() else None)
+            if isinstance(label, str) and label:
+                return label
+        return str(raw)
+
+    def match_summary(self, match_ref: str, status: str) -> dict[str, Any]:
+        """Build the enriched summary of a match for the given context.
+
+        Covers the dashboard requirements: map name, format (1v1, 2v2,
+        FFA — derived from the team distribution), slots, host, per-slot
+        civs, aoe2lobby join/spectate URLs and the aoe2de:// deep link
+        (joinable lobbies only).
+        """
+        context = CONTEXT_SPECTATE if status == STATUS_GAME else CONTEXT_LOBBY
+        match = self._matches[context].get(match_ref)
+        if not isinstance(match, dict):
+            return {}
+        slots = self._match_slots(match)
+        players: list[dict[str, Any]] = []
+        teams: dict[int, int] = {}
+        for slot in slots:
+            profile_id = slot.get("profileid")
+            if profile_id in (None, ""):
+                continue
+            team = int(slot.get("team") or 0)
+            teams[team] = teams.get(team, 0) + 1
+            players.append(
+                {
+                    "profile_id": str(profile_id),
+                    "name": str(slot.get("name") or ""),
+                    "civilization": self._civ_label(slot.get("civilization")),
+                    "avatar": str(slot.get("steam_avatar") or ""),
+                    "country": str(slot.get("country") or ""),
+                    "team": team,
+                }
+            )
+        host_profile = str(match.get("host_profileid") or "")
+        host = next((p for p in players if p["profile_id"] == host_profile), None)
+        return {
+            "map": str(match.get("map_name") or ""),
+            "format": _format_label(teams, len(players)),
+            "match_type": self._match_type_label(match),
+            "status": status,
+            "slots_taken": str(match.get("slots_taken", len(players))),
+            "slots_total": str(match.get("slots_total", 0)),
+            "host": str(host["name"]) if host else "",
+            "players": json.dumps(
+                [
+                    {
+                        "profile_id": p["profile_id"],
+                        "name": p["name"],
+                        "civ": p["civilization"],
+                        "avatar": p["avatar"],
+                        "country": p["country"],
+                        "team": p["team"],
+                    }
+                    for p in players
+                ]
+            ),
+            "lobby_url": f"https://www.aoe2lobby.com/j/{match_ref}",
+            "spectate_url": f"https://www.aoe2lobby.com/w/{match_ref}",
+            "deep_link": f"{DEEP_LINK_URL}{match_ref}" if status != STATUS_GAME else "",
+        }
+
+    def _match_slots(self, match: dict[str, Any]) -> list[dict[str, Any]]:
+        """Extract the occupied slot dicts of one match payload."""
+        slots = match.get("slots")
+        if not isinstance(slots, dict):
+            return []
+        return [s for s in slots.values() if isinstance(s, dict) and s.get("status") == 3]
+
+    def _schedule_close(self, profile_id: str, match_ref: str, now_ms: float) -> None:
+        """Park a removal behind the game module's grace window (§4 trap).
+
+        The window rule lives once in ``LobbyClosedGrace`` (the game
+        module owns it); this adapter only keeps the profile→match_ref
+        association for the eventual close event payload.
+        """
+        self._grace.on_lobby_closed(profile_id, now=now_ms / 1000.0)
+        self._close_refs[profile_id] = match_ref
+
+    def _cancel_close(self, profile_id: str) -> None:
+        """Drop a pending close: the player was seen again (§9 last-state rule)."""
+        self._grace.forget(profile_id)
+        self._close_refs.pop(profile_id, None)
+
+    def _sweep_pending_closes(self) -> list[dict[str, Any]]:
+        """Emit the close events whose grace period has fully elapsed."""
+        now = _now_ms()
+        events: list[dict[str, Any]] = []
+        for profile_id in sorted(self._close_refs):
+            if not self._grace.should_downgrade(profile_id, now=now / 1000.0):
+                continue
+            match_ref = self._close_refs.pop(profile_id)
+            self._grace.forget(profile_id)
+            status, current_ref = self._current_status(profile_id)
+            if status is not None:
+                self._player_status[profile_id] = (status, current_ref)
+                continue
+            previous_status = self._player_status.get(profile_id, ("", ""))[0]
+            event_type = EVENT_GAME_ENDED if previous_status == STATUS_GAME else EVENT_LOBBY_CLOSED
+            events.append(
+                {
+                    "match_ref": match_ref,
+                    "type": event_type,
+                    "occurred_at": now,
+                    "profile_ids": [profile_id],
+                    "metadata": {},
+                }
+            )
+            self._player_status.pop(profile_id, None)
+        return events
+
+
+def _as_match_dict(payload: object) -> dict[str, dict[str, Any]]:
+    """Coerce a ``*_match_all``/``*_match_update`` payload to a match dict.
+
+    ``null`` payloads (observed on the live service) coerce to empty.
+    """
+    if not isinstance(payload, dict):
+        return {}
+    return {str(k): v for k, v in payload.items() if isinstance(v, dict)}
+
+
+def _profiles_of(matches: dict[str, dict[str, Any]]) -> set[str]:
+    """Profile ids present in the given matches (occupied player slots).
+
+    Only status 3 (Player) slots count: Open/Closed/AI slots can carry a
+    residual profileid that is not a present player (reference §5).
+    """
+    profiles: set[str] = set()
+    for match in matches.values():
+        slots = match.get("slots") if isinstance(match, dict) else None
+        if not isinstance(slots, dict):
+            continue
+        for slot in slots.values():
+            if (
+                isinstance(slot, dict)
+                and slot.get("status") == 3
+                and slot.get("profileid") not in (None, "")
+            ):
+                profiles.add(str(slot["profileid"]))
+    return profiles
+
+
+def _format_label(teams: dict[int, int], player_count: int) -> str:
+    """Derive the human match format from the team distribution.
+
+    All distinct teams of equal size read as ``NvN``; anything else
+    (mixed sizes, no teams, one team) reads as FFA.
+    """
+    sizes = sorted(teams.values())
+    if player_count > 1 and sizes and len(set(sizes)) == 1 and len(sizes) > 1:
+        return f"{sizes[0]}v{sizes[0]}"
+    if player_count == 1:
+        return "1v1" if not teams else "solo"
+    return f"FFA ({player_count}p)" if player_count else ""
+
+
+def _now_ms() -> int:
+    """Epoch milliseconds, the repo's timestamp convention."""
+    return int(time.time() * 1000)
+
+
+async def _frame_reader(ws: Any, queue: asyncio.Queue[Any]) -> None:
+    """Feed raw frames to the queue until the session ends."""
+    try:
+        while True:
+            queue.put_nowait(await ws.recv())
+    except Exception:
+        queue.put_nowait("")
+
+
+async def _grace_sweeper(adapter: Aoe2LobbyAdapter, queue: asyncio.Queue[Any]) -> None:
+    """Consume the grace windows on a timer (silence-proof)."""
+    while True:
+        await asyncio.sleep(2.0)
+        for event in adapter._sweep_pending_closes():
+            queue.put_nowait(event)

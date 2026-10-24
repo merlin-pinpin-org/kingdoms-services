@@ -129,6 +129,30 @@ class GameProviderClient:
         stats = player_stats_from_wire(reply)
         return PlayerStats(profile_id=profile_id, blocks=stats.blocks)
 
+    async def update_subscriptions(self, profile_ids: list[str]) -> bool:
+        """Push the subscribed profile ids, degrading to False.
+
+        The provider reconciles its upstream subscriptions in place;
+        False means the push was not applied (provider offline or
+        without the capability) and the caller should retry later —
+        the provider re-syncs the full list on its next reconnect.
+        """
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                reply = await call_with_retry(
+                    stub.UpdateSubscriptions,
+                    game_pb2.UpdateSubscriptionsRequest(profile_ids=profile_ids),
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in (
+                    grpc.StatusCode.UNIMPLEMENTED,
+                    grpc.StatusCode.UNAVAILABLE,
+                ):
+                    return False
+                raise
+        return bool(reply.applied)
+
     def stream_match_events(self, since: int):
         """Stream live match events from the provider, degrading to silence.
 

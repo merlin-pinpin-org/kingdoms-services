@@ -63,6 +63,8 @@ profile_id&nbsp;and&nbsp;faction_key&nbsp;are&nbsp;opaque&nbsp;strings&nbsp;at&n
 
 <dl><dt><a name="Game-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
+<dl><dt><a name="Game-UpdateSubscriptions"><strong>UpdateSubscriptions</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
@@ -103,6 +105,11 @@ validation&nbsp;at&nbsp;registration&nbsp;and&nbsp;for&nbsp;match&nbsp;participa
 
 <dl><dt><a name="GameServicer-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(self, request, context)</dt><dd><span class="code">Stream&nbsp;match&nbsp;lifecycle&nbsp;events&nbsp;(lobby_opened,&nbsp;lobby_closed,<br>
 game_started,&nbsp;game_ended)&nbsp;for&nbsp;the&nbsp;matches&nbsp;this&nbsp;provider&nbsp;can&nbsp;see.</span></dd></dl>
+
+<dl><dt><a name="GameServicer-UpdateSubscriptions"><strong>UpdateSubscriptions</strong></a>(self, request, context)</dt><dd><span class="code">Push&nbsp;the&nbsp;subscribed&nbsp;profile&nbsp;ids&nbsp;to&nbsp;a&nbsp;realtime&nbsp;provider.&nbsp;The&nbsp;provider<br>
+updates&nbsp;its&nbsp;upstream&nbsp;subscriptions&nbsp;in&nbsp;place&nbsp;(no&nbsp;session&nbsp;teardown):<br>
+adds&nbsp;subscribe,&nbsp;removes&nbsp;unsubscribe.&nbsp;<a href="#Game">Game</a>-agnostic:&nbsp;the&nbsp;ids&nbsp;are&nbsp;the<br>
+game-side&nbsp;profile&nbsp;ids&nbsp;of&nbsp;the&nbsp;users&nbsp;registered&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

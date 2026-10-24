@@ -36,6 +36,23 @@ service Game {
 
   // The maps this provider knows about for its game (catalog data).
   rpc ListMaps(ListMapsRequest) returns (GameMaps);
+
+  // Push the subscribed profile ids to a realtime provider. The provider
+  // updates its upstream subscriptions in place (no session teardown):
+  // adds subscribe, removes unsubscribe. Game-agnostic: the ids are the
+  // game-side profile ids of the users registered on the platform.
+  rpc UpdateSubscriptions(UpdateSubscriptionsRequest) returns (UpdateSubscriptionsResponse);
+}
+
+message UpdateSubscriptionsRequest {
+  // Full current list of subscribed profile ids (idempotent reconciliation:
+  // the provider diffs against its previous list and applies the delta).
+  repeated string profile_ids = 1;
+}
+
+message UpdateSubscriptionsResponse {
+  int32 subscribed = 1;  // total profile ids subscribed after reconciliation
+  bool applied = 2;       // false: the provider cannot subscribe (offline...)
 }
 
 message CapabilitiesRequest {}

@@ -41,32 +41,12 @@ import ast
 import pathlib
 import re
 
-# The known-good U+1F5xx symbols used on components today (validated live
-# against Discord). Anything else in the block must be added here WITH a
-# live validation first.
-_GOOD_1F5XX = {
-    0x1F512,  # lock
-    0x1F513,  # open lock
-    0x1F517,  # link
-    0x1F527,  # wrench
-    0x1F52A,  # knife (civs)
-    0x1F52E,  # crystal ball
-    0x1F570,  # clock
-    0x1F576,  # sunglasses
-    0x1F577,  # spider
-    0x1F578,  # spider web
-    0x1F579,  # joystick
-    0x1F587,  # linked paperclips
-    0x1F58A,  # pen
-    0x1F58B,  # fountain pen
-    0x1F5FA,  # world map
-    0x1F5FB,  # mount fuji
-    0x1F5FC,  # tokyo tower
-    0x1F5FD,  # statue of liberty
-    0x1F5DE,  # bookmark tabs (labels only — NOT valid as component emoji)
-# 0x1F5AE rejected live (50035 Invalid emoji, 2026-10-21 test env)
-    0x1F5D1,  # trash bin
-}
+# The single source of truth for component emoji: the ui SDK's allowlist
+# (kingdoms.discord.ui.emoji). A new emoji is live-checked first, then
+# added THERE — never here.
+from kingdoms.discord.ui.emoji import ALLOWED_CODEPOINTS as _ALLOWED
+
+_GOOD_1F5XX = {cp for cp in _ALLOWED if 0x1F500 <= cp <= 0x1F5FF}
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -369,4 +349,36 @@ def test_action_rows_hold_one_select() -> None:
         "These action rows hold more than one select (maximum children exceeded "
         "at render time — the 2026-10-17 Roles lesson): "
         + "; ".join(sorted(offenders))
+    )
+
+
+def test_games_admin_items_guard_their_callbacks() -> None:
+    """Every games-admin DynamicItem must check admin at click time.
+
+    The runtime permission mandate (AGENTS.md): seeing a button never
+    implies being allowed to click it — every item of the games admin
+    namespace validates through the admin guard inside its callback.
+    The 2026-10-23 lesson: three buttons (create, rename, duplicate)
+    opened their modals unguarded.
+    """
+    import ast as _ast
+
+    path = ROOT / "src/kingdoms/discord/admin_panel_games.py"
+    tree = _ast.parse(path.read_text(encoding="utf-8"))
+    offenders: list[str] = []
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.ClassDef):
+            continue
+        bases = [getattr(b, "id", getattr(b, "attr", "")) for b in node.bases]
+        if not any("DynamicItem" in str(b) for b in bases):
+            continue
+        for sub in _ast.walk(node):
+            if not (isinstance(sub, _ast.AsyncFunctionDef) and sub.name == "callback"):
+                continue
+            body_src = _ast.unparse(sub)
+            if "guard" not in body_src and "require_admin" not in body_src:
+                offenders.append(f"{node.name}.callback has no admin guard")
+    assert not offenders, (
+        "These games-admin callbacks open their surface without the click-time "
+        "admin check (the runtime permission mandate): " + "; ".join(sorted(offenders))
     )

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.ext_liquipedia</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.ext_liquipedia</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_liquipedia/__init__.py">SOURCE_ROOT/ext_liquipedia/__init__.py</a></td></tr></table>
+    <p><span class="code">ext-liquipedia&nbsp;—&nbsp;Liquipedia&nbsp;content&nbsp;provider&nbsp;process.<br>
+&nbsp;<br>
+A&nbsp;real&nbsp;provider&nbsp;(ADR-0020/0021),&nbsp;not&nbsp;an&nbsp;in-process&nbsp;module:&nbsp;it&nbsp;owns&nbsp;the<br>
+Liquipedia&nbsp;MediaWiki&nbsp;access&nbsp;(terms-of-use&nbsp;compliance,&nbsp;rate&nbsp;limiting,<br>
+licence&nbsp;guard)&nbsp;and&nbsp;its&nbsp;own&nbsp;Mongo&nbsp;tables&nbsp;—&nbsp;the&nbsp;raw&nbsp;fetched&nbsp;data&nbsp;lives<br>
+here,&nbsp;exploited&nbsp;and&nbsp;served&nbsp;over&nbsp;``kingdoms.v1.Content``.&nbsp;Liquipedia&nbsp;is<br>
+a&nbsp;multi-game&nbsp;source&nbsp;(AoE2&nbsp;today;&nbsp;the&nbsp;wiki&nbsp;family&nbsp;covers&nbsp;every&nbsp;esport),<br>
+so&nbsp;the&nbsp;map&nbsp;seeding&nbsp;is&nbsp;keyed&nbsp;by&nbsp;``game_key``.<br>
+&nbsp;<br>
+Tables&nbsp;owned&nbsp;(logical&nbsp;base&nbsp;``liquipedia``):<br>
+-&nbsp;``liquipedia_maps``&nbsp;&nbsp;—&nbsp;one&nbsp;document&nbsp;per&nbsp;(game,&nbsp;page):&nbsp;the&nbsp;parsed<br>
+&nbsp;&nbsp;descriptor,&nbsp;the&nbsp;raw&nbsp;wikitext,&nbsp;licence&nbsp;outcome,&nbsp;fetched_at&nbsp;—&nbsp;the&nbsp;debug<br>
+&nbsp;&nbsp;and&nbsp;replay&nbsp;source&nbsp;of&nbsp;every&nbsp;import;<br>
+-&nbsp;``liquipedia_pages``&nbsp;—&nbsp;the&nbsp;raw&nbsp;MediaWiki&nbsp;API&nbsp;responses&nbsp;(cache-aside:<br>
+&nbsp;&nbsp;a&nbsp;page&nbsp;already&nbsp;fetched&nbsp;is&nbsp;never&nbsp;re-requested&nbsp;until&nbsp;the&nbsp;TTL&nbsp;lapses).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.ext_liquipedia.server.html">server</a><br>
+</td><td class="multicolumn"><a href="kingdoms.ext_liquipedia.source.html">source</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>MAPS_COLLECTION</strong> = 'liquipedia_maps'<br>
+<strong>PAGES_COLLECTION</strong> = 'liquipedia_pages'<br>
+<strong>PAGE_CACHE_TTL_S</strong> = 604800<br>
+<strong>PROVIDER_ID</strong> = 'ext-liquipedia'<br>
+<strong>PROVIDER_KEY</strong> = 'liquipedia'<br>
+<strong>SUPPORTED_LOCALES</strong> = ('en',)</td></tr></table>
+</body></html>

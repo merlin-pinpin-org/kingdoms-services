@@ -11,9 +11,11 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/live.py">SOURCE_ROOT/core/rpc/live.py</a></td></tr></table>
     <p><span class="code">Live&nbsp;dashboard&nbsp;seam&nbsp;—&nbsp;server&nbsp;side&nbsp;and&nbsp;client&nbsp;(kingdoms.v1.Live,&nbsp;#147).<br>
 &nbsp;<br>
-svc-core&nbsp;serves&nbsp;WatchDashboard&nbsp;(server-streaming&nbsp;snapshots);&nbsp;the&nbsp;bot<br>
-consumes&nbsp;it&nbsp;through&nbsp;``<a href="#LiveClient">LiveClient</a>``&nbsp;to&nbsp;render&nbsp;/live.&nbsp;The&nbsp;seam&nbsp;only<br>
-translates&nbsp;between&nbsp;the&nbsp;wire&nbsp;contract&nbsp;and&nbsp;the&nbsp;aggregator's&nbsp;snapshots.</span></p>
+svc-core&nbsp;serves&nbsp;WatchDashboard&nbsp;(server-streaming&nbsp;snapshots)&nbsp;and<br>
+WatchPlayerEvents&nbsp;(the&nbsp;normalized&nbsp;player&nbsp;status&nbsp;transitions);&nbsp;the&nbsp;bot<br>
+consumes&nbsp;them&nbsp;through&nbsp;``<a href="#LiveClient">LiveClient</a>``&nbsp;to&nbsp;render&nbsp;/live&nbsp;and&nbsp;to&nbsp;dispatch<br>
+transitions&nbsp;to&nbsp;the&nbsp;enrolled&nbsp;mods.&nbsp;The&nbsp;seam&nbsp;only&nbsp;translates&nbsp;between<br>
+the&nbsp;wire&nbsp;contract&nbsp;and&nbsp;the&nbsp;aggregator's&nbsp;snapshots.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -56,6 +58,12 @@ Typed&nbsp;client&nbsp;for&nbsp;the&nbsp;kingdoms.v1.Live&nbsp;service&nbsp;(bot
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LiveClient-__init__"><strong>__init__</strong></a>(self, core_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;core&nbsp;address;&nbsp;channels&nbsp;are&nbsp;per-call&nbsp;(ADR-0020).</span></dd></dl>
 
+<dl><dt>async <a name="LiveClient-stream_player_events"><strong>stream_player_events</strong></a>(self, game_key: 'str' = '')</dt><dd><span class="code">Yield&nbsp;normalized&nbsp;player&nbsp;transitions&nbsp;continuously,&nbsp;forever.<br>
+&nbsp;<br>
+The&nbsp;stream&nbsp;reconnects&nbsp;silently&nbsp;on&nbsp;core&nbsp;hiccups&nbsp;(the&nbsp;caller's<br>
+loop&nbsp;retries);&nbsp;each&nbsp;transition&nbsp;is&nbsp;the&nbsp;plain&nbsp;dict&nbsp;shape&nbsp;of&nbsp;the<br>
+player_events&nbsp;mechanism,&nbsp;ready&nbsp;for&nbsp;mod&nbsp;dispatch.</span></dd></dl>
+
 <dl><dt>async <a name="LiveClient-stream_snapshots"><strong>stream_snapshots</strong></a>(self, game_key: 'str')</dt><dd><span class="code">Yield&nbsp;dashboard&nbsp;snapshots&nbsp;continuously:&nbsp;one&nbsp;per&nbsp;player-state&nbsp;change.</span></dd></dl>
 
 <dl><dt>async <a name="LiveClient-watch"><strong>watch</strong></a>(self, game_key: 'str', timeout_s: 'float' = 5.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;latest&nbsp;dashboard&nbsp;snapshot&nbsp;(first&nbsp;stream&nbsp;frame).</span></dd></dl>
@@ -91,6 +99,12 @@ The&nbsp;aggregator&nbsp;folds&nbsp;provider&nbsp;events&nbsp;in&nbsp;the&nbsp;b
 the&nbsp;core&nbsp;process;&nbsp;this&nbsp;stream&nbsp;polls&nbsp;its&nbsp;snapshot,&nbsp;emitting&nbsp;only<br>
 when&nbsp;the&nbsp;payload&nbsp;changed&nbsp;so&nbsp;the&nbsp;channel&nbsp;never&nbsp;spams.</span></dd></dl>
 
+<dl><dt>async <a name="LiveServicer-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(self, request: 'live_pb2.WatchPlayerEventsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[live_pb2.PlayerStatusWireEvent]'</dt><dd><span class="code">Stream&nbsp;normalized&nbsp;player&nbsp;transitions&nbsp;as&nbsp;the&nbsp;aggregator&nbsp;queues&nbsp;them.<br>
+&nbsp;<br>
+The&nbsp;consumer&nbsp;(the&nbsp;bot&nbsp;process)&nbsp;dispatches&nbsp;each&nbsp;transition&nbsp;to&nbsp;the<br>
+mods&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled&nbsp;—&nbsp;the&nbsp;core's&nbsp;generic&nbsp;player<br>
+events&nbsp;mechanism,&nbsp;served&nbsp;across&nbsp;the&nbsp;process&nbsp;seam.</span></dd></dl>
+
 <dl><dt><a name="LiveServicer-__init__"><strong>__init__</strong></a>(self, aggregator: 'Any', poll_interval_s: 'float' = 2.0) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;aggregator&nbsp;and&nbsp;the&nbsp;snapshot&nbsp;refresh&nbsp;interval.</span></dd></dl>
 
 <hr>
@@ -109,5 +123,7 @@ Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.live
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-add_live_servicer"><strong>add_live_servicer</strong></a>(server: 'grpc.aio.Server', servicer: 'LiveServicer') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;Live&nbsp;servicer&nbsp;onto&nbsp;the&nbsp;server.</span></dd></dl>
  <dl><dt><a name="-state_to_wire"><strong>state_to_wire</strong></a>(snapshot: 'dict[str, Any]') -&gt; 'live_pb2.DashboardState'</dt><dd><span class="code">Translate&nbsp;one&nbsp;aggregator&nbsp;snapshot&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-transition_from_wire"><strong>transition_from_wire</strong></a>(wire: 'live_pb2.PlayerStatusWireEvent') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;transition&nbsp;back&nbsp;into&nbsp;the&nbsp;plain&nbsp;dict&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-transition_to_wire"><strong>transition_to_wire</strong></a>(transition: 'dict[str, Any]') -&gt; 'live_pb2.PlayerStatusWireEvent'</dt><dd><span class="code">Translate&nbsp;one&nbsp;normalized&nbsp;player&nbsp;transition&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
 </td></tr></table>
 </body></html>
