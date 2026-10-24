@@ -17,6 +17,10 @@ logger = logging.getLogger("kingdoms.mods.kingdoms")
 
 MOD_NAME = "kingdoms"
 
+# On-demand rebuild bookkeeping: a failed self-heal attempt is logged
+# once per bot (ERROR, with traceback) instead of once per click.
+_ENSURE_FAILED: dict[str, bool] = {}
+
 
 def _build_service(config: Any) -> Any | None:
     """Build the KingdomsService (Mongo-backed); None when unwired."""
@@ -165,7 +169,88 @@ def register(bot: Any, config: Any) -> None:
         roles_service=getattr(bot, "roles_service", None),
         debug_service=getattr(bot, "kingdoms_debug_service", None),
     )
-    logger.info("kingdoms mod registered (service=%s)", "wired" if services else "unwired")
+    if services is None:
+        # 2026-10-24 live incident (Drasah): an unwired boot degraded
+        # silently — panels and buttons worked, but every enrollment,
+        # king DM and console read no-opped without a single visible
+        # signal. An unwired registration is an incident, not a mode.
+        logger.error(
+            "kingdoms mod registered (service=unwired) — enrollments, king DMs"
+            " and the admin console are DEAD until the service rebuilds"
+            " (first use retries, see ensure_kingdoms_services)"
+        )
+    else:
+        logger.info("kingdoms mod registered (service=wired)")
+
+
+def ensure_kingdoms_services(bot: Any) -> Any | None:
+    """Return the bot's KingdomsService, rebuilding the stack when missing.
+
+    Drasah's 2026-10-24 live incident: when the Mongo service stack fails
+    to build at boot the mod registers unwired — the persistent views and
+    channels still work, so a candidature approval "succeeds" (role
+    assigned) while the enrollment and the King kingdom-request DM
+    silently no-op. Instead of staying dead for the whole process
+    lifetime, the first need re-attempts the build from the environment
+    (the Mongo clients are lazy — the attempt is cheap and pure).
+
+    Returns the KingdomsService, or None when the rebuild fails too
+    (logged ONCE per bot at ERROR with the traceback — the operator gets
+    the real root cause instead of a silent degradation).
+    """
+    if getattr(bot, "kingdoms_service", None) is not None:
+        return bot.kingdoms_service
+    key = str(id(bot))
+    if _ENSURE_FAILED.get(key):
+        return None
+    try:
+        from kingdoms.discord.bot.factory import BotConfig
+
+        services = _build_services(BotConfig.from_env())
+    except Exception:
+        _ENSURE_FAILED[key] = True
+        logger.exception("kingdoms mod: on-demand service rebuild failed — mod stays unwired")
+        return None
+    if services is None:
+        _ENSURE_FAILED[key] = True
+        logger.error(
+            "kingdoms mod: on-demand service rebuild returned no services"
+            " (mongo_uri absent?) — mod stays unwired"
+        )
+        return None
+    (
+        kingdoms,
+        territories,
+        attacks,
+        economy,
+        diplomacy,
+        events,
+        time_machine,
+        distributor,
+        voliere,
+        tavern,
+        ffa,
+        cathedrals,
+        debug,
+    ) = services
+    bot.kingdoms_service = kingdoms
+    bot.kingdoms_territories_service = territories
+    bot.kingdoms_attacks_service = attacks
+    bot.kingdoms_economy_service = economy
+    bot.kingdoms_diplomacy_service = diplomacy
+    bot.kingdoms_events_service = events
+    bot.kingdoms_time_service = time_machine
+    bot.kingdoms_distributor_service = distributor
+    bot.kingdoms_voliere_service = voliere
+    bot.kingdoms_tavern_service = tavern
+    bot.kingdoms_ffa_service = ffa
+    bot.kingdoms_cathedral_service = cathedrals
+    bot.kingdoms_debug_service = debug
+    logger.error(
+        "kingdoms mod: service stack REBUILT on demand (the boot was unwired)"
+        " — enrollments, king DMs and the console are back"
+    )
+    return kingdoms
 
 
 def setup_hook(bot: Any) -> None:

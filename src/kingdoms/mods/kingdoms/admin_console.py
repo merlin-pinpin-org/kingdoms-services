@@ -305,6 +305,15 @@ class AdminConsole:
 
     async def dispatch(self, text: str, message: Any | None = None) -> str:
         """Parse one console line and run its command (pure, testable)."""
+        # 2026-10-24 self-heal: an unwired boot leaves the console
+        # answering "not wired" forever; every command re-attempts the
+        # service build first (cheap, lazy clients, logged once).
+        try:
+            from kingdoms.mods.kingdoms import ensure_kingdoms_services
+
+            ensure_kingdoms_services(self.bot)
+        except Exception:
+            logger.exception("CONSOLE: on-demand kingdoms service rebuild crashed")
         self._current_message = message
         parts = text.split()
         command = parts[0].casefold()

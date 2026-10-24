@@ -174,6 +174,11 @@ STRINGS: dict[str, dict[str, Any]] = {
             "only one application per person."
         ),
         "enroll_already": "⚠️ Already enrolled in the current season.",
+        "enroll_service_down": (
+            "⚠️ The Kingdoms service is unavailable: the enrollment and the"
+            " kingdom DM could NOT be sent — this is an incident, contact an"
+            " admin (the role alone was granted)."
+        ),
         "role_sheet_king": (
             "# 👑 THE KING — RIGHTS & OBLIGATIONS\n"
             "\n"
@@ -577,6 +582,11 @@ STRINGS: dict[str, dict[str, Any]] = {
             "une seule candidature par personne."
         ),
         "enroll_already": "⚠️ Déjà inscrit dans la saison courante.",
+        "enroll_service_down": (
+            "⚠️ Le service Kingdoms est indisponible : l'inscription et le MP"
+            " du royaume n'ont PAS pu être envoyés — c'est un incident, préviens"
+            " un admin (seul le rôle a été attribué)."
+        ),
         "role_sheet_king": (
             "# 👑 LE ROI — DROITS & OBLIGATIONS\n"
             "\n"
@@ -1231,6 +1241,20 @@ async def _enrolled_blocker(
         lords = []
     for lord in lords:
         if str(lord.id) == str(applicant_id) and not lord.left:
+            # 2026-10-24 recovery path (Drasah): a validated King still
+            # awaiting a kingdom (queue, no kingdom) may re-apply — the
+            # approval of the new candidature RESENDS the kingdom-request
+            # DM (the approval flow already sends it even when the
+            # enrollment itself answers "already enrolled"). This is the
+            # self-service recovery for a King whose DM was lost.
+            from kingdoms.mods.kingdoms.service import KING_ROLE
+
+            if (
+                lord.role is KING_ROLE
+                and bool(getattr(lord, "in_queue", False))
+                and getattr(lord, "kingdom_id", None) is None
+            ):
+                return None
             return str(strings["apply_already_enrolled"])
     return None
 

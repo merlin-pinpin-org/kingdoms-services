@@ -94,6 +94,16 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
     global _WIRING_RESOLVER
 
     def _resolve() -> KingdomsPanelWiring:
+        # 2026-10-24 live incident: an unwired boot (service build
+        # failed) left every panel working but the enrollments, king
+        # DMs and console dead. Every wiring resolution self-heals the
+        # service stack before reading it.
+        try:
+            from kingdoms.mods.kingdoms import ensure_kingdoms_services
+
+            ensure_kingdoms_services(bot)
+        except Exception:
+            logger.exception("KINGDOMS PANELS: on-demand kingdoms service rebuild crashed")
         status = getattr(bot, "status_service", None)
         return KingdomsPanelWiring(
             logs_service=getattr(bot, "logs_service", None),
@@ -413,6 +423,16 @@ async def _apply_candidature_approval(
             display_name=applicant_display,
         )
         extra += " " + enrollment_note
+    elif applicant_id and wiring.kingdoms_service is None:
+        # 2026-10-24 live incident: an unwired mod made the approval
+        # "succeed" (role assigned) while nothing was enrolled — the
+        # player never heard from the bot again. Never silent again.
+        logger.error(
+            "CANDIDATURES: kingdoms service UNWIRED — enrollment skipped for %s"
+            " (the player was told)",
+            applicant_id,
+        )
+        extra += " " + strings["enroll_service_down"]
     if wiring.mod_roles_service is not None and applicant_id and guild is not None:
         try:
             await wiring.mod_roles_service.assign_mod_role(
@@ -3897,6 +3917,7 @@ async def _send_welcome(
         except Exception:
             member = None
     if member is None:
+        logger.warning("CANDIDATURES: welcome DM skipped — member %s not found", applicant_id)
         return
     welcome = f"# {strings['welcome_title']}\n{strings['welcome_body']}"
     try:
@@ -3929,6 +3950,7 @@ async def _send_king_name_request(
         except Exception:
             member = None
     if member is None:
+        logger.warning("CANDIDATURES: king name DM skipped — member %s not found", applicant_id)
         return
     strings = _king_name_strings(locale)
     request = f"# {strings['king_name_dm_title']}\n{strings['king_name_dm_body']}"
@@ -4003,6 +4025,7 @@ async def _send_king_claim_request(
         except Exception:
             member = None
     if member is None:
+        logger.warning("CANDIDATURES: king claim DM skipped — member %s not found", applicant_id)
         return
     strings = _king_name_strings(locale)
     request = f"# {strings['king_claim_dm_title']}\n{strings['king_claim_dm_body']}"
@@ -4038,6 +4061,9 @@ async def _send_king_awaiting_kingdom(guild: discord.Guild, applicant_id: str, l
         except Exception:
             member = None
     if member is None:
+        logger.warning(
+            "CANDIDATURES: awaiting-kingdom DM skipped — member %s not found", applicant_id
+        )
         return
     strings = _king_name_strings(locale)
     notice = f"# {strings['king_awaiting_kingdom_title']}\n{strings['king_awaiting_kingdom_body']}"
