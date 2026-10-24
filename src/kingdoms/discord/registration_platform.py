@@ -234,7 +234,11 @@ class Aoe2ProfileValidationSeam:
         aliases = [e.value for e in entries if e.key == "alias"]
         if not aliases:
             aliases = [e.value for e in entries][:5]
+        # the profile name rides the binding (owner direction): the stored
+        # name of each profile id, so every link renders it without a
+        # provider round-trip
         return {
             "profile_id": profile_id,
+            "profile_name": aliases[0] if aliases else "",
             "aliases": aliases[:5],
         }

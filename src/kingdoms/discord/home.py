@@ -160,29 +160,21 @@ async def _profile_game_blocks(
             logger.warning("HOME: profile enricher failed", exc_info=True)
     blocks: list[discord.ui.TextDisplay[discord.ui.LayoutView]] = []
     for game, entries in sorted(by_game.items()):
-        game_site = await _user_preferred_site(interaction, game)
         lines = [f"## {_game_label(game)}"]
         for entry in entries:
             profile = entry.get("profile") or {}
             aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
             name = (
-                str(profile.get("display_name") or profile.get("name") or "")
+                str(profile.get("profile_name") or "")
                 or (aliases[0] if aliases else "")
                 or "?"
             )
             pid = entry.get("profile_id", "?")
             player = players_by_id.get(user_id)
             elo = f" — {player.get('rating')} elo" if player else ""
-            url = _game_account_url(game, str(pid), game_site)
+            url = _game_account_url(game, str(pid))
             account = f"[{name}]({url}) (`{pid}`)" if url else f"{name} (`{pid}`)"
             lines.append(f"• {account}{elo}")
-            from kingdoms.core.services.profile_sites import profile_sites_registry
-
-            for site in profile_sites_registry().sites_for(game):
-                site_url = site.format_url(str(pid))
-                if not site_url or (game_site and site.key == game_site):
-                    continue
-                lines.append(f"  ↳ [{site.label}]({site_url})")
         blocks.append(discord.ui.TextDisplay(chr(10).join(lines)))
     return blocks
 
@@ -224,26 +216,6 @@ async def _profile_followup(
         header = f"{header}\n\n{banner}"
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(header), *blocks))
     view.add_item(row)
-    games = sorted({str(b.get("game_key", "")) for b in bindings if b.get("game_key")})
-    if games:
-        from kingdoms.core.services.profile_sites import profile_sites_registry
-
-        game = games[0]
-        registry = profile_sites_registry()
-        sites = registry.sites_for(game)
-        if sites:
-            current = await _user_preferred_site(interaction, game)
-            default = registry.default_site(game)
-            options = [
-                discord.SelectOption(
-                    label=site.label,
-                    value=site.key,
-                    default=(site.key == current) or (not current and default is not None and site.key == default.key),
-                )
-                for site in sites
-            ]
-            picker = ProfileSiteSelect(game, options)
-            view.add_item(discord.ui.ActionRow(picker.item))
     from kingdoms.core.ids import footer
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
@@ -1248,13 +1220,12 @@ async def _roster_lines(
         mention = f"<@{user_id}>"
         profiles: list[str] = []
         for binding in user_bindings:
-            # the exact profile-page naming: display_name → name → first
-            # alias (owner direction — the librematch resolver diverged)
+            # the link label is the STORED profile name (owner direction)
             profile = binding.get("profile") or {}
             pid = str(binding.get("profile_id", "?"))
             aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
             name = (
-                str(profile.get("display_name") or profile.get("name") or "")
+                str(profile.get("profile_name") or "")
                 or (aliases[0] if aliases else "")
                 or pid
             )
