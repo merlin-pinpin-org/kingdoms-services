@@ -297,6 +297,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plan_event_cancelled": "❌ Ta plannification a été annulée — aucun budget n'a été consommé.",
         "plan_no_service": "❌ Le service des attaques est indisponible.",
         "lord_engaged": "⛔ Tu es engagé dans une bataille en cours — attends son issue avant d'attaquer, planifier, embusquer ou défendre.",
+        "lord_tavern_locked": "⛔ Tu es sous l'effet d'une boisson de la Taverne — attends la fin du verrou avant d'attaquer, planifier, embusquer ou défendre.",
         "reveal_no_defense": "🏳️ Assaut irrésistible — aucune défense",
         "defender_pending": "en attente de défense",
         "defender_anon": "défense en place 🔒",
@@ -649,6 +650,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plan_event_cancelled": "❌ Your planning was cancelled — no budget was consumed.",
         "plan_no_service": "❌ The attack service is unavailable.",
         "lord_engaged": "⛔ You are engaged in an ongoing battle — wait for its outcome before attacking, planning, ambushing or defending.",
+        "lord_tavern_locked": "⛔ You are under a tavern drink's effect — wait for the lock to end before attacking, planning, ambushing or defending.",
         "reveal_no_defense": "🏳️ Irresistible assault — no defense",
         "defender_pending": "waiting for a defender",
         "defender_anon": "defense in place 🔒",
@@ -1526,8 +1528,7 @@ async def _open_embuscade_step(
         try:
             attack = await attacks.declare_embuscade(str(target.user.id), chosen[0], "")
         except Exception as exc:
-            message = getattr(exc, "message", None) or str(exc)
-            await target.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await target.followup.send(_combat_failure_note(exc, strings), ephemeral=True)
             return
         try:
             delay_minutes = int((attack.expires_at - attack.declared_at).total_seconds() // 60)
@@ -1601,8 +1602,7 @@ async def _declare_player_attack(
     try:
         attack = await attacks.declare_attack(str(target.user.id), map_key, "", cover_lord_id=cover_lord_id)
     except Exception as exc:
-        message = getattr(exc, "message", None) or str(exc)
-        await target.followup.send(strings["failed"].format(message=message), ephemeral=True)
+        await target.followup.send(_combat_failure_note(exc, strings), ephemeral=True)
         return
     delay_minutes = 0
     try:
@@ -2035,8 +2035,7 @@ class KingdomAttackDefendButton(
         try:
             attack = await wiring.attacks_service.respond_defense(self.attack_id, str(interaction.user.id))
         except Exception as exc:
-            message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await interaction.followup.send(_combat_failure_note(exc, strings), ephemeral=True)
             return
         await interaction.followup.send(
             strings["defense_done"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
@@ -2140,6 +2139,23 @@ class KingdomDefenseManagerButton(
 # ----------------------------------------------------------------------
 # planification-attaque-v1 (Drasah 23/10/2026) — the planning surface
 # ----------------------------------------------------------------------
+def _combat_failure_note(exc: Exception, strings: dict[str, str]) -> str:
+    """Map a combat-action failure to its player-facing note.
+
+    taverne-v1 (Drasah 24/10): the engaged and the TAVERN locks carry
+    their own FR/EN lines — every other failure keeps the generic
+    ``failed`` fallback with the raw message.
+    """
+    from kingdoms.mods.kingdoms.attacks import LordEngagedError, LordTavernLockedError
+
+    if isinstance(exc, LordTavernLockedError):
+        return str(strings["lord_tavern_locked"])
+    if isinstance(exc, LordEngagedError):
+        return str(strings["lord_engaged"])
+    message = getattr(exc, "message", None) or str(exc)
+    return str(strings["failed"]).format(message=message)
+
+
 def _map_label(wiring: Any, map_key: str) -> str:
     """The display name of a map key (fallback: the raw key)."""
     catalog = {
@@ -2224,9 +2240,15 @@ async def _plan_confirm_step(
             from kingdoms.mods.kingdoms.attacks import LordEngagedError
 
             message = (
-                strings["lord_engaged"]
-                if isinstance(exc, LordEngagedError)
-                else strings["plan_failed"].format(message=getattr(exc, "message", None) or str(exc))
+                strings["lord_tavern_locked"]
+                if isinstance(exc, LordTavernLockedError)
+                else (
+                    strings["lord_engaged"]
+                    if isinstance(exc, LordEngagedError)
+                    else strings["plan_failed"].format(
+                        message=getattr(exc, "message", None) or str(exc)
+                    )
+                )
             )
             await target.followup.send(message, ephemeral=True)
             return
@@ -2496,12 +2518,16 @@ class KingdomPlanButton(
                 strings["defense_manager_not_defender"], ephemeral=True
             )
             return
-        from kingdoms.mods.kingdoms.attacks import LordEngagedError
+        from kingdoms.mods.kingdoms.attacks import LordEngagedError, LordTavernLockedError
 
         try:
             await wiring.attacks_service._refuse_engaged(str(interaction.user.id), game_now())
+            wiring.attacks_service._refuse_tavern(lord, game_now())
         except LordEngagedError:
             await interaction.response.send_message(strings["lord_engaged"], ephemeral=True)
+            return
+        except LordTavernLockedError:
+            await interaction.response.send_message(strings["lord_tavern_locked"], ephemeral=True)
             return
         options = await _plan_enemy_territory_options(wiring, str(lord.kingdom_id), strings)
         if not options:
@@ -2774,6 +2800,8 @@ async def _run_plan_events_safe(
             )
         elif plan.last_event == "broken_engaged":
             note = strings["lord_engaged"]
+        elif plan.last_event == "broken_tavern":
+            note = strings["lord_tavern_locked"]
         elif plan.last_event == "broken_lords_day":
             note = strings["plan_event_broken"].format(
                 map=_map_label(wiring, str(plan.active_choice or ""))

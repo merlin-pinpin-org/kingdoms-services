@@ -48,6 +48,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.mods.kingdoms.service import KingdomsService
         from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
         from kingdoms.mods.kingdoms.territories import TerritoryService
+        from kingdoms.mods.kingdoms.tavern import TavernService
         from kingdoms.mods.kingdoms.time_machine import TimeMachineService
         from kingdoms.mods.kingdoms.voliere import VoliereService
 
@@ -62,6 +63,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         time_machine = TimeMachineService(store, season_config, kingdoms, events)
         distributor = DistributorService(store, season_config, kingdoms, territories, attacks)
         voliere = VoliereService(store, season_config, kingdoms, territories, attacks)
+        tavern = TavernService(store, season_config, kingdoms)
         ffa = FFAExplorationService(store, season_config, kingdoms, events)
         cathedrals = CathedralService(store, season_config, kingdoms, territories)
         debug = DebugService(
@@ -83,6 +85,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
             time_machine,
             distributor,
             voliere,
+            tavern,
             ffa,
             cathedrals,
             debug,
@@ -112,6 +115,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_time_service = None
         bot.kingdoms_distributor_service = None
         bot.kingdoms_voliere_service = None
+        bot.kingdoms_tavern_service = None
         bot.kingdoms_ffa_service = None
         bot.kingdoms_cathedral_service = None
         bot.kingdoms_debug_service = None
@@ -126,6 +130,7 @@ def register(bot: Any, config: Any) -> None:
             time_machine,
             distributor,
             voliere,
+            tavern,
             ffa,
             cathedrals,
             debug,
@@ -139,6 +144,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_time_service = time_machine
         bot.kingdoms_distributor_service = distributor
         bot.kingdoms_voliere_service = voliere
+        bot.kingdoms_tavern_service = tavern
         bot.kingdoms_ffa_service = ffa
         bot.kingdoms_cathedral_service = cathedrals
         bot.kingdoms_debug_service = debug

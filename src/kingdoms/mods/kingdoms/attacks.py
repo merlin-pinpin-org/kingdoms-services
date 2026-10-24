@@ -251,6 +251,19 @@ class LordEngagedError(AttackError):
     message_key = "kingdoms.errors.lord_engaged"
 
 
+class LordTavernLockedError(AttackError):
+    """Raised when a drinking lord tries a combat action (taverne-v1).
+
+    Drasah 24/10/2026: a lord who drank at the Taverne is locked out
+    of combat exactly like an engaged one — no declaration, no
+    planning, no defense, no Embuscade — until the drink's lock
+    (``LordModel.tavern_locked_until``) expires.
+    """
+
+    code = "KINGDOMS_LORD_TAVERN_LOCKED"
+    message_key = "kingdoms.errors.lord_tavern_locked"
+
+
 class PlanningError(AttackError):
     """Raised when a planned attack cannot be created (Drasah 23/10)."""
 
@@ -552,6 +565,8 @@ class AttackService:
         # planification-attaque-v1: an engaged lord (attacker or
         # defender of an unresolved attack) declares NOTHING new.
         await self._refuse_engaged(lord.id, timestamp)
+        # taverne-v1: a drinking lord declares NOTHING either.
+        self._refuse_tavern(lord, timestamp)
         territory = await self._validate_attack_target(lord, map_key, timestamp)
         cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
         if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
@@ -653,6 +668,8 @@ class AttackService:
         timestamp = now or _now()
         # planification-attaque-v1: an engaged lord ambushes NOTHING.
         await self._refuse_engaged(lord.id, timestamp)
+        # taverne-v1: a drinking lord ambushes NOTHING either.
+        self._refuse_tavern(lord, timestamp)
         territory = await self._validate_attack_target(lord, map_key, timestamp)
         # Volière Lâcher de faucon (voliere-v1): the Embuscade is an
         # adverse technology effect — a released defender is immune.
@@ -740,6 +757,21 @@ class AttackService:
             ):
                 raise LordEngagedError("the lord is engaged in an unresolved battle")
 
+    def _refuse_tavern(self, lord: LordModel, timestamp: datetime) -> None:
+        """Raise ``LordTavernLockedError`` while a drink locks the lord.
+
+        taverne-v1 (Drasah 24/10/2026): the drink reuses the battle
+        lock's semantics — a drinking lord can neither declare, nor
+        plan, nor defend, nor ambush until the lock expires. Per LORD,
+        like every lock of the mod.
+        """
+        if (
+            lord.tavern_locked_until is not None
+            and lord.tavern_locked_until > int(timestamp.timestamp())
+            and not bypass_guard(f"tavern lock of {lord.display_name}")
+        ):
+            raise LordTavernLockedError("the lord is locked by a tavern drink (taverne-v1)")
+
     def _plan_declare_at(self, plan: PlannedAttackModel) -> datetime:
         """The scheduled declaration moment: T - itinéraire (Drasah 23/10).
 
@@ -775,6 +807,8 @@ class AttackService:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         timestamp = now or _now()
         await self._refuse_engaged(player_id, timestamp)
+        # taverne-v1: a drinking lord plans NOTHING either.
+        self._refuse_tavern(lord, timestamp)
         if not choices:
             raise PlanningError("a plan needs at least one territory choice")
         if len(choices) > PLANNING_CHOICES_MAX:
@@ -974,6 +1008,15 @@ class AttackService:
                 await self._store.upsert_plan(plan.to_mongo())
                 changed.append(plan)
                 return changed
+            except LordTavernLockedError:
+                # taverne-v1: the declaration moment landed inside a
+                # drink's combat lock — the plan breaks like an
+                # engagement (the DM carries the tavern note).
+                plan.state = PlanState.BROKEN
+                plan.last_event = "broken_tavern"
+                await self._store.upsert_plan(plan.to_mongo())
+                changed.append(plan)
+                return changed
             except NoBudgetError:
                 plan.state = PlanState.BROKEN
                 plan.last_event = "broken_budget"
@@ -1122,6 +1165,8 @@ class AttackService:
         # defends NOTHING else — he is locked until his own battle's
         # result is announced.
         await self._refuse_engaged(lord.id, timestamp)
+        # taverne-v1: a drinking lord defends NOTHING either.
+        self._refuse_tavern(lord, timestamp)
         # D59/D60: a fresh marriage locks the lord out of combat.
         if (
             lord.marriage_locked_until is not None

@@ -646,6 +646,7 @@ class KingdomsService:
             kingdom_id=kingdom.id,
             role=KING_ROLE,
             display_name=display_name,
+            purse=self._config.tavern.purse_start,
         )
         await self._store.upsert_lord(lord.to_mongo())
         await chronicle.record(
@@ -676,6 +677,7 @@ class KingdomsService:
             role=KING_ROLE,
             display_name=display_name,
             in_queue=True,
+            purse=self._config.tavern.purse_start,
         )
         await self._store.upsert_lord(lord.to_mongo())
         logger.info("kingdoms: %s enrolled as King awaiting a kingdom", player_id)
@@ -749,6 +751,7 @@ class KingdomsService:
             role=KING_ROLE,
             display_name=display_name,
             in_queue=True,
+            purse=self._config.tavern.purse_start,
         )
         await self._store.upsert_lord(lord.to_mongo())
         logger.info("kingdoms: %s enrolled as King awaiting a kingdom name", player_id)
@@ -807,6 +810,7 @@ class KingdomsService:
                 role=LORD_ROLE,
                 display_name=display_name,
                 in_queue=True,
+                purse=self._config.tavern.purse_start,
             )
             await self._store.upsert_lord(lord.to_mongo())
             await chronicle.record(
@@ -830,6 +834,7 @@ class KingdomsService:
             kingdom_id=kingdom.id,
             role=LORD_ROLE,
             display_name=display_name,
+            purse=self._config.tavern.purse_start,
         )
         await self._store.upsert_lord(lord.to_mongo())
         await chronicle.record(

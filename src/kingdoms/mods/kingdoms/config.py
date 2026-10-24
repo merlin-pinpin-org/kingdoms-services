@@ -380,6 +380,51 @@ class ParishSettings(BaseModel):
         return self.tiers[index]
 
 
+class TavernDrink(BaseModel):
+    """One Taverne drink (taverne-v1, Drasah 24/10/2026).
+
+    A FIXED price in écus and a FIXED combat lock per drink; the
+    effect rides the key (tranche 1 wires the pour only — the rumor
+    window, the FFA schedule and the forced map land with their
+    tranches): ``verre`` = the rumor window, ``vin`` = the next FFA
+    Exploration hour, ``alcool`` = forcing one unrevealed map.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    key: str
+    label: str
+    price: int = Field(default=1, ge=0)
+    lock_minutes: int = Field(default=60, ge=0)
+
+
+class TavernSettings(BaseModel):
+    """The Taverne knobs (taverne-v1, Drasah 24/10/2026).
+
+    Drasah's frozen values: every lord starts with 10 écus, the drinks
+    cost 2/4/8 écus with a 1h/3h/6h combat lock, and a GLOBAL 24h
+    cooldown separates two drinks (anti-spam).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    purse_start: int = Field(default=10, ge=0)
+    """The opening purse of every lord (écus)."""
+    drink_cooldown_hours: int = Field(default=24, ge=0)
+    """The GLOBAL delay between two drinks, whatever the drink."""
+    drinks: tuple[TavernDrink, ...] = (
+        TavernDrink(key="verre", label="🍺 Verre", price=2, lock_minutes=60),
+        TavernDrink(key="vin", label="🍷 Vin", price=4, lock_minutes=180),
+        TavernDrink(key="alcool", label="🥃 Alcool fort", price=8, lock_minutes=360),
+    )
+    """The three drinks — the panel and the service read ONLY this
+    catalog (data, never code)."""
+
+    def drink(self, key: str) -> TavernDrink | None:
+        """Return the drink entry of a key (None when unknown)."""
+        return next((drink for drink in self.drinks if drink.key == key), None)
+
+
 class KingdomsSeasonConfig(BaseModel):
     """Full season configuration.
 
@@ -407,6 +452,7 @@ class KingdomsSeasonConfig(BaseModel):
     attacks: AttackSettings = Field(default_factory=AttackSettings)
     events: EventSettings = Field(default_factory=EventSettings)
     voliere: VoliereSettings = Field(default_factory=VoliereSettings)
+    tavern: TavernSettings = Field(default_factory=TavernSettings)
 
 
 def default_map_catalog() -> tuple[MapEntry, ...]:

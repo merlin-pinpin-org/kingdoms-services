@@ -1918,6 +1918,13 @@ async def _deploy_channel_panel(
         except Exception:
             logger.warning("KINGDOM PANELS: gaia content deploy failed", exc_info=True)
         return "royaumes"
+    if slug == "taverne":
+        # taverne-v1 (Drasah 24/10): the 🍺 taverne salon carries the
+        # drinks panel — idempotent, refreshed in place by its marker.
+        from kingdoms.mods.kingdoms.kingdom_tavern_panel import deploy_tavern_panel
+
+        await deploy_tavern_panel(channel, locale)
+        return "taverne"
     if slug == "machine-a-temps":
         from kingdoms.mods.kingdoms.kingdom_time_panel import deploy_time_panel
 

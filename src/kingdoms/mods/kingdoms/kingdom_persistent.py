@@ -67,6 +67,7 @@ class KingdomsPanelWiring:
     time_service: Any = None
     distributor_service: Any = None
     voliere_service: Any = None
+    tavern_service: Any = None
     ffa_service: Any = None
     cathedral_service: Any = None
 
@@ -109,6 +110,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             time_service=getattr(bot, "kingdoms_time_service", None),
             distributor_service=getattr(bot, "kingdoms_distributor_service", None),
             voliere_service=getattr(bot, "kingdoms_voliere_service", None),
+            tavern_service=getattr(bot, "kingdoms_tavern_service", None),
             ffa_service=getattr(bot, "kingdoms_ffa_service", None),
             cathedral_service=getattr(bot, "kingdoms_cathedral_service", None),
         )
@@ -133,11 +135,13 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     )
     from kingdoms.mods.kingdoms.kingdom_distributor_panel import (
         KingdomDistributorButton,
+        KingdomTavernDrinkButton,
     )
     from kingdoms.mods.kingdoms.kingdom_scriptorium import (
         KingdomSeigneurieButton,
         KingdomSeigneurieSelect,
     )
+    from kingdoms.mods.kingdoms.kingdom_tavern_panel import KingdomTavernDrinkButton
     from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
     from kingdoms.mods.kingdoms.kingdom_voliere_panel import (
         KingdomTheftButton,
@@ -185,6 +189,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomChurchUpgradeButton,
         KingdomChurchConsecrateButton,
         KingdomDistributorButton,
+        KingdomTavernDrinkButton,
     )
 
 

@@ -235,6 +235,22 @@ class LordModel(BaseModel):
     """AoE II Insight pseudo (Seigneurie V2, Drasah 15/10/2026): the
     external ladder identity displayed on the fiche seigneur — the
     field is entered Merlin-side (treated as if the field exists)."""
+    purse: int = Field(default=10, ge=0)
+    """Personal purse in écus (taverne-v1, Drasah 24/10/2026): every
+    lord starts the season with ``purse_start`` écus (default 10) and
+    spends them in the Taverne — the drinks first (tranche 1), the
+    bets and the Mercenary Chief later. The only income for now: the
+    winning bets (pari mutuel)."""
+    tavern_locked_until: int | None = None
+    """Taverne drink lock (taverne-v1, Drasah 24/10/2026): a drinking
+    lord is locked out of combat exactly like the battle lock — no
+    declaration, no planning, no defense, no Embuscade — until the
+    unix timestamp passes. The durations are FIXED per drink (1h verre,
+    3h vin, 6h alcool fort)."""
+    tavern_next_drink_at: int | None = None
+    """Anti-spam (taverne-v1, Drasah 24/10): a GLOBAL 24h delay between
+    two drinks, whatever the drink — the earliest next pour lands at
+    this unix timestamp."""
     chronicle: list[ChronicleEntryModel] = Field(default_factory=list)
     """Lord chronique (Seigneurie V2, Drasah 15/10/2026): the FACTUAL,
     exactly-timestamped log of the actions the lord REALLY CLICKED —
