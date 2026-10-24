@@ -46,7 +46,8 @@ def _from_wire[ModelT: BaseModel](cls: type[ModelT], data: dict[str, Any]) -> Mo
 
     MongoDB gives back plain strings for the StrEnum fields and lists
     for the tuple/list fields; the models are ``strict=True`` so the
-    in-code constructor calls stay exact, but ``from_mongo`` must read
+    in-code constructor cal
+ls stay exact, but ``from_mongo`` must read
     the wire leniently (``strict=False``) or every stored document
     fails validation on the way back (first seen live: the starting
     draft re-reading a freshly upserted kingdom, 2026-10-10). The
@@ -112,7 +113,8 @@ class KingdomModel(BaseModel):
     season_id: str
     type: KingdomType
     name: str
-    marriage_capacity: int = Field(default=0, ge=0)
+    marriage_capacity: int = Field(de
+fault=0, ge=0)
     name_approved: bool = True
     validation: KingdomValidation = KingdomValidation.APPROVED
     civilizations: list[str] = Field(default_factory=list)
@@ -145,7 +147,8 @@ class KingdomModel(BaseModel):
     SHARED by the whole kingdom — one ``{bird: unix_ready_at}`` entry
     per flown bird (Drasah: ONE action and the WHOLE bird flies until
     the action's cooldown elapses; the cooldowns are par royaume, not
-    per lord). The acting lord is only recorded in the admin logs."""
+    per lord). The
+ acting lord is only recorded in the admin logs."""
     voliere_slots: list[str] = Field(default_factory=list)
     """Volière (voliere-v2, 2026-10-14): the birds this kingdom chose,
     one per age slot — Féodal opens the 1st slot, Château the 2nd,
@@ -182,7 +185,8 @@ class KingdomModel(BaseModel):
 
     @property
     def is_gaia(self) -> bool:
-        """Gaïa kingdoms are AI-controlled and never enrollable."""
+        """Gaïa kingdoms are AI-controlled and never enroll
+able."""
         return self.type == KingdomType.GAIA
 
 
@@ -228,7 +232,8 @@ class LordModel(BaseModel):
     """FFA Exploration no-show lock (ffa-exploration-v1, Drasah
     14/10/2026): a lord who reserved a Saturday FFA slot and did not
     show up is locked out of combat (attacks, defenses, Gaïa
-    free-for-alls) for 72h STARTING AT THE NEXT CYCLE SWITCH — the
+    free-for-alls) for 72h STARTING AT THE NEXT CYCLE 
+SWITCH — the
     timestamp is computed at result ingestion and enforced exactly
     like the marriage and exploration locks."""
     insight_name: str | None = None
@@ -251,6 +256,15 @@ class LordModel(BaseModel):
     """Anti-spam (taverne-v1, Drasah 24/10): a GLOBAL 24h delay between
     two drinks, whatever the drink — the earliest next pour lands at
     this unix timestamp."""
+    mercenary_civilization: str | None = None
+    """Civ mercenaire (chef-mercenaire-v1, Drasah 24/10/2026): the ONE
+    auction-bought civilization the lord currently holds — playable in
+    draft exactly like a hand civilization (sabotable too), one DRAFT
+    consumed per use, cleared when the uses run out. Lost automatically
+    when the civilization is acquired by MARRIAGE (fixed 1-écu refund)."""
+    mercenary_uses_left: int = Field(default=0, ge=0)
+    """The remaining DRAFT uses of the mercenary civilization (0 when
+    the lord holds none — the holder check reads BOTH fields)."""
     chronicle: list[ChronicleEntryModel] = Field(default_factory=list)
     """Lord chronique (Seigneurie V2, Drasah 15/10/2026): the FACTUAL,
     exactly-timestamped log of the actions the lord REALLY CLICKED —
@@ -268,7 +282,8 @@ class LordModel(BaseModel):
 
 
 class TerritoryModel(BaseModel):
-    """A territory of the current season: one AoE2 map with an owner.
+    """A territory of the current sea
+son: one AoE2 map with an owner.
 
     A map drawn once is "out" for the whole season (reference §8);
     ownership changes through the idempotent transfer primitive.
@@ -322,7 +337,8 @@ class TerritoryModel(BaseModel):
         return until > now
 
     def is_tech_protected_at(self, now: datetime) -> bool:
-        """Whether adverse technologies bounce off (chantier, lieu-sacree-v1)."""
+        """Whether adverse technologies bounce off (chantie
+r, lieu-sacree-v1)."""
         return self.is_chantier_at(now)
 
 
@@ -383,7 +399,8 @@ class AttackState(StrEnum):
     ``declared`` waits for a defender until the delay expires;
     ``defended`` waits for the pick & ban (D77); ``meeting``
     (attaques-score-v1) is the RDV itself — the pick & ban resolved,
-    the score phase (Prêt, declarations, dispute) is open; ``expired``
+    the score phase (Prêt, declarations, di
+spute) is open; ``expired``
     applied the no-defense outcome; ``resolved`` carries the final
     winner (capture or conservation) and never moves again;
     ``cancelled`` (restructuration-serveur-v1 b, Drasah 19/10) is the
@@ -437,7 +454,8 @@ class AttackModel(BaseModel):
     """Phases d'attaque (D77): the cover lord shown instead of the real
     attacker until the T-15 reveal (Contre-espionnage)."""
     revealed: bool = False
-    """Whether the T-15 reveal already ran (restart-safe idempotence)."""
+    """Whether 
+the T-15 reveal already ran (restart-safe idempotence)."""
     ai_defender: bool = False
     """Whether the defending kingdom's bot AI took the defense (D77)."""
     embuscade: bool = False
@@ -478,7 +496,8 @@ class AttackModel(BaseModel):
 class PlanState(StrEnum):
     """State machine of a planned attack (planification-attaque-v1).
 
-    ``planned`` waits for its scheduled declaration (at T - itinéraire);
+    ``planned`` waits for its sc
+heduled declaration (at T - itinéraire);
     ``executed`` became a real declared attack; ``broken`` lost every
     choice to adverse declarations before its own could fire; a planned
     attack never reserves anything — the declaration prime (Drasah
@@ -530,7 +549,8 @@ class PlannedAttackModel(BaseModel):
         return self.model_dump(by_alias=True)
 
     @classmethod
-    def from_mongo(cls, data: dict[str, Any]) -> PlannedAttackModel:
+    def from_mongo(cl
+s, data: dict[str, Any]) -> PlannedAttackModel:
         """Build from a MongoDB document."""
         return _from_wire(cls, data)
 
@@ -580,7 +600,8 @@ class SeasonState(BaseModel):
     """The game-clock PAUSE (Drasah's time machine, 2026-10-11): when
     True the weekly scheduler replays NO slot — the season stands
     still until an admin resumes it. Manual time-machine jumps still
-    work while frozen (Drasah keeps testing while paused). Set
+    work while frozen (Drasa
+h keeps testing while paused). Set
     automatically by every snapshot RESTORE: a rewind must not be
     instantly re-advanced by the real clock. Legacy documents without
     the field default to False (the game never pauses on its own).
@@ -613,7 +634,8 @@ class SeasonState(BaseModel):
     beta_start_at: datetime | None = None
     """The beta's T0 — the EXACT start moment the console interface
     captured (beta-weekend-v2). The preset's compressed config applies
-    at T0 (not at the arming): an armed-not-started beta leaves the
+    at T0 (not a
+t the arming): an armed-not-started beta leaves the
     season running at its normal pace until T0."""
     beta_age_at: datetime | None = None
     """The single beta age switch (ex. Saturday 00:00 — Sombre → Féodal)."""
@@ -624,6 +646,17 @@ class SeasonState(BaseModel):
     """The official beta season end (ex. Monday 00:00 Europe/Paris) —
     the end slot applies the full season-end verdict (results +
     rewards) at that exact moment."""
+    mercenary_market: dict[str, Any] | None = None
+    """Chef Mercenaire (chef-mercenaire-v1, Drasah 24/10/2026): the ONE
+    live auction market of the day — None when none is running. The
+    state rides the season document exactly like the Corbeau theft
+    rides the kingdom (plain data, restart-safe). Fields: XXidXX,
+    XXdateXX (ISO Paris), XXforcedXX, XXopened_atXX / XXbids_open_atXX /
+    XXcloses_atXX (the anti-snipe-extended close) / XXhard_close_atXX
+    (unix), XXclosedXX, XXclosed_atXX and XXlotsXX — one
+    XX{"civ", "uses", "bids": [{"lord", "amount"}...], "winner"}XX per
+    PROPOSED civilization (drawn from the catalogue minus the married
+    ones, duplicates with the kingdoms' hands allowed — Drasah 24/10)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -666,6 +699,7 @@ class DuelModel(BaseModel):
 
 class ShowMatchModel(BaseModel):
     """The ShowMatch PA2 deciding a tied Conquest finish (D50).
+
 
     Two kingdoms play mandatory duels until one leads 2-0 (1v1 first,
     then 2v2, 3v3... when every lord has dueled); a 1-1 tie chains a
@@ -717,7 +751,8 @@ class FFAExplorationModel(BaseModel):
     id: str = Field(alias="_id")
     season_id: str
     date: str
-    """The Saturday this FFA belongs to (ISO date, Paris timezone)."""
+    """The Saturday this FFA belongs to (ISO date, Paris 
+timezone)."""
     start_at: datetime
     """The drawn start time (UTC, tz-aware)."""
     announce_at: datetime

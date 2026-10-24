@@ -55,7 +55,8 @@ class MapTypes(BaseModel):
     desert: bool = False
     marais: bool = False
     ouverte: bool = False
-    chaotique: bool = False
+    chao
+tique: bool = False
     mur_depart: bool = False
     ferme: bool = False
 
@@ -120,7 +121,8 @@ class TechnologyCosts(BaseModel):
             "jeu_d_armes": 1,
             "patrouille": 2,
             "sabotage": 2,
-            "explorateur": 1,
+      
+      "explorateur": 1,
             "corruption": 2,
         }
     )
@@ -161,7 +163,8 @@ class AttackSettings(BaseModel):
     no_defense_outcome: str = Field(default="vs_ai")
     """D8: what happens when no defender answers in the delay.
 
-    ``vs_ai`` (default, D77): the defending kingdom's bot AI takes the
+    ``vs_ai`` (default, D7
+7): the defending kingdom's bot AI takes the
     defense at T-15 and the game result still comes through the game
     contract (D20) — auto_victory is legacy (the attacker captured the
     territory without a game) and no longer the default."""
@@ -192,7 +195,8 @@ class AttackSettings(BaseModel):
     """Score phase (beta-weekend-v1): hours after the game start
     before the result reminder DM leaves (3h by default)."""
     score_dispute_after_reminder_hours: float = Field(default=12.0, ge=0)
-    """Score phase (beta-weekend-v1, bug n°2 / Check 61): hours after
+    """Score phase (beta-weekend-v1, bug n°2 / Check 61): hours
+ after
     the reminder before a result-less meeting auto-opens its dispute
     (12h by default — the admins arbitrate via the console)."""
     score_confirm_minutes: int = Field(default=10, ge=0)
@@ -232,7 +236,8 @@ class VoliereSettings(BaseModel):
 
 
 class EventSettings(BaseModel):
-    """Weekly event schedules (reference §16-§17, decision D1).
+    """Weekly event schedules (reference §16-§17, decisio
+n D1).
 
     Cron expressions keep the admin free to move every event without a
     code change; the defaults are the Season II values.
@@ -270,7 +275,8 @@ class EventSettings(BaseModel):
     """The full Paris hours the Saturday start is drawn among."""
     ffa_announce_lead_hours: int = Field(default=2, ge=0)
     """The announcement lands this many hours before the start, and
-    the enrollments open with it (Drasah's revision: no more midnight
+    the enrollments open with it (Drasah's revision: no mo
+re midnight
     announcement — 2h before the start)."""
     ffa_game_minutes: int = Field(default=75, ge=1)
     """The single FFA game duration (1h15)."""
@@ -314,7 +320,8 @@ class CivilizationCondition(BaseModel):
     requires_map_keys: tuple[str, ...] = ()
     min_map_key_count: int = Field(default=1, ge=1)
     requires_map_types: tuple[str, ...] = ()
-    min_map_type_count: int = Field(default=1, ge=1)
+    min_map_type_count: int = Field(default=1, g
+e=1)
     min_map_count: int | None = Field(default=None, ge=0)
     max_map_count: int | None = Field(default=None, ge=0)
     requires_civilization: str | None = None
@@ -366,7 +373,8 @@ class ParishSettings(BaseModel):
     """Marriage points granted at every Lord's Day (Chapelle bonus, D64)."""
 
     cathedral_cost: int = Field(default=3, ge=0)
-    """Lieu Sacrée consecration price in tech points (lieu-sacree-v1)."""
+    """Lieu Sacrée consecration price in tech
+ points (lieu-sacree-v1)."""
 
     cathedral_chantier_hours: int = Field(default=72, ge=1)
     """Chantier duration: survives it and the territory becomes SACRED."""
@@ -418,11 +426,47 @@ class TavernSettings(BaseModel):
         TavernDrink(key="alcool", label="🥃 Alcool fort", price=8, lock_minutes=360),
     )
     """The three drinks — the panel and the service read ONLY this
-    catalog (data, never code)."""
+    catalog 
+(data, never code)."""
 
     def drink(self, key: str) -> TavernDrink | None:
         """Return the drink entry of a key (None when unknown)."""
         return next((drink for drink in self.drinks if drink.key == key), None)
+
+
+class MercenarySettings(BaseModel):
+    """The Chef Mercenaire knobs (chef-mercenaire-v1, Drasah 24/10/2026).
+
+    Drasah's frozen values: the Chief stands in the Taverne between
+    20h00 and 21h00 REAL Paris time (never the offset game clock),
+    the bids open at 20h15 and the base close sits at 20h30 — an
+    anti-snipe bid inside the last two minutes pushes the close one
+    minute further, the HARD close is 20h45 and the results stay
+    displayed until the Chief leaves at 21h00. Five civilizations are
+    drawn from the catalogue minus the MARRIED ones (duplicates with
+    the kingdoms' hands are allowed), each carrying a random, VISIBLE
+    number of draft uses (1-3), starting bid 1 écu, and a marriage
+    acquiring a held civ strips the mercenary holder of it and
+    refunds him a FIXED 1 écu.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    enabled: bool = True
+    window_start_hour: int = Field(default=20, ge=0, le=23)
+    """The Chief arrives at this REAL Paris hour (classic seasons — a
+    beta console button calls him at any moment instead)."""
+    window_end_hour: int = Field(default=21, ge=1, le=23)
+    bids_open_minutes: int = Field(default=15, ge=0)
+    base_close_minutes: int = Field(default=30, ge=0)
+    hard_close_minutes: int = Field(default=45, ge=0)
+    pool_size: int = Field(default=5, ge=1)
+    min_uses: int = Field(default=1, ge=1)
+    max_uses: int = Field(default=3, ge=1)
+    starting_bid: int = Field(default=1, ge=1)
+    antisnipe_trigger_minutes: int = Field(default=2, ge=1)
+    antisnipe_extension_minutes: int = Field(default=1, ge=1)
+    marriage_refund_ecus: int = Field(default=1, ge=0)
 
 
 class KingdomsSeasonConfig(BaseModel):
@@ -453,6 +497,7 @@ class KingdomsSeasonConfig(BaseModel):
     events: EventSettings = Field(default_factory=EventSettings)
     voliere: VoliereSettings = Field(default_factory=VoliereSettings)
     tavern: TavernSettings = Field(default_factory=TavernSettings)
+    mercenary: MercenarySettings = Field(default_factory=MercenarySettings)
 
 
 def default_map_catalog() -> tuple[MapEntry, ...]:
@@ -463,7 +508,8 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
     v0 Altai, Babel, Hideout, Highland and Siberia are gone, and the
     ex-English labels become Drasah's French ones, verbatim). Every
     entry carries its cadastre bonus as display text (the official
-    acquisition condition lives in the Diplomatie — a bonus text may
+    acquisit
+ion condition lives in the Diplomatie — a bonus text may
     diverge, ex. 3 maps display the Vikings while Iles du Nord alone
     unlocks them) and its Drasah tags. GARNISON bonuses are IGNORED in
     V1 (priority 3, V2) — Clairière fortifiée, Douves d'équipe,
@@ -492,7 +538,8 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
         ("conquete-de-la-montagne", "Conquête de la Montagne", "montagne", None),
         ("continental", "Continent", "hybride", None),
         ("cote", "Côte", "hybride", "Offre la civilisation des Bengalis"),
-        ("cratere", "Cratère", "montagne,objectif", None),
+    
+    ("cratere", "Cratère", "montagne,objectif", None),
         ("crete-montagneuse", "Crète Montagneuse", "montagne", None),
         ("delta-du-nil", "Delta du Nil", "nomade,eau", "Offre la civilisation des Sarrasins"),
         ("douves-d-equipe", "Douves d'équipe", "hybride", None),
@@ -516,7 +563,8 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
         ("ile-volcanique", "Ile volcanique", "hybride,montagne", "Offre la civilisation des Japonais"),
         ("islands", "Iles", "eau", "Offre la civilisation des Britanniques"),
         ("iles-du-nord", "Iles du Nord", "eau", "Offre la civilisation des Vikings"),
-        ("ile-du-pacifique", "Ile du Pacifique", "eau", "Offre la civilisation des Malais"),
+        ("ile-du-pacifique", "Ile du Pacifique", "eau", "Offre la civilisation des Malais"
+),
         ("ile-marecageuse", "Ile marécageuse", "eau,marais", "Offre une « Embuscade »/Dimanche"),
         ("ile-partenaire", "Ile partenaire", "eau", "Offre un mariage/semaine"),
         ("isthme", "Isthme", "hybride", None),
@@ -545,7 +593,8 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
         ("montagnes", "Montagnes", "montagne,hybride", None),
         ("nomad", "Nomade", "nomade,hybride", None),
         ("nomade-marin", "Nomade Marin", "nomade,eau", None),
-        ("nomade-terrestre", "Nomade terrestre", "nomade", None),
+        ("nomade-terrestre", "N
+omade terrestre", "nomade", None),
         ("oasis", "Oasis", "desert,ferme", None),
         ("passage-montagneux", "Passage montagneux", "nomade,montagne", "Augmente le délai d'attaque minimum "
          "de vos adversaires de 1h"),
@@ -576,7 +625,8 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
     return tuple(
         MapEntry(
             key=key,
-            display_name=name,
+            disp
+lay_name=name,
             types=MapTypes(**{tag: True for tag in tags.split(",") if tag}),
             cadastre={"bonus": bonus} if bonus else {},
         )
@@ -626,7 +676,8 @@ def load_season_config(config_dir: Path) -> KingdomsSeasonConfig:
     """Load the season configuration from ``<config_dir>/kingdoms/season.yaml``.
 
     The file is a partial override deep-merged onto the Season II
-    defaults: an admin may tune the civilizations without re-listing
+    defaults: an admin 
+may tune the civilizations without re-listing
     the maps, and the game stays playable with no file at all. An
     invalid override raises: a broken config must fail loudly, never
     load half-validated.
