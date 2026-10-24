@@ -311,3 +311,49 @@ async def test_no_budget_plan_breaks_on_the_budget_event() -> None:
     assert after.state is PlanState.BROKEN
     assert after.last_event == "broken_budget"
     assert after.id in [p.id for p in changed]
+
+
+class TestPlanMeetingSelections:
+    """planification-attaque-v2 — the dropdown RDV composer (Jour/Heure/Minute).
+
+    The free-text JJ/MM HH:MM modal is GONE: the wizard composes the
+    meeting from three dropdowns (day 0/1, hour 00-23, minute 00/15/
+    30/45). The composer refuses the past and anything beyond the 24h
+    golden rule — the service re-checks, this is the early feedback.
+    """
+
+    from zoneinfo import ZoneInfo as _ZoneInfo  # noqa: PLC0415
+
+    _PARIS = _ZoneInfo("Europe/Paris")
+
+    def _compose(self, day: int, hour: int, minute: int, now: datetime) -> datetime:
+        from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+            _plan_meeting_from_selections,
+        )
+
+        return _plan_meeting_from_selections(day, hour, minute, now)
+
+    def test_today_slot_is_composed_in_paris(self) -> None:
+        # 10:00 UTC = 12:00 Paris (CEST, 24/10) — a 14:30 slot is fine.
+        now = datetime(2026, 10, 24, 10, 0, tzinfo=UTC)
+        meeting = self._compose(0, 14, 30, now)
+        assert meeting == datetime(2026, 10, 24, 14, 30, tzinfo=self._PARIS)
+
+    def test_tomorrow_slot_crosses_the_dst_change(self) -> None:
+        # 22:00 Paris on 24/10 (CEST) → the next 09:00 Paris is 25/10
+        # CET (winter time) — the composer must land on the wall clock.
+        now = datetime(2026, 10, 24, 20, 0, tzinfo=UTC)
+        meeting = self._compose(1, 9, 0, now)
+        assert meeting == datetime(2026, 10, 25, 9, 0, tzinfo=self._PARIS)
+
+    def test_past_slot_is_refused(self) -> None:
+        now = datetime(2026, 10, 24, 10, 0, tzinfo=UTC)  # 12:00 Paris
+        with pytest.raises(ValueError):
+            self._compose(0, 11, 0, now)
+
+    def test_beyond_24h_is_refused(self) -> None:
+        # 12:00 Paris → tomorrow 12:15 Paris is beyond the golden rule.
+        now = datetime(2026, 10, 24, 10, 0, tzinfo=UTC)
+        with pytest.raises(ValueError):
+            self._compose(1, 12, 15, now)
+

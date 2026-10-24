@@ -260,7 +260,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "defense_manager_not_defender": "❌ Tu n'es pas un seigneur actif d'un royaume.",
         "defense_manager_no_service": "❌ Le service des attaques est indisponible.",
         "plan_button": "📅 Planifier une attaque",
-        "plan_list_button": "📅 Mes planifications",
         "plan_manager_button": "⚔️ Gestion d'attaque",
         "plan_manager_title": "⚔️ Gestion d'attaque — **{kingdom}**",
         "plan_manager_declared_section": "**⚔️ Attaques déclarées**",
@@ -269,9 +268,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plan_manager_declared_row": "• **{map}** — RDV **{time}** (Paris) · {state}",
         "plan_manager_planned_row": "• **{map}** — RDV **{time}** (Paris) · {lord} · choix {index}/{total}",
         "plan_disclaimer": "⚠️ Une plannification ne réserve pas le territoire : si un autre royaume déclare une attaque dessus avant l'heure choisie, ta plannification basculera sur ton choix suivant — ou sera rompue s'il n'en reste aucun.",
-        "plan_time_modal_title": "📅 Planifier l'attaque",
-        "plan_time_label": "Heure du RDV (JJ/MM HH:MM, Paris)",
-        "plan_time_invalid": "❌ Format attendu : JJ/MM HH:MM (ex. 24/10 20:00), dans les 24h et au moins un itinéraire à l'avance.",
+        "plan_wizard_title": "📅 Planifier une attaque",
+        "plan_time_day_label": "Jour du RDV",
+        "plan_time_day_today": "Aujourd'hui — {date}",
+        "plan_time_day_tomorrow": "Demain — {date}",
+        "plan_time_hour_label": "Heure",
+        "plan_time_minute_label": "Minute",
+        "plan_time_hint": "Choisis le jour, l'heure et la minute du RDV (heure de Paris), puis valide. Règle d'or : 24h maximum à l'avance.",
+        "plan_time_validate_button": "✅ Valider l'heure",
+        "plan_time_invalid": "❌ Ce RDV est impossible : il doit être dans le futur et dans les 24h. Choisis un autre créneau.",
         "plan_confirm_title": "📅 Planification — choix 1 : **{map}** · RDV **{time}** (Paris)",
         "plan_choice2_placeholder": "Choix 2 (facultatif)",
         "plan_choice3_placeholder": "Choix 3 (facultatif)",
@@ -284,9 +289,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plan_created_note": "📅 Plannification enregistrée — le récap est dans tes messages privés.",
         "plan_no_dm": "⚠️ Plannification enregistrée, mais l'envoi du MP a échoué (MPs fermés ?).",
         "plan_failed": "❌ La plannification a échoué : {message}",
-        "plan_list_title": "📅 Tes plannifications",
-        "plan_list_empty": "Aucune plannification en cours.",
-        "plan_list_row": "• **{map}** — RDV **{time}** (Paris) · choix {index}/{total}",
         "plan_cancel_button": "❌ Annuler ma plannification",
         "plan_cancelled_ephemeral": "❌ Plannification annulée — aucun budget n'a été consommé.",
         "plan_event_executed": "✅ Ton attaque planifiée a été DÉCLARÉE sur **{map}** — RDV **{time}** (Paris). Le budget d'attaque a été consommé à la déclaration.",
@@ -610,7 +612,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "defense_manager_not_defender": "❌ You are no active lord of a kingdom.",
         "defense_manager_no_service": "❌ The attack service is unavailable.",
         "plan_button": "📅 Plan an attack",
-        "plan_list_button": "📅 My plannings",
         "plan_manager_button": "⚔️ Attack management",
         "plan_manager_title": "⚔️ Attack management — **{kingdom}**",
         "plan_manager_declared_section": "**⚔️ Declared attacks**",
@@ -619,9 +620,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plan_manager_declared_row": "• **{map}** — meeting **{time}** (Paris) · {state}",
         "plan_manager_planned_row": "• **{map}** — meeting **{time}** (Paris) · {lord} · choice {index}/{total}",
         "plan_disclaimer": "⚠️ A planning reserves NOTHING: if another kingdom declares an attack on the territory before your chosen hour, your planning switches to your next choice — or breaks when none remains.",
-        "plan_time_modal_title": "📅 Plan the attack",
-        "plan_time_label": "Meeting time (JJ/MM HH:MM, Paris)",
-        "plan_time_invalid": "❌ Expected format: JJ/MM HH:MM (e.g. 24/10 20:00), within 24h and at least one travel delay ahead.",
+        "plan_wizard_title": "📅 Plan an attack",
+        "plan_time_day_label": "Meeting day",
+        "plan_time_day_today": "Today — {date}",
+        "plan_time_day_tomorrow": "Tomorrow — {date}",
+        "plan_time_hour_label": "Hour",
+        "plan_time_minute_label": "Minute",
+        "plan_time_hint": "Pick the meeting day, hour and minute (Paris time), then validate. Golden rule: 24h maximum ahead.",
+        "plan_time_validate_button": "✅ Validate the time",
+        "plan_time_invalid": "❌ That meeting is impossible: it must be in the future and within 24h. Pick another slot.",
         "plan_confirm_title": "📅 Planning — choice 1: **{map}** · meeting **{time}** (Paris)",
         "plan_choice2_placeholder": "Choice 2 (optional)",
         "plan_choice3_placeholder": "Choice 3 (optional)",
@@ -634,9 +641,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plan_created_note": "📅 Planning saved — the recap is in your DMs.",
         "plan_no_dm": "⚠️ Planning saved, but the DM failed (DMs closed?).",
         "plan_failed": "❌ The planning failed: {message}",
-        "plan_list_title": "📅 Your plannings",
-        "plan_list_empty": "No ongoing planning.",
-        "plan_list_row": "• **{map}** — meeting **{time}** (Paris) · choice {index}/{total}",
         "plan_cancel_button": "❌ Cancel my planning",
         "plan_cancelled_ephemeral": "❌ Planning cancelled — no budget was consumed.",
         "plan_event_executed": "✅ Your planned attack was DECLARED on **{map}** — meeting **{time}** (Paris). The attack budget was consumed at the declaration.",
@@ -1029,7 +1033,6 @@ def _declare_view(strings: dict[str, str]) -> discord.ui.View:
     view.add_item(KingdomAttackDeclareButton(strings["declare_button"]))
     view.add_item(KingdomAttackHistoryButton(strings["history_button"]))
     view.add_item(KingdomPlanButton(strings["plan_button"]))
-    view.add_item(KingdomPlanListButton(strings["plan_list_button"]))
     return view
 
 
@@ -2321,39 +2324,133 @@ def _plan_recap_content(wiring: Any, plan: Any, strings: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
-class KingdomPlanTimeModal(discord.ui.Modal):
-    """The RDV-hour modal of a planning (JJ/MM HH:MM, Europe/Paris)."""
+def _plan_meeting_from_selections(day_offset: int, hour: int, minute: int, now: datetime) -> datetime:
+    """Compose the RDV datetime from the wizard dropdowns (Europe/Paris).
 
-    def __init__(self, wiring: Any, strings: dict[str, str], own_kingdom_id: str, choice1: str) -> None:
-        super().__init__(title=str(strings["plan_time_modal_title"])[:100], timeout=600)
-        self._wiring = wiring
-        self._strings = strings
-        self._own_kingdom_id = own_kingdom_id
-        self._choice1 = choice1
-        self.time_input = discord.ui.TextInput(
-            label=str(strings["plan_time_label"])[:100],
-            placeholder="24/10 20:00",
-            required=True,
-            max_length=32,
-        )
-        self.add_item(self.time_input)
+    planification-attaque-v2 (Drasah 24/10): the free-text JJ/MM HH:MM
+    modal is replaced by dropdowns « Jour / Heure / Minute » — the 24h
+    golden rule makes « aujourd'hui » and « demain » the only useful
+    days, so ``day_offset`` is 0 or 1. Refuses the past and anything
+    beyond 24h (the service re-checks — this is the early feedback).
+    """
+    tz = ZoneInfo("Europe/Paris")
+    now_local = now.astimezone(tz)
+    day = (now_local + timedelta(days=day_offset)).date()
+    meeting_at = datetime(day.year, day.month, day.day, hour, minute, tzinfo=tz)
+    if meeting_at <= now_local:
+        raise ValueError("the meeting must be in the future")
+    if meeting_at - now_local > timedelta(hours=24):
+        raise ValueError("the meeting must be within 24h")
+    return meeting_at
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Parse the hour and open the confirm step."""
-        from kingdoms.mods.kingdoms.beta_weekend import parse_beta_start
-        from kingdoms.mods.kingdoms.game_clock import game_now
 
-        strings = self._strings
+async def _plan_time_step(
+    wiring: Any,
+    interaction: Any,
+    strings: dict[str, str],
+    own_kingdom_id: str,
+    choice1: str,
+) -> None:
+    """The RDV-hour step of the planning wizard — dropdowns + Valider.
+
+    planification-attaque-v2: THREE dropdowns (Jour 0/1, Heure 00-23,
+    Minute 00/15/30/45) and a ✅ Valider button replace the modal —
+    « libre, c'est pas ouf » (Drasah 24/10).
+    """
+    import discord
+
+    state: dict[str, int] = {"day": 0, "hour": 20, "minute": 0}
+    tz = ZoneInfo("Europe/Paris")
+    now_local = game_now().astimezone(tz)
+    today = now_local.date()
+    day_select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:plan:time-day",
+        placeholder=str(strings["plan_time_day_label"])[:100],
+        options=[
+            discord.SelectOption(
+                label=str(strings["plan_time_day_today"]).format(
+                    date=today.strftime("%d/%m")
+                )[:100],
+                value="0",
+            ),
+            discord.SelectOption(
+                label=str(strings["plan_time_day_tomorrow"]).format(
+                    date=(today + timedelta(days=1)).strftime("%d/%m")
+                )[:100],
+                value="1",
+            ),
+        ],
+        min_values=1,
+        max_values=1,
+    )
+    hour_select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:plan:time-hour",
+        placeholder=str(strings["plan_time_hour_label"])[:100],
+        options=[
+            discord.SelectOption(label=f"{value:02d}h", value=str(value))
+            for value in range(24)
+        ],
+        min_values=1,
+        max_values=1,
+    )
+    minute_select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:plan:time-minute",
+        placeholder=str(strings["plan_time_minute_label"])[:100],
+        options=[
+            discord.SelectOption(label=f"{value:02d}", value=str(value))
+            for value in (0, 15, 30, 45)
+        ],
+        min_values=1,
+        max_values=1,
+    )
+
+    async def _pick(target: discord.Interaction[Any], key: str) -> None:
+        values = getattr(target, "data", None) or {}
+        picked = [str(v) for v in values.get("values", [])]
+        if picked:
+            state[key] = int(picked[0])
+        await target.response.edit_message(content=_hint(), view=view)
+
+    def _hint() -> str:
+        lines = [str(strings["plan_wizard_title"]), strings["plan_time_hint"]]
+        return "\n".join(lines)
+
+    for select, key in ((day_select, "day"), (hour_select, "hour"), (minute_select, "minute")):
+
+        async def on_pick(
+            target: discord.Interaction[Any], key: str = key
+        ) -> None:
+            await _pick(target, key)
+
+        select.callback = on_pick  # type: ignore[method-assign, assignment]
+
+    validate = discord.ui.Button(
+        label=str(strings["plan_time_validate_button"])[:80],
+        custom_id="kingdoms:attack:plan:time-validate",
+        style=discord.ButtonStyle.success,
+    )
+
+    async def _validate(target: discord.Interaction[Any]) -> None:
         try:
-            meeting_at = parse_beta_start(str(self.time_input.value or "").strip(), game_now())
+            meeting_at = _plan_meeting_from_selections(
+                state["day"], state["hour"], state["minute"], game_now()
+            )
         except ValueError:
-            await interaction.response.send_message(strings["plan_time_invalid"], ephemeral=True)
+            await target.response.edit_message(
+                content=strings["plan_time_invalid"], view=view
+            )
             return
-        # The 24h golden rule — the service re-checks, the early
-        # feedback spares a useless confirm step.
         await _plan_confirm_step(
-            self._wiring, interaction, strings, self._own_kingdom_id, self._choice1, meeting_at
+            wiring, target, strings, own_kingdom_id, choice1, meeting_at
         )
+
+    validate.callback = _validate  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(day_select)
+    view.add_item(hour_select)
+    view.add_item(minute_select)
+    view.add_item(validate)
+    await interaction.response.edit_message(content=_hint(), view=view)
 
 
 class KingdomPlanButton(
@@ -2423,78 +2520,15 @@ class KingdomPlanButton(
             picked = [str(v) for v in values.get("values", [])]
             if not picked:
                 return
-            await target.response.send_modal(
-                KingdomPlanTimeModal(wiring, strings, str(lord.kingdom_id), picked[0])
+            await _plan_time_step(
+                wiring, target, strings, str(lord.kingdom_id), picked[0]
             )
 
         select.callback = on_pick  # type: ignore[method-assign, assignment]
         view = discord.ui.View(timeout=600)
         view.add_item(select)
-        lines = [str(strings["plan_list_title"]), strings["plan_disclaimer"]]
+        lines = [str(strings["plan_wizard_title"]), strings["plan_disclaimer"]]
         await interaction.response.send_message("\n".join(lines), view=view, ephemeral=True)
-
-
-class KingdomPlanListButton(
-    discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"kingdoms:attack:plan-list$",
-):
-    """The 📅 « Mes planifications » button of the declare panel."""
-
-    def __init__(self, label: str) -> None:
-        super().__init__(
-            discord.ui.Button(
-                label=label[:80],
-                custom_id="kingdoms:attack:plan-list",
-                style=discord.ButtonStyle.secondary,
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> KingdomPlanListButton:
-        """Rebuild the button from the wire — THIS module's strings only."""
-        return cls(_strings(_locale(interaction))["plan_list_button"])
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """List the lord's live plans with a ❌ cancel button each."""
-        import discord
-
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-        from kingdoms.mods.kingdoms.models import PlanState
-
-        strings = _strings(_locale(interaction))
-        wiring = _wiring()
-        if wiring.attacks_service is None:
-            await interaction.response.send_message(strings["plan_no_service"], ephemeral=True)
-            return
-        plans = [
-            p
-            for p in await wiring.attacks_service.plans()
-            if str(p.lord_id) == str(interaction.user.id) and p.state is PlanState.PLANNED
-        ]
-        rows = [
-            strings["plan_list_row"].format(
-                map=_map_label(wiring, str(p.active_choice or "")),
-                time=_fmt_paris(p.meeting_at),
-                index=int(p.active_index) + 1,
-                total=len(p.choices),
-            )
-            for p in plans
-        ]
-        body = "\n".join(rows) if rows else strings["plan_list_empty"]
-        view = discord.ui.View(timeout=600)
-        for plan in plans[:10]:
-            view.add_item(KingdomPlanCancelButton(str(plan.id), strings["plan_cancel_button"]))
-        await interaction.response.send_message(
-            strings["plan_list_title"] + "\n" + body,
-            view=view if list(view.children) else None,  # type: ignore[arg-type]
-            ephemeral=True,
-        )
 
 
 class KingdomPlanCancelButton(
