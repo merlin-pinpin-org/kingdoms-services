@@ -51,7 +51,8 @@ def _slug(name: str) -> str:
     19/10): the charte decorates salon/category names with an emoji
     prefix and small caps — the LOOKUP slug must ignore the decoration
     or every rename breaks the adoption-by-slug. Anything that is not
-    an ASCII letter, digit or dash is dropped, so "🛒 marché" and
+    an ASCII letter, digit or da
+sh is dropped, so "🛒 marché" and
     "Marché" slug identically ("marche") before and after the charte.
     """
     translated = name.translate(_SMALL_CAPS)
@@ -96,7 +97,8 @@ async def _enforce_admin_category_deny(guild: discord.Guild) -> None:
 
     permissions-serveur-v1 (Drasah 19/10): the admin category must be
     masked for @everyone. Creation-time overwrites only apply to CREATED
-    categories — an adopted one (provisioned before the flag) keeps its
+    categories — an adopted one (pro
+visioned before the flag) keeps its
     legacy overwrites, so the deny is re-applied at every bootstrap. The
     bot keeps its explicit allow (lesson Check 75: it is no admin).
     """
@@ -145,7 +147,8 @@ _CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
     "declarer-une-attaque": "⚔️ déclarer une attaque",
     "pourparlers": "🕊️ pourparlers",
     "parametres": "⚙️ paramètres",
-    "gestion-saison": "🗓️ gestion saison",
+    "gestion-saison": "🗓️ ges
+tion saison",
     "machine-a-temps": "⏱️ machine à temps",
     "distributeur": "🎁 distributeur",
     # console-removal-v1 (Drasah 25/10): the 🛠 console-admin salon is
@@ -175,7 +178,8 @@ _CHARTE_TOPICS: dict[str, str] = {
     "distributeur": "La réserve secrète — distribuer des éléments à un royaume (test).",
     "demandes": "Les requêtes des seigneurs : modifications et départs.",
 }
-"""ordre-salons-v1: one micro-lore topic per structure salon. Keyed by
+"""ordre-salons-v1: on
+e micro-lore topic per structure salon. Keyed by
 decoration-blind slug; applied idempotently (edit only on diff)."""
 
 _CHARTE_DIVIDER_NAME = "┈┈ ✦ ┈┈"
@@ -224,7 +228,8 @@ async def _enforce_player_category_gating(guild: discord.Guild) -> None:
         category = _find_category(guild, slug)
         if category is None:
             continue
-        overwrites: dict[Any, discord.PermissionOverwrite] = {
+        overwrites: dict[
+Any, discord.PermissionOverwrite] = {
             guild.default_role: discord.PermissionOverwrite(
                 view_channel=False, read_message_history=False
             )
@@ -265,7 +270,8 @@ async def _apply_structure_charte(guild: discord.Guild) -> None:
         display = _CHARTE_CATEGORY_DISPLAY.get(naked)
         if display is not None and str(getattr(category, "name", "")) != display:
             try:
-                await category.edit(name=display)
+                await category.edit
+(name=display)
                 logger.info("KINGDOM SETUP: category renamed to charte %r", display)
             except Exception:
                 logger.warning("KINGDOM SETUP: category charte rename failed", exc_info=True)
@@ -306,7 +312,8 @@ async def _hide_conscription_from_players(guild: discord.Guild) -> None:
 
 
 async def _ensure_charte_dividers(guild: discord.Guild) -> None:
-    """Keep one decorative divider in Conscription and Battlefield (idempotent).
+    """Keep one decor
+ative divider in Conscription and Battlefield (idempotent).
 
     ordre-salons-v1: the « ┈┈ ✦ ┈┈ » salon separates the panel zone
     from the war zone inside the two game categories. Mute: @everyone
@@ -352,7 +359,8 @@ async def _apply_charte_topics(guild: discord.Guild) -> None:
         topic = _CHARTE_TOPICS.get(_slug(getattr(channel, "name", "")))
         if topic is None or getattr(channel, "topic", None) == topic:
             continue
-        try:
+     
+   try:
             await channel.edit(topic=topic)
         except Exception:
             logger.warning("KINGDOM SETUP: topic charte failed", exc_info=True)
@@ -394,7 +402,8 @@ async def _enforce_category_order(guild: discord.Guild) -> None:
     ]
     ordered += realms
     if "admin" in by_slug:
-        ordered.append(by_slug["admin"])  # ALWAYS behind the last realm
+        ordered.append(b
+y_slug["admin"])  # ALWAYS behind the last realm
     for position, category in enumerate(ordered):
         if getattr(category, "position", 0) != position:
             try:
@@ -432,7 +441,8 @@ async def _migrate_gaia_into_kingdoms(guild: discord.Guild) -> None:
     for channel in list(getattr(gaia, "channels", []) or []):
         try:
             await channel.edit(category=kingdoms)
-            logger.info("KINGDOM SETUP: gaia salon %s moved into Kingdoms-Gaia", channel.name)
+            log
+ger.info("KINGDOM SETUP: gaia salon %s moved into Kingdoms-Gaia", channel.name)
         except Exception:
             logger.warning(
                 "KINGDOM SETUP: gaia salon move failed (%s) — category kept for retry",
@@ -476,7 +486,8 @@ async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], 
     (created, adopted) display paths from the provision report.
 
     ordre-salons-v1 (Drasah 19/10): the charte pass renames the LIVE
-    structure to the declared display names BEFORE the core provisions —
+    structure to the declared display names BEFORE the core provis
+ions —
     the core adopts categories by name, so renaming after (or never)
     would duplicate every decorated category (the Check 87 bug class).
     """
@@ -511,12 +522,26 @@ async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], 
     # immersion-v1 (Drasah 20/10): the out-of-game categories (Beta,
     # Conscription) hide from every in-game role — the immersion is the
     # default; the member opts back in from his realm's user settings.
-    from kingdoms.mods.kingdoms.kingdom_immersion import apply_immersion_gating
+    from kingdoms.mods.ki
+ngdoms.kingdom_immersion import apply_immersion_gating
 
     await apply_immersion_gating(guild)
     await _ensure_charte_dividers(guild)
     await _apply_charte_topics(guild)
     await _enforce_category_order(guild)
+    # mercenary-beta-refresh-v1 (Drasah 25/10): the Chief's taverne panel
+    # is (re)rendered on every provisioning pass (boot, /kingdom, 🚀
+    # Déployer) — the beta call button rides the view only while a beta
+    # is armed/running, and the panel used to wait for the next 20h
+    # market open to pick it up.
+    try:
+        from kingdoms.mods.kingdoms.kingdom_mercenary_panel import (
+            refresh_mercenary_panels_safe,
+        )
+
+        await refresh_mercenary_panels_safe(guild, "fr")
+    except Exception:
+        logger.warning("KINGDOM SETUP: mercenary panel refresh failed", exc_info=True)
     return list(report.created), list(report.adopted)
 
 
@@ -559,7 +584,8 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     # calls the Mercenary Chief (chef-mercenaire-v1 T3).
     "console-admin",
 )
-"""The retired salons-first rubric salons (patch restructuration-royaume):
+"""The retired salons-first rubric salons (patch restructuration-royaume)
+:
 their content moved into the Scriptorium ephemeral rubrics — plus the
 retired Champs de bataille salons (restructuration-serveur-v1 b): the
 delays moved into the declare flow's « Itinéraire » line and the
@@ -600,7 +626,8 @@ Géopolitique's pinned message; restructuration-gaia-v1 24/10: Territoire
 moved in from the retired Gaïa category, the Taverne closes the row)."""
 
 
-async def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
+async
+ def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
     """Delete the retired rubric salons (Seigneurs/Diplomatie/Cadastre)."""
     removed: list[str] = []
     # restructuration-serveur-v1 d (Drasah 19/10): the retired « Règles »
@@ -643,7 +670,8 @@ async def _cleanup_legacy_categories(guild: discord.Guild, epoch_channel_id: int
 
 
 async def _cleanup_legacy_battle_categories(guild: discord.Guild) -> list[str]:
-    """Delete the battle-room duplicate categories (children first).
+    """Delete the battle-room duplicate categories (children f
+irst).
 
     battle-room-categorie-v1 (Drasah 19/10): the old room flow created
     a « Champs de bataille » duplicate at the first battle (an exact
@@ -687,7 +715,8 @@ async def _reorder_kingdoms_salons(guild: discord.Guild) -> None:
             logger.warning("KINGDOM SETUP: kingdoms salon reorder failed", exc_info=True)
 
 
-async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: str = "") -> list[str]:
+async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: 
+str = "") -> list[str]:
     """Retire the pre-restructuration salons and categories (best effort).
 
     Idempotent: missing salons/categories are simply skipped. The
@@ -704,87 +733,6 @@ async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: str = "") -> 
     return removed
 
 
-def build_setup_report_view(
-    created: list[str],
-    adopted: list[str],
-    locale: str = "en",
-) -> discord.ui.LayoutView:
-    """Build the bootstrap report layout (what was created vs adopted)."""
-    fr = locale.startswith("fr")
-    title = "⚒️ Kingdoms — installation" if fr else "⚒️ Kingdoms — setup"
-    created_label = "Créés" if fr else "Created"
-    adopted_label = "Récupérés" if fr else "Adopted"
-    container = Container(accent=BLURPLE).add(Text(f"# {title}"))
-    if created:
-        container.add(Separator()).add(Text(f"**{created_label}** : " + ", ".join(created)))
-    if adopted:
-        container.add(Separator()).add(Text(f"**{adopted_label}** : " + ", ".join(adopted)))
-    if not created and not adopted:
-        container.add(Separator()).add(Text("✅ Structure already in place."))
-    return UILayout().add(container).build()
 
 
-def _is_allowed(interaction: discord.Interaction, bot_admins: tuple[str, ...]) -> bool:
-    """Whether the invoking member may bootstrap (BOT_ADMINS or admin)."""
-    user_id = getattr(interaction.user, "id", None)
-    if user_id is not None and str(user_id) in bot_admins:
-        return True
-    permissions = getattr(interaction.user, "guild_permissions", None)
-    return bool(permissions and permissions.administrator)
-
-
-def register_kingdom_command(
-    tree: app_commands.CommandTree[discord.Client],
-    bot_admins: tuple[str, ...] = (),
-) -> None:
-    """Register the /kingdom bootstrap command (admin only) on the tree."""
-
-    @tree.command(
-        name=localized("commands.kingdom_name", "kingdom"),
-        description=localized(
-            "commands.kingdom_description",
-            "Bootstrap the Kingdoms salons (admin only)",
-        ),
-    )
-    @app_commands.default_permissions(administrator=True)
-    async def kingdom_command(interaction: discord.Interaction) -> None:
-        """Provision the salons-first structure and answer with a report."""
-        guild = interaction.guild
-        if guild is None:
-            await interaction.response.send_message("The /kingdom command must run inside a server.", ephemeral=True)
-            return
-        if not _is_allowed(interaction, bot_admins):
-            await interaction.response.send_message(
-                "You are not allowed to bootstrap Kingdoms (admins only).",
-                ephemeral=True,
-            )
-            return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        try:
-            created, adopted = await provision_structure(guild)
-        except Exception as exc:
-            logger.exception("KINGDOM SETUP: provisioning failed for guild %s", guild.id)
-            await interaction.followup.send(f"❌ Setup failed: `{type(exc).__name__}: {exc}`"[:2000], ephemeral=True)
-            return
-        # The panels are pinned messages inside the structure channels
-        # (kingdoms#138): provisioning the salons without re-pinning them
-        # leaves the guild with no reachable enrollment/admin UI — the
-        # setup must always end with functional panels.
-        try:
-            from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
-            from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-
-            wiring = _wiring()
-            await deploy_panels(
-                guild,
-                wiring.logs_service,
-                wiring.bot_admins,
-                wiring.mod_roles_service,
-                wiring.kingdoms_service,
-            )
-        except Exception:
-            logger.exception("KINGDOM SETUP: panel deploy failed for guild %s", guild.id)
-
-        locale = str(interaction.locale) if interaction.locale else "en"
-        view = build_setup_report_view(created, adopted, locale)
-        await interaction.followup.send(view=view, ephemeral=True)
+... [Content truncated]

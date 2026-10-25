@@ -41,7 +41,8 @@ _STRINGS = {
         "auto_started": "✅ Saison lancée automatiquement — drafts révélés, territoires distribués, vues du royaume actualisées.",
         "auto_already": "ℹ️ La saison était déjà lancée — rien à faire.",
         "auto_failed": "⚠️ Lancement automatique de la saison échoué (`{error}`) — utilise « Démarrer la saison » sur ⚙️ Paramètres.",
-        "auto_no_service": "⚠️ Lancement automatique impossible — le service saisons n'est pas branché (utilise « Démarrer la saison »).",
+        "auto_no_service": 
+"⚠️ Lancement automatique impossible — le service saisons n'est pas branché (utilise « Démarrer la saison »).",
     },
     "en": {
         "panel_title": "🚀 Beta “now” — start definition",
@@ -83,7 +84,8 @@ async def _auto_start_season_safe(console: Any, interaction: discord.Interaction
     try:
         season = await kingdoms.current_season()
     except Exception:
-        season = None
+       
+ season = None
     if season is None:
         return strings["auto_no_service"]
     already = getattr(season, "phase", "setup") != "setup"
@@ -104,9 +106,37 @@ async def _auto_start_season_safe(console: Any, interaction: discord.Interaction
         if guild is not None:
             await _ensure_realms_after_launch(guild, locale)
             await _refresh_season_status_safe(guild, locale)
+            # mercenary-beta-refresh-v1: same refresh inside the auto
+            # start path (covers the direct launch even if the caller's
+            # own refresh is skipped).
+            from kingdoms.mods.kingdoms.kingdom_mercenary_panel import (
+                refresh_mercenary_panels_safe,
+            )
+
+            await refresh_mercenary_panels_safe(guild, locale)
     except Exception:
         logger.warning("BETA PANEL: post-launch refresh skipped", exc_info=True)
     return strings["auto_started"]
+
+
+async def _refresh_taverne_mercenary_safe(interaction: discord.Interaction) -> None:
+    """mercenary-beta-refresh-v1 (Drasah 25/10): re-render the Chief's
+    taverne panel right after a beta arm/start — the beta call button
+    rides the view only while a beta is armed/running, and without this
+    refresh the button would wait for the next market open (20h) to
+    appear."""
+    guild = getattr(interaction, "guild", None)
+    if guild is None:
+        return
+    locale = str(interaction.locale) if interaction.locale else "en"
+    try:
+        from kingdoms.mods.kingdoms.kingdom_mercenary_panel import (
+            refresh_mercenary_panels_safe,
+        )
+
+        await refresh_mercenary_panels_safe(guild, locale)
+    except Exception:
+        logger.warning("BETA PANEL: mercenary panel refresh skipped", exc_info=True)
 
 
 def beta_start_report(report: dict[str, Any]) -> str:
@@ -132,7 +162,8 @@ def beta_start_report(report: dict[str, Any]) -> str:
 
 
 class BetaStartModal(discord.ui.Modal):
-    """The « Programmer… » modal — one text field for the exact start."""
+    """The « Programmer…
+ » modal — one text field for the exact start."""
 
     def __init__(self, console: Any, locale: Any = None) -> None:
         """Store the console seam and build the input field."""
@@ -166,6 +197,9 @@ class BetaStartModal(discord.ui.Modal):
         # click on « Démarrer la saison ».
         note = await _auto_start_season_safe(self._console, interaction, self._strings)
         await interaction.followup.send(note)
+        # mercenary-beta-refresh-v1: the taverne panel shows the beta
+        # call button immediately after the arm — not at the 20h open.
+        await _refresh_taverne_mercenary_safe(interaction)
 
 
 class BetaStartView(discord.ui.View):
@@ -174,7 +208,8 @@ class BetaStartView(discord.ui.View):
     def __init__(self, console: Any, locale: Any = None) -> None:
         """Store the console seam; the view lives 15 minutes."""
         super().__init__(timeout=900)
-        self._console = console
+  
+      self._console = console
         self._strings = _strings(locale)
 
     @discord.ui.button(label="🚀", style=discord.ButtonStyle.green)
@@ -192,6 +227,9 @@ class BetaStartView(discord.ui.View):
         # click on « Démarrer la saison ».
         note = await _auto_start_season_safe(self._console, interaction, self._strings)
         await interaction.followup.send(note)
+        # mercenary-beta-refresh-v1: the taverne panel shows the beta
+        # call button immediately after the arm — not at the 20h open.
+        await _refresh_taverne_mercenary_safe(interaction)
 
     @discord.ui.button(label="🕒", style=discord.ButtonStyle.blurple)
     async def start_scheduled(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
