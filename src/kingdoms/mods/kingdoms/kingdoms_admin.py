@@ -210,9 +210,10 @@ def register_kingdoms_admin_command(
     _register_decide_name(group, service, guard)
     _register_assign(group, service, guard)
     _register_replace(group, service, guard)
-    # admin-console-v1: the /kingdoms-admin debug slash subgroup is GONE
-    # (silent sync failures) — Drasah's test toolkit lives in the
-    # 🛠 console-admin salon (admin_console.py) behind DebugService.
+    # console-removal-v1 (Drasah 25/10): the /kingdoms-admin debug
+    # slash subgroup stays GONE (silent sync failures) and the 🛠
+    # console-admin salon is retired too — the test toolkit
+    # (DebugService) is wired but carries no live surface yet.
 
 
 def _make_guard(

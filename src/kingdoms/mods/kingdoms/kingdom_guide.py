@@ -14,8 +14,8 @@ place, renamed if its title evolved, never duplicated) and never
 raises: a missing forum channel simply skips the refresh, exactly like
 the other ``refresh_salons_content`` members.
 
-The console command ``regles`` (admin_console) re-triggers the refresh
-on demand — after a salon reset, one command rebuilds the whole guide.
+The Scriptorium's « 📖 Règles » button re-triggers the refresh on
+demand — after a salon reset, one click rebuilds the whole guide.
 """
 
 from __future__ import annotations
@@ -382,7 +382,7 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
                 "# 🧪 La beta\n\n"
                 "La beta reprend exactement les mêmes mécaniques, mais **compressées "
                 "sur 52 heures** pour tout tester. La saison part d'un **T0** fixé par "
-                "l'admin (commande console) et se termine à **T0+52 h** (résultats + "
+                "l'admin (bouton ⚙️ Paramètres) et se termine à **T0+52 h** (résultats + "
                 "récompenses inclus).\n\n"
                 "**Le plan relatif :**\n"
                 "• passage d'âge : **T0+4 h** (Âge sombre → Âge féodal) ;\n"

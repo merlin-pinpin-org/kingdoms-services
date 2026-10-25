@@ -166,11 +166,9 @@ def register(bot: Any, config: Any) -> None:
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)
     register_kingdom_command(bot.tree, bot_admins=bot_admins)
-    # admin-console-v1: the 🛠 console-admin listener (replaces the
-    # /kingdoms-admin debug slash subgroup — sync silent failures).
-    from kingdoms.mods.kingdoms.admin_console import register_kingdoms_admin_console
-
-    register_kingdoms_admin_console(bot)
+    # console-removal-v1 (Drasah 25/10): the 🛠 console-admin listener
+    # is GONE — it never booted in prod (no add_listener on the live
+    # bot); the live flows live on the ⚙️ Paramètres panel.
     register_kingdoms_command(bot.tree, bot.kingdoms_service)
     register_kingdoms_admin_command(
         bot.tree,

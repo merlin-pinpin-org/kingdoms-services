@@ -148,7 +148,10 @@ _CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
     "gestion-saison": "🗓️ gestion saison",
     "machine-a-temps": "⏱️ machine à temps",
     "distributeur": "🎁 distributeur",
-    "console": "🛠 console-admin",
+    # console-removal-v1 (Drasah 25/10): the 🛠 console-admin salon is
+    # RETIRED — the listener never booted in prod (no add_listener),
+    # the live flows live on the ⚙️ Paramètres panel. The slug joins
+    # LEGACY_SALON_SLUGS below (swept at the next provisioning).
     "demandes": "📬 demandes",
 }
 """ordre-salons-v1: the charte's salon display names (lowercase + one
@@ -170,7 +173,6 @@ _CHARTE_TOPICS: dict[str, str] = {
     "gestion-saison": "Le sablier des saisons — ouverture, clôture et bascule.",
     "machine-a-temps": "Le mécanisme d'horloger — avancer l'âge du monde à des fins de test.",
     "distributeur": "La réserve secrète — distribuer des éléments à un royaume (test).",
-    "console": "La console du forgeron — commandes de test, réponses sur place.",
     "demandes": "Les requêtes des seigneurs : modifications et départs.",
 }
 """ordre-salons-v1: one micro-lore topic per structure salon. Keyed by
@@ -497,13 +499,9 @@ async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], 
     # permissions-serveur-v1 (20/10): the player category HEADERS are
     # gated too — a newcomer sees only Beta and Conscription.
     await _enforce_player_category_gating(guild)
-    # admin-console-v1: the console salon gets its pinned welcome message.
-    console_id = report.channel_ids.get("console")
-    console_channel = guild.get_channel(int(console_id)) if console_id and console_id.isdigit() else None
-    if isinstance(console_channel, discord.TextChannel):
-        from kingdoms.mods.kingdoms.admin_console import ensure_console_welcome
-
-        await ensure_console_welcome(console_channel)
+    # console-removal-v1 (Drasah 25/10): the console welcome block is
+    # GONE — the salon itself is swept by cleanup_legacy_structure (its
+    # slug sits in LEGACY_SALON_SLUGS).
     await cleanup_legacy_structure(guild)
     # ordre-salons-v1 (Drasah 19/10): the sidebar reads like the game —
     # conscription hides from validated players, the decorative
@@ -555,6 +553,11 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     # the anonymous Pigeon handles their absence gracefully.
     "question",
     "signaler-un-bug",
+    # console-removal-v1 (Drasah 25/10): the 🛠 console-admin salon
+    # retires — the console listener never booted in prod, the live
+    # flows live on the ⚙️ Paramètres panel; the beta taverne button
+    # calls the Mercenary Chief (chef-mercenaire-v1 T3).
+    "console-admin",
 )
 """The retired salons-first rubric salons (patch restructuration-royaume):
 their content moved into the Scriptorium ephemeral rubrics — plus the

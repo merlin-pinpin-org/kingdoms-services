@@ -91,6 +91,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "insufficient": "🪙 Il te faut **{price} écus** — ta bourse n'en compte que {purse}.",
         "already_held": "Tu détiens déjà une civilisation mercenaire — une seule à la fois.",
         "failed": "L'enchère a échoué : `{message}`.",
+        "call_button": "⚔️ Appeler le Chef (beta)",
+        "call_denied": "Seuls les admins peuvent appeler le Chef Mercenaire.",
+        "call_done": (
+            "⚔️ Le Chef répond à l'appel — marché **{id}** ouvert, "
+            "{lots} lot(s) sur la table, enchères jusqu'à **{time}**."
+        ),
+        "call_no_service": "Le Chef Mercenaire n'est pas branché sur cette instance.",
     },
     "en": {
         "panel_title": "⚔️ Mercenary Chief",
@@ -143,6 +150,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "insufficient": "🪙 You need **{price} écus** — your purse only holds {purse}.",
         "already_held": "You already hold a mercenary civilization — one at a time.",
         "failed": "The bid failed: `{message}`.",
+        "call_button": "⚔️ Call the Chief (beta)",
+        "call_denied": "Only admins may call the Mercenary Chief.",
+        "call_done": (
+            "⚔️ The Chief answers the call — market **{id}** open, "
+            "{lots} lot(s) on the table, bids until **{time}**."
+        ),
+        "call_no_service": "The Mercenary Chief service is not wired on this instance.",
     },
 }
 
@@ -288,9 +302,34 @@ def build_mercenary_content(doc: dict[str, Any] | None, locale: str) -> str:
     return "\n".join(lines)
 
 
-def build_mercenary_view(doc: dict[str, Any] | None, civ_names: dict[str, str]) -> discord.ui.View:
-    """Build the Chief's view — one bid button per LIVE lot + withdrawal."""
+async def _beta_armed_safe(wiring: Any) -> bool:
+    """taverne-chef-beta-call: True when a beta is armed OR running."""
+    service = getattr(wiring, "kingdoms_service", None)
+    if service is None:
+        return False
+    try:
+        season = await service.current_season()
+    except Exception:
+        logger.warning("KINGDOM MERCENARY: season read failed", exc_info=True)
+        return False
+    return bool(getattr(season, "beta_name", None))
+
+
+def build_mercenary_view(
+    doc: dict[str, Any] | None,
+    civ_names: dict[str, str],
+    locale: str = "fr",
+    beta: bool = False,
+) -> discord.ui.View:
+    """Build the Chief's view — one bid button per LIVE lot + withdrawal.
+
+    taverne-chef-beta-call (Drasah 25/10): during a beta (armed or
+    running) the view carries the admin-only « Appeler le Chef »
+    button — the Chief answers at ANY moment, not just 20h-21h.
+    """
     view = discord.ui.View(timeout=None)
+    if beta:
+        view.add_item(KingdomMercenaryCallButton(_strings(locale)["call_button"]))
     if not doc or doc.get("closed"):
         return view
     for lot in doc.get("lots", []):
@@ -346,6 +385,75 @@ class KingdomMercenaryBidButton(
         await interaction.response.send_modal(
             KingdomMercenaryBidModal(self.civ, strings)
         )
+
+
+class KingdomMercenaryCallButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:mercenary:call",
+):
+    """taverne-chef-beta-call (Drasah 25/10): the restart-proof admin
+    button that calls the Chief at ANY moment during a beta — the
+    replacement of the retired console's ``chef_mercenaire ouvrir``."""
+
+    def __init__(self, label: str | None = None) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=(label or "Appeler le Chef")[:80],
+                custom_id="kingdoms:mercenary:call",
+                style=discord.ButtonStyle.success,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMercenaryCallButton:
+        """Rebuild the call button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        return cls(_strings(locale)["call_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Force-open tonight's market now (admin only, beta only)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _is_admin, _wiring
+
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if not _is_admin(interaction, wiring.bot_admins):
+            await interaction.response.send_message(strings["call_denied"], ephemeral=True)
+            return
+        if not await _beta_armed_safe(wiring):
+            # the button only rides the panel during a beta — a stale
+            # click outside a beta falls back to the window answer.
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send(strings["window"])
+            return
+        service = getattr(wiring, "mercenary_service", None)
+        if service is None:
+            await interaction.response.send_message(strings["call_no_service"], ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            doc = await service.open_market(force=True)
+        except Exception as exc:
+            await interaction.followup.send(_error_note(exc, strings), ephemeral=True)
+            return
+        lots = len(doc.get("lots", []) or []) if isinstance(doc, dict) else 0
+        market_id = str(doc.get("id", "?")) if isinstance(doc, dict) else "?"
+        closes = int(doc.get("closes_at", 0) or 0) if isinstance(doc, dict) else 0
+        await interaction.followup.send(
+            strings["call_done"].format(
+                id=market_id,
+                lots=lots,
+                time=_fmt_paris(closes) if closes else "?",
+            ),
+            ephemeral=True,
+        )
+        await refresh_panel_after_change_safe(interaction)
 
 
 class KingdomMercenaryBidModal(discord.ui.Modal):
@@ -472,7 +580,8 @@ async def deploy_mercenary_panel(channel: discord.TextChannel, locale: str) -> b
     wiring = _wiring()
     doc = await _read_market_safe(wiring)
     content = build_mercenary_content(doc, locale)
-    view: discord.ui.View | None = build_mercenary_view(doc, _civ_names(wiring))
+    beta = await _beta_armed_safe(wiring)
+    view: discord.ui.View | None = build_mercenary_view(doc, _civ_names(wiring), locale, beta)
     if not view.children:
         # the Chief is absent — no live component rides the message.
         view = None

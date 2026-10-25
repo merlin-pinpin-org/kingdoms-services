@@ -15,11 +15,9 @@ answers a fixed pointer instead of rebuilding threads.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 
 import pytest
 
-from kingdoms.mods.kingdoms.admin_console import COMMANDES, AdminConsole
 from kingdoms.mods.kingdoms.config import default_season_config
 from kingdoms.mods.kingdoms.kingdom_guide import (
     GUIDE_MARKER_PREFIX,
@@ -177,22 +175,6 @@ async def test_refresh_reports_a_failed_thread_best_effort() -> None:
     assert set(report.values()) == {"failed"}
 
 
-# ----------------------------------------------------------------------
-# The console command
-# ----------------------------------------------------------------------
-
-
-async def test_regles_command_points_to_the_scriptorium_button() -> None:
-    # restructuration-serveur-v1 d (Drasah 19/10): the Règles forum is
-    # gone — the command answers a fixed pointer, nothing to rebuild.
-    bot = SimpleNamespace(kingdoms_service=_Service())
-    console = AdminConsole(bot)
-    console._current_message = SimpleNamespace(guild=_Guild([]))
-    reply = await COMMANDES["regles"].handler(console, [])
-    assert "📖 Règles" in reply
-    assert "Scriptorium" in reply
-    assert "live" in reply
-    # The answer is guild/wiring independent (no rebuild, no lookup).
-    console._current_message = SimpleNamespace(guild=None)  # type: ignore[assignment]
-    reply = await COMMANDES["regles"].handler(console, [])
-    assert "Scriptorium" in reply
+# console-removal-v1 (Drasah 25/10): the ``regles`` console command
+# test is GONE with admin_console.py — the Scriptorium's 📖 Règles
+# button is the only refresh surface.
