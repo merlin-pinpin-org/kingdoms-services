@@ -484,6 +484,11 @@ STRINGS: dict[str, dict[str, Any]] = {
         "church_marry_ok": (
             "💍 Marriage sealed: **{0}** — lock {1}h, Offrande +{2} ⚙️."
         ),
+        "mercenary_refund_dm": (
+            "⚔️ The Mercenary Chief calls your contract back: **{0}** was "
+            "just sealed in marriage — your mercenary copy is stripped and "
+            "your purse is refunded **{1} écu(s)**."
+        ),
         "church_marry_royal_ok": (
             "👑💍 Marriage sealed: **{0}** becomes your Queen — royal lock"
             " {1}h · +2 ⚙️ to the treasury · secured for the whole season."
@@ -900,6 +905,11 @@ STRINGS: dict[str, dict[str, Any]] = {
         "church_marry_intro": "👰 Choisissez la civilisation de votre mariage :",
         "church_marry_ok": (
             "💍 Mariage scellé : **{0}** — verrou {1}h, Offrande +{2} ⚙️."
+        ),
+        "mercenary_refund_dm": (
+            "⚔️ Le Chef Mercenaire rappelle ton contrat : **{0}** vient "
+            "d'être scellée en mariage — ta copie mercenaire est retirée "
+            "et ta bourse est remboursée de **{1} écu(s)**."
         ),
         "church_marry_royal_ok": (
             "👑💍 Mariage scellé : **{0}** devient votre Reine — verrou royal"
@@ -1948,6 +1958,14 @@ async def _deploy_channel_panel(
         from kingdoms.mods.kingdoms.kingdom_tavern_panel import deploy_tavern_panel
 
         await deploy_tavern_panel(channel, locale)
+        # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's auction
+        # panel rides the SAME salon — its own marker, idempotent.
+        from kingdoms.mods.kingdoms.kingdom_mercenary_panel import deploy_mercenary_panel
+
+        try:
+            await deploy_mercenary_panel(channel, locale)
+        except Exception:
+            logger.warning("KINGDOM PANELS: mercenary panel deploy failed", exc_info=True)
         return "taverne"
     if slug == "machine-a-temps":
         from kingdoms.mods.kingdoms.kingdom_time_panel import deploy_time_panel

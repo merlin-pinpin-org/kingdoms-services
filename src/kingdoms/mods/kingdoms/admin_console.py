@@ -826,6 +826,18 @@ async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
     return "\n".join(lines)
 
 
+async def _refresh_chief_surface_safe(bot: Any) -> None:
+    """Re-render the Chief's panel + realm views (beta console, best effort)."""
+    try:
+        from kingdoms.mods.kingdoms.kingdom_events_loop import (
+            _refresh_mercenary_surface_safe,
+        )
+
+        await _refresh_mercenary_surface_safe(bot)
+    except Exception:
+        logger.warning("CONSOLE: mercenary surface refresh failed", exc_info=True)
+
+
 async def _cmd_chef_mercenaire(console: AdminConsole, args: list[str]) -> str:
     """`chef_mercenaire [ouvrir|fermer|etat]` — the Chief's beta console.
 
@@ -845,6 +857,7 @@ async def _cmd_chef_mercenaire(console: AdminConsole, args: list[str]) -> str:
     now_ts = int(datetime.now(UTC).timestamp())
     if action in ("ouvrir", "open"):
         doc = await mercenary.open_market(force=True)
+        await _refresh_chief_surface_safe(console.bot)
         return CONSOLE_STRINGS["fr"]["done"].format(
             report="marché {id} ouvert — {lots} lot(s), enchères dans {wait}".format(
                 id=doc.get("id"),
@@ -854,6 +867,7 @@ async def _cmd_chef_mercenaire(console: AdminConsole, args: list[str]) -> str:
         )
     if action in ("fermer", "close"):
         awards = await mercenary.close_if_due(force=True)
+        await _refresh_chief_surface_safe(console.bot)
         if not awards:
             return "aucun marché vivant à fermer"
         return CONSOLE_STRINGS["fr"]["done"].format(

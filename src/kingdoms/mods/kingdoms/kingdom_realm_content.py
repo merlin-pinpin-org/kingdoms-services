@@ -64,6 +64,9 @@ def _strings(locale: str) -> dict[str, str]:
             "members": "Effectif",
             "members_line": "👑 {0} + **{1}** seigneur(s) — {2} membre(s)",
             "no_king": "Roi non enrôlé",
+            "alliances_merc_title": "⚔️ Alliances par Mercenaire",
+            "alliances_merc_line": "• **{0}** — {1} ({2} usage(s) de draft)",
+            "alliances_merc_none": "Aucun contrat mercenaire en cours.",
             "treasury": "Trésorerie",
             "territories": "Territoires",
             "civilizations": "Civilisations",
@@ -191,6 +194,9 @@ def _strings(locale: str) -> dict[str, str]:
         "members": "Members",
         "members_line": "👑 {0} + **{1}** lord(s) — {2} member(s)",
         "no_king": "King not enrolled",
+        "alliances_merc_title": "⚔️ Mercenary Alliances",
+        "alliances_merc_line": "• **{0}** — {1} ({2} draft use(s))",
+        "alliances_merc_none": "No mercenary contract running.",
         "treasury": "Treasury",
         "territories": "Territories",
         "civilizations": "Civilizations",
@@ -327,6 +333,43 @@ async def _season_phase(kingdoms_service: Any) -> str:
     return str(getattr(season, "phase", "started") or "started")
 
 
+def _build_mercenary_alliances(
+    strings: dict[str, str],
+    kingdom: Any,
+    state: dict[str, Any],
+) -> Any:
+    """Build the ⚔️ Alliances par Mercenaire rubric (T2c).
+
+    chef-mercenaire-v1 (Drasah 24/10): each lord's LIVE mercenary
+    civilization with its remaining draft uses — visible to the whole
+    kingdom (the salon is public), refreshed with every realm pass.
+    """
+    import discord
+
+    civ_names = state.get("civ_names", {})
+    lines: list[str] = []
+    for member in state.get("members", []):
+        civ = getattr(member, "mercenary_civilization", None)
+        uses = int(getattr(member, "mercenary_uses_left", 0) or 0)
+        if not civ or uses <= 0:
+            continue
+        lines.append(
+            strings["alliances_merc_line"].format(
+                getattr(member, "display_name", getattr(member, "id", "?")),
+                civ_names.get(str(civ), str(civ)),
+                uses,
+            )
+        )
+    if not lines:
+        lines = [strings["alliances_merc_none"]]
+    return _panel_view(
+        strings["alliances_merc_title"],
+        "\n".join(lines),
+        f"{VIEW_MARKER_PREFIX}:alliances",
+        discord.Colour.dark_embed(),
+    )
+
+
 async def deploy_realm_content(
     guild: discord.Guild,
     kingdom: Any,
@@ -364,6 +407,9 @@ async def deploy_realm_content(
         "le-royaume": _build_overview,
         "territoire": _build_territory if phase != "setup" else _build_territory_pending,
         "eglise": _build_church,
+        # chef-mercenaire-v1 T2c (Drasah 25/10): the lords' live
+        # mercenary contracts ride the 🤝 alliances salon.
+        "alliances": _build_mercenary_alliances,
     }
     results: dict[str, bool] = {}
     for key, builder in builders.items():

@@ -68,6 +68,7 @@ class KingdomsPanelWiring:
     distributor_service: Any = None
     voliere_service: Any = None
     tavern_service: Any = None
+    mercenary_service: Any = None
     ffa_service: Any = None
     cathedral_service: Any = None
 
@@ -121,6 +122,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             distributor_service=getattr(bot, "kingdoms_distributor_service", None),
             voliere_service=getattr(bot, "kingdoms_voliere_service", None),
             tavern_service=getattr(bot, "kingdoms_tavern_service", None),
+            mercenary_service=getattr(bot, "kingdoms_mercenary_service", None),
             ffa_service=getattr(bot, "kingdoms_ffa_service", None),
             cathedral_service=getattr(bot, "kingdoms_cathedral_service", None),
         )
@@ -147,6 +149,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     from kingdoms.mods.kingdoms.kingdom_scriptorium import (
         KingdomSeigneurieButton,
         KingdomSeigneurieSelect,
+    )
+    from kingdoms.mods.kingdoms.kingdom_mercenary_panel import (
+        KingdomMercenaryBidButton,
+        KingdomMercenaryWithdrawButton,
     )
     from kingdoms.mods.kingdoms.kingdom_tavern_panel import KingdomTavernDrinkButton
     from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
@@ -197,6 +203,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomChurchConsecrateButton,
         KingdomDistributorButton,
         KingdomTavernDrinkButton,
+        # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's bid and
+        # withdraw buttons of the taverne panel.
+        KingdomMercenaryBidButton,
+        KingdomMercenaryWithdrawButton,
     )
 
 
@@ -993,6 +1003,41 @@ async def _market_marry_lord_view(
     return view
 
 
+async def _strip_mercenary_holders_safe(bot: Any, civ_key: str, strings: dict[str, Any]) -> None:
+    """Strip + refund the mercenary holders of a marriage (T2c, best effort).
+
+    chef-mercenaire-v1 (Drasah 24/10): a civilization acquired by
+    MARRIAGE strips every holder of his mercenary copy and refunds him
+    a FIXED 1 écu — each returned (lord, civ) becomes the « Remboursement
+    de 1 écu » DM.
+    """
+    wiring = _wiring()
+    service = getattr(wiring, "mercenary_service", None)
+    if service is None or not civ_key:
+        return
+    try:
+        stripped = await service.resolve_marriage_acquired(str(civ_key))
+    except Exception:
+        logger.warning("KINGDOMS: mercenary marriage strip failed", exc_info=True)
+        return
+    refund = int(
+        getattr(getattr(service, "settings", None), "marriage_refund_ecus", 1) or 1
+    )
+    for lord, civ in stripped:
+        try:
+            user = bot.get_user(int(lord.id))
+            if user is None:
+                user = await bot.fetch_user(int(lord.id))
+            if user is not None:
+                await user.send(
+                    strings["mercenary_refund_dm"].format(str(civ), refund)
+                )
+        except Exception:
+            logger.warning(
+                "KINGDOMS: mercenary refund DM to %s failed", lord.id, exc_info=True
+            )
+
+
 async def _market_marry_civ_view(
     wiring: KingdomsPanelWiring,
     king: Any,
@@ -1048,6 +1093,9 @@ async def _market_marry_civ_view(
             await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
             return
         await _assign_marriage_lock_role_safe(target.guild, str(lord_id))
+        # chef-mercenaire-v1 T2c: the sealed civ strips its mercenary
+        # holders (fixed 1-écu refund DM).
+        await _strip_mercenary_holders_safe(target.client, chosen[0], strings)
         try:
             wallet = await economy.wallet(kingdom_id)
         except Exception:
@@ -2100,6 +2148,9 @@ async def _church_marry_civ_view(
         # Drasah's livery (2026-10-11): the fresh spouse wears the red
         # 💍 Verrouillé role until the lock expires — zero notification.
         await _assign_marriage_lock_role_safe(target.guild, str(lord.id))
+        # chef-mercenaire-v1 T2c: the sealed civ strips its mercenary
+        # holders (fixed 1-écu refund DM).
+        await _strip_mercenary_holders_safe(target.client, chosen[0], strings)
         royal = str(getattr(lord, "role", "")) == "king"
         hours = int(tier.marriage_lock_hours) * (2 if royal else 1)
         if royal:

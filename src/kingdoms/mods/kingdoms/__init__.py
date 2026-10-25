@@ -61,7 +61,12 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         store = MongoKingdomsStore(get_async_database())
         kingdoms = KingdomsService(store, season_config)
         territories = TerritoryService(store, season_config, kingdoms)
-        attacks = AttackService(store, season_config, kingdoms, territories)
+        # chef-mercenaire-v1 T2c (Drasah 25/10): the Chief feeds the
+        # pick & ban hand — build him BEFORE the attacks service.
+        mercenary = MercenaryService(store, season_config, kingdoms)
+        attacks = AttackService(
+            store, season_config, kingdoms, territories, mercenary=mercenary
+        )
         economy = EconomyService(store, season_config, kingdoms, territories, attacks)
         diplomacy = DiplomacyService(store, season_config, kingdoms, territories)
         events = EventService(store, season_config, kingdoms, territories, attacks, diplomacy)
@@ -69,7 +74,6 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         distributor = DistributorService(store, season_config, kingdoms, territories, attacks)
         voliere = VoliereService(store, season_config, kingdoms, territories, attacks)
         tavern = TavernService(store, season_config, kingdoms)
-        mercenary = MercenaryService(store, season_config, kingdoms)
         ffa = FFAExplorationService(store, season_config, kingdoms, events)
         cathedrals = CathedralService(store, season_config, kingdoms, territories)
         debug = DebugService(

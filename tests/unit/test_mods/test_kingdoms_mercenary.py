@@ -62,6 +62,13 @@ class Bundle(_AttackBundle):
     def __init__(self, config: KingdomsSeasonConfig | None = None) -> None:
         super().__init__(config)
         self.mercenary = MercenaryService(self.store, self.config, self.kingdoms)  # type: ignore[arg-type]
+        # chef-mercenaire-v1 T2c: the attacks service carries the seam —
+        # the pick & ban hand and the draft-use consumption.
+        from kingdoms.mods.kingdoms.attacks import AttackService
+
+        self.attacks = AttackService(  # type: ignore[arg-type]
+            self.store, self.config, self.kingdoms, self.territories, mercenary=self.mercenary
+        )
 
 
 async def _launched() -> Bundle:
@@ -299,3 +306,104 @@ async def test_a_holder_cannot_bid_while_he_holds_a_live_civ() -> None:
     _, lord = await bundle.mercenary.place_bid("lord-a", other, 1, now=bid_time)
     assert lord.mercenary_civilization is None
     assert lord.mercenary_uses_left == 0
+
+
+# ----------------------------------------------------------------------
+# T2c (Drasah 25/10) — the pick & ban seam
+# ----------------------------------------------------------------------
+
+_WIDE_POOL = _POOL + (
+    "aztecs",
+    "byzantines",
+    "celts",
+    "chinese",
+    "ethiopians",
+    "japanese",
+    "koreans",
+)
+
+
+def _wide_config() -> KingdomsSeasonConfig:
+    """A wider catalogue + real hands — a kingdom hand never covers it all."""
+    config = default_season_config()
+    config.civilizations = tuple(
+        CivilizationCondition(key=key, display_name=key.title()) for key in _WIDE_POOL
+    )
+    config.starting_civilizations = 4
+    return config
+
+
+async def _two_kingdoms() -> Bundle:
+    """A launched season with two kingdoms ready to fight."""
+    bundle = Bundle(_wide_config())
+    await bundle.kingdoms.launch()
+    await bundle.kingdoms.enroll("king-a", "King A", LordRole.KING, proposed_name="Aquitaine")
+    await bundle.kingdoms.enroll("lord-a", "Lord A", LordRole.LORD, kingdom_name="Aquitaine")
+    await bundle.kingdoms.enroll("king-b", "King B", LordRole.KING, proposed_name="Bourgogne")
+    await bundle.kingdoms.enroll("lord-b", "Lord B", LordRole.LORD, kingdom_name="Bourgogne")
+    return bundle
+
+
+async def test_pickban_hand_carries_the_live_mercenary_civ() -> None:
+    """The holder's draft hand carries his mercenary copy — nobody else's."""
+    bundle = await _two_kingdoms()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    hand = await bundle.attacks._side_hand(aquitaine)
+    free = next(key for key in _WIDE_POOL if key not in hand)
+    lord = await bundle.mercenary.lord("lord-a")
+    lord.mercenary_civilization = free
+    lord.mercenary_uses_left = 2
+    await bundle.store.upsert_lord(lord.to_mongo())
+    assert await bundle.attacks.pickban_hand(aquitaine, "lord-a") == [*hand, free]
+    # another player of the same kingdom never sees the copy.
+    assert await bundle.attacks.pickban_hand(aquitaine, "king-a") == hand
+    # a spent contract leaves the hand again.
+    lord = await bundle.mercenary.lord("lord-a")
+    lord.mercenary_uses_left = 0
+    await bundle.store.upsert_lord(lord.to_mongo())
+    assert await bundle.attacks.pickban_hand(aquitaine, "lord-a") == hand
+
+
+async def test_set_picks_accepts_the_mercenary_civ_and_consumes_one_use() -> None:
+    """One submission of the mercenary civ consumes ONE use — never two."""
+    from kingdoms.mods.kingdoms.attacks import PickBanStateError
+
+    bundle = await _two_kingdoms()
+    await bundle.draw(1)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://1.2.3.4/lobby")
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=attack.declared_at + timedelta(minutes=1)
+    )
+    moment = attack.expires_at - timedelta(minutes=10)
+    await bundle.attacks.reveal_due(now=moment)
+    await bundle.attacks.pick_ban_due(now=moment)
+    hand = await bundle.attacks._side_hand(aquitaine)
+    bourgogne_hand = await bundle.attacks._side_hand(bourgogne)
+    free = next(key for key in _WIDE_POOL if key not in hand and key not in bourgogne_hand)
+    king = await bundle.mercenary.lord("king-a")
+    king.mercenary_civilization = free
+    king.mercenary_uses_left = 2
+    await bundle.store.upsert_lord(king.to_mongo())
+    picks = list(hand[:2]) + [free]
+    # without the mercenary civ in the picks the use stays untouched.
+    await bundle.attacks.set_picks(attack.id, "king-a", list(hand[:3]), now=moment)
+    king = await bundle.mercenary.lord("king-a")
+    assert king.mercenary_uses_left == 2
+    # submitting the mercenary pick consumes ONE use.
+    await bundle.attacks.set_picks(attack.id, "king-a", picks, now=moment)
+    king = await bundle.mercenary.lord("king-a")
+    assert king.mercenary_uses_left == 1
+    fresh = next(
+        item for item in await bundle.attacks.attacks() if str(item.id) == str(attack.id)
+    )
+    assert fresh.pickban.get("attacker_mercenary_used") is True
+    # a resubmission never double-pays.
+    await bundle.attacks.set_picks(attack.id, "king-a", picks, now=moment)
+    king = await bundle.mercenary.lord("king-a")
+    assert king.mercenary_uses_left == 1
+    # a non-holder cannot pick the civ.
+    with pytest.raises(PickBanStateError):
+        await bundle.attacks.set_picks(attack.id, "lord-b", list(hand[:2]) + [free], now=moment)

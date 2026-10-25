@@ -3268,6 +3268,28 @@ class KingdomPickBanView(discord.ui.View):
             await interaction.response.edit_message(content=content, view=None)
         except Exception:
             logger.warning("KINGDOM ATTACK: pick & ban DM edit failed", exc_info=True)
+        # chef-mercenaire-v1 T2c: a consumed draft use moves the
+        # Alliances rubrique — refresh the picker's kingdom views.
+        try:
+            from kingdoms.mods.kingdoms.kingdom_persistent import (
+                _refresh_realm_views_for_kingdom_safe,
+            )
+
+            if wiring.kingdoms_service is not None:
+                fresh = next(
+                    (
+                        item
+                        for item in await wiring.kingdoms_service.lords()
+                        if str(item.id) == str(self.player_id)
+                    ),
+                    None,
+                )
+                if fresh is not None and fresh.kingdom_id:
+                    await _refresh_realm_views_for_kingdom_safe(
+                        interaction.guild, str(fresh.kingdom_id)
+                    )
+        except Exception:
+            logger.warning("KINGDOM ATTACK: mercenary realm refresh failed", exc_info=True)
         pickban: dict[str, Any] = dict(attack.pickban or {})
         if not pickban.get("resolved_pickban"):
             return
@@ -3610,8 +3632,24 @@ class KingdomSabotagePassButton(
 async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
     """Send the pick & ban DM to each human player (Drasah 18/10 v2)."""
     strings = _strings(locale)
-    hand = await _hand_of(kingdoms_service, attack.attacker_kingdom_id)
-    adversary = await _hand_of(kingdoms_service, attack.defender_kingdom_id)
+    wiring = None
+    try:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        wiring = _wiring()
+    except Exception:
+        wiring = None
+    # chef-mercenaire-v1 T2c (Drasah 25/10): each player's DM hand
+    # carries HIS live mercenary civilization — the adversary line
+    # stays the plain kingdom hand (the copy belongs to the holder).
+    hand = await _pickban_hand_safe(
+        wiring, kingdoms_service, attack.attacker_kingdom_id, str(attack.attacker_lord_id)
+    )
+    adversary = await _pickban_hand_safe(
+        wiring, kingdoms_service, attack.defender_kingdom_id, str(attack.defender_lord_id)
+    )
+    adversary_hand = await _hand_of(kingdoms_service, attack.defender_kingdom_id)
+    theirs = await _hand_of(kingdoms_service, attack.attacker_kingdom_id)
     view = KingdomPickBanView(
         str(attack.id),
         str(attack.attacker_lord_id),
@@ -3622,13 +3660,6 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
     # sabotage-ux-v1 (Drasah 22/10): the draft DM carries the stock
     # line — sabotage-consommable-v1: one charge is spent per snipe,
     # the Faucon flies 48h.
-    wiring = None
-    try:
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-
-        wiring = _wiring()
-    except Exception:
-        wiring = None
     stock_attacker = await _sabotage_stock_line(wiring, attack, "attacker", strings) if wiring else ""
     message = await _dm_user_safe(
         bot,
@@ -3637,7 +3668,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
             map=attack.map_key,
             count=min(3, len(hand)) or 1,
             hand=", ".join(hand) or "—",
-            theirs=", ".join(adversary) or "—",
+            theirs=", ".join(adversary_hand) or "—",
         )
         + (f"\n\n{stock_attacker}" if stock_attacker else ""),
         view,
@@ -3660,7 +3691,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
                 map=attack.map_key,
                 count=min(3, len(adversary)) or 1,
                 hand=", ".join(adversary) or "—",
-                theirs=", ".join(hand) or "—",
+                theirs=", ".join(theirs) or "—",
             )
             + (f"\n\n{stock_defender}" if stock_defender else ""),
             view,
@@ -3683,6 +3714,22 @@ async def _record_pickban_dm_safe(attack_id: str, player_id: str, message: Any) 
         )
     except Exception:
         logger.warning("KINGDOM ATTACK: pick & ban DM refs not stored", exc_info=True)
+
+
+async def _pickban_hand_safe(
+    wiring: Any,
+    kingdoms_service: Any,
+    kingdom_id: str | None,
+    player_id: str,
+) -> list[str]:
+    """Return one player's draft hand — his mercenary civ included (T2c)."""
+    attacks_service = getattr(wiring, "attacks_service", None)
+    if attacks_service is not None and hasattr(attacks_service, "pickban_hand"):
+        try:
+            return await attacks_service.pickban_hand(kingdom_id or "", player_id)
+        except Exception:
+            logger.warning("KINGDOM ATTACK: pickban hand read failed", exc_info=True)
+    return await _hand_of(kingdoms_service, kingdom_id)
 
 
 async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:

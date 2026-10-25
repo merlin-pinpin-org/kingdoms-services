@@ -739,6 +739,7 @@ async def _mercenary_tick_safe(bot: Any) -> None:
         opens = True
     elif doc.get("closed", False):
         opens = str(doc.get("date")) != paris_today
+    was_live = doc is not None and not bool(doc.get("closed", False))
     if opens and mercenary.inside_window(moment):
         try:
             kingdoms = getattr(bot, "kingdoms_service", None)
@@ -748,6 +749,9 @@ async def _mercenary_tick_safe(bot: Any) -> None:
             if season is None or (not season.frozen and season.phase != "setup"):
                 await mercenary.open_market(now=moment)
                 logger.info("KINGDOMS EVENTS: mercenary market opened (window)")
+                # chef-mercenaire-v1 T2b: the panel must carry the
+                # fresh lots at once — the players read the taverne.
+                await _refresh_mercenary_surface_safe(bot)
         except MercenaryError:
             pass  # the window guard raced us — the next tick retries
         except Exception:
@@ -761,6 +765,40 @@ async def _mercenary_tick_safe(bot: Any) -> None:
         logger.info(
             "KINGDOMS EVENTS: mercenary market closed — %s award(s)", len(awards)
         )
+        await _refresh_mercenary_surface_safe(bot)
+    elif was_live:
+        # a close without awards (every lot unsold) flips the panel to
+        # the results — and a STILL-live market keeps its bid lines
+        # fresh within a tick (the players read the taverne).
+        try:
+            fresh = await mercenary.market()
+        except Exception:
+            fresh = None
+        if isinstance(fresh, dict):
+            await _refresh_mercenary_surface_safe(bot)
+
+
+async def _refresh_mercenary_surface_safe(bot: Any) -> None:
+    """Re-render the Chief's panel + realm views after a market change.
+
+    chef-mercenaire-v1 T2b/T2c (Drasah 25/10): an open draws the lots
+    and a close awards the holdings — the taverne panel and the
+    Alliances rubriques must show them at once, not at the next click.
+    Best effort throughout (a guild never blocks the others).
+    """
+    from kingdoms.mods.kingdoms.kingdom_mercenary_panel import refresh_mercenary_panels_safe
+    from kingdoms.mods.kingdoms.kingdom_persistent import _refresh_all_realm_views_safe
+
+    for guild in list(getattr(bot, "guilds", [])):
+        locale = await _guild_locale(bot, str(guild.id))
+        try:
+            await refresh_mercenary_panels_safe(guild, locale)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: mercenary panel refresh failed", exc_info=True)
+        try:
+            await _refresh_all_realm_views_safe(guild, locale)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: realm views refresh failed", exc_info=True)
 
 
 async def _beta_tick_seconds(bot: Any, default_seconds: int) -> int:

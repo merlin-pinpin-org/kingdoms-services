@@ -501,12 +501,21 @@ class AttackService:
         config: KingdomsSeasonConfig,
         kingdoms_service: KingdomsService,
         territory_service: TerritoryService,
+        mercenary: Any | None = None,
     ) -> None:
-        """Store the seams: persistence, config, enrollment, territories."""
+        """Store the seams: persistence, config, enrollment, territories.
+
+        chef-mercenaire-v1 T2c (Drasah 25/10): the optional Mercenary
+        service feeds the pick & ban — a holder's hand carries his
+        LIVE mercenary civilization and one submission consumes one
+        draft use. The seam stays OPTIONAL (no import at module level
+        — mercenary.py already imports this one).
+        """
         self._store = store
         self._config = config
         self._kingdoms = kingdoms_service
         self._territories = territory_service
+        self._mercenary = mercenary
 
     # ------------------------------------------------------------------
     # Attack declaration (§11-§12, D27/D41/D42)
@@ -1446,7 +1455,13 @@ class AttackService:
         """
         attack = await self._require_pickban_attack(attack_id, now or _now())
         side = await self._pick_ban_side(attack, player_id)
-        hand = await self._side_hand(attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id)
+        picker = await self._require_lord(player_id)
+        # chef-mercenaire-v1 T2c (Drasah 25/10): the picker's hand
+        # carries his LIVE mercenary civilization — one use per draft.
+        hand = await self.pickban_hand(
+            attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id,
+            player_id,
+        )
         required = min(3, len(hand))
         if len(picks) != required or len(set(picks)) != required:
             raise PickBanStateError(f"rank exactly {required} distinct civilization(s)")
@@ -1455,9 +1470,19 @@ class AttackService:
         pickban = dict(attack.pickban)
         pickban[f"{side}_picks"] = list(picks)
         pickban[f"{side}_sabotages"] = []  # legacy field — the draft is sabotage-free
+        mercenary_civ = self._live_mercenary_civ(picker)
+        if (
+            mercenary_civ is not None
+            and mercenary_civ in picks
+            and not pickban.get(f"{side}_mercenary_used")
+        ):
+            # ONE submission consumes ONE use — a resubmission never
+            # double-pays (the guard rides the pickban document).
+            if self._mercenary is not None:
+                await self._mercenary.consume_draft_use(player_id, mercenary_civ)
+                pickban[f"{side}_mercenary_used"] = True
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
-        picker = await self._require_lord(player_id)
         await chronicle.record(
             picker,
             chronicle.KIND_PICKBAN,
@@ -1535,6 +1560,35 @@ class AttackService:
         """Return the kingdom's civilizations (its Alliances hand, D77)."""
         kingdom = await self._kingdom_by_id(kingdom_id)
         return list(kingdom.civilizations or [])
+
+    def _live_mercenary_civ(self, lord: Any) -> str | None:
+        """Return the lord's LIVE mercenary civilization key (None).
+
+        chef-mercenaire-v1 (Drasah 24/10): a civilization with uses
+        left is pickable in the draft — one pick consumes one use.
+        """
+        civ = str(getattr(lord, "mercenary_civilization", "") or "")
+        uses = int(getattr(lord, "mercenary_uses_left", 0) or 0)
+        return civ if civ and uses > 0 else None
+
+    async def pickban_hand(self, kingdom_id: str, player_id: str) -> list[str]:
+        """Return ONE player's pick & ban hand (kingdom + mercenary).
+
+        chef-mercenaire-v1 T2c (Drasah 25/10): the kingdom's hand plus
+        the player's live mercenary civilization, when he holds one —
+        the draft DM reads this hand. Without the mercenary seam the
+        hand stays the kingdom's own (the legacy behaviour).
+        """
+        hand = await self._side_hand(kingdom_id)
+        civ: str | None = None
+        if self._mercenary is not None:
+            try:
+                civ = self._live_mercenary_civ(await self._require_lord(player_id))
+            except Exception:
+                civ = None
+        if civ is not None and civ not in hand:
+            return [*hand, civ]
+        return hand
 
     async def expire_stale(self, *, now: datetime | None = None) -> list[AttackModel]:
         """Apply the meeting-time outcome to every expired attack (D8/D77).
