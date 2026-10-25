@@ -172,18 +172,15 @@ async def next_cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) ->
     if projection is None:
         return strings["alliances_no_data"]
     names = _civ_names(wiring)
-    near = ", ".join(
-        f"{names.get(str(entry.get('civ')), str(entry.get('civ')))} ({entry.get('hint')})"
-        for entry in projection.get("near_unlocks", [])
-        if isinstance(entry, dict)
-    )
+    # alliances-lisibilite-v1 T3 (Drasah 25/10): the 🎯 near-unlock
+    # hints ("à 1 map près") are GONE from this answer — Drasah's call,
+    # the near data stays in the projection but the view reads short.
     return "\n".join(
         [
             strings["alliances_next_title"].format(getattr(kingdom, "name", "")),
             strings["alliances_next_kept"].format(_label(names, projection.get("kept", []))),
             strings["alliances_next_arriving"].format(_label(names, projection.get("arriving", []))),
             strings["alliances_next_dropping"].format(_label(names, projection.get("dropping", []))),
-            strings["alliances_next_near"].format(near or "—"),
             strings["alliances_next_elsewhere"].format(
                 _label(names, projection.get("married_elsewhere", []))
             ),

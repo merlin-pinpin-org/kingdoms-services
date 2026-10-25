@@ -194,13 +194,12 @@ async def test_every_view_lands_in_its_salon() -> None:
 
     # restructuration-serveur-v1 (Drasah 19/10): Remparts and Seigneurie
     # are ephemeral BUTTONS now, the Pigeon-Voyageur salon had no wiring.
-    # alliances-lisibilite-v1 T2 (Drasah 25/10): the 🤝 salon wears BOTH
-    # the mercenary rubric and the read-only Alliances panel.
+    # alliances-lisibilite-v1 T3 (Drasah 25/10): the 🤝 salon wears ONE
+    # unified panel — the mercenary rubric is merged into it.
     assert results == {
         "le-royaume": True,
         "territoire": True,
         "eglise": True,
-        "alliances": True,
         "alliances-panel": True,
     }
     for salon in ("🏰 le-royaume", "🗺️ territoire", "⛪ paroisse"):
@@ -771,10 +770,11 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
         if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
     )
     content = _text(panel)
-    # one emoji per acquisition origin — 🎲 for the starter draft
-    assert "\U0001f3b2 **Azt\u00e8ques**" in content
-    # the marriage holder is named (💍 {lord})
-    assert "— \U0001f48d Luc" in content
+    # T3: the unified view reads a LEGEND (badge colour ↔ origin emoji)
+    assert "L\u00e9gende" in content
+    assert "\U0001f3b2 Draft starter" in content
+    # the married holder stays named, compact (💍 {civ} — {lord})
+    assert "\U0001f48d Azt\u00e8ques — Luc" in content
     # the help line points at the Scriptorium's Diplomatie rubric
     assert "Scriptorium" in content and "Diplomatie" in content
     # the five ephemeral answers ride the panel, restart-proof custom ids
@@ -801,7 +801,8 @@ async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> 
         for m in _live(_channel(guild, "\U0001f91d alliances"))
         if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
     )
-    assert "\U0001f91d **Azt\u00e8ques**" in _text(panel)
+    assert "saison ant\u00e9rieure" in _text(panel)
+    assert "\U0001f91d" in _text(panel)
 
 
 def _alliances_interaction(guild: MockGuild) -> Any:
@@ -899,3 +900,58 @@ async def test_history_durations_and_names_buttons_read_the_ledger() -> None:
     content = interaction.response.message.content if interaction.response.message else ""
     assert "\U0001f524 Noms — Avalon" in content
     assert "techtree : Aztecs" in content  # display name <-> provider name
+
+
+async def test_alliances_panel_merges_the_mercenary_contracts() -> None:
+    """T3: a live mercenary contract reads as a compact ⚔️ line on the panel."""
+    guild = MockGuild()
+
+    class _MercLord(_Lord):
+        def __init__(self) -> None:
+            super().__init__(id="p3", display_name="Léon")
+            self.mercenary_civilization = "azteques"
+            self.mercenary_uses_left = 2
+
+    class _MercKingdomsService(_KingdomsService):
+        async def kingdoms(self) -> list:
+            return [_LedgerKingdom()]
+
+        async def lords(self) -> list:
+            return [_MercLord()]
+
+    class _MercWiring:
+        kingdoms_service = _MercKingdomsService()
+        territories_service = _TerritoriesService()
+        economy_service = _EconomyService()
+        attacks_service = _AttacksService()
+
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    results = await deploy_realm_content(guild, _LedgerKingdom(), _MercWiring(), "fr")
+    assert results["alliances-panel"] is True
+    panel = next(
+        m
+        for m in _live(_channel(guild, "\U0001f91d alliances"))
+        if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
+    )
+    content = _text(panel)
+    assert "⚔️ **Léon** — Aztèques (2 usage(s) de draft)" in content
+
+
+async def test_legacy_mercenary_rubric_is_swept_on_deploy() -> None:
+    """T3: the standalone T2c rubric's marked message never survives a refresh."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    channel = _channel(guild, "\U0001f91d alliances")
+    await channel.send(f"-# {VIEW_MARKER_PREFIX}:alliances")
+
+    results = await deploy_realm_content(guild, _LedgerKingdom(), _Wiring(), "fr")
+
+    assert results["alliances-panel"] is True
+    panel_marker = f"{VIEW_MARKER_PREFIX}:alliances-panel"
+    rubric_marker = f"{VIEW_MARKER_PREFIX}:alliances"
+    survivors = [
+        m for m in _live(channel) if rubric_marker in _text(m) and panel_marker not in _text(m)
+    ]
+    assert survivors == []
+    # the unified panel itself is alive
+    assert any(panel_marker in _text(m) for m in _live(channel))

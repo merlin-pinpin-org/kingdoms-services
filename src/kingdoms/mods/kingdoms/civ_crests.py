@@ -23,6 +23,8 @@ from __future__ import annotations
 import base64
 import io
 import logging
+import struct
+import zlib
 from typing import Any
 
 import discord
@@ -164,3 +166,249 @@ async def civ_crest_files(civ_keys: Any) -> list[discord.File]:
                 data = downloaded
         files.append(discord.File(io.BytesIO(data), filename=filename))
     return files
+
+# alliances-lisibilite-v1 T3 (Drasah 25/10): the Alliances surfaces now
+# wear ONE composite mosaic instead of N full-size attachments — the
+# page fits again, the crests stay. The mosaic is painted in PURE
+# PYTHON (the scriptorium_art precedent): each crest PNG is decoded,
+# resampled to its tile and composited on a transparent grid, and a
+# small ORIGIN BADGE in the tile's corner carries the acquisition
+# provenance (the panel's legend maps badge colour ↔ origin emoji).
+MOSAIC_TILE = 112
+MOSAIC_CREST = 104
+MOSAIC_TILE_PAD = 4
+MOSAIC_COLS = 5
+MOSAIC_BADGE = 28
+MOSAIC_BADGE_INSET = 2
+
+ORIGIN_BADGE_COLORS: dict[str, tuple[int, int, int]] = {
+    "starter": (245, 246, 248),
+    "condition": (32, 166, 160),
+    "marriage": (232, 112, 140),
+    "royal": (241, 196, 15),
+    "mercenary": (210, 180, 140),
+}
+DEFAULT_BADGE_COLOR = (130, 134, 140)
+
+
+def _badge_border(color: tuple[int, int, int]) -> tuple[int, int, int]:
+    """Darken one badge fill into its border colour."""
+    return (
+        max(0, int(color[0] * 0.45)),
+        max(0, int(color[1] * 0.45)),
+        max(0, int(color[2] * 0.45)),
+    )
+
+
+def _decode_png_rgba(data: bytes) -> tuple[int, int, bytes] | None:
+    """Decode one 8-bit non-interlaced PNG into RGBA bytes (None = unsupported).
+
+    The dataset crests are uniform (104×104, 8-bit palette + tRNS), but
+    the decoder also accepts the 0/2/4/6 colour types so a provider swap
+    never blanks the mosaic. Everything runs on zlib + struct — no
+    imaging dependency exists in the bot image.
+    """
+    if len(data) < 8 or data[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    width = height = 0
+    bit_depth = color_type = interlace = 0
+    palette = b""
+    trns = b""
+    idat = bytearray()
+    offset = 8
+    while offset + 8 <= len(data):
+        length, kind = struct.unpack(">I4s", data[offset : offset + 8])
+        payload = bytes(data[offset + 8 : offset + 8 + length])
+        offset += 12 + length
+        if kind == b"IHDR":
+            width, height, bit_depth, color_type, _compression, _filter, interlace = struct.unpack(
+                ">IIBBBBB", payload
+            )
+        elif kind == b"PLTE":
+            palette = payload
+        elif kind == b"tRNS":
+            trns = payload
+        elif kind == b"IDAT":
+            idat += payload
+        elif kind == b"IEND":
+            break
+    if not width or not height or bit_depth != 8 or interlace:
+        return None
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(color_type)
+    if channels is None:
+        return None
+    try:
+        raw = zlib.decompress(bytes(idat))
+    except zlib.error:
+        return None
+    stride = width * channels
+    if len(raw) < (stride + 1) * height:
+        return None
+    out = bytearray(width * height * 4)
+    position = 0
+    previous = bytearray(stride)
+    for y in range(height):
+        filter_type = raw[position]
+        position += 1
+        line = bytearray(raw[position : position + stride])
+        position += stride
+        if filter_type == 1:
+            for x in range(channels, stride):
+                line[x] = (line[x] + line[x - channels]) & 0xFF
+        elif filter_type == 2:
+            for x in range(stride):
+                line[x] = (line[x] + previous[x]) & 0xFF
+        elif filter_type == 3:
+            for x in range(stride):
+                left = line[x - channels] if x >= channels else 0
+                line[x] = (line[x] + ((left + previous[x]) >> 1)) & 0xFF
+        elif filter_type == 4:
+            for x in range(stride):
+                above = line[x - channels] if x >= channels else 0
+                before = previous[x]
+                corner = previous[x - channels] if x >= channels else 0
+                paeth = above + before - corner
+                distance_a = abs(paeth - above)
+                distance_b = abs(paeth - before)
+                distance_c = abs(paeth - corner)
+                predictor = above if (distance_a <= distance_b and distance_a <= distance_c) else (
+                    before if distance_b <= distance_c else corner
+                )
+                line[x] = (line[x] + predictor) & 0xFF
+        previous = line
+        for x in range(width):
+            base = x * channels
+            red = green = blue = alpha = 0
+            if color_type == 6:
+                red, green, blue, alpha = line[base], line[base + 1], line[base + 2], line[base + 3]
+            elif color_type == 2:
+                red, green, blue, alpha = line[base], line[base + 1], line[base + 2], 255
+            elif color_type == 4:
+                red, green, blue, alpha = line[base], line[base], line[base], line[base + 1]
+            elif color_type == 0:
+                red, green, blue, alpha = line[base], line[base], line[base], 255
+            else:
+                index = line[base]
+                if index * 3 + 2 < len(palette):
+                    red = palette[index * 3]
+                    green = palette[index * 3 + 1]
+                    blue = palette[index * 3 + 2]
+                alpha = trns[index] if index < len(trns) else 255
+            dest = (y * width + x) * 4
+            out[dest], out[dest + 1], out[dest + 2], out[dest + 3] = red, green, blue, alpha
+    return width, height, bytes(out)
+
+
+def _encode_png_rgba(width: int, height: int, pixels: bytes) -> bytes:
+    """Encode RGBA pixels as one filter-0 PNG (pure Python, the art precedent)."""
+    raw = bytearray()
+    stride = width * 4
+    for y in range(height):
+        raw.append(0)
+        raw += pixels[y * stride : (y + 1) * stride]
+
+    def chunk(kind: bytes, payload: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(payload))
+            + kind
+            + payload
+            + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+        )
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _resample_rgba(width: int, height: int, pixels: bytes, target_w: int, target_h: int) -> bytes:
+    """Nearest-neighbour resample of RGBA pixels (crests are flat art)."""
+    out = bytearray(target_w * target_h * 4)
+    for y in range(target_h):
+        src_y = min(height - 1, y * height // target_h)
+        for x in range(target_w):
+            src_x = min(width - 1, x * width // target_w)
+            source = (src_y * width + src_x) * 4
+            dest = (y * target_w + x) * 4
+            out[dest : dest + 4] = pixels[source : source + 4]
+    return bytes(out)
+
+
+def _paste(
+    canvas: bytearray, canvas_w: int, x: int, y: int, width: int, height: int, pixels: bytes
+) -> None:
+    """Blit RGBA pixels onto the canvas at (x, y) (source-over on flat art)."""
+    stride = width * 4
+    for row in range(height):
+        dest = ((y + row) * canvas_w + x) * 4
+        canvas[dest : dest + stride] = pixels[row * stride : (row + 1) * stride]
+
+
+def _draw_badge(canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, origin: str) -> None:
+    """Stamp the origin badge in the tile's bottom-right corner."""
+    fill = ORIGIN_BADGE_COLORS.get(origin, DEFAULT_BADGE_COLOR)
+    border = _badge_border(fill)
+    badge_x = tile_x + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET
+    badge_y = tile_y + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET
+    for y in range(MOSAIC_BADGE):
+        for x in range(MOSAIC_BADGE):
+            on_edge = x < 2 or y < 2 or x >= MOSAIC_BADGE - 2 or y >= MOSAIC_BADGE - 2
+            color = border if on_edge else fill
+            dest = ((badge_y + y) * canvas_w + badge_x + x) * 4
+            canvas[dest : dest + 3] = bytes(color)
+            canvas[dest + 3] = 255
+
+
+async def civ_crest_mosaic_file(
+    entries: Any, filename: str = "alliances.png"
+) -> discord.File | None:
+    """Compose the hand's crests into ONE mosaic attachment (None = empty hand).
+
+    ``entries`` pairs each civ key with its acquisition origin; every
+    tile wears its crest and the origin badge, in hand order, five
+    tiles per row. An undecodable or missing crest falls back to the
+    default crest — the mosaic always goes out complete.
+    """
+    tiles: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for entry in entries or ():
+        civ_key = str(entry[0]).strip()
+        origin = str(entry[1] or "").strip()
+        if not civ_key or civ_key in seen:
+            continue
+        seen.add(civ_key)
+        tiles.append((civ_key, origin))
+    if not tiles:
+        return None
+    rows = (len(tiles) + MOSAIC_COLS - 1) // MOSAIC_COLS
+    canvas_w = MOSAIC_COLS * MOSAIC_TILE
+    canvas_h = rows * MOSAIC_TILE
+    canvas = bytearray(canvas_w * canvas_h * 4)
+    for index, (civ_key, origin) in enumerate(tiles):
+        col, row = index % MOSAIC_COLS, index // MOSAIC_COLS
+        tile_x, tile_y = col * MOSAIC_TILE, row * MOSAIC_TILE
+        data = _DEFAULT_CREST_BYTES
+        url = civ_crest_url(civ_key)
+        if url is not None:
+            downloaded = await _crest_bytes(url)
+            if downloaded is not None:
+                data = downloaded
+        decoded = _decode_png_rgba(data) or _decode_png_rgba(_DEFAULT_CREST_BYTES)
+        if decoded is None:
+            continue
+        crest_w, crest_h, crest_pixels = decoded
+        crest = _resample_rgba(crest_w, crest_h, crest_pixels, MOSAIC_CREST, MOSAIC_CREST)
+        _paste(
+            canvas,
+            canvas_w,
+            tile_x + MOSAIC_TILE_PAD,
+            tile_y + MOSAIC_TILE_PAD,
+            MOSAIC_CREST,
+            MOSAIC_CREST,
+            crest,
+        )
+        _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
+    return discord.File(io.BytesIO(_encode_png_rgba(canvas_w, canvas_h, bytes(canvas))), filename=filename)

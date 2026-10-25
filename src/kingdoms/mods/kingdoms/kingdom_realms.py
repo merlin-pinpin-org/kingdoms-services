@@ -26,7 +26,7 @@ from typing import Any
 
 import discord
 
-from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
+from kingdoms.mods.kingdoms.civ_crests import civ_crest_mosaic_file
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
 from kingdoms.mods.kingdoms.panel_messages import NO_MENTIONS, channel_messages, message_text
 
@@ -747,9 +747,14 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
         lines.append(f"• **{names.get(str(civ_key), str(civ_key))}**")
     lines += ["", f"-# {DRAFT_STARTER_MARKER}"]
     content = "\n".join(lines)
-    # civ-crests-v1 (Drasah 20/10): the draft starter wears the civs'
-    # blasons — the crest PNGs attach under the text, in hand order.
-    files = await civ_crest_files(kingdom.civilizations)
+    # alliances-lisibilite-v1 T3 (Drasah 25/10): the draft starter
+    # wears ONE composite mosaic (starter-badge tile per civ) — the
+    # page fits again, the civ-crests-v1 full-size attachments are
+    # gone.
+    files = await civ_crest_mosaic_file(
+        [(str(civ_key), "starter") for civ_key in kingdom.civilizations],
+        filename="draft-starter.png",
+    )
     marked, stale = await _split_marked_and_stale(channel, DRAFT_STARTER_MARKER, ALLIANCES_PENDING_MARKER)
     for message in stale:
         try:
@@ -762,11 +767,11 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
         if (getattr(existing, "content", "") or "") == content and getattr(existing, "attachments", None):
             return True
         try:
-            await existing.edit(content=content, files=files)
+            await existing.edit(content=content, files=files or [])
             return True
         except Exception:
             logger.warning("KINGDOM REALMS: draft refresh failed, resending", exc_info=True)
-    await channel.send(content, files=files, allowed_mentions=NO_MENTIONS)
+    await channel.send(content, files=files or [], allowed_mentions=NO_MENTIONS)
     return True
 
 

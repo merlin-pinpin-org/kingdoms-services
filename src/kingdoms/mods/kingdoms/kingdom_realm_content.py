@@ -64,12 +64,17 @@ def _strings(locale: str) -> dict[str, str]:
             "members": "Effectif",
             "members_line": "👑 {0} + **{1}** seigneur(s) — {2} membre(s)",
             "no_king": "Roi non enrôlé",
-            "alliances_merc_title": "⚔️ Alliances par Mercenaire",
-            "alliances_merc_line": "• **{0}** — {1} ({2} usage(s) de draft)",
-            "alliances_merc_none": "Aucun contrat mercenaire en cours.",
             "alliances_panel_title": "📜 Alliances — {0}",
-            "alliances_panel_line": "{0} **{1}**",
-            "alliances_panel_married": "💍 {0}",
+            "alliances_panel_legend": (
+                "Légende : 🎲 Draft starter · 🗺️ Condition · 💍 Mariage ·"
+                " 👑 Royal · 📜 Mercenaire · 🤝 saison antérieure"
+            ),
+            "alliances_panel_badges": (
+                "-# Badge sur chaque blason : blanc 🎲 · turquoise 🗺️ ·"
+                " rose 💍 · or 👑 · parchemin 📜 · gris 🤝"
+            ),
+            "alliances_panel_married_line": "💍 {0} — {1}",
+            "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} usage(s) de draft)",
             "alliances_panel_empty": (
                 "Aucune civilisation en main — les alliances arrivent par le jeu"
                 " (conditions, mariages, Chef Mercenaire)."
@@ -88,7 +93,6 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_next_kept": "✅ Gardées : {0}",
             "alliances_next_arriving": "📥 Arrivent : {0}",
             "alliances_next_dropping": "📤 Quitteront la main : {0}",
-            "alliances_next_near": "🎯 À 1 map près : {0}",
             "alliances_next_elsewhere": "💍 Déjà mariée ailleurs : {0}",
             "alliances_locked_title": "🚫 Verrouillées — {0}",
             "alliances_locked_line": "🚫 **{0}** — {1}",
@@ -234,12 +238,17 @@ def _strings(locale: str) -> dict[str, str]:
         "members": "Members",
         "members_line": "👑 {0} + **{1}** lord(s) — {2} member(s)",
         "no_king": "King not enrolled",
-        "alliances_merc_title": "⚔️ Mercenary Alliances",
-        "alliances_merc_line": "• **{0}** — {1} ({2} draft use(s))",
-        "alliances_merc_none": "No mercenary contract running.",
         "alliances_panel_title": "📜 Alliances — {0}",
-        "alliances_panel_line": "{0} **{1}**",
-        "alliances_panel_married": "💍 {0}",
+        "alliances_panel_legend": (
+            "Legend: 🎲 Starter draft · 🗺️ Condition · 💍 Marriage ·"
+            " 👑 Royal · 📜 Mercenary · 🤝 earlier season"
+        ),
+        "alliances_panel_badges": (
+            "-# Badge on every crest: white 🎲 · teal 🗺️ · pink 💍 ·"
+            " gold 👑 · parchment 📜 · grey 🤝"
+        ),
+        "alliances_panel_married_line": "💍 {0} — {1}",
+        "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} draft use(s))",
         "alliances_panel_empty": (
             "No civilization in hand — alliances arrive through play"
             " (conditions, marriages, Chief Mercenary)."
@@ -256,7 +265,6 @@ def _strings(locale: str) -> dict[str, str]:
         "alliances_next_kept": "✅ Kept: {0}",
         "alliances_next_arriving": "📥 Arriving: {0}",
         "alliances_next_dropping": "📤 Leaving the hand: {0}",
-        "alliances_next_near": "🎯 One map short: {0}",
         "alliances_next_elsewhere": "💍 Married elsewhere: {0}",
         "alliances_locked_title": "🚫 Locked — {0}",
         "alliances_locked_line": "🚫 **{0}** — {1}",
@@ -411,56 +419,21 @@ async def _season_phase(kingdoms_service: Any) -> str:
     return str(getattr(season, "phase", "started") or "started")
 
 
-def _build_mercenary_alliances(
-    strings: dict[str, str],
-    kingdom: Any,
-    state: dict[str, Any],
-) -> Any:
-    """Build the ⚔️ Alliances par Mercenaire rubric (T2c).
-
-    chef-mercenaire-v1 (Drasah 24/10): each lord's LIVE mercenary
-    civilization with its remaining draft uses — visible to the whole
-    kingdom (the salon is public), refreshed with every realm pass.
-    """
-    import discord
-
-    civ_names = state.get("civ_names", {})
-    lines: list[str] = []
-    for member in state.get("members", []):
-        civ = getattr(member, "mercenary_civilization", None)
-        uses = int(getattr(member, "mercenary_uses_left", 0) or 0)
-        if not civ or uses <= 0:
-            continue
-        lines.append(
-            strings["alliances_merc_line"].format(
-                getattr(member, "display_name", getattr(member, "id", "?")),
-                civ_names.get(str(civ), str(civ)),
-                uses,
-            )
-        )
-    if not lines:
-        lines = [strings["alliances_merc_none"]]
-    return _panel_view(
-        strings["alliances_merc_title"],
-        "\n".join(lines),
-        f"{VIEW_MARKER_PREFIX}:alliances",
-        discord.Colour.dark_embed(),
-    )
-
-
 def _build_alliances_panel(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
 ) -> Any:
-    """Build the 📜 Alliances panel (alliances-lisibilite-v1 T2, Drasah 25/10).
+    """Build the 📜 Alliances panel (alliances-lisibilite-v1 T3, Drasah 25/10).
 
-    The kingdom's hand reads with ONE emoji per acquisition origin
-    (🎲 starter, 🗺️ condition, 💍 marriage, 👑 royal, 📜 Mercenaire —
-    🤝 for a pre-ledger season), the marriage holder is named, and the
-    help line points at the Scriptorium's Diplomatie rubric. The five
-    ephemeral buttons ride the panel — the answers stay read-only,
-    the cycle recalculation alone decides the truth.
+    ONE unified view: the blasons ride a single MOSAIC attachment
+    (crest + origin badge per tile, painted in pure Python) instead of
+    N full-size attachments, the legend maps badge colour ↔ origin
+    emoji, the written names stay one 🔤 Noms click away, the married
+    holders and the live mercenary contracts read as compact lines, and
+    the help line points at the Scriptorium's Diplomatie rubric. The
+    five ephemeral buttons ride the panel — the answers stay
+    read-only, the cycle recalculation alone decides the truth.
     """
     import discord
 
@@ -470,31 +443,37 @@ def _build_alliances_panel(
         KingdomAlliancesLockedButton,
         KingdomAlliancesNamesButton,
         KingdomAlliancesNextButton,
-        alliance_origin_emoji,
     )
 
     civ_names = state.get("civ_names", {})
-    ledger = dict(getattr(kingdom, "civilization_acquisitions", None) or {})
     hand = [str(civ) for civ in getattr(kingdom, "civilizations", []) or []]
     married: dict[str, str] = {}
+    mercenary: list[str] = []
     for member in state.get("members", []):
         civ = getattr(member, "married_civilization", None)
         if civ:
             married[str(civ)] = str(
                 getattr(member, "display_name", getattr(member, "id", "?"))
             )
-    if hand:
-        lines: list[str] = []
-        for civ_key in hand:
-            line = strings["alliances_panel_line"].format(
-                alliance_origin_emoji((ledger.get(civ_key) or {}).get("origin")),
-                civ_names.get(civ_key, civ_key),
+        merc_civ = getattr(member, "mercenary_civilization", None)
+        merc_uses = int(getattr(member, "mercenary_uses_left", 0) or 0)
+        if merc_civ and merc_uses > 0:
+            mercenary.append(
+                strings["alliances_panel_merc_line"].format(
+                    getattr(member, "display_name", getattr(member, "id", "?")),
+                    civ_names.get(str(merc_civ), str(merc_civ)),
+                    merc_uses,
+                )
             )
-            if civ_key in married:
-                line += f" — {strings['alliances_panel_married'].format(married[civ_key])}"
-            lines.append(line)
-    else:
-        lines = [strings["alliances_panel_empty"]]
+    lines: list[str] = [strings["alliances_panel_legend"], strings["alliances_panel_badges"]]
+    if not hand and not mercenary:
+        lines.append(strings["alliances_panel_empty"])
+    for civ_key, lord in married.items():
+        if civ_key in hand:
+            lines.append(
+                strings["alliances_panel_married_line"].format(civ_names.get(civ_key, civ_key), lord)
+            )
+    lines.extend(mercenary)
     body = "\n".join([*lines, "", strings["alliances_panel_help"]])
     buttons: list[Any] = [
         KingdomAlliancesNextButton(strings["alliances_btn_next"]),
@@ -510,6 +489,28 @@ def _build_alliances_panel(
         discord.Colour.dark_embed(),
         buttons,
     )
+
+
+async def _sweep_legacy_mercenary_rubric(channel: Any) -> None:
+    """Sweep the standalone ⚔️ mercenary rubric (merged in T3).
+
+    alliances-lisibilite-v1 T3 (Drasah 25/10): the mercenary contracts
+    now ride the unified Alliances panel — the old marked message of
+    the T2c rubric must never survive a refresh. The PANEL marker
+    embeds the rubric marker, so the panel message itself is exempt.
+    """
+    rubric_marker = f"{VIEW_MARKER_PREFIX}:alliances"
+    panel_marker = f"{VIEW_MARKER_PREFIX}:alliances-panel"
+    for message in await channel_messages(channel):
+        text = message_text(message)
+        if rubric_marker in text and panel_marker not in text:
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning(
+                    "KINGDOM REALM CONTENT: legacy mercenary rubric sweep failed",
+                    exc_info=True,
+                )
 
 
 async def deploy_realm_content(
@@ -545,19 +546,18 @@ async def deploy_realm_content(
     # pigeon-voyageur are no longer salons — Remparts and Seigneurie
     # open from the Le-Royaume buttons (ephemeral), the carrier had no
     # wiring at all.
-    # alliances-lisibilite-v1 T2 (Drasah 25/10): the read-only
-    # Alliances panel rides the SAME 🤝 salon as the mercenary rubric —
-    # its own marker keeps the two views independent.
+    # alliances-lisibilite-v1 T3 (Drasah 25/10): ONE unified panel
+    # rides the 🤝 salon — the standalone mercenary rubric is merged
+    # into it and its old marked message is swept below.
     salon_keys: dict[str, str] = {"alliances-panel": "alliances"}
     builders: dict[str, Any] = {
         "le-royaume": _build_overview,
         "territoire": _build_territory if phase != "setup" else _build_territory_pending,
         "eglise": _build_church,
-        # chef-mercenaire-v1 T2c (Drasah 25/10): the lords' live
-        # mercenary contracts ride the 🤝 alliances salon.
-        "alliances": _build_mercenary_alliances,
-        # alliances-lisibilite-v1 T2 (Drasah 25/10): the hand with its
-        # origin emojis + the five ephemeral clarity buttons.
+        # alliances-lisibilite-v1 T3 (Drasah 25/10): the unified hand
+        # view — one crest MOSAIC (origin badge per tile) + the legend,
+        # the married holders and the live mercenary contracts as
+        # compact lines, plus the five ephemeral clarity buttons.
         "alliances-panel": _build_alliances_panel,
     }
     results: dict[str, bool] = {}
@@ -568,13 +568,20 @@ async def deploy_realm_content(
             continue
         try:
             view = builder(strings, kingdom, state)
-            # défaut blasons: the Alliances panel wears the hand's
-            # crests by default (the civ-crests-v1 precedent).
+            # défaut blasons (T3): the panel wears ONE composite mosaic
+            # of the hand's crests — every tile carries its origin
+            # badge, the page fits again.
             files = None
             if key == "alliances-panel":
-                from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
+                from kingdoms.mods.kingdoms.civ_crests import civ_crest_mosaic_file
 
-                files = await civ_crest_files(getattr(kingdom, "civilizations", []) or [])
+                await _sweep_legacy_mercenary_rubric(channel)
+                ledger = dict(getattr(kingdom, "civilization_acquisitions", None) or {})
+                hand = [str(civ) for civ in getattr(kingdom, "civilizations", []) or []]
+                mosaic = await civ_crest_mosaic_file(
+                    [(civ, (ledger.get(civ) or {}).get("origin") or "") for civ in hand]
+                )
+                files = [mosaic] if mosaic is not None else None
             results[key] = await _upsert_view(channel, key, view, files)
         except Exception:
             logger.warning("KINGDOM REALM CONTENT: view %s failed", key, exc_info=True)

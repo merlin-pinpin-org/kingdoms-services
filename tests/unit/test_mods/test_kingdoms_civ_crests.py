@@ -132,7 +132,8 @@ async def test_draft_starter_attaches_the_hand_crests(monkeypatch: pytest.Monkey
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
     assert len(live) == 1
     assert "Draft starter" in live[0].content and DRAFT_STARTER_MARKER in live[0].content
-    assert [f.filename for f in (live[0].files or [])] == ["azteques.png", "berberes.png"]
+    # alliances-lisibilite-v1 T3: ONE composite mosaic, not N full-size PNGs
+    assert [f.filename for f in (live[0].files or [])] == ["draft-starter.png"]
 
     # a refresh edits the marked message — still one message, crests re-attached
     assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
@@ -196,3 +197,90 @@ async def test_pickban_reveal_dm_attaches_enemy_crests(monkeypatch: pytest.Monke
     # the attacker sees the DEFENDER's picks (shuffled order kept, not the ranking)
     assert sorted(sent["111"]) == ["celtes.png", "huns.png"]
     assert sorted(sent["222"]) == ["francs.png", "goths.png"]
+
+
+# ----------------------------------------------------------------------
+# alliances-lisibilite-v1 T3 (Drasah 25/10) — the crest MOSAIC
+# ----------------------------------------------------------------------
+def _tiny_red_png() -> bytes:
+    """One solid 4×4 red RGBA PNG (the mosaic diet, no network)."""
+    from kingdoms.mods.kingdoms.civ_crests import _encode_png_rgba
+
+    pixels = b"".join(b"\xff\x00\x00\xff" for _ in range(16))
+    return _encode_png_rgba(4, 4, pixels)
+
+
+def _file_bytes(file: object) -> bytes:
+    """Read one discord.File's payload back (the mosaic's pixels)."""
+    fp = getattr(file, "fp")
+    fp.seek(0)
+    return bytes(fp.read())
+
+
+async def test_mosaic_file_wears_one_badge_per_tile(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every tile carries its crest and its ORIGIN badge — ONE attachment."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import (
+        DEFAULT_BADGE_COLOR,
+        MOSAIC_BADGE,
+        MOSAIC_BADGE_INSET,
+        MOSAIC_COLS,
+        MOSAIC_TILE,
+        ORIGIN_BADGE_COLORS,
+        _decode_png_rgba,
+        civ_crest_mosaic_file,
+    )
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        return _tiny_red_png()
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+
+    # 3 civs (the duplicated francs is dropped), mixed origins
+    file = await civ_crest_mosaic_file(
+        [("francs", "starter"), ("huns", "marriage"), ("goths", ""), ("francs", "royal")]
+    )
+    assert file is not None and file.filename == "alliances.png"
+    decoded = _decode_png_rgba(_file_bytes(file))
+    assert decoded is not None
+    width, height, pixels = decoded
+    assert (width, height) == (MOSAIC_COLS * MOSAIC_TILE, 1 * MOSAIC_TILE)
+
+    def pixel(x: int, y: int) -> tuple[int, int, int]:
+        dest = (y * width + x) * 4
+        return (pixels[dest], pixels[dest + 1], pixels[dest + 2])
+
+    def badge_center(index: int) -> tuple[int, int]:
+        col = index % MOSAIC_COLS
+        return (
+            col * MOSAIC_TILE + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2,
+            MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2,
+        )
+
+    assert pixel(*badge_center(0)) == ORIGIN_BADGE_COLORS["starter"]
+    assert pixel(*badge_center(1)) == ORIGIN_BADGE_COLORS["marriage"]
+    assert pixel(*badge_center(2)) == DEFAULT_BADGE_COLOR  # unknown origin → 🤝 grey
+    # the crest itself is resampled onto the tile
+    assert pixel(4 + 52, 4 + 52) == (255, 0, 0)
+
+
+async def test_mosaic_file_survives_undecodable_pngs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failed download or a bogus PNG falls back to the default crest."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import _decode_png_rgba, civ_crest_mosaic_file
+
+    async def fake_crest_bytes(url: str) -> bytes | None:
+        return None
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    file = await civ_crest_mosaic_file([("azteques", "starter")])
+    assert file is not None
+    assert _decode_png_rgba(_file_bytes(file)) is not None
+
+
+async def test_mosaic_file_returns_none_for_an_empty_hand() -> None:
+    """An empty hand sends NO attachment at all."""
+    from kingdoms.mods.kingdoms.civ_crests import civ_crest_mosaic_file
+
+    assert await civ_crest_mosaic_file([]) is None
+    assert await civ_crest_mosaic_file([("", "starter")]) is None
