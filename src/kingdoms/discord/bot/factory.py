@@ -658,7 +658,18 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
 
 def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
-    """Run the live dashboard refresh loop when its stack is wired (#147)."""
+    """Run the live dashboard refresh loop when its stack is wired (#147).
+
+    live-dashboard-edit-off (Drasah 25/10, Merlin-approved): the
+    channel dashboard's 15s interval + stream push edits hammered
+    Discord's message-edit budget and fed the 429 storms that starved
+    every other surface. The refresh loop now stays OFF unless
+    ``KINGDOMS_LIVE_DASHBOARD=1`` explicitly re-arms it — the /live
+    command (ephemeral) keeps answering on demand.
+    """
+    if os.environ.get("KINGDOMS_LIVE_DASHBOARD", "").strip().lower() not in {"1", "true", "yes"}:
+        logger.info("LIVE DASHBOARD refresh disabled (live-dashboard-edit-off, Drasah 25/10)")
+        return None
     from kingdoms.core.rpc.live import LiveClient
     from kingdoms.discord.live import start_live_dashboard_refresh
     from kingdoms.discord.messages_platform import build_message_registry
