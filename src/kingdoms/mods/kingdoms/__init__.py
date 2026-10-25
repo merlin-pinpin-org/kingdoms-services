@@ -49,6 +49,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.mods.kingdoms.economy import EconomyService
         from kingdoms.mods.kingdoms.events import EventService
         from kingdoms.mods.kingdoms.ffa_exploration import FFAExplorationService
+        from kingdoms.mods.kingdoms.mercenary import MercenaryService
         from kingdoms.mods.kingdoms.service import KingdomsService
         from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
         from kingdoms.mods.kingdoms.territories import TerritoryService
@@ -68,6 +69,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         distributor = DistributorService(store, season_config, kingdoms, territories, attacks)
         voliere = VoliereService(store, season_config, kingdoms, territories, attacks)
         tavern = TavernService(store, season_config, kingdoms)
+        mercenary = MercenaryService(store, season_config, kingdoms)
         ffa = FFAExplorationService(store, season_config, kingdoms, events)
         cathedrals = CathedralService(store, season_config, kingdoms, territories)
         debug = DebugService(
@@ -120,6 +122,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_distributor_service = None
         bot.kingdoms_voliere_service = None
         bot.kingdoms_tavern_service = None
+        bot.kingdoms_mercenary_service = None
         bot.kingdoms_ffa_service = None
         bot.kingdoms_cathedral_service = None
         bot.kingdoms_debug_service = None
@@ -135,6 +138,7 @@ def register(bot: Any, config: Any) -> None:
             distributor,
             voliere,
             tavern,
+            mercenary,
             ffa,
             cathedrals,
             debug,
@@ -149,6 +153,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_distributor_service = distributor
         bot.kingdoms_voliere_service = voliere
         bot.kingdoms_tavern_service = tavern
+        bot.kingdoms_mercenary_service = mercenary
         bot.kingdoms_ffa_service = ffa
         bot.kingdoms_cathedral_service = cathedrals
         bot.kingdoms_debug_service = debug
@@ -229,6 +234,7 @@ def ensure_kingdoms_services(bot: Any) -> Any | None:
         distributor,
         voliere,
         tavern,
+        mercenary,
         ffa,
         cathedrals,
         debug,
@@ -243,6 +249,7 @@ def ensure_kingdoms_services(bot: Any) -> Any | None:
     bot.kingdoms_distributor_service = distributor
     bot.kingdoms_voliere_service = voliere
     bot.kingdoms_tavern_service = tavern
+    bot.kingdoms_mercenary_service = mercenary
     bot.kingdoms_ffa_service = ffa
     bot.kingdoms_cathedral_service = cathedrals
     bot.kingdoms_debug_service = debug

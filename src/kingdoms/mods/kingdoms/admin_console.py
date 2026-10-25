@@ -826,6 +826,79 @@ async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
     return "\n".join(lines)
 
 
+async def _cmd_chef_mercenaire(console: AdminConsole, args: list[str]) -> str:
+    """`chef_mercenaire [ouvrir|fermer|etat]` — the Chief's beta console.
+
+    chef-mercenaire-v1 (Drasah 24/10): en BETA le Chef Mercenaire
+    s'appelle à TOUT moment depuis la console — `ouvrir` force
+    l'ouverture du marché (la fenêtre 20h-21h est contournée, les
+    joueurs enchérissent ensuite), `fermer` clôt le marché vivant à
+    l'instant (attributions + remboursements), et la commande seule
+    affiche l'état (lots, enchères, gagnant, délais).
+    """
+    from datetime import UTC, datetime
+
+    mercenary = getattr(console.bot, "kingdoms_mercenary_service", None)
+    if mercenary is None:
+        return CONSOLE_STRINGS["fr"]["not_wired"]
+    action = args[0].casefold() if args else "etat"
+    now_ts = int(datetime.now(UTC).timestamp())
+    if action in ("ouvrir", "open"):
+        doc = await mercenary.open_market(force=True)
+        return CONSOLE_STRINGS["fr"]["done"].format(
+            report="marché {id} ouvert — {lots} lot(s), enchères dans {wait}".format(
+                id=doc.get("id"),
+                lots=len(doc.get("lots", [])),
+                wait=_remaining(int(doc.get("bids_open_at", 0)) - now_ts),
+            )
+        )
+    if action in ("fermer", "close"):
+        awards = await mercenary.close_if_due(force=True)
+        if not awards:
+            return "aucun marché vivant à fermer"
+        return CONSOLE_STRINGS["fr"]["done"].format(
+            report="marché fermé — "
+            + ", ".join(
+                "{lord} remporte {civ} ({uses} usage(s))".format(
+                    lord=f"<@{item['lord_id']}>",
+                    civ=item["civ"],
+                    uses=item["uses"],
+                )
+                for item in awards
+            )
+        )
+    if action not in ("etat", "state", "état"):
+        raise ValueError("action inconnue")
+    doc = await mercenary.market()
+    if doc is None:
+        return (
+            "aucun marché — le Chef arrive à 20h00 Paris "
+            "(`chef_mercenaire ouvrir` force un appel immédiat)"
+        )
+    lines = [
+        "marché {id} · {state} · {forced}".format(
+            id=doc.get("id"),
+            state="fermé" if doc.get("closed") else "ouvert",
+            forced="forcé (console)" if doc.get("forced") else "fenêtre 20h-21h",
+        )
+    ]
+    for lot in doc.get("lots", []):
+        label = "• {civ} ({uses} usage(s))".format(civ=lot.get("civ"), uses=lot.get("uses"))
+        if doc.get("closed"):
+            winner = lot.get("winner")
+            label += " → " + (f"<@{winner}>" if winner else "invendu")
+        else:
+            bids = ", ".join(
+                f"<@{bid.get('lord')}> {bid.get('amount')} écu(s)"
+                for bid in lot.get("bids", [])
+            )
+            label += (" — enchères : " + bids) if bids else " — aucune enchère"
+        lines.append(label)
+    if not doc.get("closed"):
+        lines.append("clôture dans " + _remaining(int(doc["closes_at"]) - now_ts))
+    return "\n".join(lines)
+
+
 async def _cmd_regles(console: AdminConsole, args: list[str]) -> str:
     """`regles` — pointer to the live guide of the Scriptorium.
 
@@ -1027,6 +1100,13 @@ COMMANDES: dict[str, CommandSpec] = {
         "Beta status (preset, plan, next step)",
         "saison",
         _cmd_beta,
+    ),
+    "chef_mercenaire": CommandSpec(
+        "chef_mercenaire [ouvrir|fermer|etat]",
+        "Appeler le Chef Mercenaire en beta (ouvrir hors fenêtre / clôturer / état)",
+        "Call the Mercenary Chief in beta (force open / close / state)",
+        "beta",
+        _cmd_chef_mercenaire,
     ),
     "regles": CommandSpec(
         "regles",

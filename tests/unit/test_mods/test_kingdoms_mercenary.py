@@ -228,6 +228,24 @@ async def test_the_close_awards_the_highest_and_refunds_the_losers() -> None:
         await bundle.mercenary.place_bid("lord-a", quiet, 1, now=_CLOSE)
 
 
+async def test_force_close_awards_at_once_outside_the_close_timestamp() -> None:
+    bundle = await _launched()
+    doc = await bundle.mercenary.open_market(now=_OPEN, force=True)
+    civ = doc["lots"][0]["civ"]
+    uses = int(doc["lots"][0]["uses"])
+    await bundle.mercenary.place_bid("lord-a", civ, 2, now=_OPEN + timedelta(minutes=16))
+    # the beta console closes the LIVE market at once, whatever the close says.
+    awards = await bundle.mercenary.close_if_due(
+        now=_OPEN + timedelta(minutes=20), force=True
+    )
+    assert awards == [{"lord_id": "lord-a", "civ": civ, "uses": uses}]
+    market = await bundle.mercenary.market()
+    assert market is not None
+    assert market["closed"] is True
+    # replay (with or without force) stays idempotent.
+    assert await bundle.mercenary.close_if_due(now=_OPEN + timedelta(minutes=21), force=True) == []
+
+
 async def test_one_draft_consumes_one_use_and_the_civ_disappears() -> None:
     bundle = await _launched()
     doc = await bundle.mercenary.open_market(now=_OPEN)

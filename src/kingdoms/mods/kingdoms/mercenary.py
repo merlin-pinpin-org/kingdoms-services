@@ -398,12 +398,19 @@ class MercenaryService:
         )
         return dict(doc), lord
 
-    async def close_if_due(self, *, now: datetime | None = None) -> list[dict[str, Any]]:
+    async def close_if_due(
+        self,
+        *,
+        now: datetime | None = None,
+        force: bool = False,
+    ) -> list[dict[str, Any]]:
         """Close the due market: award the lots, refund every loser.
 
         Idempotent and replay-safe: a closed (or absent) market returns
         an empty list. A winner holds ONE civ with its uses; a lord who
         left the season meanwhile is refunded instead of awarded.
+        ``force`` (the beta console's ``chef_mercenaire fermer``) closes
+        the live market at once, whatever the close timestamp says.
         """
         season = await self._kingdoms.current_season()
         if season is None:
@@ -413,7 +420,7 @@ class MercenaryService:
             return []
         moment = now or datetime.now(UTC)
         now_ts = int(moment.timestamp())
-        if now_ts < int(doc["closes_at"]):
+        if now_ts < int(doc["closes_at"]) and not force:
             return []
         lords = {lord.id: lord for lord in await self._kingdoms.lords()}
         awards: list[dict[str, Any]] = []

@@ -707,6 +707,62 @@ async def _ring_theft_alarms_safe(
             logger.warning("KINGDOMS EVENTS: theft prompt failed", exc_info=True)
 
 
+async def _mercenary_tick_safe(bot: Any) -> None:
+    """Run the Chef Mercenaire tick (chef-mercenaire-v1, Drasah 24/10).
+
+    The Chief's clock is REAL Paris wall time (never the offset game
+    clock): inside the 20h-21h window the daily market opens
+    (idempotent — a market already drawn is never re-drawn, a CLOSED
+    market of TODAY stays displayed until 21h, a closed market of
+    ANOTHER day lets a fresh one open) and every tick closes the due
+    market (replay-safe awards/refunds). The opening is skipped on a
+    paused (frozen/setup) season, but a live market still closes —
+    the escrowed écus must always come home. Best effort throughout.
+    """
+    from datetime import UTC, datetime
+    from zoneinfo import ZoneInfo
+
+    from kingdoms.mods.kingdoms.mercenary import MercenaryError
+
+    mercenary = getattr(bot, "kingdoms_mercenary_service", None)
+    if mercenary is None:
+        return
+    moment = datetime.now(UTC)
+    paris_today = moment.astimezone(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
+    doc = None
+    try:
+        doc = await mercenary.market()
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: mercenary market read failed", exc_info=True)
+    opens = False
+    if doc is None:
+        opens = True
+    elif doc.get("closed", False):
+        opens = str(doc.get("date")) != paris_today
+    if opens and mercenary.inside_window(moment):
+        try:
+            kingdoms = getattr(bot, "kingdoms_service", None)
+            season = None
+            if kingdoms is not None:
+                season = await kingdoms.current_season()
+            if season is None or (not season.frozen and season.phase != "setup"):
+                await mercenary.open_market(now=moment)
+                logger.info("KINGDOMS EVENTS: mercenary market opened (window)")
+        except MercenaryError:
+            pass  # the window guard raced us — the next tick retries
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: mercenary open failed", exc_info=True)
+    try:
+        awards = await mercenary.close_if_due(now=moment)
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: mercenary close failed", exc_info=True)
+        return
+    if awards:
+        logger.info(
+            "KINGDOMS EVENTS: mercenary market closed — %s award(s)", len(awards)
+        )
+
+
 async def _beta_tick_seconds(bot: Any, default_seconds: int) -> int:
     """Return the loop sleep for this iteration: 60s under an armed beta.
 
@@ -746,21 +802,36 @@ async def _loop_sleep_seconds(bot: Any, default_seconds: int) -> int:
     """
     base = await _beta_tick_seconds(bot, default_seconds)
     attacks_service = getattr(bot, "kingdoms_attacks_service", None)
-    if attacks_service is None:
-        return base
-    try:
-        now = game_now()
-        deadline = await attacks_service.next_phase_deadline(now=now)
-        if deadline is None:
-            return base
-        delta = (deadline - now).total_seconds()
-        if delta <= 0:
-            # A deadline already due: run the tick's work now.
-            return 1
-        seconds = max(_ATTACK_TICK_FLOOR_SECONDS, delta + _ATTACK_TICK_EPSILON_SECONDS)
-        return min(base, int(seconds))
-    except Exception:
-        logger.warning("KINGDOMS EVENTS: attack deadline probe failed", exc_info=True)
+    if attacks_service is not None:
+        try:
+            now = game_now()
+            deadline = await attacks_service.next_phase_deadline(now=now)
+            if deadline is not None:
+                delta = (deadline - now).total_seconds()
+                if delta <= 0:
+                    # A deadline already due: run the tick's work now.
+                    return 1
+                seconds = max(_ATTACK_TICK_FLOOR_SECONDS, delta + _ATTACK_TICK_EPSILON_SECONDS)
+                return min(base, int(seconds))
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: attack deadline probe failed", exc_info=True)
+    # chef-mercenaire-v1: the auction close is a REAL-time deadline —
+    # the loop wakes at the (anti-snipe extended) close so the awards
+    # land on the second, never a whole tick late. Best effort.
+    mercenary_service = getattr(bot, "kingdoms_mercenary_service", None)
+    if mercenary_service is not None:
+        try:
+            from datetime import UTC, datetime
+
+            doc = await mercenary_service.market()
+            if doc and not doc.get("closed", False):
+                delta = int(doc["closes_at"]) - int(datetime.now(UTC).timestamp())
+                if delta <= 0:
+                    return 1
+                seconds = max(_ATTACK_TICK_FLOOR_SECONDS, delta + _ATTACK_TICK_EPSILON_SECONDS)
+                return min(base, int(seconds))
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: mercenary deadline probe failed", exc_info=True)
     return base
 
 
@@ -773,6 +844,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
         # process converges back to the test offset within one tick.
         await sync_game_offset(getattr(bot, "kingdoms_service", None))
         await _sync_marriage_locks_safe(bot)
+        await _mercenary_tick_safe(bot)
         events = getattr(bot, "kingdoms_events_service", None)
         if events is None:
             continue
