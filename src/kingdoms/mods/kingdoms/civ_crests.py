@@ -223,6 +223,20 @@ async def _emoji_bytes(code: str) -> bytes | None:
     return data
 
 
+# mosaic-cache-v1 (Drasah 26/10, sur conseil de Merlin): rebuilding a
+# mosaic is EXPENSIVE (crest downloads + decode + resample + paint +
+# encode) and most provisioning refreshes carry the SAME hand — the
+# encoded PNG bytes are cached per (tiles fingerprint, filename),
+# FIFO-bounded, so an unchanged hand costs ZERO work on refresh.
+MOSAIC_CACHE_MAX = 32
+_MOSAIC_CACHE: dict[str, bytes] = {}
+
+
+def _mosaic_fingerprint(tiles: list[tuple[str, str, str]], filename: str) -> str:
+    """A stable cache key for one (tiles, filename) mosaic request."""
+    return f"{filename}|" + ";".join(f"{k},{o},{n}" for k, o, n in tiles)
+
+
 def _badge_border(color: tuple[int, int, int]) -> tuple[int, int, int]:
     """Darken one badge fill into its border colour."""
     return (
@@ -560,7 +574,9 @@ async def civ_crest_mosaic_file(
     caption strip attached above its crest. Every tile wears its
     crest and its ORIGIN EMOJI badge (colour square fallback
     offline), in hand order, five tiles per row. An undecodable or missing crest falls back to the
-    default crest — the mosaic always goes out complete.
+    default crest — the mosaic always goes out complete. The encoded
+    PNG is CACHED per (tiles, filename) — an unchanged hand reuses the
+    previous bytes and costs zero downloads and zero compositing.
     """
     tiles: list[tuple[str, str, str]] = []
     seen: set[str] = set()
@@ -574,6 +590,10 @@ async def civ_crest_mosaic_file(
         tiles.append((civ_key, origin, name))
     if not tiles:
         return None
+    fingerprint = _mosaic_fingerprint(tiles, filename)
+    cached = _MOSAIC_CACHE.get(fingerprint)
+    if cached is not None:
+        return discord.File(io.BytesIO(cached), filename=filename)
     rows = (len(tiles) + MOSAIC_COLS - 1) // MOSAIC_COLS
     canvas_w = MOSAIC_COLS * MOSAIC_TILE
     canvas_h = rows * MOSAIC_TILE
@@ -607,4 +627,8 @@ async def civ_crest_mosaic_file(
             canvas, canvas_w, tile_x, tile_y, await _emoji_bytes(code)
         ):
             _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
-    return discord.File(io.BytesIO(_encode_png_rgba(canvas_w, canvas_h, bytes(canvas))), filename=filename)
+    png = _encode_png_rgba(canvas_w, canvas_h, bytes(canvas))
+    if len(_MOSAIC_CACHE) >= MOSAIC_CACHE_MAX:
+        _MOSAIC_CACHE.pop(next(iter(_MOSAIC_CACHE)))
+    _MOSAIC_CACHE[fingerprint] = png
+    return discord.File(io.BytesIO(png), filename=filename)

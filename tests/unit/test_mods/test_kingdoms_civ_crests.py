@@ -20,6 +20,18 @@ from tests.mocks.discord_mock import MockGuild
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+@pytest.fixture(autouse=True)
+def _fresh_mosaic_caches():
+    """Every test runs with cold mosaic/emoji caches (isolation)."""
+    from kingdoms.mods.kingdoms import civ_crests
+
+    civ_crests._MOSAIC_CACHE.clear()
+    civ_crests._EMOJI_CACHE.clear()
+    yield
+    civ_crests._MOSAIC_CACHE.clear()
+    civ_crests._EMOJI_CACHE.clear()
+
+
 # ----------------------------------------------------------------------
 # The mapping — every declared civilization has a crest
 # ----------------------------------------------------------------------
@@ -325,6 +337,45 @@ async def test_mosaic_tile_wears_the_civ_name_caption(monkeypatch: pytest.Monkey
     assert whites > 20, "the name must be painted on the caption strip"
     # tile 1 (legacy 2-tuple): no caption strip — the tile stays transparent
     assert pixel(MOSAIC_TILE + 6, MOSAIC_CAPTION_Y + 3) == (0, 0, 0)
+
+
+async def test_mosaic_hits_the_cache_for_an_unchanged_hand(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """mosaic-cache-v1: an unchanged hand reuses the cached PNG — zero
+    downloads, zero compositing, identical pixels."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import (
+        _decode_png_rgba,
+        civ_crest_mosaic_file,
+    )
+
+    downloads: list[str] = []
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        downloads.append(url)
+        return _tiny_red_png()
+
+    async def fake_emoji_bytes(code: str) -> bytes | None:
+        return None
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", fake_emoji_bytes)
+
+    entries = [("francs", "starter", "Francs"), ("huns", "marriage", "Huns")]
+    first = await civ_crest_mosaic_file(entries)
+    assert first is not None and downloads  # cold build downloads
+    first.fp.seek(0)
+    first_png = first.fp.read()
+
+    downloads.clear()
+    second = await civ_crest_mosaic_file(entries)
+    assert second is not None
+    assert downloads == []  # cache hit: nothing re-downloaded
+    second.fp.seek(0)
+    assert second.fp.read() == first_png  # identical bytes
+    assert civ_crests._MOSAIC_CACHE  # the cache holds the entry
+    assert _decode_png_rgba(first_png) is not None
 
 
 async def test_mosaic_badge_falls_back_to_the_colour_square(
