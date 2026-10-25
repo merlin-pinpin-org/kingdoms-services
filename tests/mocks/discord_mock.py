@@ -851,6 +851,11 @@ class MockMessage(discord.Message):
         if "files" in kwargs:
             self.files = kwargs["files"]
             self.attachments = list(kwargs["files"] or [])
+        if "attachments" in kwargs:
+            # Message.edit parity (T3b): live discord.py replaces
+            # attachments via the ``attachments`` kwarg, never ``files``.
+            self.attachments = list(kwargs["attachments"] or [])
+            self.files = list(kwargs["attachments"] or [])
         return self
 
     async def delete(self, *, delay: float | None = None) -> None:

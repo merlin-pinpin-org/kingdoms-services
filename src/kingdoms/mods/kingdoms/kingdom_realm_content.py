@@ -73,6 +73,7 @@ def _strings(locale: str) -> dict[str, str]:
                 "-# Badge sur chaque blason : blanc 🎲 · turquoise 🗺️ ·"
                 " rose 💍 · or 👑 · parchemin 📜 · gris 🤝"
             ),
+            "alliances_panel_hand": "-# main : {0}",
             "alliances_panel_married_line": "💍 {0} — {1}",
             "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} usage(s) de draft)",
             "alliances_panel_empty": (
@@ -248,6 +249,7 @@ def _strings(locale: str) -> dict[str, str]:
             " gold 👑 · parchment 📜 · grey 🤝"
         ),
         "alliances_panel_married_line": "💍 {0} — {1}",
+        "alliances_panel_hand": "-# hand: {0}",
         "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} draft use(s))",
         "alliances_panel_empty": (
             "No civilization in hand — alliances arrive through play"
@@ -466,6 +468,9 @@ def _build_alliances_panel(
                 )
             )
     lines: list[str] = [strings["alliances_panel_legend"], strings["alliances_panel_badges"]]
+    # empreinte main (T3b): the body must change when the HAND changes,
+    # or the identity guard would keep a stale mosaic after a hand edit.
+    lines.append(strings["alliances_panel_hand"].format(", ".join(hand)))
     if not hand and not mercenary:
         lines.append(strings["alliances_panel_empty"])
     for civ_key, lord in married.items():
@@ -488,6 +493,7 @@ def _build_alliances_panel(
         f"{VIEW_MARKER_PREFIX}:alliances-panel",
         discord.Colour.dark_embed(),
         buttons,
+        media="attachment://alliances.png" if hand else None,
     )
 
 
@@ -1366,8 +1372,15 @@ def _panel_view_with_buttons(
     marker: str,
     accent: discord.Colour,
     buttons: list[Any],
+    media: str | None = None,
 ) -> discord.ui.LayoutView:
-    """Build one Components V2 state panel with an action row of buttons."""
+    """Build one Components V2 state panel with an action row of buttons.
+
+    mosaic-render-fix (T3b, Drasah 25/10): Components V2 messages do
+    NOT render unreferenced file attachments — an optional top-level
+    ``MediaGallery`` referencing the mosaic attachment makes the
+    blasons visible under the panel container.
+    """
     import discord
 
     view = discord.ui.LayoutView(timeout=None)
@@ -1382,6 +1395,8 @@ def _panel_view_with_buttons(
         container.add_item(discord.ui.ActionRow(*buttons))
     container.add_item(discord.ui.TextDisplay(f"-# {marker}"))
     view.add_item(container)
+    if media:
+        view.add_item(discord.ui.MediaGallery(discord.MediaGalleryItem(media=media)))
     return view
 
 
@@ -1416,7 +1431,7 @@ async def _upsert_view(
         ):
             return True
         try:
-            await existing.edit(view=view, **({"files": files} if files else {}))
+            await existing.edit(view=view, **({"attachments": files} if files else {}))
             return True
         except Exception:
             logger.warning(

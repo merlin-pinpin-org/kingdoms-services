@@ -767,7 +767,7 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
         if (getattr(existing, "content", "") or "") == content and getattr(existing, "attachments", None):
             return True
         try:
-            await existing.edit(content=content, files=files or [])
+            await existing.edit(content=content, attachments=files or [])
             return True
         except Exception:
             logger.warning("KINGDOM REALMS: draft refresh failed, resending", exc_info=True)

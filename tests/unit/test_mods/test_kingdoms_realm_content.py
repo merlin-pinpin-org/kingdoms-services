@@ -805,6 +805,81 @@ async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> 
     assert "\U0001f91d" in _text(panel)
 
 
+def _view_components(view: Any) -> list:
+    """Walk the full Components V2 tree of a view."""
+    found: list = []
+    stack = [view]
+    while stack:
+        node = stack.pop()
+        found.append(node)
+        stack.extend(getattr(node, "children", ()) or ())
+        stack.extend(getattr(node, "items", ()) or ())
+    return found
+
+
+async def test_alliances_panel_references_the_mosaic_via_a_media_gallery() -> None:
+    """T3b: Components V2 hides UNREFERENCED attachments — the mosaic must
+    ride the panel message AND be referenced by a MediaGallery, or the
+    blasons never render."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+
+    await deploy_realm_content(guild, _LedgerKingdom(), _Wiring(), "fr")
+
+    panel = next(
+        m
+        for m in _live(_channel(guild, "\U0001f91d alliances"))
+        if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
+    )
+    # the mosaic rides the message
+    assert getattr(panel, "attachments", None), "the crest mosaic must be attached"
+    # and is referenced by a top-level MediaGallery pointing at the attachment
+    galleries = [
+        c for c in _view_components(panel.view) if type(c).__name__ == "MediaGallery"
+    ]
+    assert galleries, "the mosaic must be referenced by a MediaGallery"
+    assert any(
+        str(getattr(item, "media", "")) == "attachment://alliances.png"
+        for gallery in galleries
+        for item in getattr(gallery, "items", ())
+    )
+    # the hand fingerprint keeps the identity guard honest across hand edits
+    assert "main :" in _text(panel)
+
+
+async def test_alliances_panel_edits_in_place_when_the_hand_grows() -> None:
+    """T3b identity guard: the hand fingerprint line changes the body text,
+    so a hand growth edits the marked panel (new mosaic) instead of resending."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    channel = _channel(guild, "\U0001f91d alliances")
+    marker = f"{VIEW_MARKER_PREFIX}:alliances-panel"
+
+    await deploy_realm_content(guild, _LedgerKingdom(), _Wiring(), "fr")
+    before = [m for m in _live(channel) if marker in _text(m)]
+    assert len(before) == 1
+
+    _LedgerKingdom.civilizations = ["azteques", "britons"]
+    _LedgerKingdom.civilization_acquisitions = {
+        "azteques": {"origin": "starter", "at": 1_760_000_000},
+        "britons": {"origin": "condition", "at": 1_760_000_001},
+    }
+    try:
+        await deploy_realm_content(guild, _LedgerKingdom(), _Wiring(), "fr")
+        after = [m for m in _live(channel) if marker in _text(m)]
+        # one panel only, and it IS the original message, edited in place
+        assert len(after) == 1
+        assert after[0] is before[0]
+        assert getattr(after[0], "edited", False) or after[0].edited
+        assert getattr(after[0], "attachments", None)
+        assert "britons" in _text(after[0])
+    finally:
+        _LedgerKingdom.civilizations = ["azteques"]
+        _LedgerKingdom.civilization_acquisitions = {
+            "azteques": {"origin": "starter", "at": 1_760_000_000},
+        }
+
+
 def _alliances_interaction(guild: MockGuild) -> Any:
     return MockInteraction(
         user=MockUser(id=111),
