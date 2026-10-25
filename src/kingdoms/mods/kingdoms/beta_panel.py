@@ -41,8 +41,7 @@ _STRINGS = {
         "auto_started": "✅ Saison lancée automatiquement — drafts révélés, territoires distribués, vues du royaume actualisées.",
         "auto_already": "ℹ️ La saison était déjà lancée — rien à faire.",
         "auto_failed": "⚠️ Lancement automatique de la saison échoué (`{error}`) — utilise « Démarrer la saison » sur ⚙️ Paramètres.",
-        "auto_no_service": 
-"⚠️ Lancement automatique impossible — le service saisons n'est pas branché (utilise « Démarrer la saison »).",
+        "auto_no_service": "⚠️ Lancement automatique impossible — le service saisons n'est pas branché (utilise « Démarrer la saison »).",
     },
     "en": {
         "panel_title": "🚀 Beta “now” — start definition",
@@ -84,8 +83,7 @@ async def _auto_start_season_safe(console: Any, interaction: discord.Interaction
     try:
         season = await kingdoms.current_season()
     except Exception:
-       
- season = None
+        season = None
     if season is None:
         return strings["auto_no_service"]
     already = getattr(season, "phase", "setup") != "setup"
@@ -162,8 +160,7 @@ def beta_start_report(report: dict[str, Any]) -> str:
 
 
 class BetaStartModal(discord.ui.Modal):
-    """The « Programmer…
- » modal — one text field for the exact start."""
+    """The « Programmer… » modal — one text field for the exact start."""
 
     def __init__(self, console: Any, locale: Any = None) -> None:
         """Store the console seam and build the input field."""
@@ -208,8 +205,7 @@ class BetaStartView(discord.ui.View):
     def __init__(self, console: Any, locale: Any = None) -> None:
         """Store the console seam; the view lives 15 minutes."""
         super().__init__(timeout=900)
-  
-      self._console = console
+        self._console = console
         self._strings = _strings(locale)
 
     @discord.ui.button(label="🚀", style=discord.ButtonStyle.green)
