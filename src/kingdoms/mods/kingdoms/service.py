@@ -971,6 +971,12 @@ class KingdomsService:
                 kingdom.id,
             )
         kingdom.civilizations = random.sample(pool, min(count, len(pool)))
+        # alliances-lisibilite-v1 (Drasah 25/10): the starter draft is
+        # the FIRST acquisition origin of a civilization — recorded in
+        # the append-only ledger the Alliances panel reads.
+        draft_at = int(game_now().timestamp())
+        for civ_key in kingdom.civilizations:
+            kingdom.record_acquisition(civ_key, "starter", draft_at)
         logger.info(
             "kingdoms: starting draft for %s - %s", kingdom.id, kingdom.civilizations
         )

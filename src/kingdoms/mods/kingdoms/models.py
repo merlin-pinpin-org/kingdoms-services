@@ -103,6 +103,17 @@ class KingdomValidation(StrEnum):
     REFUSED = "refused"
 
 
+CIV_ACQUISITION_ORIGINS: tuple[str, ...] = (
+    "starter",
+    "condition",
+    "marriage",
+    "royal",
+    "mercenary",
+)
+"""The acquisition origins of a civilization (alliances-lisibilite-v1,
+Drasah 25/10): 🎲 starter draft, 🗺️ cadastre condition, 💍 standard
+marriage, 🐝 royal marriage (Reine), 📜 Chef Mercenaire."""
+
 class KingdomModel(BaseModel):
     """A kingdom of the current season (player or Gaïa)."""
 
@@ -170,6 +181,16 @@ class KingdomModel(BaseModel):
     corbeau dead, EVERYTHING lost, slot purged). Fields: ``id``,
     ``thief_lord_id``, ``target_kingdom_id``, ``target_kingdom_name``,
     ``execute_at``, ``contest_until``, ``state``, ``stolen``."""
+    civilization_acquisitions: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    """Alliances lisibilité (alliances-lisibilite-v1, Drasah 25/10):
+    append-only per-civilization acquisition ledger of the kingdom —
+    one ``{civ: {"origin", "at"}}`` entry per civilization EVER
+    acquired (starter draft, cadastre condition, standard/royal
+    marriage, Chef Mercenaire). The FIRST acquisition of a civ is the
+    historical truth and is never rewritten: the entry survives the
+    civ leaving the hand — it feeds the Alliances panel's 📖
+    Historique. Origins: see ``CIV_ACQUISITION_ORIGINS``. Gaïa records
+    nothing (no draft, no marriage)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -184,6 +205,23 @@ class KingdomModel(BaseModel):
     def is_gaia(self) -> bool:
         """Gaïa kingdoms are AI-controlled and never enrollable."""
         return self.type == KingdomType.GAIA
+
+    def record_acquisition(self, civilization: str, origin: str, at: int) -> None:
+        """Append one acquisition to the per-civ ledger (never rewrites).
+
+        alliances-lisibilite-v1 (Drasah 25/10): the FIRST acquisition
+        of a civilization is the historical truth — a later origin
+        never rewrites it, and the entry survives the civilization
+        leaving the hand (the panel's 📖 Historique reads it).
+        """
+        if civilization in self.civilization_acquisitions:
+            return
+        if origin not in CIV_ACQUISITION_ORIGINS:
+            raise ValueError(f"unknown acquisition origin: {origin!r}")
+        self.civilization_acquisitions = {
+            **self.civilization_acquisitions,
+            civilization: {"origin": origin, "at": int(at)},
+        }
 
 
 class LordModel(BaseModel):

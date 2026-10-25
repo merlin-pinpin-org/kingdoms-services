@@ -407,3 +407,18 @@ async def test_set_picks_accepts_the_mercenary_civ_and_consumes_one_use() -> Non
     # a non-holder cannot pick the civ.
     with pytest.raises(PickBanStateError):
         await bundle.attacks.set_picks(attack.id, "lord-b", list(hand[:2]) + [free], now=moment)
+
+
+async def test_the_close_records_the_mercenary_acquisition_origin() -> None:
+    """alliances-lisibilite-v1 (Drasah 25/10): the Chef Mercenaire
+    award lands in the winner's kingdom acquisition ledger (📜)."""
+    bundle = await _launched()
+    doc = await bundle.mercenary.open_market(now=_OPEN)
+    civ = doc["lots"][0]["civ"]
+    uses = int(doc["lots"][0]["uses"])
+    await bundle.mercenary.place_bid("lord-a", civ, 1, now=_BID)
+    awards = await bundle.mercenary.close_if_due(now=_CLOSE)
+    assert awards == [{"lord_id": "lord-a", "civ": civ, "uses": uses}]
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia)
+    assert kingdom.civilization_acquisitions[civ]["origin"] == "mercenary"
+    assert isinstance(kingdom.civilization_acquisitions[civ]["at"], int)

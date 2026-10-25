@@ -418,3 +418,103 @@ async def test_lords_day_drops_the_un_wed_draft() -> None:
         if name == "Aquitaine":
             continue
         assert reports[name] == []  # no marriage: the whole hand drops
+
+
+async def test_acquisition_ledger_records_every_origin() -> None:
+    """alliances-lisibilite-v1 (Drasah 25/10): each acquisition origin
+    lands ONCE in the append-only ledger — 🎲 starter, 🗺️ condition,
+    💍 standard marriage, 🐝 royal marriage; the FIRST origin of a
+    civilization is never rewritten."""
+    config = _config().model_copy(
+        update={
+            "starting_civilizations": 2,
+            "civilizations": (
+                CivilizationCondition(key="celtes", display_name="Celtes", requires_map_keys=("black-forest",)),
+                CivilizationCondition(key="francs", display_name="Francs"),
+                CivilizationCondition(key="azteques", display_name="Aztèques"),
+                CivilizationCondition(key="britanniques", display_name="Britanniques"),
+            ),
+        }
+    )
+    bundle = Bundle(config=config)
+    await bundle.launch_season()
+    await bundle.kingdoms.start_season()  # 🎲 the ONE starter draft
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    hand = list(kingdom.civilizations)
+    assert len(hand) == 2
+    assert all(
+        kingdom.civilization_acquisitions[civ]["origin"] == "starter" for civ in hand
+    )
+    # 🗺️ the cadastre condition acquires the civilization — a starter
+    # origin already recorded is kept (the ledger is append-only)
+    await bundle.draw_one(aquitaine, "black-forest")
+    await bundle.diplomacy.recalculate()
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    assert "celtes" in kingdom.civilizations
+    assert kingdom.civilization_acquisitions["celtes"]["origin"] == (
+        "starter" if "celtes" in hand else "condition"
+    )
+    # 💍 standard marriage then 🐝 royal marriage of civs NOT drafted
+    free = [civ for civ in ("francs", "azteques", "britanniques") if civ not in hand]
+    await bundle.give("Aquitaine", free[0])
+    await bundle.diplomacy.marry("lord-a", free[0])
+    await bundle.patch_kingdom_of("lord-a", marriage_points=2)
+    await bundle.give("Aquitaine", free[1])
+    await bundle.diplomacy.marry("king-a", free[1])
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    assert kingdom.civilization_acquisitions[free[0]]["origin"] == "marriage"
+    assert kingdom.civilization_acquisitions[free[1]]["origin"] == "royal"
+    assert isinstance(kingdom.civilization_acquisitions[free[0]]["at"], int)
+
+
+async def test_alliance_projection_previews_the_next_cycle_read_only() -> None:
+    """alliances-lisibilite-v1 (Drasah 25/10): the projection mirrors
+    the recalculation WITHOUT writing — kept/arriving/dropping, the 🎯
+    near-unlock hints and the exclusivity of the other kingdoms."""
+    config = _config().model_copy(
+        update={
+            "starting_civilizations": 2,
+            "civilizations": (
+                CivilizationCondition(key="celtes", display_name="Celtes", requires_map_keys=("black-forest",)),
+                CivilizationCondition(key="francs", display_name="Francs", min_map_count=2),
+                CivilizationCondition(key="azteques", display_name="Aztèques"),
+                CivilizationCondition(key="britanniques", display_name="Britanniques"),
+            ),
+        }
+    )
+    bundle = Bundle(config=config)
+    await bundle.launch_season()
+    await bundle.kingdoms.start_season()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    hand = list(kingdom.civilizations)
+    assert len(hand) == 2
+    # mid-cycle: the Black Forest is taken but the recalculation has
+    # NOT run — the projection previews the NEXT cycle.
+    await bundle.draw_one(aquitaine, "black-forest")
+    # another kingdom weds a civ Aquitaine does not hold: exclusivité
+    elsewhere = next(
+        civ for civ in ("azteques", "britanniques", "francs") if civ not in hand
+    )
+    await bundle.give("Bourgogne", elsewhere)
+    await bundle.diplomacy.marry("lord-b", elsewhere)
+    projection = await bundle.diplomacy.alliance_projection(aquitaine)
+    assert projection["held"] == hand
+    assert projection["dropping"] == [civ for civ in hand if civ != "celtes"]
+    if "celtes" in hand:
+        assert projection["kept"] == ["celtes"]
+        assert projection["arriving"] == []
+    else:
+        assert projection["kept"] == []
+        assert projection["arriving"] == ["celtes"]
+    # 🎯 the Francs sit one map short of their map-count threshold
+    assert projection["near_unlocks"] == [
+        {"civ": "francs", "hint": "+1 map (1/2)"}
+    ]
+    assert projection["married_elsewhere"] == [elsewhere]
+    assert projection["acquisitions"][hand[0]]["origin"] == "starter"
+    # READ-ONLY: nothing was written — the hand never moved
+    fresh = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    assert fresh.civilizations == hand
+    assert "celtes" not in fresh.civilizations

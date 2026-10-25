@@ -466,6 +466,21 @@ class MercenaryService:
             if lord is not None:
                 lord.purse += amount
                 touched.add(lord.id)
+        # alliances-lisibilite-v1 (Drasah 25/10): a mercenary award is
+        # an acquisition origin of the winner's kingdom ledger (📜
+        # Mercenaire) — append-only, the FIRST origin of the civ is kept.
+        if awards:
+            kingdoms_by_id = {k.id: k for k in await self._kingdoms.kingdoms()}
+            for award in awards:
+                winner_kingdom = kingdoms_by_id.get(
+                    str(lords[str(award["lord_id"])].kingdom_id)
+                )
+                if winner_kingdom is None:
+                    continue
+                winner_kingdom.record_acquisition(
+                    str(award["civ"]), "mercenary", now_ts
+                )
+                await self._store.upsert_kingdom(winner_kingdom.to_mongo())
         doc["closed"] = True
         doc["closed_at"] = now_ts
         season.mercenary_market = doc

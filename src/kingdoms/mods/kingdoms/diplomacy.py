@@ -15,7 +15,7 @@ import logging
 import random
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.game_clock import game_now
@@ -570,12 +570,120 @@ class DiplomacyService:
                     unlocked.append(key)
             kingdom.civilizations = unlocked
             kingdom.secured_civilizations = [c for c in secured if c]
+            # alliances-lisibilite-v1 (Drasah 25/10): record the origin
+            # of every civilization the kingdom acquires for the FIRST
+            # time (cadastre condition, standard/royal marriage) — the
+            # ledger is append-only, an earlier origin is never rewritten.
+            royal_keys = {
+                lord.married_civilization
+                for lord in lords
+                if lord.kingdom_id == kingdom.id
+                and not lord.left
+                and lord.royal_marriage
+                and lord.married_civilization is not None
+            }
+            recalc_at = int(game_now().timestamp())
+            for key in unlocked:
+                if key in kingdom.civilization_acquisitions:
+                    continue
+                origin = (
+                    "royal"
+                    if key in royal_keys
+                    else "marriage" if key in secured else "condition"
+                )
+                kingdom.record_acquisition(key, origin, recalc_at)
             await self._store.upsert_kingdom(kingdom.to_mongo())
             reports[kingdom.name] = unlocked
         if dropped:
             await self._apply_marriage_losses(lords, season, dropped)
         logger.info("kingdoms: alliances recomputed - %s", reports)
         return reports
+
+    async def alliance_projection(self, kingdom_id: str) -> dict[str, Any]:
+        """Read-only alliances projection (alliances-lisibilite-v1, Drasah 25/10).
+
+        Evaluates the SAME ``_condition_met`` engine as the cycle
+        recalculation but NEVER writes: the panel reads the current
+        hand, the next-cycle preview (kept / arriving / dropping), the
+        🎯 near-unlock hints (« à 1 map près ») and the civilizations
+        locked by another kingdom's active marriage (exclusivité D74).
+        The cycle recalculation alone decides the truth — this only
+        mirrors it without touching a single document.
+        """
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        owned = await self._owned_map_keys(kingdom.id)
+        lords = await self._kingdoms.lords()
+        married_count = sum(
+            1
+            for lord in lords
+            if lord.kingdom_id == kingdom.id
+            and not lord.left
+            and lord.married_civilization is not None
+        )
+        unlocked: list[str] = []
+        for civ in self._config.civilizations:
+            if await self._condition_met(civ, kingdom, owned, unlocked, married_count):
+                if civ.key not in unlocked:
+                    unlocked.append(civ.key)
+        secured = [
+            lord.married_civilization
+            for lord in lords
+            if lord.kingdom_id == kingdom.id
+            and not lord.left
+            and lord.married_civilization is not None
+        ]
+        for key in secured:
+            if key is not None and key not in unlocked:
+                unlocked.append(key)
+        held = list(kingdom.civilizations)
+        near: list[dict[str, Any]] = []
+        for civ in self._config.civilizations:
+            if civ.key in unlocked:
+                continue
+            hint = self._near_unlock_hint(civ, owned)
+            if hint is not None:
+                near.append({"civ": civ.key, "hint": hint})
+        married_elsewhere = {
+            lord.married_civilization
+            for lord in lords
+            if lord.kingdom_id != kingdom.id
+            and not lord.left
+            and lord.married_civilization is not None
+        }
+        return {
+            "held": held,
+            "kept": [civ for civ in held if civ in unlocked],
+            "arriving": [civ for civ in unlocked if civ not in held],
+            "dropping": [civ for civ in held if civ not in unlocked],
+            "near_unlocks": near,
+            "married_elsewhere": [
+                civ
+                for civ in sorted(married_elsewhere)
+                if civ is not None and civ not in held
+            ],
+            "acquisitions": dict(kingdom.civilization_acquisitions),
+        }
+
+    def _near_unlock_hint(
+        self, civ: CivilizationCondition, owned: list[str]
+    ) -> str | None:
+        """The 🎯 « à 1 map près » hint of one locked civilization.
+
+        Read-only arithmetic over the cadastre thresholds: a
+        civilization whose map-key requirement or map count sits
+        exactly ONE map short is « presque déverrouillée » — the hint
+        names what is missing so the panel can point the kingdom at
+        the map to take next.
+        """
+        if civ.requires_map_keys:
+            threshold = max(1, int(civ.min_map_key_count or 1))
+            held = sum(1 for key in civ.requires_map_keys if key in owned)
+            if held == threshold - 1:
+                missing = [key for key in civ.requires_map_keys if key not in owned]
+                return f"+1 map: {', '.join(missing)}"
+        if civ.min_map_count is not None and len(owned) == civ.min_map_count - 1:
+            return f"+1 map ({len(owned)}/{civ.min_map_count})"
+        return None
 
     async def _apply_marriage_losses(
         self, lords: list[LordModel], season: SeasonState, dropped: list[str]
@@ -875,6 +983,14 @@ class DiplomacyService:
             kingdom.secured_civilizations = [*kingdom.secured_civilizations, civilization]
         if civilization not in kingdom.civilizations:
             kingdom.civilizations = [*kingdom.civilizations, civilization]
+        # alliances-lisibilite-v1 (Drasah 25/10): the marriage is an
+        # acquisition origin (🐝 royal / 💍 standard) — append-only,
+        # the FIRST origin of the civilization is kept.
+        kingdom.record_acquisition(
+            civilization,
+            "royal" if royal else "marriage",
+            int(now.timestamp()),
+        )
         await self._store.upsert_kingdom(kingdom.to_mongo())
         kind = (
             chronicle.KIND_ROYAL_MARRIAGE
