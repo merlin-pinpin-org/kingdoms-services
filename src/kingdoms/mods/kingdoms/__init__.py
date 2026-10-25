@@ -92,6 +92,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
             distributor,
             voliere,
             tavern,
+            mercenary,
             ffa,
             cathedrals,
             debug,
