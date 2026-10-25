@@ -277,13 +277,11 @@ class EventService:
                 alliances = True
             except Exception:
                 logger.warning("kingdoms: alliance recomputation failed", exc_info=True)
-        # Drasah's 2026-10-11 rule: the un-wed hand dropped at the
-        # recalculation above — every kingdom now draws a fresh draft.
-        draft: dict[str, list[str]] = {}
-        try:
-            draft = await self._kingdoms.redraw_lords_day_draft(seed=seed)
-        except Exception:
-            logger.warning("kingdoms: Lord's Day draft failed", exc_info=True)
+        # cycles-sans-redraft-v1 (Drasah 25/10): the starter draft is
+        # drawn ONCE at the season start — a cycle switch recalculates
+        # the alliances but NEVER re-drafts. Civilizations afterwards
+        # arrive only through play: cadastre conditions, marriages and
+        # the Chef Mercenaire.
         return {
             "cycle": season.current_cycle,
             "recharged_budgets": recharged,
@@ -291,7 +289,6 @@ class EventService:
             "gaia_new_maps": added,
             "gaia_kingdom_id": gaia.id if gaia is not None else None,
             "alliances_recomputed": alliances,
-            "lords_day_draft": draft,
         }
 
     # ------------------------------------------------------------------

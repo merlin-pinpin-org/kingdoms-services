@@ -916,10 +916,11 @@ class KingdomsService:
         )
 
     async def redraw_lords_day_draft(self, *, seed: int | None = None) -> dict[str, list[str]]:
-        """Draw the fresh Lord's Day draft of every kingdom (Drasah's rule).
+        """Draw a fresh Lord's Day draft for every kingdom (manual seam).
 
-        Called by the cycle switch AFTER the alliance recalculation
-        dropped the un-wed civilizations (2026-10-11): each player
+        cycles-sans-redraft-v1 (Drasah 25/10): the cycle switch NO
+        LONGER calls this — a cycle never re-drafts the hand; this seam
+        stays for an explicit manual draw. Each player
         kingdom draws ``starting_civilizations`` fresh civilizations —
         never a civilization another kingdom holds (married or in
         hand), never Gaïa. The married civilizations stay; the new

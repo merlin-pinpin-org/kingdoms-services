@@ -253,9 +253,11 @@ async def test_cycle_switch_recomputes_the_alliances() -> None:
     assert _CountingDiplomacy.calls == 1
 
 
-async def test_cycle_switch_redraws_a_fresh_lords_day_draft() -> None:
-    """Drasah 2026-10-11: every Lord's Day each kingdom draws a fresh
-    draft — the un-wed civilizations were dropped, the hand is renewed."""
+async def test_cycle_switch_never_redraws_the_lords_day_hand() -> None:
+    """cycles-sans-redraft-v1 (Drasah 25/10): the starter draft is drawn
+    ONCE at the season start — a cycle switch recalculates the
+    alliances but NEVER re-drafts; only marriages, cadastre conditions
+    and the Chef Mercenaire add civilizations afterwards."""
     catalog = tuple(
         CivilizationCondition(key=f"civ-{index}", display_name=f"Civ {index}")
         for index in range(20)
@@ -265,28 +267,20 @@ async def test_cycle_switch_redraws_a_fresh_lords_day_draft() -> None:
     )
     bundle = Bundle(config=config)
     await bundle.launch_season()
-    await bundle.kingdoms.start_season()  # the first draft happens here
+    await bundle.kingdoms.start_season()  # the ONE starter draft
     kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
     before = {k.id: list(k.civilizations) for k in kingdoms}
     assert all(len(civs) == 2 for civs in before.values())
     report = await bundle.events.run_cycle_switch(seed=1)
-    draft = report["lords_day_draft"]
-    assert isinstance(draft, dict) and len(draft) == len(kingdoms)
-    seen: list[str] = []
+    assert "lords_day_draft" not in report  # no redraw ever happens
     for kingdom in kingdoms:
         fresh = next(
             k for k in await bundle.kingdoms.kingdoms() if k.id == kingdom.id
         )
-        drawn = draft[kingdom.name]
-        assert len(drawn) == 2  # a new draft of two civs per kingdom
-        assert fresh.civilizations == [*before[kingdom.id], *drawn]
-        assert len(set(fresh.civilizations)) == len(fresh.civilizations)
-        seen.extend(drawn)
+        assert fresh.civilizations == before[kingdom.id]  # hand unchanged
         assert fresh.marriage_points == 2  # 1 start + 1 Lord's Day grant
-    assert len(set(seen)) == len(seen)  # no civ drafted twice
     gaia = next(k for k in await bundle.kingdoms.kingdoms() if k.is_gaia)
     assert gaia.civilizations == []  # Gaia never drafts
-
 
 async def test_lords_day_window_is_the_cycle_slot_to_monday_morning() -> None:
     """The window opens Sunday 23:30 Paris and closes Monday 10:00."""
