@@ -38,3 +38,20 @@ def test_the_tavern_button_is_registered() -> None:
     register_kingdoms_persistent_items(bot)  # type: ignore[arg-type]
 
     assert any(item.__name__ == "KingdomTavernDrinkButton" for item in bot.registered)
+
+
+def test_the_five_alliances_buttons_are_registered() -> None:
+    """alliances-lisibilite-v1 T2 (Drasah 25/10): the five ephemeral
+    answers of the alliances panel must survive a restart."""
+    bot = _RecordingBot()
+
+    register_kingdoms_persistent_items(bot)  # type: ignore[arg-type]
+
+    for name in (
+        "KingdomAlliancesNextButton",
+        "KingdomAlliancesLockedButton",
+        "KingdomAlliancesHistoryButton",
+        "KingdomAlliancesDurationsButton",
+        "KingdomAlliancesNamesButton",
+    ):
+        assert any(item.__name__ == name for item in bot.registered), name

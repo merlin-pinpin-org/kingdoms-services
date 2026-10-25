@@ -20,6 +20,7 @@ goes out regardless, minus that crest.
 """
 from __future__ import annotations
 
+import base64
 import io
 import logging
 from typing import Any
@@ -90,6 +91,13 @@ _CIV_CREST_PROVIDER_KEYS: dict[str, str] = {
     "portugais": "Portuguese",
 }
 
+# alliances-lisibilite-v1 T2 (Drasah 25/10): unmapped civs keep a
+# visual slot instead of dropping out of the crest row.
+DEFAULT_CREST_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABVUlEQVR42u3bOw7CMBAE0JyBgoqKihvQcmOuQUOHuA5ISEiAEn9Y787YmWIbunlxHBvtTpvt4bHmmgQgAAF8/XC53oevLMDtfBy2BCAAAQhAAAIQgAAEIAABLAPs9qdhSwACEIAPQGrjWc0K6AHB/RVgRwjZA5gRwjZBVoTQrwAjQvhnkA0Bcg5gQoAdhFgQoCdBBgT4URiNQHEXQCLQXIZQCFS3QQQC3XU4GoHy/4BIhCzAyAi/4akAIhDoAbwRugDwRCgGGBFhLjw1QGuEaoCREJbCFzVK9o6QCt8NgAXBDNAzQi58Va9wbwgl4aubpd+9tswIc/3AzbvFWRFqgpvb5dkQ/glvnhdgeCVql7zLwAQKwRK8+cRI5GqwPnXXkRlPiJbB3WeGWkJ4BA8bmrJAeAYPnxqrgYgIDhubS0FEBofPDX5CIILTDE6igmtyVAACeNUT/ptxBY9JPcQAAAAASUVORK5CYII="
+)
+_DEFAULT_CREST_BYTES = base64.b64decode(DEFAULT_CREST_B64)
+
 _CREST_CACHE: dict[str, bytes] = {}
 
 
@@ -99,6 +107,16 @@ def civ_crest_url(civ_key: str) -> str | None:
     if provider_key is None:
         return None
     return f"{CREST_BASE_URL}/{provider_key.lower()}.png"
+
+
+def civ_provider_name(civ_key: str) -> str | None:
+    """Return the techtree provider key of one mod civ (None unknown).
+
+    alliances-lisibilite-v1 T2 (Drasah 25/10): the 🔤 Noms answer shows
+    the display name ↔ provider name pairing so Drasah can map the
+    catalog slugs to the aoe2techtree dataset.
+    """
+    return _CIV_CREST_PROVIDER_KEYS.get(str(civ_key).strip().lower())
 
 
 async def _crest_bytes(url: str) -> bytes | None:
@@ -137,11 +155,12 @@ async def civ_crest_files(civ_keys: Any) -> list[discord.File]:
         if not key or key in seen or len(files) >= MAX_ATTACHMENTS:
             continue
         seen.add(key)
+        data = _DEFAULT_CREST_BYTES
+        filename = f"{key}.png"
         url = civ_crest_url(key)
-        if url is None:
-            continue
-        data = await _crest_bytes(url)
-        if data is None:
-            continue
-        files.append(discord.File(io.BytesIO(data), filename=f"{key}.png"))
+        if url is not None:
+            downloaded = await _crest_bytes(url)
+            if downloaded is not None:
+                data = downloaded
+        files.append(discord.File(io.BytesIO(data), filename=filename))
     return files

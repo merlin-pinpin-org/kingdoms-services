@@ -1,6 +1,6 @@
 """Kingdoms per-realm salon state views — unit tests (v1, D70).
 
-Each of the 3 deployed views must land pinned in its salon, be
+Each deployed view must land pinned in its salon, be
 idempotent (a re-deploy edits the marked message, never a duplicate),
 and render the live service data behind defensive lookups. The Salle
 du Conseil stays empty by design and Alliances keeps its Draft
@@ -186,7 +186,7 @@ def _view_text(view) -> str:
     return "\n".join(chunks)
 
 
-async def test_all_three_views_land_in_their_salons() -> None:
+async def test_every_view_lands_in_its_salon() -> None:
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
 
@@ -194,10 +194,14 @@ async def test_all_three_views_land_in_their_salons() -> None:
 
     # restructuration-serveur-v1 (Drasah 19/10): Remparts and Seigneurie
     # are ephemeral BUTTONS now, the Pigeon-Voyageur salon had no wiring.
+    # alliances-lisibilite-v1 T2 (Drasah 25/10): the 🤝 salon wears BOTH
+    # the mercenary rubric and the read-only Alliances panel.
     assert results == {
         "le-royaume": True,
         "territoire": True,
         "eglise": True,
+        "alliances": True,
+        "alliances-panel": True,
     }
     for salon in ("🏰 le-royaume", "🗺️ territoire", "⛪ paroisse"):
         channel = _channel(guild, salon)
@@ -713,3 +717,185 @@ async def test_duplicate_marked_views_are_purged_on_redeploy() -> None:
     live = _live(channel)
     assert len(live) == 1
     assert live[0] is first  # the ORIGINAL message keeps its pin slot
+
+# alliances-lisibilite-v1 T2 (Drasah 25/10): the 🤝 salon's read-only
+# panel — one origin emoji per civ, the marriage holder named, and the
+# five restart-proof ephemeral answers.
+
+
+class _LedgerKingdom(_Kingdom):
+    """A hand with its append-only acquisition ledger (tranche 1)."""
+
+    civilization_acquisitions: ClassVar[dict[str, dict[str, Any]]] = {
+        "azteques": {"origin": "starter", "at": 1_760_000_000},
+    }
+
+
+class _AlliancesKingdomsService(_ButtonKingdomsService):
+    async def kingdoms(self) -> list:
+        return [_LedgerKingdom()]
+
+
+class _ProjectionDiplomacyService:
+    """The read-only alliance_projection seam (tranche 1)."""
+
+    def __init__(self, projection: dict[str, Any]) -> None:
+        self._projection = projection
+
+    async def alliance_projection(self, kingdom_id: str) -> dict[str, Any]:
+        return self._projection
+
+
+def _wire_alliances(diplomacy_service: object | None) -> None:
+    register_kingdoms_panel_wiring(
+        KingdomsPanelWiring(
+            kingdoms_service=_AlliancesKingdomsService(),
+            territories_service=_TerritoriesService(),
+            economy_service=_EconomyService(),
+            attacks_service=_AttacksService(),
+            diplomacy_service=diplomacy_service,
+        )
+    )
+
+
+async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+
+    results = await deploy_realm_content(guild, _LedgerKingdom(), _Wiring(), "fr")
+
+    assert results["alliances-panel"] is True
+    panel = next(
+        m
+        for m in _live(_channel(guild, "\U0001f91d alliances"))
+        if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
+    )
+    content = _text(panel)
+    # one emoji per acquisition origin — 🎲 for the starter draft
+    assert "\U0001f3b2 **Azt\u00e8ques**" in content
+    # the marriage holder is named (💍 {lord})
+    assert "— \U0001f48d Luc" in content
+    # the help line points at the Scriptorium's Diplomatie rubric
+    assert "Scriptorium" in content and "Diplomatie" in content
+    # the five ephemeral answers ride the panel, restart-proof custom ids
+    ids = _ids(panel.view)
+    for custom_id in (
+        "kingdoms:alliances:next",
+        "kingdoms:alliances:locked",
+        "kingdoms:alliances:history",
+        "kingdoms:alliances:durations",
+        "kingdoms:alliances:names",
+    ):
+        assert custom_id in ids
+
+
+async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> None:
+    """A pre-ledger season (a hand older than tranche 1) reads 🤝."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+
+    await _deploy(guild)
+
+    panel = next(
+        m
+        for m in _live(_channel(guild, "\U0001f91d alliances"))
+        if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
+    )
+    assert "\U0001f91d **Azt\u00e8ques**" in _text(panel)
+
+
+def _alliances_interaction(guild: MockGuild) -> Any:
+    return MockInteraction(
+        user=MockUser(id=111),
+        guild=guild,
+        channel=_channel(guild, "\U0001f91d alliances"),
+        locale="fr",
+    )
+
+
+async def test_next_button_previews_the_cycle_projection() -> None:
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesNextButton
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    _wire_alliances(
+        _ProjectionDiplomacyService(
+            {
+                "held": ["azteques"],
+                "kept": ["azteques"],
+                "arriving": [],
+                "dropping": [],
+                "near_unlocks": [],
+                "married_elsewhere": [],
+                "acquisitions": dict(_LedgerKingdom.civilization_acquisitions),
+            }
+        )
+    )
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesNextButton("\U0001f52d Prochain cycle").callback(interaction)
+
+    assert interaction.response.ephemeral is True
+    message = interaction.response.message
+    assert message is not None
+    content = message.content or ""
+    assert "\U0001f52d Prochain cycle — Avalon" in content
+    assert "\u2705 Gard\u00e9es : Azt\u00e8ques" in content
+
+
+async def test_locked_button_names_the_locked_civ_and_why() -> None:
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesLockedButton
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    # an empty projection: the hand itself reads locked
+    _wire_alliances(
+        _ProjectionDiplomacyService(
+            {
+                "held": [],
+                "kept": [],
+                "arriving": [],
+                "dropping": [],
+                "near_unlocks": [],
+                "married_elsewhere": [],
+                "acquisitions": {},
+            }
+        )
+    )
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesLockedButton("\U0001f6ab Verrouill\u00e9es").callback(interaction)
+
+    assert interaction.response.ephemeral is True
+    content = (interaction.response.message.content or "") if interaction.response.message else ""
+    assert "\U0001f6ab **Azt\u00e8ques** — condition non remplie" in content
+
+
+async def test_history_durations_and_names_buttons_read_the_ledger() -> None:
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
+        KingdomAlliancesDurationsButton,
+        KingdomAlliancesHistoryButton,
+        KingdomAlliancesNamesButton,
+    )
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    _wire_alliances(None)  # these three answers never touch the diplomacy seam
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesHistoryButton("\U0001f4d6 Historique").callback(interaction)
+    content = interaction.response.message.content if interaction.response.message else ""
+    assert "\U0001f4d6 Historique — Avalon" in content
+    assert "\U0001f3b2 **Azt\u00e8ques** — " in content  # the origin emoji + date
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesDurationsButton("\u23f3 Dur\u00e9es").callback(interaction)
+    content = interaction.response.message.content if interaction.response.message else ""
+    assert "\u23f3 Dur\u00e9es — Avalon" in content
+    assert "d\u00e9tenue depuis " in content
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesNamesButton("\U0001f524 Noms").callback(interaction)
+    content = interaction.response.message.content if interaction.response.message else ""
+    assert "\U0001f524 Noms — Avalon" in content
+    assert "techtree : Aztecs" in content  # display name <-> provider name

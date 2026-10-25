@@ -67,6 +67,46 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_merc_title": "⚔️ Alliances par Mercenaire",
             "alliances_merc_line": "• **{0}** — {1} ({2} usage(s) de draft)",
             "alliances_merc_none": "Aucun contrat mercenaire en cours.",
+            "alliances_panel_title": "📜 Alliances — {0}",
+            "alliances_panel_line": "{0} **{1}**",
+            "alliances_panel_married": "💍 {0}",
+            "alliances_panel_empty": (
+                "Aucune civilisation en main — les alliances arrivent par le jeu"
+                " (conditions, mariages, Chef Mercenaire)."
+            ),
+            "alliances_panel_help": (
+                "-# ❓ Conditions d'alliance : 📜 Scriptorium → rubrique Diplomatie."
+            ),
+            "alliances_btn_next": "🔭 Prochain cycle",
+            "alliances_btn_locked": "🚫 Verrouillées",
+            "alliances_btn_history": "📖 Historique",
+            "alliances_btn_durations": "⏳ Durées",
+            "alliances_btn_names": "🔤 Noms",
+            "alliances_kingdom_none": "❌ Le royaume de ce salon est introuvable.",
+            "alliances_no_data": "❌ Aucune donnée d'alliance disponible pour le moment.",
+            "alliances_next_title": "🔭 Prochain cycle — {0}",
+            "alliances_next_kept": "✅ Gardées : {0}",
+            "alliances_next_arriving": "📥 Arrivent : {0}",
+            "alliances_next_dropping": "📤 Quitteront la main : {0}",
+            "alliances_next_near": "🎯 À 1 map près : {0}",
+            "alliances_next_elsewhere": "💍 Déjà mariée ailleurs : {0}",
+            "alliances_locked_title": "🚫 Verrouillées — {0}",
+            "alliances_locked_line": "🚫 **{0}** — {1}",
+            "alliances_locked_cond_maps": "cartes requises : {0}",
+            "alliances_locked_cond_count": "{0} territoire(s) requis",
+            "alliances_locked_cond_none": "condition non remplie",
+            "alliances_locked_married": "mariée à un autre royaume (exclusivité)",
+            "alliances_locked_none": "Aucune civilisation verrouillée — tout le catalogue est jouable.",
+            "alliances_history_title": "📖 Historique — {0}",
+            "alliances_history_line": "{0} **{1}** — {2}",
+            "alliances_history_none": "Aucune acquisition enregistrée pour le moment.",
+            "alliances_durations_title": "⏳ Durées — {0}",
+            "alliances_durations_line": "{0} **{1}**",
+            "alliances_durations_since": "détenue depuis {0}",
+            "alliances_durations_none": "Aucune civilisation en main.",
+            "alliances_names_title": "🔤 Noms — {0}",
+            "alliances_names_line": "• **{0}** — techtree : {1}",
+            "alliances_names_none": "Aucune civilisation en main.",
             "treasury": "Trésorerie",
             "territories": "Territoires",
             "civilizations": "Civilisations",
@@ -197,6 +237,44 @@ def _strings(locale: str) -> dict[str, str]:
         "alliances_merc_title": "⚔️ Mercenary Alliances",
         "alliances_merc_line": "• **{0}** — {1} ({2} draft use(s))",
         "alliances_merc_none": "No mercenary contract running.",
+        "alliances_panel_title": "📜 Alliances — {0}",
+        "alliances_panel_line": "{0} **{1}**",
+        "alliances_panel_married": "💍 {0}",
+        "alliances_panel_empty": (
+            "No civilization in hand — alliances arrive through play"
+            " (conditions, marriages, Chief Mercenary)."
+        ),
+        "alliances_panel_help": "-# ❓ Alliance conditions: 📜 Scriptorium → Diplomatie rubric.",
+        "alliances_btn_next": "🔭 Next cycle",
+        "alliances_btn_locked": "🚫 Locked",
+        "alliances_btn_history": "📖 History",
+        "alliances_btn_durations": "⏳ Durations",
+        "alliances_btn_names": "🔤 Names",
+        "alliances_kingdom_none": "❌ This salon's kingdom cannot be found.",
+        "alliances_no_data": "❌ No alliance data available right now.",
+        "alliances_next_title": "🔭 Next cycle — {0}",
+        "alliances_next_kept": "✅ Kept: {0}",
+        "alliances_next_arriving": "📥 Arriving: {0}",
+        "alliances_next_dropping": "📤 Leaving the hand: {0}",
+        "alliances_next_near": "🎯 One map short: {0}",
+        "alliances_next_elsewhere": "💍 Married elsewhere: {0}",
+        "alliances_locked_title": "🚫 Locked — {0}",
+        "alliances_locked_line": "🚫 **{0}** — {1}",
+        "alliances_locked_cond_maps": "required maps: {0}",
+        "alliances_locked_cond_count": "{0} territory(/ies) required",
+        "alliances_locked_cond_none": "condition not met",
+        "alliances_locked_married": "married to another kingdom (exclusivity)",
+        "alliances_locked_none": "No locked civilization — the whole catalogue is playable.",
+        "alliances_history_title": "📖 History — {0}",
+        "alliances_history_line": "{0} **{1}** — {2}",
+        "alliances_history_none": "No acquisition recorded yet.",
+        "alliances_durations_title": "⏳ Durations — {0}",
+        "alliances_durations_line": "{0} **{1}**",
+        "alliances_durations_since": "held since {0}",
+        "alliances_durations_none": "No civilization in hand.",
+        "alliances_names_title": "🔤 Names — {0}",
+        "alliances_names_line": "• **{0}** — techtree: {1}",
+        "alliances_names_none": "No civilization in hand.",
         "treasury": "Treasury",
         "territories": "Territories",
         "civilizations": "Civilizations",
@@ -370,6 +448,70 @@ def _build_mercenary_alliances(
     )
 
 
+def _build_alliances_panel(
+    strings: dict[str, str],
+    kingdom: Any,
+    state: dict[str, Any],
+) -> Any:
+    """Build the 📜 Alliances panel (alliances-lisibilite-v1 T2, Drasah 25/10).
+
+    The kingdom's hand reads with ONE emoji per acquisition origin
+    (🎲 starter, 🗺️ condition, 💍 marriage, 👑 royal, 📜 Mercenaire —
+    🤝 for a pre-ledger season), the marriage holder is named, and the
+    help line points at the Scriptorium's Diplomatie rubric. The five
+    ephemeral buttons ride the panel — the answers stay read-only,
+    the cycle recalculation alone decides the truth.
+    """
+    import discord
+
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
+        KingdomAlliancesDurationsButton,
+        KingdomAlliancesHistoryButton,
+        KingdomAlliancesLockedButton,
+        KingdomAlliancesNamesButton,
+        KingdomAlliancesNextButton,
+        alliance_origin_emoji,
+    )
+
+    civ_names = state.get("civ_names", {})
+    ledger = dict(getattr(kingdom, "civilization_acquisitions", None) or {})
+    hand = [str(civ) for civ in getattr(kingdom, "civilizations", []) or []]
+    married: dict[str, str] = {}
+    for member in state.get("members", []):
+        civ = getattr(member, "married_civilization", None)
+        if civ:
+            married[str(civ)] = str(
+                getattr(member, "display_name", getattr(member, "id", "?"))
+            )
+    if hand:
+        lines: list[str] = []
+        for civ_key in hand:
+            line = strings["alliances_panel_line"].format(
+                alliance_origin_emoji((ledger.get(civ_key) or {}).get("origin")),
+                civ_names.get(civ_key, civ_key),
+            )
+            if civ_key in married:
+                line += f" — {strings['alliances_panel_married'].format(married[civ_key])}"
+            lines.append(line)
+    else:
+        lines = [strings["alliances_panel_empty"]]
+    body = "\n".join([*lines, "", strings["alliances_panel_help"]])
+    buttons: list[Any] = [
+        KingdomAlliancesNextButton(strings["alliances_btn_next"]),
+        KingdomAlliancesLockedButton(strings["alliances_btn_locked"]),
+        KingdomAlliancesHistoryButton(strings["alliances_btn_history"]),
+        KingdomAlliancesDurationsButton(strings["alliances_btn_durations"]),
+        KingdomAlliancesNamesButton(strings["alliances_btn_names"]),
+    ]
+    return _panel_view_with_buttons(
+        strings["alliances_panel_title"].format(getattr(kingdom, "name", "")),
+        body,
+        f"{VIEW_MARKER_PREFIX}:alliances-panel",
+        discord.Colour.dark_embed(),
+        buttons,
+    )
+
+
 async def deploy_realm_content(
     guild: discord.Guild,
     kingdom: Any,
@@ -403,6 +545,10 @@ async def deploy_realm_content(
     # pigeon-voyageur are no longer salons — Remparts and Seigneurie
     # open from the Le-Royaume buttons (ephemeral), the carrier had no
     # wiring at all.
+    # alliances-lisibilite-v1 T2 (Drasah 25/10): the read-only
+    # Alliances panel rides the SAME 🤝 salon as the mercenary rubric —
+    # its own marker keeps the two views independent.
+    salon_keys: dict[str, str] = {"alliances-panel": "alliances"}
     builders: dict[str, Any] = {
         "le-royaume": _build_overview,
         "territoire": _build_territory if phase != "setup" else _build_territory_pending,
@@ -410,16 +556,26 @@ async def deploy_realm_content(
         # chef-mercenaire-v1 T2c (Drasah 25/10): the lords' live
         # mercenary contracts ride the 🤝 alliances salon.
         "alliances": _build_mercenary_alliances,
+        # alliances-lisibilite-v1 T2 (Drasah 25/10): the hand with its
+        # origin emojis + the five ephemeral clarity buttons.
+        "alliances-panel": _build_alliances_panel,
     }
     results: dict[str, bool] = {}
     for key, builder in builders.items():
-        channel = channels.get(salon_slugs.get(key, key))
+        channel = channels.get(salon_slugs.get(salon_keys.get(key, key)))
         if channel is None:
             results[key] = False
             continue
         try:
             view = builder(strings, kingdom, state)
-            results[key] = await _upsert_view(channel, key, view)
+            # défaut blasons: the Alliances panel wears the hand's
+            # crests by default (the civ-crests-v1 precedent).
+            files = None
+            if key == "alliances-panel":
+                from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
+
+                files = await civ_crest_files(getattr(kingdom, "civilizations", []) or [])
+            results[key] = await _upsert_view(channel, key, view, files)
         except Exception:
             logger.warning("KINGDOM REALM CONTENT: view %s failed", key, exc_info=True)
             results[key] = False
@@ -1223,7 +1379,9 @@ def _panel_view_with_buttons(
 
 
 
-async def _upsert_view(channel: Any, key: str, view: Any) -> bool:
+async def _upsert_view(
+    channel: Any, key: str, view: Any, files: list[Any] | None = None
+) -> bool:
     """Edit the marked panel in place, or send it once (never duplicate).
 
     vues-silencieuses-v1 (Drasah 19/10): the marked message is now edited in
@@ -1246,14 +1404,16 @@ async def _upsert_view(channel: Any, key: str, view: Any) -> bool:
                     "KINGDOM REALM CONTENT: view %s duplicate purge failed", key, exc_info=True
                 )
         existing = marked[0]
-        if message_text_squashed(existing) == view_text(view):
+        if message_text_squashed(existing) == view_text(view) and (
+            files is None or getattr(existing, "attachments", None)
+        ):
             return True
         try:
-            await existing.edit(view=view)
+            await existing.edit(view=view, **({"files": files} if files else {}))
             return True
         except Exception:
             logger.warning(
                 "KINGDOM REALM CONTENT: view %s edit failed, resending", key, exc_info=True
             )
-    await channel.send(view=view, allowed_mentions=NO_MENTIONS)
+    await channel.send(view=view, **({"files": files} if files else {}), allowed_mentions=NO_MENTIONS)
     return True

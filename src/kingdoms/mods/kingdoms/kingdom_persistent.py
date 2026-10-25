@@ -156,6 +156,13 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMercenaryWithdrawButton,
     )
     from kingdoms.mods.kingdoms.kingdom_tavern_panel import KingdomTavernDrinkButton
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
+        KingdomAlliancesDurationsButton,
+        KingdomAlliancesHistoryButton,
+        KingdomAlliancesLockedButton,
+        KingdomAlliancesNamesButton,
+        KingdomAlliancesNextButton,
+    )
     from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
     from kingdoms.mods.kingdoms.kingdom_voliere_panel import (
         KingdomTheftButton,
@@ -211,6 +218,13 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         # taverne-chef-beta-call (Drasah 25/10): the admin-only beta
         # button that calls the Chief at ANY moment from the taverne.
         KingdomMercenaryCallButton,
+        # alliances-lisibilite-v1 T2 (Drasah 25/10): the five
+        # ephemeral answers of the alliances panel.
+        KingdomAlliancesNextButton,
+        KingdomAlliancesLockedButton,
+        KingdomAlliancesHistoryButton,
+        KingdomAlliancesDurationsButton,
+        KingdomAlliancesNamesButton,
     )
 
 
