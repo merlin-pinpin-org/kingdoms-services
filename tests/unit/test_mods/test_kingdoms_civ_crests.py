@@ -202,12 +202,16 @@ async def test_pickban_reveal_dm_attaches_enemy_crests(monkeypatch: pytest.Monke
 # ----------------------------------------------------------------------
 # alliances-lisibilite-v1 T3 (Drasah 25/10) — the crest MOSAIC
 # ----------------------------------------------------------------------
-def _tiny_red_png() -> bytes:
-    """One solid 4×4 red RGBA PNG (the mosaic diet, no network)."""
+def _tiny_colored_png(red: int, green: int, blue: int) -> bytes:
+    """One solid 4×4 RGBA PNG (the mosaic diet, no network)."""
     from kingdoms.mods.kingdoms.civ_crests import _encode_png_rgba
 
-    pixels = b"".join(b"\xff\x00\x00\xff" for _ in range(16))
+    pixels = b"".join(bytes((red, green, blue, 255)) for _ in range(16))
     return _encode_png_rgba(4, 4, pixels)
+
+
+def _tiny_red_png() -> bytes:
+    return _tiny_colored_png(255, 0, 0)
 
 
 def _file_bytes(file: object) -> bytes:
@@ -217,16 +221,16 @@ def _file_bytes(file: object) -> bytes:
     return bytes(fp.read())
 
 
-async def test_mosaic_file_wears_one_badge_per_tile(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Every tile carries its crest and its ORIGIN badge — ONE attachment."""
+async def test_mosaic_file_wears_one_emoji_badge_per_tile(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every tile carries its crest and its ORIGIN EMOJI badge — ONE attachment."""
     from kingdoms.mods.kingdoms import civ_crests
     from kingdoms.mods.kingdoms.civ_crests import (
-        DEFAULT_BADGE_COLOR,
+        DEFAULT_EMOJI_CODE,
         MOSAIC_BADGE,
         MOSAIC_BADGE_INSET,
         MOSAIC_COLS,
         MOSAIC_TILE,
-        ORIGIN_BADGE_COLORS,
+        ORIGIN_EMOJI_CODES,
         _decode_png_rgba,
         civ_crest_mosaic_file,
     )
@@ -234,7 +238,14 @@ async def test_mosaic_file_wears_one_badge_per_tile(monkeypatch: pytest.MonkeyPa
     async def fake_crest_bytes(url: str) -> bytes:
         return _tiny_red_png()
 
+    codes: list[str] = []
+
+    async def fake_emoji_bytes(code: str) -> bytes:
+        codes.append(code)
+        return _tiny_colored_png(0, 0, 255)  # a blue "emoji glyph"
+
     monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", fake_emoji_bytes)
 
     # 3 civs (the duplicated francs is dropped), mixed origins
     file = await civ_crest_mosaic_file(
@@ -257,11 +268,51 @@ async def test_mosaic_file_wears_one_badge_per_tile(monkeypatch: pytest.MonkeyPa
             MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2,
         )
 
-    assert pixel(*badge_center(0)) == ORIGIN_BADGE_COLORS["starter"]
-    assert pixel(*badge_center(1)) == ORIGIN_BADGE_COLORS["marriage"]
-    assert pixel(*badge_center(2)) == DEFAULT_BADGE_COLOR  # unknown origin → 🤝 grey
+    # mosaic-emoji-badge: the badge is the origin EMOJI glyph, not a colour square
+    assert pixel(*badge_center(0)) == (0, 0, 255)
+    assert pixel(*badge_center(1)) == (0, 0, 255)
+    assert pixel(*badge_center(2)) == (0, 0, 255)  # unknown origin → 🤝 glyph
+    assert codes == [
+        ORIGIN_EMOJI_CODES["starter"],
+        ORIGIN_EMOJI_CODES["marriage"],
+        DEFAULT_EMOJI_CODE,
+    ]  # the duplicated francs tile is dropped before its badge draw
     # the crest itself is resampled onto the tile
     assert pixel(4 + 52, 4 + 52) == (255, 0, 0)
+
+
+async def test_mosaic_badge_falls_back_to_the_colour_square(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed emoji fetch (offline) still marks provenance: colour square."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import (
+        MOSAIC_BADGE,
+        MOSAIC_BADGE_INSET,
+        MOSAIC_COLS,
+        MOSAIC_TILE,
+        ORIGIN_BADGE_COLORS,
+        _decode_png_rgba,
+        civ_crest_mosaic_file,
+    )
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        return _tiny_red_png()
+
+    async def fake_emoji_bytes(code: str) -> bytes | None:
+        return None
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", fake_emoji_bytes)
+    file = await civ_crest_mosaic_file([("francs", "starter")])
+    assert file is not None
+    decoded = _decode_png_rgba(_file_bytes(file))
+    assert decoded is not None
+    width, _height, pixels = decoded
+    x = MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2
+    y = MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2
+    dest = (y * width + x) * 4
+    assert (pixels[dest], pixels[dest + 1], pixels[dest + 2]) == ORIGIN_BADGE_COLORS["starter"]
 
 
 async def test_mosaic_file_survives_undecodable_pngs(monkeypatch: pytest.MonkeyPatch) -> None:

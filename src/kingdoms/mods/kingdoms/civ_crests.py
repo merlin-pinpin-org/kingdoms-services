@@ -173,7 +173,9 @@ async def civ_crest_files(civ_keys: Any) -> list[discord.File]:
 # PYTHON (the scriptorium_art precedent): each crest PNG is decoded,
 # resampled to its tile and composited on a transparent grid, and a
 # small ORIGIN BADGE in the tile's corner carries the acquisition
-# provenance (the panel's legend maps badge colour ↔ origin emoji).
+# provenance — mosaic-emoji-badge (Drasah 26/10): the mark is the
+# ORIGIN EMOJI itself, a Twemoji glyph composited in pure Python;
+# the colour square survives only as the offline fallback.
 MOSAIC_TILE = 112
 MOSAIC_CREST = 104
 MOSAIC_TILE_PAD = 4
@@ -189,6 +191,31 @@ ORIGIN_BADGE_COLORS: dict[str, tuple[int, int, int]] = {
     "mercenary": (210, 180, 140),
 }
 DEFAULT_BADGE_COLOR = (130, 134, 140)
+
+# mosaic-emoji-badge (Drasah 26/10): one Twemoji glyph per origin
+# rides the tile's corner (72px source, resampled to the badge box).
+ORIGIN_EMOJI_CODES: dict[str, str] = {
+    "starter": "1f3b2",
+    "condition": "1f5fa",
+    "marriage": "1f48d",
+    "royal": "1f451",
+    "mercenary": "1f4dc",
+}
+DEFAULT_EMOJI_CODE = "1f91d"  # 🤝 default / earlier season
+TWEMOJI_URL = (
+    "https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0"
+    "/assets/72x72/{0}.png"
+)
+_EMOJI_CACHE: dict[str, bytes | None] = {}
+
+
+async def _emoji_bytes(code: str) -> bytes | None:
+    """Fetch (and cache) one Twemoji glyph PNG — None on failure."""
+    if code in _EMOJI_CACHE:
+        return _EMOJI_CACHE[code]
+    data = await _crest_bytes(TWEMOJI_URL.format(code))
+    _EMOJI_CACHE[code] = data
+    return data
 
 
 def _badge_border(color: tuple[int, int, int]) -> tuple[int, int, int]:
@@ -347,8 +374,28 @@ def _paste(
         canvas[dest : dest + stride] = pixels[row * stride : (row + 1) * stride]
 
 
+def _paste_alpha(
+    canvas: bytearray, canvas_w: int, x: int, y: int, width: int, height: int, pixels: bytes
+) -> None:
+    """Alpha-composite RGBA pixels onto the canvas (source-over)."""
+    for row in range(height):
+        base = ((y + row) * canvas_w + x) * 4
+        for col in range(width):
+            src = (row * width + col) * 4
+            dest = base + col * 4
+            alpha = pixels[src + 3]
+            if alpha == 255:
+                canvas[dest : dest + 4] = pixels[src : src + 4]
+            elif alpha:
+                inv = 255 - alpha
+                for i in range(3):
+                    canvas[dest + i] = (
+                        pixels[src + i] * alpha + canvas[dest + i] * inv + 127
+                    ) // 255
+
+
 def _draw_badge(canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, origin: str) -> None:
-    """Stamp the origin badge in the tile's bottom-right corner."""
+    """Stamp the FALLBACK colour badge in the tile's bottom-right corner."""
     fill = ORIGIN_BADGE_COLORS.get(origin, DEFAULT_BADGE_COLOR)
     border = _badge_border(fill)
     badge_x = tile_x + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET
@@ -362,13 +409,37 @@ def _draw_badge(canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, orig
             canvas[dest + 3] = 255
 
 
+def _draw_emoji_badge(
+    canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, glyph: bytes | None
+) -> bool:
+    """Stamp the ORIGIN EMOJI in the tile's corner; False → colour fallback."""
+    if glyph is None:
+        return False
+    decoded = _decode_png_rgba(glyph)
+    if decoded is None:
+        return False
+    glyph_w, glyph_h, glyph_pixels = decoded
+    badge = _resample_rgba(glyph_w, glyph_h, glyph_pixels, MOSAIC_BADGE, MOSAIC_BADGE)
+    _paste_alpha(
+        canvas,
+        canvas_w,
+        tile_x + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET,
+        tile_y + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET,
+        MOSAIC_BADGE,
+        MOSAIC_BADGE,
+        badge,
+    )
+    return True
+
+
 async def civ_crest_mosaic_file(
     entries: Any, filename: str = "alliances.png"
 ) -> discord.File | None:
     """Compose the hand's crests into ONE mosaic attachment (None = empty hand).
 
     ``entries`` pairs each civ key with its acquisition origin; every
-    tile wears its crest and the origin badge, in hand order, five
+    tile wears its crest and its ORIGIN EMOJI badge (colour square
+    fallback offline), in hand order, five
     tiles per row. An undecodable or missing crest falls back to the
     default crest — the mosaic always goes out complete.
     """
@@ -410,5 +481,9 @@ async def civ_crest_mosaic_file(
             MOSAIC_CREST,
             crest,
         )
-        _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
+        code = ORIGIN_EMOJI_CODES.get(origin, DEFAULT_EMOJI_CODE)
+        if not _draw_emoji_badge(
+            canvas, canvas_w, tile_x, tile_y, await _emoji_bytes(code)
+        ):
+            _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
     return discord.File(io.BytesIO(_encode_png_rgba(canvas_w, canvas_h, bytes(canvas))), filename=filename)

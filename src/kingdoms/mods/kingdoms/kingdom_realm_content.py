@@ -70,8 +70,7 @@ def _strings(locale: str) -> dict[str, str]:
                 " 👑 Royal · 📜 Mercenaire · 🤝 saison antérieure"
             ),
             "alliances_panel_badges": (
-                "-# Badge sur chaque blason : blanc 🎲 · turquoise 🗺️ ·"
-                " rose 💍 · or 👑 · parchemin 📜 · gris 🤝"
+                "-# Chaque blason porte l'🎲 🗺️ 💍 👑 📜 de sa provenance · 🤝 saison antérieure"
             ),
             "alliances_panel_hand": "-# main : {0}",
             "alliances_panel_married_line": "💍 {0} — {1}",
@@ -245,8 +244,7 @@ def _strings(locale: str) -> dict[str, str]:
             " 👑 Royal · 📜 Mercenary · 🤝 earlier season"
         ),
         "alliances_panel_badges": (
-            "-# Badge on every crest: white 🎲 · teal 🗺️ · pink 💍 ·"
-            " gold 👑 · parchment 📜 · grey 🤝"
+            "-# Every crest wears its origin 🎲 🗺️ 💍 👑 📜 · 🤝 earlier season"
         ),
         "alliances_panel_married_line": "💍 {0} — {1}",
         "alliances_panel_hand": "-# hand: {0}",
@@ -430,8 +428,9 @@ def _build_alliances_panel(
 
     ONE unified view: the blasons ride a single MOSAIC attachment
     (crest + origin badge per tile, painted in pure Python) instead of
-    N full-size attachments, the legend maps badge colour ↔ origin
-    emoji, the written names stay one 🔤 Noms click away, the married
+    N full-size attachments, every crest tile wears its ORIGIN EMOJI
+    badge (mosaic-emoji-badge: Twemoji glyph composited in pure
+    Python, colour-square fallback offline), the written names stay the written names stay one 🔤 Noms click away, the married
     holders and the live mercenary contracts read as compact lines, and
     the help line points at the Scriptorium's Diplomatie rubric. The
     five ephemeral buttons ride the panel — the answers stay
