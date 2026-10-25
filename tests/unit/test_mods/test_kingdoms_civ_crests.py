@@ -277,8 +277,54 @@ async def test_mosaic_file_wears_one_emoji_badge_per_tile(monkeypatch: pytest.Mo
         ORIGIN_EMOJI_CODES["marriage"],
         DEFAULT_EMOJI_CODE,
     ]  # the duplicated francs tile is dropped before its badge draw
-    # the crest itself is resampled onto the tile
-    assert pixel(4 + 52, 4 + 52) == (255, 0, 0)
+    # the crest itself is resampled onto the tile (caption strip above it)
+    assert pixel(12 + 52, 24 + 52) == (255, 0, 0)
+
+
+async def test_mosaic_tile_wears_the_civ_name_caption(monkeypatch: pytest.MonkeyPatch) -> None:
+    """mosaic-name-captions: each tile's NAME rides a dark strip above the crest."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import (
+        MOSAIC_CAPTION_H,
+        MOSAIC_CAPTION_Y,
+        MOSAIC_TILE,
+        _decode_png_rgba,
+        civ_crest_mosaic_file,
+    )
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        return _tiny_red_png()
+
+    async def fake_emoji_bytes(code: str) -> bytes | None:
+        return None
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", fake_emoji_bytes)
+
+    # a NAMED civ wears its caption strip; a legacy 2-tuple wears none
+    file = await civ_crest_mosaic_file(
+        [("francs", "starter", "Francs"), ("huns", "marriage")]
+    )
+    assert file is not None
+    decoded = _decode_png_rgba(_file_bytes(file))
+    assert decoded is not None
+    width, _height, pixels = decoded
+
+    def pixel(x: int, y: int) -> tuple[int, int, int]:
+        dest = (y * width + x) * 4
+        return (pixels[dest], pixels[dest + 1], pixels[dest + 2])
+
+    # tile 0 (named): the strip is attached above the crest — dark, with
+    # white glyph pixels; the accented name renders (È = E + grave)
+    assert pixel(6, MOSAIC_CAPTION_Y + 3) == (22, 24, 29)
+    whites = 0
+    for y in range(MOSAIC_CAPTION_Y, MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H):
+        for x in range(MOSAIC_TILE):
+            if pixel(x, y) == (245, 246, 248):
+                whites += 1
+    assert whites > 20, "the name must be painted on the caption strip"
+    # tile 1 (legacy 2-tuple): no caption strip — the tile stays transparent
+    assert pixel(MOSAIC_TILE + 6, MOSAIC_CAPTION_Y + 3) == (0, 0, 0)
 
 
 async def test_mosaic_badge_falls_back_to_the_colour_square(

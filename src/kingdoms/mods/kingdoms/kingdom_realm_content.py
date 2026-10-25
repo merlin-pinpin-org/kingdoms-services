@@ -70,7 +70,7 @@ def _strings(locale: str) -> dict[str, str]:
                 " 👑 Royal · 📜 Mercenaire · 🤝 saison antérieure"
             ),
             "alliances_panel_badges": (
-                "-# Chaque blason porte l'🎲 🗺️ 💍 👑 📜 de sa provenance · 🤝 saison antérieure"
+                "-# Chaque blason porte son NOM et l'🎲 🗺️ 💍 👑 📜 de sa provenance · 🤝 saison antérieure"
             ),
             "alliances_panel_hand": "-# main : {0}",
             "alliances_panel_married_line": "💍 {0} — {1}",
@@ -244,7 +244,7 @@ def _strings(locale: str) -> dict[str, str]:
             " 👑 Royal · 📜 Mercenary · 🤝 earlier season"
         ),
         "alliances_panel_badges": (
-            "-# Every crest wears its origin 🎲 🗺️ 💍 👑 📜 · 🤝 earlier season"
+            "-# Every crest wears its NAME and its origin 🎲 🗺️ 💍 👑 📜 · 🤝 earlier season"
         ),
         "alliances_panel_married_line": "💍 {0} — {1}",
         "alliances_panel_hand": "-# hand: {0}",
@@ -584,7 +584,14 @@ async def deploy_realm_content(
                 ledger = dict(getattr(kingdom, "civilization_acquisitions", None) or {})
                 hand = [str(civ) for civ in getattr(kingdom, "civilizations", []) or []]
                 mosaic = await civ_crest_mosaic_file(
-                    [(civ, (ledger.get(civ) or {}).get("origin") or "") for civ in hand]
+                    [
+                        (
+                            civ,
+                            (ledger.get(civ) or {}).get("origin") or "",
+                            state.get("civ_names", {}).get(civ, civ),
+                        )
+                        for civ in hand
+                    ]
                 )
                 files = [mosaic] if mosaic is not None else None
             results[key] = await _upsert_view(channel, key, view, files)

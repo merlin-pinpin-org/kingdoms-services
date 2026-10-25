@@ -745,14 +745,17 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
     lines = [f"# 🎲 Draft starter — {kingdom.name}", ""]
     for civ_key in kingdom.civilizations:
         lines.append(f"• **{names.get(str(civ_key), str(civ_key))}**")
-    lines += ["", f"-# {DRAFT_STARTER_MARKER}"]
+    lines += ["", "-# Noms affichés sur chaque blason", f"-# {DRAFT_STARTER_MARKER}"]
     content = "\n".join(lines)
     # alliances-lisibilite-v1 T3 (Drasah 25/10): the draft starter
     # wears ONE composite mosaic (starter-badge tile per civ) — the
     # page fits again, the civ-crests-v1 full-size attachments are
     # gone.
     files = await civ_crest_mosaic_file(
-        [(str(civ_key), "starter") for civ_key in kingdom.civilizations],
+        [
+            (str(civ_key), "starter", names.get(str(civ_key), str(civ_key)))
+            for civ_key in kingdom.civilizations
+        ],
         filename="draft-starter.png",
     )
     marked, stale = await _split_marked_and_stale(channel, DRAFT_STARTER_MARKER, ALLIANCES_PENDING_MARKER)

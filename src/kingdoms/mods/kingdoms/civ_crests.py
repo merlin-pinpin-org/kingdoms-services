@@ -176,9 +176,14 @@ async def civ_crest_files(civ_keys: Any) -> list[discord.File]:
 # provenance — mosaic-emoji-badge (Drasah 26/10): the mark is the
 # ORIGIN EMOJI itself, a Twemoji glyph composited in pure Python;
 # the colour square survives only as the offline fallback.
-MOSAIC_TILE = 112
+# mosaic-name-captions (Drasah 26/10): each tile also wears the
+# civ's NAME, painted with an embedded 5x7 bitmap font on a dark
+# caption strip attached above the crest (no Pillow / system font
+# in the bot image — pure-Python glyphs, accented capitals included).
+MOSAIC_TILE = 128
 MOSAIC_CREST = 104
-MOSAIC_TILE_PAD = 4
+MOSAIC_CAPTION_Y = 2
+MOSAIC_CAPTION_H = 20
 MOSAIC_COLS = 5
 MOSAIC_BADGE = 28
 MOSAIC_BADGE_INSET = 2
@@ -394,6 +399,119 @@ def _paste_alpha(
                     ) // 255
 
 
+
+# ---- mosaic-name-captions (Drasah 26/10): a tiny embedded 5x7 bitmap ----
+# font (no Pillow / no system font in the bot image) paints each civ's
+# NAME on a dark caption strip attached above its crest, inside the tile.
+_FONT: dict[str, tuple[str, ...]] = {
+    " ": ("     ",) * 7,
+    "'": ("   X ", "   X ", "     ", "     ", "     ", "     ", "     "),
+    "-": ("     ", "     ", "     ", "XXXXX", "     ", "     ", "     "),
+    "A": ("  X  ", " X X ", "X   X", "XXXXX", "X   X", "X   X", "X   X"),
+    "B": ("XXXX ", "X   X", "X   X", "XXXX ", "X   X", "X   X", "XXXX "),
+    "C": (" XXXX", "X    ", "X    ", "X    ", "X    ", "X    ", " XXXX"),
+    "D": ("XXXX ", "X   X", "X   X", "X   X", "X   X", "X   X", "XXXX "),
+    "E": ("XXXXX", "X    ", "X    ", "XXXX ", "X    ", "X    ", "XXXXX"),
+    "F": ("XXXXX", "X    ", "X    ", "XXXX ", "X    ", "X    ", "X    "),
+    "G": (" XXXX", "X    ", "X    ", "X  XX", "X   X", "X   X", " XXXX"),
+    "H": ("X   X", "X   X", "X   X", "XXXXX", "X   X", "X   X", "X   X"),
+    "I": ("XXXXX", "  X  ", "  X  ", "  X  ", "  X  ", "  X  ", "XXXXX"),
+    "J": ("XXXXX", "   X ", "   X ", "   X ", "X  X ", "X  X ", " XX  "),
+    "K": ("X   X", "X  X ", "X X  ", "XX   ", "X X  ", "X  X ", "X   X"),
+    "L": ("X    ", "X    ", "X    ", "X    ", "X    ", "X    ", "XXXXX"),
+    "M": ("X   X", "XX XX", "X X X", "X X X", "X   X", "X   X", "X   X"),
+    "N": ("X   X", "XX  X", "X X X", "X  XX", "X   X", "X   X", "X   X"),
+    "O": (" XXX ", "X   X", "X   X", "X   X", "X   X", "X   X", " XXX "),
+    "P": ("XXXX ", "X   X", "X   X", "XXXX ", "X    ", "X    ", "X    "),
+    "Q": (" XXX ", "X   X", "X   X", "X   X", "X   X", "X  X ", " XX X"),
+    "R": ("XXXX ", "X   X", "X   X", "XXXX ", "X X  ", "X  X ", "X   X"),
+    "S": (" XXXX", "X    ", "X    ", " XXX ", "    X", "    X", "XXXX "),
+    "T": ("XXXXX", "  X  ", "  X  ", "  X  ", "  X  ", "  X  ", "  X  "),
+    "U": ("X   X", "X   X", "X   X", "X   X", "X   X", "X   X", " XXX "),
+    "V": ("X   X", "X   X", "X   X", "X   X", "X   X", " X X ", "  X  "),
+    "W": ("X   X", "X   X", "X   X", "X X X", "X X X", "XX XX", "X   X"),
+    "X": ("X   X", "X   X", " X X ", "  X  ", " X X ", "X   X", "X   X"),
+    "Y": ("X   X", "X   X", " X X ", "  X  ", "  X  ", "  X  ", "  X  "),
+    "Z": ("XXXXX", "    X", "   X ", " X   ", "X    ", "X    ", "XXXXX"),
+}
+
+# accented capitals render as base letter + a 2-row diacritic above
+_ACCENTED: dict[str, tuple[str, str]] = {
+    "À": ("A", "grave"),  # À
+    "Â": ("A", "circ"),  # Â
+    "Ç": ("C", "none"),  # Ç
+    "È": ("E", "grave"),  # È
+    "É": ("E", "acute"),  # É
+    "Ê": ("E", "circ"),  # Ê
+    "Î": ("I", "circ"),  # Î
+    "Ï": ("I", "dier"),  # Ï
+    "Ô": ("O", "circ"),  # Ô
+    "Ö": ("O", "dier"),  # Ö
+    "Û": ("U", "circ"),  # Û
+    "Ü": ("U", "dier"),  # Ü
+}
+_DIACRITICS: dict[str, tuple[str, str]] = {
+    "acute": ("   X ", "  X  "),
+    "grave": (" X   ", "  X  "),
+    "circ": ("  X  ", " X X "),
+    "dier": (" X X ", "     "),
+    "none": ("     ", "     "),
+}
+_CAPTION_BG = (22, 24, 29, 235)
+_CAPTION_FG = (245, 246, 248, 255)
+
+
+def _glyph_rows(char: str) -> tuple[str, ...] | None:
+    """One glyph as NINE 5-wide rows (2 diacritic rows + the 5x7 letter)."""
+    char = char.upper()
+    accent = _ACCENTED.get(char)
+    if accent is not None:
+        char, mark = accent
+        return _DIACRITICS[mark] + _FONT.get(char, _FONT[" "])
+    rows = _FONT.get(char)
+    if rows is None:
+        return None
+    return ("     ", "     ") + rows
+
+
+def _draw_caption(canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, name: str) -> None:
+    """Paint the civ's NAME on a dark strip attached above its crest."""
+    text = (name or "").strip()
+    glyphs = [g for c in text if (g := _glyph_rows(c)) is not None] if text else []
+    if not glyphs:
+        return
+    strip_y = tile_y + MOSAIC_CAPTION_Y
+    for y in range(MOSAIC_CAPTION_H):
+        dest = ((strip_y + y) * canvas_w + tile_x + 2) * 4
+        row = canvas_w * 4
+        span = (MOSAIC_TILE - 4) * 4
+        for offset in range(0, span, 4):
+            canvas[dest + offset : dest + offset + 3] = _CAPTION_BG[:3]
+            canvas[dest + offset + 3] = _CAPTION_BG[3]
+    scale, spacing = 2, 1
+    max_w = MOSAIC_TILE - 4
+    width = (5 * scale + spacing) * len(glyphs) - spacing
+    if width > max_w:
+        spacing = 0
+        width = 5 * scale * len(glyphs)
+    if width > max_w:
+        scale, spacing = 1, 1
+        width = (5 * scale + spacing) * len(glyphs) - spacing
+    x = tile_x + 2 + (max_w - width) // 2
+    top = strip_y + (MOSAIC_CAPTION_H - 9 * scale) // 2
+    for rows in glyphs:
+        for ry, row in enumerate(rows):
+            for rx, cell in enumerate(row):
+                if cell != "X":
+                    continue
+                for sy in range(scale):
+                    dest = ((top + ry * scale + sy) * canvas_w + x + rx * scale) * 4
+                    for sx in range(scale):
+                        canvas[dest + sx * 4 : dest + sx * 4 + 3] = _CAPTION_FG[:3]
+                        canvas[dest + sx * 4 + 3] = _CAPTION_FG[3]
+        x += 5 * scale + spacing
+
+
 def _draw_badge(canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, origin: str) -> None:
     """Stamp the FALLBACK colour badge in the tile's bottom-right corner."""
     fill = ORIGIN_BADGE_COLORS.get(origin, DEFAULT_BADGE_COLOR)
@@ -437,28 +555,30 @@ async def civ_crest_mosaic_file(
 ) -> discord.File | None:
     """Compose the hand's crests into ONE mosaic attachment (None = empty hand).
 
-    ``entries`` pairs each civ key with its acquisition origin; every
-    tile wears its crest and its ORIGIN EMOJI badge (colour square
-    fallback offline), in hand order, five
-    tiles per row. An undecodable or missing crest falls back to the
+    ``entries`` pairs each civ key with its acquisition origin, plus
+    an optional THIRD element: the civ's display name, painted as a
+    caption strip attached above its crest. Every tile wears its
+    crest and its ORIGIN EMOJI badge (colour square fallback
+    offline), in hand order, five tiles per row. An undecodable or missing crest falls back to the
     default crest — the mosaic always goes out complete.
     """
-    tiles: list[tuple[str, str]] = []
+    tiles: list[tuple[str, str, str]] = []
     seen: set[str] = set()
     for entry in entries or ():
         civ_key = str(entry[0]).strip()
         origin = str(entry[1] or "").strip()
+        name = str(entry[2] or "").strip() if len(entry) > 2 else ""
         if not civ_key or civ_key in seen:
             continue
         seen.add(civ_key)
-        tiles.append((civ_key, origin))
+        tiles.append((civ_key, origin, name))
     if not tiles:
         return None
     rows = (len(tiles) + MOSAIC_COLS - 1) // MOSAIC_COLS
     canvas_w = MOSAIC_COLS * MOSAIC_TILE
     canvas_h = rows * MOSAIC_TILE
     canvas = bytearray(canvas_w * canvas_h * 4)
-    for index, (civ_key, origin) in enumerate(tiles):
+    for index, (civ_key, origin, name) in enumerate(tiles):
         col, row = index % MOSAIC_COLS, index // MOSAIC_COLS
         tile_x, tile_y = col * MOSAIC_TILE, row * MOSAIC_TILE
         data = _DEFAULT_CREST_BYTES
@@ -472,11 +592,12 @@ async def civ_crest_mosaic_file(
             continue
         crest_w, crest_h, crest_pixels = decoded
         crest = _resample_rgba(crest_w, crest_h, crest_pixels, MOSAIC_CREST, MOSAIC_CREST)
+        _draw_caption(canvas, canvas_w, tile_x, tile_y, name)
         _paste(
             canvas,
             canvas_w,
-            tile_x + MOSAIC_TILE_PAD,
-            tile_y + MOSAIC_TILE_PAD,
+            tile_x + (MOSAIC_TILE - MOSAIC_CREST) // 2,
+            tile_y + MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H + 2,
             MOSAIC_CREST,
             MOSAIC_CREST,
             crest,
