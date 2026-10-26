@@ -34,7 +34,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -168,6 +168,69 @@ def _format_age(seconds: int) -> str:
     if minutes and not days:
         parts.append(f"{minutes}m")
     return " ".join(parts) or "0m"
+
+
+def _as_utc(value: object) -> datetime | None:
+    """Coerce a slot (datetime or ISO string) to an aware UTC datetime."""
+    if isinstance(value, datetime):
+        stamp = value
+    else:
+        try:
+            stamp = datetime.fromisoformat(str(value))
+        except (TypeError, ValueError):
+            return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=UTC)
+    return stamp.astimezone(UTC)
+
+
+async def cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
+    """📅 The next cycle switch countdown (alliances-panel-v3, Drasah 26/10).
+
+    Reads the SAME schedule the EventService runs on: the season's
+    beta slots first (beta weekends override the cron), then the weekly
+    ``events.cycle_cron`` slots since the season start — the first slot
+    after the game clock wins. No season → a plain "not scheduled" line
+    (never a crash, the button must always answer).
+    """
+    service = getattr(wiring, "kingdoms_service", None)
+    now = game_now()
+    candidates: list[datetime] = []
+    try:
+        season = await service.current_season() if service is not None else None
+    except Exception:
+        logger.warning("ALLIANCES PANEL: season read failed", exc_info=True)
+        season = None
+    if season is not None:
+        for raw in getattr(season, "beta_cycle_slots", None) or []:
+            stamp = _as_utc(raw)
+            if stamp is not None:
+                candidates.append(stamp)
+        events = getattr(getattr(service, "config", None), "events", None)
+        cron = getattr(events, "cycle_cron", None)
+        started = _as_utc(getattr(season, "started_at", None))
+        if cron and started is not None:
+            try:
+                tz = ZoneInfo(str(getattr(events, "schedule_timezone", "UTC") or "UTC"))
+            except Exception:
+                tz = ZoneInfo("UTC")
+            from kingdoms.mods.kingdoms.events import cron_slots_between
+
+            candidates.extend(
+                cron_slots_between(str(cron), started, now + timedelta(days=8), tz)
+            )
+    upcoming = sorted(stamp for stamp in candidates if stamp > now)
+    lines = [strings["alliances_cycle_title"].format(getattr(kingdom, "name", ""))]
+    if not upcoming:
+        lines.append(strings["alliances_cycle_none"])
+        return "\n".join(lines)
+    lines.append(
+        strings["alliances_cycle_line"].format(
+            _format_age(int((upcoming[0] - now).total_seconds()))
+        )
+    )
+    lines.append(strings["alliances_cycle_hint"])
+    return "\n".join(lines)
 
 
 async def next_cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
@@ -314,11 +377,34 @@ def _arm_answer_timer(kind: str, interaction: discord.Interaction) -> None:
             logger.debug("ALLIANCES PANEL: ephemeral auto-delete skipped", exc_info=True)
         finally:
             _ANSWER_EPHEMERAL_TIMERS.pop(key, None)
+            for state_key, stored in list(_ANSWER_EPHEMERAL_STATE.items()):
+                if id(stored) == id(interaction):
+                    _ANSWER_EPHEMERAL_STATE.pop(state_key, None)
 
     _ANSWER_EPHEMERAL_TIMERS[key] = asyncio.create_task(_delete_later())
 
 
+# alliances-panel-v3 (Drasah 26/10): ONE ephemeral per (player, salon) —
+# the prior bubble of the same player is DELETED before the new answer
+# lands, the bubbles never pile up.
+_ANSWER_EPHEMERAL_STATE: dict[tuple[str, str], discord.Interaction] = {}
+
+
+async def _replace_prior_answer(key: tuple[str, str]) -> None:
+    """Delete the prior ephemeral answer of one (player, salon) — best-effort."""
+    prior = _ANSWER_EPHEMERAL_STATE.pop(key, None)
+    if prior is None:
+        return
+    for timer_key in [k for k in _ANSWER_EPHEMERAL_TIMERS if k[1] == id(prior)]:
+        _ANSWER_EPHEMERAL_TIMERS.pop(timer_key).cancel()
+    try:
+        await prior.delete_original_response()
+    except Exception:
+        logger.debug("ALLIANCES PANEL: prior ephemeral already gone", exc_info=True)
+
+
 _KIND_BUILDERS: dict[str, Any] = {
+    "cycle": cycle_note,
     "next": next_cycle_note,
     "locked": locked_note,
     "durations": durations_note,
@@ -334,10 +420,18 @@ async def _send_answer(kind: str, interaction: discord.Interaction) -> None:
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
     wiring = _wiring()
+    # alliances-panel-v3 : UNE éphémère par (joueur, salon) — la bulle
+    # précédente est supprimée avant que la nouvelle n'arrive.
+    answer_key = (
+        str(getattr(getattr(interaction, "user", None), "id", "?")),
+        str(getattr(getattr(interaction, "channel", None), "id", "?")),
+    )
+    await _replace_prior_answer(answer_key)
     kingdom = await kingdom_of_interaction(wiring, interaction)
     if kingdom is None:
         await interaction.response.send_message(strings["alliances_kingdom_none"], ephemeral=True)
         _arm_answer_timer(kind, interaction)
+        _ANSWER_EPHEMERAL_STATE[answer_key] = interaction
         return
     try:
         note = await _KIND_BUILDERS[kind](wiring, kingdom, strings)
@@ -346,6 +440,7 @@ async def _send_answer(kind: str, interaction: discord.Interaction) -> None:
         note = strings["alliances_no_data"]
     await interaction.response.send_message(note, ephemeral=True)
     _arm_answer_timer(kind, interaction)
+    _ANSWER_EPHEMERAL_STATE[answer_key] = interaction
 
 
 class _AlliancesButtonMixin:
@@ -355,6 +450,40 @@ class _AlliancesButtonMixin:
 
     async def answer(self, interaction: discord.Interaction) -> None:
         await _send_answer(self._KIND, interaction)
+
+
+class KingdomAlliancesCycleButton(
+    _AlliancesButtonMixin,
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:alliances:cycle",
+):
+    """The restart-proof 📅 countdown button of the Alliances panel (v3)."""
+
+    _KIND = "cycle"
+
+    def __init__(
+        self, label: str, style: discord.ButtonStyle = discord.ButtonStyle.secondary
+    ) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(label)[:80], custom_id="kingdoms:alliances:cycle", style=style
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomAlliancesCycleButton:
+        """Rebuild the button from the wire — the only post-restart path."""
+        return cls(_strings_of(interaction.locale)["alliances_btn_cycle"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Send the next-cycle countdown, ephemeral and read-only."""
+        await self.answer(interaction)
 
 
 class KingdomAlliancesNextButton(

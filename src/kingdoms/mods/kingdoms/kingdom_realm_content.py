@@ -73,6 +73,20 @@ def _strings(locale: str) -> dict[str, str]:
                 "-# Chaque blason porte son NOM et l'🎲 🗺️ 💍 👑 📜 de sa provenance · 🤝 saison antérieure"
             ),
             "alliances_panel_hand": "-# main : {0}",
+            "alliances_panel_signature": "main : {0}",
+            "alliances_panel_intro_hand": (
+                "Ici se trouve ta main — les civilisations que tu as le droit"
+                " d'utiliser actuellement durant tes confrontations !"
+            ),
+            "alliances_panel_intro_rules": (
+                "Tu commences avec **8 civilisations** distribuées aléatoirement,"
+                " mais attention : tes alliances évoluent en fonction de tes conquêtes,"
+                " de tes mariages et de tes contrats avec des mercenaires."
+            ),
+            "alliances_panel_intro_cycle": (
+                "À chaque passage au prochain cycle, tes alliances s'actualisent !"
+                " Pour voir quand a lieu le prochain passage, clique sur 📅."
+            ),
             "alliances_panel_married_line": "💍 {0} — {1}",
             "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} usage(s) de draft)",
             "alliances_panel_empty": (
@@ -85,6 +99,7 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_panel_help_named": (
                 "-# ❓ Conditions d'obtention des civilisations : {0} → rubrique « 🤝 Diplomatie »."
             ),
+            "alliances_btn_cycle": "📅",
             "alliances_btn_next": "🔭 Prochain cycle",
             "alliances_btn_locked": "🚫 Verrouillées",
             "alliances_btn_history": "📖 Historique",
@@ -100,6 +115,12 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_next_intro": (
                 "Projection de ta main au prochain cycle d'alliances — ce qui sera gardé, ce qui arrive, ce qui part."
             ),
+            "alliances_cycle_title": "📅 Prochain cycle — {0}",
+            "alliances_cycle_line": "Passage du prochain cycle dans **{0}**",
+            "alliances_cycle_hint": (
+                "-# À ce moment tes alliances s'actualisent — 🔭 Prochain cycle en donne la projection."
+            ),
+            "alliances_cycle_none": "❌ Aucune saison active — le prochain cycle n'est pas encore planifié.",
             "alliances_locked_title": "🚫 Verrouillées — {0}",
             "alliances_locked_line": "🚫 **{0}** — {1}",
             "alliances_locked_cond_maps": "cartes requises : {0}",
@@ -262,6 +283,20 @@ def _strings(locale: str) -> dict[str, str]:
         ),
         "alliances_panel_married_line": "💍 {0} — {1}",
         "alliances_panel_hand": "-# hand: {0}",
+        "alliances_panel_signature": "hand: {0}",
+        "alliances_panel_intro_hand": (
+            "Here is your hand — the civilizations you may use right now"
+            " in your confrontations!"
+        ),
+        "alliances_panel_intro_rules": (
+            "You start with **8 civilizations** dealt at random, but beware:"
+            " your alliances evolve with your conquests, your marriages and"
+            " your mercenary contracts."
+        ),
+        "alliances_panel_intro_cycle": (
+            "At every cycle switch your alliances refresh! To see when the next"
+            " switch happens, click 📅."
+        ),
         "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} draft use(s))",
         "alliances_panel_empty": (
             "No civilization in hand — alliances arrive through play"
@@ -271,6 +306,7 @@ def _strings(locale: str) -> dict[str, str]:
         "alliances_panel_help_named": (
             "-# ❓ How to obtain the civilizations: {0} → « 🤝 Diplomatie » rubric."
         ),
+        "alliances_btn_cycle": "📅",
         "alliances_btn_next": "🔭 Next cycle",
         "alliances_btn_locked": "🚫 Locked",
         "alliances_btn_history": "📖 History",
@@ -286,6 +322,12 @@ def _strings(locale: str) -> dict[str, str]:
         "alliances_next_intro": (
             "Projection of your hand at the next alliance cycle — kept, arriving, leaving."
         ),
+        "alliances_cycle_title": "📅 Next cycle — {0}",
+        "alliances_cycle_line": "Next cycle switch in **{0}**",
+        "alliances_cycle_hint": (
+            "-# At that moment your alliances refresh — 🔭 Next cycle shows the projection."
+        ),
+        "alliances_cycle_none": "❌ No active season — the next cycle is not scheduled yet.",
         "alliances_locked_title": "🚫 Locked — {0}",
         "alliances_locked_line": "🚫 **{0}** — {1}",
         "alliances_locked_cond_maps": "required maps: {0}",
@@ -469,6 +511,7 @@ def _build_alliances_panel(
     import discord
 
     from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
+        KingdomAlliancesCycleButton,
         KingdomAlliancesDurationsButton,
         KingdomAlliancesHistoryButton,
         KingdomAlliancesLockedButton,
@@ -477,14 +520,10 @@ def _build_alliances_panel(
 
     civ_names = state.get("civ_names", {})
     hand = [str(civ) for civ in getattr(kingdom, "civilizations", []) or []]
-    married: dict[str, str] = {}
     mercenary: list[str] = []
     for member in state.get("members", []):
-        civ = getattr(member, "married_civilization", None)
-        if civ:
-            married[str(civ)] = str(
-                getattr(member, "display_name", getattr(member, "id", "?"))
-            )
+        # alliances-panel-v3 : la ligne 💍 mariée disparaît du panneau —
+        # la légende + l'emoji de la mosaïque suffisent (retour Drasah).
         merc_civ = getattr(member, "mercenary_civilization", None)
         merc_uses = int(getattr(member, "mercenary_uses_left", 0) or 0)
         if merc_civ and merc_uses > 0:
@@ -495,22 +534,19 @@ def _build_alliances_panel(
                     merc_uses,
                 )
             )
-    lines: list[str] = [strings["alliances_panel_legend"], strings["alliances_panel_badges"]]
-    # empreinte main (T3b): the body must change when the HAND changes,
-    # or the identity guard would keep a stale mosaic after a hand edit.
-    # alliances-panel-v2 : la signature vit en SPOILER sur la ligne
-    # « main » — floutée pour les joueurs, lisible pour la garde.
-    lines.append(
-        strings["alliances_panel_hand"].format(", ".join(hand))
-        + f" · ||{VIEW_MARKER_PREFIX}:alliances-panel||"
-    )
+    lines: list[str] = [
+        strings["alliances_panel_legend"],
+        strings["alliances_panel_badges"],
+        "",
+        strings["alliances_panel_intro_hand"],
+        strings["alliances_panel_intro_rules"],
+        strings["alliances_panel_intro_cycle"],
+    ]
+    # alliances-panel-v3 : la ligne « main : » visible disparaît (doublon —
+    # les noms vivent sur la mosaïque) ; l'EMPREINTE main (garde d'identité)
+    # survit dans la SIGNATURE en spoiler, dernière ligne sous l'aide.
     if not hand and not mercenary:
         lines.append(strings["alliances_panel_empty"])
-    for civ_key, lord in married.items():
-        if civ_key in hand:
-            lines.append(
-                strings["alliances_panel_married_line"].format(civ_names.get(civ_key, civ_key), lord)
-            )
     lines.extend(mercenary)
     mention = state.get("scriptorium_mention")
     help_line = (
@@ -518,8 +554,15 @@ def _build_alliances_panel(
         if mention
         else strings["alliances_panel_help"]
     )
-    body = "\n".join([*lines, "", help_line])
+    signature = (
+        f"-# ||{VIEW_MARKER_PREFIX}:alliances-panel · "
+        + strings["alliances_panel_signature"].format(", ".join(hand))
+        + "||"
+    )
+    body = "\n".join([*lines, "", help_line, signature])
+    # alliances-panel-v3 : 📅 en PREMIER bouton (Drasah), 📖 reste dernier
     buttons: list[Any] = [
+        KingdomAlliancesCycleButton(strings["alliances_btn_cycle"]),
         KingdomAlliancesNextButton(strings["alliances_btn_next"]),
         KingdomAlliancesLockedButton(strings["alliances_btn_locked"]),
         KingdomAlliancesDurationsButton(strings["alliances_btn_durations"]),

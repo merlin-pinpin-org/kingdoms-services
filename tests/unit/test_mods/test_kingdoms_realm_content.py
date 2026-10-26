@@ -773,15 +773,25 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     # T3: the unified view reads a LEGEND (badge colour ↔ origin emoji)
     assert "L\u00e9gende" in content
     assert "\U0001f3b2 Draft starter" in content
-    # the married holder stays named, compact (💍 {civ} — {lord})
-    assert "\U0001f48d Azt\u00e8ques — Luc" in content
+    # alliances-panel-v3: the 💍 married line is GONE — the legend and the
+    # crest's origin emoji already tell the provenance (Drasah's call)
+    assert "\U0001f48d Azt\u00e8ques — Luc" not in content
     # the help line points at the Scriptorium's Diplomatie rubric
     assert "Scriptorium" in content and "Diplomatie" in content
-    # alliances-panel-v2: the signature hides in a SPOILER on the hand line
-    assert f"||{VIEW_MARKER_PREFIX}:alliances-panel||" in content
-    # the four ephemeral answers ride the panel, restart-proof custom ids
+    # alliances-panel-v3: the intro explains the hand and points at 📅
+    assert "ta main" in content
+    assert "8 civilisations" in content
+    assert "\U0001f4c5" in content
+    # the visible « main : » line is GONE (doublon with the crest names)
+    assert "\n-# main :" not in content
+    # alliances-panel-v3: the signature + hand fingerprint hide in a SPOILER
+    # on the LAST line, below the help line
+    assert f"-# ||{VIEW_MARKER_PREFIX}:alliances-panel ·" in content
+    assert "main : azteques||" in content
+    # the five ephemeral answers ride the panel, restart-proof custom ids
     ids = _ids(panel.view)
     for custom_id in (
+        "kingdoms:alliances:cycle",
         "kingdoms:alliances:next",
         "kingdoms:alliances:locked",
         "kingdoms:alliances:durations",
@@ -803,6 +813,7 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     ]
     button_ids = [cid for cid in button_ids if cid]
     assert button_ids[-1] == "kingdoms:alliances:history"
+    assert button_ids[0] == "kingdoms:alliances:cycle"
 
 
 async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> None:
@@ -1087,6 +1098,106 @@ async def test_alliances_ephemeral_answers_self_destruct() -> None:
         assert interaction.original_deleted is True
     finally:
         panel_mod.ALLIANCES_EPHEMERAL_TTL = saved_ttl
+
+
+async def test_cycle_button_counts_down_to_the_next_switch() -> None:
+    """alliances-panel-v3: 📅 answers with the time left before the next
+    cycle switch — the beta slots override the weekly cron."""
+    from datetime import timedelta
+
+    from kingdoms.mods.kingdoms.game_clock import game_now
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesCycleButton
+
+    import kingdoms.mods.kingdoms.kingdom_alliances_panel as panel_mod
+
+    # a FROZEN game clock: the countdown must read exactly 2h 5m, the
+    # milliseconds between two real game_now() calls would flake it
+    fixed_now = game_now()
+
+    class _CycleSeason:
+        phase = "started"
+
+        def __init__(self) -> None:
+            self.started_at = fixed_now - timedelta(days=3)
+            self.beta_cycle_slots = [fixed_now + timedelta(hours=2, minutes=5)]
+
+    class _CycleKingdomsService(_AlliancesKingdomsService):
+        def __init__(self) -> None:
+            self._season = _CycleSeason()
+
+        async def current_season(self) -> object:
+            return self._season
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    register_kingdoms_panel_wiring(
+        KingdomsPanelWiring(
+            kingdoms_service=_CycleKingdomsService(),
+            territories_service=_TerritoriesService(),
+            economy_service=_EconomyService(),
+            attacks_service=_AttacksService(),
+            diplomacy_service=None,
+        )
+    )
+
+    saved_game_now = panel_mod.game_now
+    panel_mod.game_now = lambda: fixed_now
+    try:
+        interaction = _alliances_interaction(guild)
+        await KingdomAlliancesCycleButton("\U0001f4c5").callback(interaction)
+    finally:
+        panel_mod.game_now = saved_game_now
+
+    assert interaction.response.ephemeral is True
+    content = (interaction.response.message.content or "") if interaction.response.message else ""
+    assert "\U0001f4c5 Prochain cycle — Avalon" in content
+    assert "dans **2h 5m**" in content
+
+
+async def test_cycle_button_without_a_season_reads_not_scheduled() -> None:
+    """alliances-panel-v3: no season (or a service without one) → the 📅
+    button still answers, with the plain "not scheduled" line."""
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesCycleButton
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    _wire_alliances(None)  # kingdoms service without current_season → no schedule
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesCycleButton("\U0001f4c5").callback(interaction)
+    content = (interaction.response.message.content or "") if interaction.response.message else ""
+    assert "Aucune saison active" in content
+
+
+async def test_alliances_answers_replace_the_prior_ephemeral() -> None:
+    """alliances-panel-v3: ONE bubble per (player, salon) — a new click
+    deletes the player's prior ephemeral instead of piling bubbles up."""
+    import kingdoms.mods.kingdoms.kingdom_alliances_panel as panel_mod
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
+        KingdomAlliancesDurationsButton,
+        KingdomAlliancesHistoryButton,
+    )
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    _wire_alliances(None)
+
+    first = _alliances_interaction(guild)
+    await KingdomAlliancesHistoryButton("\U0001f4d6 Historique").callback(first)
+    assert first.response.ephemeral is True
+    assert not getattr(first, "original_deleted", False)
+
+    second = _alliances_interaction(guild)
+    await KingdomAlliancesDurationsButton("\u23f3 Dur\u00e9es").callback(second)
+    assert second.response.ephemeral is True
+    # the prior bubble is deleted, the new one lives ALONE
+    assert getattr(first, "original_deleted", False) is True
+    assert not getattr(second, "original_deleted", False)
+    assert len(panel_mod._ANSWER_EPHEMERAL_STATE) == 1
+
+    # cleanup: cancel the pending auto-delete timer of the live bubble
+    for task in list(panel_mod._ANSWER_EPHEMERAL_TIMERS.values()):
+        task.cancel()
 
 
 async def test_alliances_panel_merges_the_mercenary_contracts() -> None:
