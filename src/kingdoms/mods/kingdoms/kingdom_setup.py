@@ -137,11 +137,12 @@ _CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
     "candidatures": "📥 candidatures",
     "royaumes": "👑 royaumes",
     "scriptorium": "📜 scriptorium",
-    "marche": "💰 bourse",
-    # bourse-v1 (Drasah 26/10): the Marché salon becomes the Bourse —
-    # the live « marché » (any emoji form) is renamed by THIS pass, so
-    # the core's adopt-by-slug then finds « bourse », not a duplicate.
-    "bourse": "💰 bourse",
+    "marche": "💰 marché",
+    # marche-emoji-v1 (Drasah 26/10): le nom du salon reste « marché »,
+    # seul l'emoji caddie 🛒 gênait — 💰 le remplace. La clé « bourse »
+    # rattrape un salon déjà renommé « 💰 bourse » par la passe
+    # précédente (migration inverse, id-mappée).
+    "bourse": "💰 marché",
     # no geopolitics here: its live name is owned by refresh_age_pin
     # (the age emoji is dynamic) — the charte must never fight it.
     "territoire": "🗺️ territoire",
@@ -169,7 +170,7 @@ _CHARTE_TOPICS: dict[str, str] = {
     "royaumes": "Le grand livre des royaumes — fondations, validations et refus.",
     "scriptorium": "La bibliothèque du royaume : cadastre, diplomatie et seigneurie y sont consignés.",
     "marche": "Les marchands croisent le fer — ressources, trocs et étals du royaume.",
-    "bourse": "La bourse du royaume — technologies et actions s'y monnaient en écus.",
+    "bourse": "Les marchands croisent le fer — ressources, trocs et étals du royaume.",
     "territoire": "Les terres de Gaïa — son niveau d'éveil et le cadastre du monde.",
     "taverne": "Le feu crépite et les langues se délient — bois un coup, écoute les rumeurs et parie sur les prochaines batailles.",
     "declarer-une-attaque": "Le pas des bannières — déclare ta guerre, seigneur.",
@@ -621,7 +622,7 @@ category's display name is « Champs de Bataille » and must be spared
 
 KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
     "📜 scriptorium",
-    "💰 bourse",
+    "💰 marché",
     "🌍 géopolitique",
     "🗺️ territoire",
     "🍺 taverne",

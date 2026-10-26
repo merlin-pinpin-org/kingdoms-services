@@ -63,11 +63,12 @@ channels:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: market
-    # bourse-v1 (Drasah 26/10): the salon « 🛒 marché » becomes the
-    # « 💰 bourse » — the market's purse, where techs and actions are
-    # bought. Same key (id-mapped rename at the next provisioning).
-    display_name: 💰 bourse
-    description: The kingdom's bourse — techs and actions bought with écus
+    # marche-emoji-v1 (Drasah 26/10): le nom reste « marché » — seul
+    # l'emoji caddie 🛒 gênait ; 💰 le remplace. La bourse est le nom
+    # de la monnaie, pas du salon. Même clé (renommage id-mappé au
+    # prochain provisioning).
+    display_name: 💰 marché
+    description: The kingdom's market — techs and actions bought with écus
     group: kingdoms
     access:
       everyone_view: false

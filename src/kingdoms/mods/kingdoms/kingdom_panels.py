@@ -100,7 +100,7 @@ QUEUE_VALUE = "__queue__"
 PANEL_MARKER = "kingdoms:panel:postuler"
 SETTINGS_PANEL_MARKER = "kingdoms:panel:parametres"
 MARKET_PANEL_MARKER = "kingdoms:panel:marche"
-MARKET_CHANNEL = "bourse"
+MARKET_CHANNEL = "marche"
 SEASON_STATUS_MARKER = "kingdoms:season:status"
 SEASON_STATUS_CHANNEL = "saison"
 UPDATE_CHANNEL = "update"
@@ -1941,12 +1941,12 @@ async def _deploy_channel_panel(
     if slug == "parametres":
         await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
         return "paramètres"
-    if slug == MARKET_CHANNEL or slug == "marche":
-        # bourse-v1 (Drasah 26/10): the salon was renamed « marché » →
-        # « 💰 bourse » — the legacy slug keeps deploying the panel on
-        # a guild mid-migration (the charte rename runs first anyway).
+    if slug == MARKET_CHANNEL or slug == "bourse":
+        # marche-emoji-v1 (Drasah 26/10): le salon redevient « 💰 marché »
+        # (seul l'emoji caddie gênait) — le slug « bourse » reste accepté
+        # pour rattraper un salon déjà renommé par la passe précédente.
         await _deploy_market_panel(channel, locale, kingdoms_service)
-        return "bourse"
+        return "marché"
     if slug == "royaumes":
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
         from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_gaia_content
