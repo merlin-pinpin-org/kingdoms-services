@@ -494,6 +494,43 @@ async def _apply_candidature_approval(
         except Exception:
             logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
             extra += " " + strings["no_service"]
+    # Live incident (Drasah 26/10, Aubin):
+    # a LORD approved mid-season is enrolled and granted the kingdoms_lord
+    # role, but the realm categories are gated by MEMBER-level overwrites
+    # (not the role) — without this re-sync the newcomer sees Territoire
+    # and Alliances of every realm yet NOT his own 🏰 kingdom category.
+    # Same class as the 2026-10-18 King-claim incident: targeted grant
+    # first, blanket re-sync as the fallback.
+    if enrolled and kingdom_name and guild is not None and applicant_id:
+        if wiring.kingdoms_service is not None and str(applicant_id).isdigit():
+            try:
+                from kingdoms.mods.kingdoms.kingdom_realms import (
+                    ensure_all_realm_structures,
+                    ensure_member_realm_access,
+                )
+
+                kingdom = next(
+                    (
+                        k
+                        for k in await wiring.kingdoms_service.kingdoms()
+                        if str(k.name).strip().casefold()
+                        == str(kingdom_name).strip().casefold()
+                    ),
+                    None,
+                )
+                if kingdom is not None:
+                    granted = await ensure_member_realm_access(
+                        guild, kingdom, int(applicant_id)
+                    )
+                    if not granted:
+                        await ensure_all_realm_structures(
+                            guild, wiring.kingdoms_service
+                        )
+            except Exception:
+                logger.warning(
+                    "CANDIDATURES: realm access re-sync failed after approval",
+                    exc_info=True,
+                )
     if guild is not None and applicant_id:
         await _send_welcome(guild, applicant_id, strings)
         if is_king and kingdom_name is None:
