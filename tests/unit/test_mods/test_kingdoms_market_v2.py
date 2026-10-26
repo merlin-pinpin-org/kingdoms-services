@@ -212,12 +212,15 @@ async def test_overview_panel_carries_the_ledger_button() -> None:
 
 _LEDGER_MATCH: Any = __import__("re").match(r"kingdoms:market:ledger", "kingdoms:market:ledger")
 
-async def test_cancel_button_folds_the_card_back() -> None:
+async def test_cancel_button_closes_the_card_window() -> None:
+    """bourse-v1 (Drasah 26/10): the ❌ CLOSES the ephemeral window
+    (defer + delete_original_response) — no leftover « Purchase
+    cancelled » note."""
     from kingdoms.mods.kingdoms import kingdom_panels
 
     strings = kingdom_panels._strings("en")
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     cancel = KingdomMarketCancelButton(strings)
     await cancel.callback(interaction)
-    assert interaction.response.message is not None
-    assert "Purchase cancelled" in str(interaction.response.message.content or "")
+    assert interaction.response.deferred is True
+    assert interaction.original_deleted is True

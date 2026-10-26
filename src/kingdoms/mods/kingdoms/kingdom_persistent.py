@@ -1463,12 +1463,34 @@ class KingdomMarketCancelButton(
         return cls(_strings(locale))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Fold the card back under the stall (edit the ephemeral)."""
+        """Close the revealed card: the ephemeral window disappears.
+
+        cartes-tcg-v2 retour live (Drasah 26/10): the ❌ should just
+        CLOSE the ephemeral — a leftover « Achat annulé » message was
+        noise. The card message IS the interaction's original response,
+        so defer + delete_original_response makes the window vanish.
+        Deletion is best-effort: past the 15-minute window (or on a
+        mock), fold the card back to the plain cancelled note instead.
+        """
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
-        await interaction.response.edit_message(
-            content=strings["market_cancelled"], embed=None, view=None
-        )
+        try:
+            await interaction.response.defer()
+            await interaction.delete_original_response()
+            logger.info("KINGDOMS MARKET: card window closed (deleted ephemeral)")
+        except Exception:
+            logger.warning(
+                "KINGDOMS MARKET: card window deletion failed — folding back",
+                exc_info=True,
+            )
+            try:
+                await interaction.response.edit_message(
+                    content=strings["market_cancelled"], embed=None, view=None
+                )
+            except Exception:
+                logger.warning(
+                    "KINGDOMS MARKET: card fold-back failed too", exc_info=True
+                )
 
 
 class KingdomMarketModal(discord.ui.Modal):
