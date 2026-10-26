@@ -265,7 +265,9 @@ async def test_the_drinks_stay_in_the_comptoir_and_the_mercenary_moves_to_the_so
     soudoyeur = next(c for c in guild.text_channels if c.name == "⚔️ soudoyeur")
     comptoir_contents = [m.content for m in comptoir.messages]
     assert any("kingdoms-tavern-comptoir" in c for c in comptoir_contents)
-    assert any("<!-- kingdoms-tavern -->" in c for c in comptoir_contents)  # the drinks
+    # taverne-comptoir-v2 (Drasah 26/10): the pinned drinks message is
+    # GONE — the drinks live behind the comptoir pin's menu button.
+    assert not any("<!-- kingdoms-tavern -->" in c for c in comptoir_contents)
     # The auction panel rides the soudoyeur back room now — NOT the comptoir.
     assert any("kingdoms-mercenary" in m.content for m in soudoyeur.messages)
     assert not any("kingdoms-mercenary" in c for c in comptoir_contents)
@@ -300,16 +302,24 @@ async def test_provisioning_creates_the_soudoyeur_hidden_back_room() -> None:
     assert any(SOUDOYEUR_MARKER in c for c in soudoyeur_contents)
     assert any(m.attachments for m in soudoyeur.messages)  # the hooded-table art
     assert any("kingdoms-mercenary" in c for c in soudoyeur_contents)
-    # The ask-to-see button lives in the comptoir — ONE message.
+    # taverne-comptoir-v2: the comptoir pin carries the three
+    # buttons — ask-to-see FIRST, drinks menu, door-out LAST.
     comptoir = next(c for c in guild.text_channels if c.name == "comptoir")
-    calls = [m for m in comptoir.messages if SOUDOYEUR_CALL_MARKER in m.content]
-    assert len(calls) == 1
-    assert "kingdoms:tavern:soudoyeur:reveal" in (_button_custom_ids(calls[0].view) or [None])
-    # Idempotent provisioning: no second room, no second call, still hidden.
+    pins = [m for m in comptoir.messages if COMPTOIR_MARKER in m.content]
+    assert len(pins) == 1
+    assert _button_custom_ids(pins[0].view) == [
+        "kingdoms:tavern:soudoyeur:reveal",
+        "kingdoms:tavern:menu",
+        "kingdoms:tavern:exit",
+    ]
+    # No standalone call message, no pinned drinks message anymore.
+    assert not any(SOUDOYEUR_CALL_MARKER in m.content for m in comptoir.messages)
+    assert not any("<!-- kingdoms-tavern -->" in m.content for m in comptoir.messages)
+    # Idempotent provisioning: no second room, no second pin, still hidden.
     await ensure_tavern_immersion_structure(guild)
     rooms = [c for c in guild.text_channels if c.name == "⚔️ soudoyeur"]
     assert len(rooms) == 1
-    assert len([m for m in comptoir.messages if SOUDOYEUR_CALL_MARKER in m.content]) == 1
+    assert len([m for m in comptoir.messages if COMPTOIR_MARKER in m.content]) == 1
     assert soudoyeur.permission_overwrite_for(role) is not None
 
 
@@ -327,24 +337,33 @@ async def test_the_reveal_button_opens_the_room_to_everyone_and_never_returns() 
     comptoir = next(c for c in guild.text_channels if c.name == "comptoir")
     member = MockMember(id=91, name="Curieux")
     guild.add_member(member)
-    call_message = next(m for m in comptoir.messages if SOUDOYEUR_CALL_MARKER in m.content)
+    pin = next(m for m in comptoir.messages if COMPTOIR_MARKER in m.content)
 
     interaction = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomSoudoyeurRevealButton("Demander à voir le Soudoyeur").callback(interaction)
 
-    # The role's channel deny is gone — the category allow takes over.
+    # The access fix (live regression): BOTH channel denies are gone —
+    # the role's AND @everyone's — the synced channel falls back to the
+    # category overwrites (role allow, outsiders gated by category).
     assert soudoyeur.permission_overwrite_for(role) is None
-    # The call message is deleted (no second click).
-    assert call_message.deleted is True
+    assert soudoyeur.permission_overwrite_for(guild.default_role) is None
     assert any("soudoyeur" in (m.content or "").lower() for m in interaction.followup.messages)
+    # The comptoir pin is re-rendered WITHOUT the reveal button — the
+    # door-out stays LAST whatever happens.
+    assert _button_custom_ids(pin.view) == [
+        "kingdoms:tavern:menu",
+        "kingdoms:tavern:exit",
+    ]
 
-    # Provisioning after the reveal: the room stays open, the button
-    # NEVER comes back, the pin and the auction panel stay single.
+    # Provisioning after the reveal: the room stays open and synced,
+    # the reveal button NEVER comes back, the pins stay single.
     await ensure_tavern_immersion_structure(guild)
     assert soudoyeur.permission_overwrite_for(role) is None  # never re-hidden
-    assert not any(
-        SOUDOYEUR_CALL_MARKER in m.content for m in comptoir.messages
-    )
+    assert soudoyeur.permission_overwrite_for(guild.default_role) is None
+    assert _button_custom_ids(pin.view) == [
+        "kingdoms:tavern:menu",
+        "kingdoms:tavern:exit",
+    ]
     assert len([m for m in soudoyeur.messages if SOUDOYEUR_MARKER in m.content]) == 1
     # A second click (a stale button elsewhere) is a polite no-op.
     again = MockInteraction(user=member, guild=guild, locale="fr")

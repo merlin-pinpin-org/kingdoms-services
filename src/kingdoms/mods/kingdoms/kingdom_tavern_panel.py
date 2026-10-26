@@ -74,6 +74,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "insufficient": "🪙 Il te faut **{price} écus** — ta bourse n'en compte que {purse}.",
         "unknown_drink": "Cette boisson n'existe pas au comptoir.",
         "failed": "La commande a échoué : `{message}`.",
+        "menu_button": "🍺 Demander à boire",
     },
     "en": {
         "panel_title": "🍺 The Tavern",
@@ -113,6 +114,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "insufficient": "🪙 You need **{price} écus** — your purse only holds {purse}.",
         "unknown_drink": "This drink does not exist at the counter.",
         "failed": "The order failed: `{message}`.",
+        "menu_button": "🍺 Ask for a drink",
     },
 }
 
@@ -141,6 +143,50 @@ def _drink_catalog(wiring: Any) -> tuple[Any, ...]:
     service = getattr(wiring, "kingdoms_service", None)
     config = getattr(service, "config", None) if service is not None else None
     return tuple(getattr(getattr(config, "tavern", None), "drinks", ()) or ())
+
+
+class KingdomTavernMenuButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template="kingdoms:tavern:menu",
+):
+    """The comptoir pin's « Demander à boire » — opens the EPHEMERAL
+    drinks interface (taverne-comptoir-v2, Drasah 26/10): the pinned
+    drinks message of the comptoir is gone, the drinks live behind
+    this button (one ephemeral view, drink buttons inside)."""
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:tavern:menu",
+                style=discord.ButtonStyle.primary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: Any,
+        /,
+    ) -> KingdomTavernMenuButton:
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        return cls(_strings(locale)["menu_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        wiring = _wiring()
+        try:
+            await interaction.response.send_message(
+                build_tavern_content(locale),
+                view=build_tavern_view(wiring, locale),
+                ephemeral=True,
+            )
+        except Exception:
+            logger.warning("KINGDOM TAVERN: menu open failed", exc_info=True)
 
 
 class KingdomTavernDrinkButton(
