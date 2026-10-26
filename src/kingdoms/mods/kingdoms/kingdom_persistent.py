@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -1338,6 +1339,36 @@ def _market_card_file(item: str) -> discord.File | None:
     return discord.File(path, filename=card_filename(item))
 
 
+_MARKET_CARD_WINDOW_TTL = 15 * 60
+"""fenetre-unique-v1 (Drasah 26/10): a card's interaction webhook token
+lives ~15 minutes — past that, the old ephemeral can no longer be
+deleted (Discord keeps it on the player's side until dismissed)."""
+
+_MARKET_CARD_WINDOWS: dict[str, tuple[discord.Interaction, float]] = {}
+"""One live revealed card per player (user id -> (interaction, opened_at)).
+fenetre-unique-v1 (Drasah 26/10): clicking another article CLOSES the
+previous card instead of stacking ephemerals. Bounded: one entry max per
+player, replaced on every reveal — no growth, no cleanup pass needed."""
+
+
+async def _close_previous_market_card(user_id: str) -> None:
+    """Best-effort: delete the player's previous revealed card."""
+    previous = _MARKET_CARD_WINDOWS.pop(user_id, None)
+    if previous is None:
+        return
+    old_interaction, opened_at = previous
+    if time.monotonic() - opened_at > _MARKET_CARD_WINDOW_TTL:
+        return  # token expiré — Discord laisse l'éphémère mourir seule
+    try:
+        await old_interaction.delete_original_response()
+        logger.info("KINGDOMS MARKET: previous card window closed for %s", user_id)
+    except Exception:
+        logger.info(
+            "KINGDOMS MARKET: previous card window close failed (ignored)",
+            exc_info=True,
+        )
+
+
 async def _send_market_card(
     interaction: discord.Interaction,
     wiring: KingdomsPanelWiring,
@@ -1367,12 +1398,18 @@ async def _send_market_card(
     view.add_item(KingdomMarketConfirmButton(kind, item, strings))
     view.add_item(KingdomMarketCancelButton(strings))
     logger.info("KINGDOMS MARKET TRACE: card READY item=%r file=%s -> send", item, file is not None)
+    # fenetre-unique-v1 (Drasah 26/10): one revealed card at a time —
+    # opening a new article closes the previous ephemeral (his 26/10
+    # live report: stacked Contre-Espionnage + Jeu d'armes windows).
+    user_id = str(getattr(interaction.user, "id", ""))
+    await _close_previous_market_card(user_id)
     await interaction.response.send_message(
         embed=embed,
         files=[file] if file is not None else [],
         view=view,
         ephemeral=True,
     )
+    _MARKET_CARD_WINDOWS[user_id] = (interaction, time.monotonic())
     logger.info("KINGDOMS MARKET TRACE: card SENT item=%r", item)
 
 
