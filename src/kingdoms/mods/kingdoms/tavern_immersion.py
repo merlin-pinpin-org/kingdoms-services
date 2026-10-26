@@ -12,7 +12,17 @@ The private category carries one salon, ``comptoir``, with the inside
 artwork (the barman) and the persistent « Sortir » button that drops
 the role and gives the court back.
 
-Mechanics:
+Mechanics (v2, Drasah 26/10 report: entering kept the whole server
+visible):
+- a ROLE deny CANNOT hide a category from a member whose other roles
+  carry an explicit ALLOW — Discord unions the member's role overwrites
+  (deny ∪ allow = allow). The player categories (and the whole realms
+  structure) allow Lord/King/Admin, so the immersion MUST ride the
+  MEMBER overwrites, which override the role layer entirely;
+- entering adds the role (the door to the Taverne category) AND poses
+  member-level view denies on every other category / un-synced channel;
+  leaving removes the role and clears exactly those member denies
+  (an outgame member ALLOW of immersion-v1 is never touched);
 - ONE ``set_permissions`` call per target, skipped when already
   converged (lesson fix-reset-429: never a PUT per permission entry);
 - idempotent provisioning (role, category, salon, overwrites) safe to
@@ -47,6 +57,7 @@ EXIT_CUSTOM_ID = "kingdoms:tavern:exit"
 
 _EPHEMERAL_SECONDS = 10.0
 _EPHEMERAL_TASKS: dict[int, asyncio.Task[None]] = {}
+_EPHEMERAL_MESSAGES: dict[int, int] = {}
 
 _STRINGS: dict[str, dict[str, str]] = {
     "fr": {
@@ -181,6 +192,96 @@ def _denied_for(target: Any, role: Any) -> bool:
     return overwrite is not None and overwrite.view_channel is False
 
 
+def _immersion_targets(guild: discord.Guild, taverne_category_id: int | None) -> list[Any]:
+    """Every hide-able target outside the Taverne: the other categories
+    plus the un-synced (or category-less) channels."""
+    targets: list[Any] = []
+    for category in list(getattr(guild, "categories", []) or []):
+        if getattr(category, "id", None) != taverne_category_id:
+            targets.append(category)
+    channels: list[Any] = [
+        *(getattr(guild, "text_channels", []) or []),
+        *(getattr(guild, "voice_channels", []) or []),
+        *(getattr(guild, "forums", []) or []),
+    ]
+    for channel in channels:
+        parent = getattr(channel, "category", None)
+        if parent is not None and getattr(parent, "id", None) == taverne_category_id:
+            continue
+        if parent is not None and getattr(channel, "permissions_synced", True):
+            continue  # the category deny covers the synced channels
+        targets.append(channel)
+    return targets
+
+
+def _member_overwrite(target: Any, member: Any) -> Any:
+    """The MEMBER overwrite of one target (mock- and prod-compatible)."""
+    lookup = getattr(target, "permission_overwrite_for", None)
+    if lookup is not None:
+        return lookup(member)
+    for key, candidate in (getattr(target, "overwrites", None) or {}).items():
+        if getattr(key, "id", None) == getattr(member, "id", None) and candidate is not None:
+            return candidate
+    return None
+
+
+async def _deny_member_view(target: Any, member: Any) -> None:
+    """Member-level view deny — overrides every role ALLOW (the fix)."""
+    overwrite = _member_overwrite(target, member)
+    if overwrite is not None and overwrite.view_channel is False:
+        return  # already converged
+    try:
+        await target.set_permissions(
+            member, overwrite=discord.PermissionOverwrite(view_channel=False)
+        )
+    except Exception:
+        logger.warning(
+            "KINGDOMS TAVERN: member deny failed on %r for %s",
+            str(getattr(target, "name", "?")),
+            getattr(member, "id", "?"),
+            exc_info=True,
+        )
+
+
+async def _clear_member_view_deny(target: Any, member: Any) -> None:
+    """Drop OUR member deny (a member ALLOW — e.g. the immersion-v1
+    outgame toggle — is never touched)."""
+    overwrite = _member_overwrite(target, member)
+    if overwrite is None or overwrite.view_channel is not False:
+        return
+    try:
+        await target.set_permissions(member, overwrite=None)
+    except Exception:
+        logger.warning(
+            "KINGDOMS TAVERN: member deny cleanup failed on %r for %s",
+            str(getattr(target, "name", "?")),
+            getattr(member, "id", "?"),
+            exc_info=True,
+        )
+
+
+async def enter_tavern(guild: discord.Guild, member: Any, role: Any, taverne_category_id: int | None) -> None:
+    """Give the door role, then hide the rest of the server (member level)."""
+    try:
+        await member.add_roles(role, reason="taverne-immersion-v2: entrée")
+    except Exception:
+        logger.error("KINGDOMS TAVERN: enter add_roles failed", exc_info=True)
+        raise
+    for target in _immersion_targets(guild, taverne_category_id):
+        await _deny_member_view(target, member)
+
+
+async def exit_tavern(guild: discord.Guild, member: Any, role: Any, taverne_category_id: int | None) -> None:
+    """Restore the court (clear the member denies), then close the door."""
+    for target in _immersion_targets(guild, taverne_category_id):
+        await _clear_member_view_deny(target, member)
+    try:
+        await member.remove_roles(role, reason="taverne-immersion-v2: sortie")
+    except Exception:
+        logger.error("KINGDOMS TAVERN: exit remove_roles failed", exc_info=True)
+        raise
+
+
 async def _deny_view(target: Any, role: Any, *, reason: str) -> None:
     """Additive single-call role deny (skipped when converged)."""
     if _denied_for(target, role):
@@ -288,6 +389,19 @@ async def ensure_tavern_immersion_structure(guild: discord.Guild, locale: str = 
         if parent is not None and getattr(channel, "permissions_synced", True):
             continue  # the category deny covers the synced channels
         await _deny_view(channel, role, reason=reason)
+
+    # Self-heal at the MEMBER layer (the real immersion, v2): every
+    # member holding the role gets his member denies re-applied, every
+    # other member gets a stale deny swept (a half-done exit).
+    category_id = getattr(category, "id", None)
+    for member in list(getattr(guild, "members", []) or []):
+        inside = role in list(getattr(member, "roles", []) or [])
+        if inside:
+            for target in _immersion_targets(guild, category_id):
+                await _deny_member_view(target, member)
+        else:
+            for target in _immersion_targets(guild, category_id):
+                await _clear_member_view_deny(target, member)
 
     try:
         await deploy_comptoir_panel(comptoir, locale)
@@ -400,12 +514,32 @@ def _arm_ephemeral_timer(interaction: discord.Interaction) -> None:
     async def _delete() -> None:
         await asyncio.sleep(_EPHEMERAL_SECONDS)
         try:
-            await interaction.delete_original_response()
+            await interaction.followup.delete_message(_EPHEMERAL_MESSAGES[user_id])
         except Exception:
             pass
+        _EPHEMERAL_MESSAGES.pop(user_id, None)
         _EPHEMERAL_TASKS.pop(user_id, None)
 
     _EPHEMERAL_TASKS[user_id] = asyncio.create_task(_delete())
+
+
+async def _send_note(interaction: discord.Interaction, text: str) -> None:
+    """Defer, then answer as a followup note (auto-deleted by the timer).
+
+    The v2 move takes a burst of permission calls — the interaction is
+    acknowledged FIRST (defer), the note rides the followup.
+    """
+    await interaction.response.defer(ephemeral=True)
+    message = await interaction.followup.send(text, ephemeral=True)
+    user_id = getattr(interaction.user, "id", None)
+    if user_id is not None:
+        _EPHEMERAL_MESSAGES[user_id] = getattr(message, "id", None)
+    _arm_ephemeral_timer(interaction)
+
+
+def _taverne_category_id(guild: discord.Guild) -> int | None:
+    category = _find_category(guild, "taverne")
+    return None if category is None else getattr(category, "id", None)
 
 
 async def _move_member(interaction: discord.Interaction, *, entering: bool) -> None:
@@ -423,22 +557,20 @@ async def _move_member(interaction: discord.Interaction, *, entering: bool) -> N
     inside = role in list(getattr(member, "roles", []) or [])
     if entering == inside:
         note = strings["already"] if inside else strings["already_out"]
-        await interaction.response.send_message(note, ephemeral=True)
-        _arm_ephemeral_timer(interaction)
+        await _send_note(interaction, note)
         return
     try:
         if entering:
-            await member.add_roles(role, reason="taverne-immersion-v1: entrée")
+            await enter_tavern(guild, member, role, _taverne_category_id(guild))
         else:
-            await member.remove_roles(role, reason="taverne-immersion-v1: sortie")
+            await exit_tavern(guild, member, role, _taverne_category_id(guild))
     except Exception:
         logger.error("KINGDOMS TAVERN: role move failed", exc_info=True)
-        await interaction.response.send_message(strings["role_failed"], ephemeral=True)
+        await _send_note(interaction, strings["role_failed"])
         return
-    await interaction.response.send_message(
-        strings["entered"] if entering else strings["exited"], ephemeral=True
+    await _send_note(
+        interaction, strings["entered"] if entering else strings["exited"]
     )
-    _arm_ephemeral_timer(interaction)
 
 
 class KingdomTavernEnterButton(

@@ -25,6 +25,8 @@ from kingdoms.mods.kingdoms.tavern_immersion import (
     build_facade_content,
     deploy_tavern_facade,
     ensure_tavern_immersion_structure,
+    enter_tavern,
+    exit_tavern,
     find_tavern_role,
 )
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockMember
@@ -116,36 +118,41 @@ async def test_facade_deploys_idempotently_with_the_door_in_button() -> None:
 
 async def test_enter_and_exit_move_the_member_role_and_answer_ephemeral() -> None:
     guild = MockGuild()
+    await _realm(guild)
     await ensure_tavern_immersion_structure(guild)
     member = MockMember(id=77, name="Heor")
     guild.add_member(member)
 
+    court = next(c for c in guild.categories if c.name != TAVERN_CATEGORY_NAME)
     enter_interaction = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomTavernEnterButton("🚪 Entrer dans la Taverne").callback(enter_interaction)
 
     role = find_tavern_role(guild)
     assert role is not None and role in member.roles
-    assert enter_interaction.response.ephemeral is True
-    assert enter_interaction.response.message is not None
-    assert "pousses la porte" in enter_interaction.response.message.content
+    assert enter_interaction.response.deferred is True  # acknowledged first
+    notes = [m.content for m in enter_interaction.followup.messages]
+    assert any("pousses la porte" in (n or "") for n in notes)
+    # The immersion rides the MEMBER layer: a deny even where the
+    # member's player roles carry an allow.
+    deny = court.permission_overwrite_for(member)
+    assert deny is not None and deny.view_channel is False
 
-    # Re-entering is a no-op note, not a second ephemeral surface.
+    # Re-entering is a no-op note, not a second surface.
     again = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomTavernEnterButton("🚪 Entrer").callback(again)
-    assert again.response.message is not None
-    assert "déjà" in again.response.message.content
+    assert any("déjà" in (m.content or "") for m in again.followup.messages)
 
     exit_interaction = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomTavernExitButton("🚪 Sortir de la Taverne").callback(exit_interaction)
     assert role not in member.roles
-    assert exit_interaction.response.message is not None
-    assert "ressors" in exit_interaction.response.message.content
+    assert any("ressors" in (m.content or "") for m in exit_interaction.followup.messages)
+    # The member deny is gone — the court comes back.
+    assert court.permission_overwrite_for(member) is None
 
     # Out again: no-op note.
     out_again = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomTavernExitButton("🚪 Sortir").callback(out_again)
-    assert out_again.response.message is not None
-    assert "déjà" in out_again.response.message.content
+    assert any("déjà" in (m.content or "") for m in out_again.followup.messages)
 
 
 async def test_the_ephemeral_notes_self_destruct() -> None:
@@ -155,10 +162,10 @@ async def test_the_ephemeral_notes_self_destruct() -> None:
     guild.add_member(member)
     interaction = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomTavernEnterButton("🚪 Entrer").callback(interaction)
-    assert interaction.response.message is not None
-    # The auto-delete timer drops the ephemeral note (no pollution).
+    assert interaction.followup.messages
+    # The auto-delete timer drops the followup note (no pollution).
     await asyncio.sleep(0.05)
-    assert interaction.original_deleted is True
+    assert interaction.followup.messages == []
 
 
 def test_content_builders_carry_the_markers_and_titles() -> None:
@@ -181,3 +188,58 @@ def test_the_art_resolver_finds_the_uploaded_artwork() -> None:
     ):
         path = resolve_art(which)
         assert path is not None and path.name in expected, which
+
+
+async def test_the_member_deny_beats_a_player_role_allow() -> None:
+    """The v2 regression: a role deny loses against the player roles'
+    explicit allows — the immersion must ride the MEMBER overwrite."""
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    # A lord whose player role carries an ALLOW on the court category
+    # (exactly the live permission shape of permissions-serveur-v1).
+    court = next(c for c in guild.categories if c.name != TAVERN_CATEGORY_NAME)
+    lord_role = await guild.create_role(name="Kingdoms Lord")
+    await court.set_permissions(
+        lord_role, overwrite=__import__("discord").PermissionOverwrite(view_channel=True)
+    )
+    member = MockMember(id=55, name="LordRole", roles=[lord_role])
+    guild.add_member(member)
+
+    role = find_tavern_role(guild)
+    category_id = next(
+        c.id for c in guild.categories if c.name == TAVERN_CATEGORY_NAME
+    )
+    await enter_tavern(guild, member, role, category_id)
+
+    overwrite = court.permission_overwrite_for(member)
+    assert overwrite is not None and overwrite.view_channel is False
+
+    await exit_tavern(guild, member, role, category_id)
+    assert court.permission_overwrite_for(member) is None
+
+
+async def test_provisioning_self_heals_the_member_layer() -> None:
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    court = next(c for c in guild.categories if c.name != TAVERN_CATEGORY_NAME)
+    role = find_tavern_role(guild)
+    category_id = next(c.id for c in guild.categories if c.name == TAVERN_CATEGORY_NAME)
+
+    # A member left INSIDE by a crash (role held, member denies lost).
+    inside = MockMember(id=66, name="Stuck", roles=[role])
+    guild.add_member(inside)
+    # A member with a STALE member deny but no role (half-done exit).
+    outside = MockMember(id=67, name="Ghost")
+    guild.add_member(outside)
+    await court.set_permissions(
+        outside,
+        overwrite=__import__("discord").PermissionOverwrite(view_channel=False),
+    )
+
+    await ensure_tavern_immersion_structure(guild)  # the self-heal pass
+
+    deny = court.permission_overwrite_for(inside)
+    assert deny is not None and deny.view_channel is False
+    assert court.permission_overwrite_for(outside) is None
