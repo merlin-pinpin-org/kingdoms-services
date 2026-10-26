@@ -156,6 +156,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMercenaryWithdrawButton,
     )
     from kingdoms.mods.kingdoms.kingdom_tavern_panel import KingdomTavernDrinkButton
+    from kingdoms.mods.kingdoms.tavern_immersion import (
+        KingdomTavernEnterButton,
+        KingdomTavernExitButton,
+    )
     from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
         KingdomAlliancesDurationsButton,
         KingdomAlliancesHistoryButton,
@@ -211,6 +215,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomChurchConsecrateButton,
         KingdomDistributorButton,
         KingdomTavernDrinkButton,
+        # taverne-immersion-v1 (Drasah 26/10): the taverne facade's
+        # door-in button and the comptoir's door-out button.
+        KingdomTavernEnterButton,
+        KingdomTavernExitButton,
         # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's bid and
         # withdraw buttons of the taverne panel.
         KingdomMercenaryBidButton,

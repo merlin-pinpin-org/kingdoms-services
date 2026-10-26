@@ -1958,6 +1958,16 @@ async def _deploy_channel_panel(
         from kingdoms.mods.kingdoms.kingdom_tavern_panel import deploy_tavern_panel
 
         await deploy_tavern_panel(channel, locale)
+        # taverne-immersion-v1 (Drasah 26/10): the facade — outside
+        # art + door-in button — rides the same salon (own marker).
+        from kingdoms.mods.kingdoms.tavern_immersion import deploy_tavern_facade
+
+        try:
+            await deploy_tavern_facade(channel, locale)
+        except Exception:
+            logger.warning(
+                "KINGDOM PANELS: taverne facade deploy failed", exc_info=True
+            )
         # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's auction
         # panel rides the SAME salon — its own marker, idempotent.
         from kingdoms.mods.kingdoms.kingdom_mercenary_panel import deploy_mercenary_panel

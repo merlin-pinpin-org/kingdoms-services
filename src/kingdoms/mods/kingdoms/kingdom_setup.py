@@ -514,6 +514,20 @@ async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], 
     from kingdoms.mods.kingdoms.kingdom_immersion import apply_immersion_gating
 
     await apply_immersion_gating(guild)
+    # taverne-immersion-v1 (Drasah 26/10): the private Taverne
+    # category (Comptoir salon) — a lord entering the taverne sees
+    # ONLY it; the zone self-heals on every pass (role, category,
+    # salon, denies) and the member always has his Sortir button.
+    from kingdoms.mods.kingdoms.tavern_immersion import (
+        ensure_tavern_immersion_structure,
+    )
+
+    try:
+        await ensure_tavern_immersion_structure(guild, "fr")
+    except Exception:
+        logger.warning(
+            "KINGDOM SETUP: taverne immersion structure failed", exc_info=True
+        )
     await _ensure_charte_dividers(guild)
     await _apply_charte_topics(guild)
     await _enforce_category_order(guild)
