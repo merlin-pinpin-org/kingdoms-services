@@ -40,9 +40,9 @@ _TZ = ZoneInfo(DEFAULT_TZ)
 
 _STRINGS: dict[str, dict[str, str]] = {
     "fr": {
-        "panel_title": "⚔️ Chef Mercenaire",
+        "panel_title": "⚔️ Le Soudoyeur",
         "panel_absent": (
-            "Le Chef Mercenaire passe chaque soir de **20h00 à 21h00** "
+            "Le Soudoyeur passe chaque soir de **20h00 à 21h00** "
             "(heure de Paris) : cinq civilisations tirées au sort, "
             "chacune avec un nombre d'**usages de draft visible avant "
             "l'enchère**. Mise de départ : 1 écu."
@@ -76,14 +76,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "withdraw_done": "Enchère retirée — les écus réinjectés (bourse : **{purse} écus**).",
         "withdraw_none": "Tu n'as aucune enchère en cours sur le marché.",
-        "no_service": "Le Chef Mercenaire n'est pas branché sur cette instance.",
+        "no_service": "Le Soudoyeur n'est pas branché sur cette instance.",
         "not_enrolled": "Tu n'es pas un seigneur actif de la saison en cours.",
-        "season_closed": "La saison est terminée — le Chef est parti.",
-        "window": "Le Chef n'est pas là — il passe de **20h00 à 21h00** (heure de Paris).",
-        "no_market": "Aucun marché en cours — le Chef arrive à 20h00 (heure de Paris).",
+        "season_closed": "La saison est terminée — le Soudoyeur est parti.",
+        "window": "Le Soudoyeur n'est pas là — il passe de **20h00 à 21h00** (heure de Paris).",
+        "no_market": "Aucun marché en cours — le Soudoyeur arrive à 20h00 (heure de Paris).",
         "not_open_yet": "⏳ Les enchères ouvrent à **{time}**.",
-        "closed": "Le marché est fermé — le Chef revient à 20h00 (heure de Paris).",
-        "lot_not_found": "Ce lot n'est plus sur la table du Chef.",
+        "closed": "Le marché est fermé — le Soudoyeur revient à 20h00 (heure de Paris).",
+        "lot_not_found": "Ce lot n'est plus sur la table du Soudoyeur.",
         "bid_too_low": (
             "⚖️ L'offre doit dépasser **strictement** la meilleure enchère "
             "(actuelle : **{current} écu(s)**, mise de départ {starting})."
@@ -91,18 +91,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "insufficient": "🪙 Il te faut **{price} écus** — ta bourse n'en compte que {purse}.",
         "already_held": "Tu détiens déjà une civilisation mercenaire — une seule à la fois.",
         "failed": "L'enchère a échoué : `{message}`.",
-        "call_button": "⚔️ Appeler le Chef (beta)",
-        "call_denied": "Seuls les admins peuvent appeler le Chef Mercenaire.",
+        "call_button": "⚔️ Appeler le Soudoyeur (beta)",
+        "call_denied": "Seuls les admins peuvent appeler le Soudoyeur.",
         "call_done": (
-            "⚔️ Le Chef répond à l'appel — marché **{id}** ouvert, "
+            "⚔️ Le Soudoyeur répond à l'appel — marché **{id}** ouvert, "
             "{lots} lot(s) sur la table, enchères jusqu'à **{time}**."
         ),
-        "call_no_service": "Le Chef Mercenaire n'est pas branché sur cette instance.",
+        "call_no_service": "Le Soudoyeur n'est pas branché sur cette instance.",
     },
     "en": {
-        "panel_title": "⚔️ Mercenary Chief",
+        "panel_title": "⚔️ The Soudoyer",
         "panel_absent": (
-            "The Mercenary Chief stands every evening from **8:00 PM to "
+            "The Soudoyer stands every evening from **8:00 PM to "
             "9:00 PM** (Paris time): five civilizations drawn at random, "
             "each with a **draft-uses count visible before the bid**. "
             "Starting bid: 1 écu."
@@ -135,14 +135,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "withdraw_done": "Bid withdrawn — the écus re-injected (purse: **{purse} écus**).",
         "withdraw_none": "You hold no bid on the market.",
-        "no_service": "The Mercenary Chief service is not wired on this instance.",
+        "no_service": "The Soudoyer service is not wired on this instance.",
         "not_enrolled": "You are not an active lord of the current season.",
-        "season_closed": "The season is over — the Chief is gone.",
-        "window": "The Chief is not here — he stands **8:00-9:00 PM** (Paris time).",
-        "no_market": "No live market — the Chief arrives at 8:00 PM (Paris time).",
+        "season_closed": "The season is over — the Soudoyer is gone.",
+        "window": "The Soudoyer is not here — he stands **8:00-9:00 PM** (Paris time).",
+        "no_market": "No live market — the Soudoyer arrives at 8:00 PM (Paris time).",
         "not_open_yet": "⏳ The bids open at **{time}**.",
-        "closed": "The market is closed — the Chief returns at 8:00 PM (Paris time).",
-        "lot_not_found": "This lot is no longer on the Chief's table.",
+        "closed": "The market is closed — the Soudoyer returns at 8:00 PM (Paris time).",
+        "lot_not_found": "This lot is no longer on the Soudoyer's table.",
         "bid_too_low": (
             "⚖️ A bid must **strictly exceed** the current highest "
             "(now: **{current} écu(s)**, starting bid {starting})."
@@ -150,13 +150,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "insufficient": "🪙 You need **{price} écus** — your purse only holds {purse}.",
         "already_held": "You already hold a mercenary civilization — one at a time.",
         "failed": "The bid failed: `{message}`.",
-        "call_button": "⚔️ Call the Chief (beta)",
-        "call_denied": "Only admins may call the Mercenary Chief.",
+        "call_button": "⚔️ Call the Soudoyer (beta)",
+        "call_denied": "Only admins may call the Soudoyer.",
         "call_done": (
-            "⚔️ The Chief answers the call — market **{id}** open, "
+            "⚔️ The Soudoyer answers the call — market **{id}** open, "
             "{lots} lot(s) on the table, bids until **{time}**."
         ),
-        "call_no_service": "The Mercenary Chief service is not wired on this instance.",
+        "call_no_service": "The Soudoyer service is not wired on this instance.",
     },
 }
 
@@ -629,32 +629,32 @@ def _paris_today() -> str:
 async def refresh_mercenary_panels_safe(guild: discord.Guild | None, locale: str) -> None:
     """Re-render the Chief's panel of a guild (best effort).
 
-    taverne-panels-migration-v1 (Drasah 26/10): the Chief lives INSIDE
-    the Comptoir salon now — the lookup prefers the comptoir and falls
-    back to the old 🍺 taverne salon (transition safety).
+    taverne-soudoyeur-v1 (Drasah 26/10): the Soudoyeur lives INSIDE
+    his own hidden salon now — the lookup prefers the soudoyeur, falls
+    back to the comptoir, then to the old 🍺 taverne salon (transition
+    safety).
     """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     if guild is None:
         return
     channels = list(getattr(guild, "channels", []))
-    target = next(
-        (
-            channel
-            for channel in channels
-            if _slug(str(getattr(channel, "name", ""))) == "comptoir"
-        ),
-        None,
-    )
-    if target is None:
-        target = next(
+
+    def _by_slug(slug: str):
+        return next(
             (
                 channel
                 for channel in channels
-                if _slug(str(getattr(channel, "name", ""))) == "taverne"
+                if _slug(str(getattr(channel, "name", ""))) == slug
             ),
             None,
         )
+
+    target = _by_slug("soudoyeur")
+    if target is None:
+        target = _by_slug("comptoir")
+    if target is None:
+        target = _by_slug("taverne")
     if target is None:
         return
     try:

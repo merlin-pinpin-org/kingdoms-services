@@ -157,6 +157,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     )
     from kingdoms.mods.kingdoms.kingdom_tavern_panel import KingdomTavernDrinkButton
     from kingdoms.mods.kingdoms.tavern_immersion import (
+        KingdomSoudoyeurRevealButton,
         KingdomTavernEnterButton,
         KingdomTavernExitButton,
     )
@@ -219,6 +220,9 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         # door-in button and the comptoir's door-out button.
         KingdomTavernEnterButton,
         KingdomTavernExitButton,
+        # taverne-soudoyeur-v1 (Drasah 26/10): the comptoir's
+        # "ask to see the Soudoyeur" reveal button.
+        KingdomSoudoyeurRevealButton,
         # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's bid and
         # withdraw buttons of the taverne panel.
         KingdomMercenaryBidButton,

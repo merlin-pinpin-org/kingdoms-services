@@ -17,8 +17,11 @@ import pytest
 from kingdoms.mods.kingdoms.tavern_art import resolve_art
 from kingdoms.mods.kingdoms.tavern_immersion import (
     COMPTOIR_MARKER,
+    SOUDOYEUR_CALL_MARKER,
+    SOUDOYEUR_MARKER,
     TAVERN_CATEGORY_NAME,
     TAVERN_ROLE_NAME,
+    KingdomSoudoyeurRevealButton,
     KingdomTavernEnterButton,
     KingdomTavernExitButton,
     build_comptoir_content,
@@ -244,9 +247,10 @@ async def test_provisioning_self_heals_the_member_layer() -> None:
     assert deny is not None and deny.view_channel is False
     assert court.permission_overwrite_for(outside) is None
 
-async def test_the_drinks_and_mercenary_panels_migrate_into_the_comptoir() -> None:
-    """taverne-panels-migration-v1 (Drasah 26/10): both game panels
-    live INSIDE the comptoir; the old copies outside are swept."""
+async def test_the_drinks_stay_in_the_comptoir_and_the_mercenary_moves_to_the_soudoyeur() -> None:
+    """taverne-panels-migration-v1 + taverne-soudoyeur-v1 (Drasah
+    26/10): the drinks panel lives ONLY in the comptoir, the auction
+    panel ONLY in the soudoyeur back room; old copies are swept."""
     guild = MockGuild()
     await _realm(guild)
     taverne_channel = next(c for c in guild.text_channels if c.name == "🍺 taverne")
@@ -258,12 +262,91 @@ async def test_the_drinks_and_mercenary_panels_migrate_into_the_comptoir() -> No
     await ensure_tavern_immersion_structure(guild)  # idempotent
 
     comptoir = next(c for c in guild.text_channels if c.name == "comptoir")
-    contents = [m.content for m in comptoir.messages]
-    assert any("kingdoms-tavern-comptoir" in c for c in contents)
-    assert any("<!-- kingdoms-tavern -->" in c for c in contents)  # the drinks
-    assert any("kingdoms-mercenary" in c for c in contents)  # the Chief
+    soudoyeur = next(c for c in guild.text_channels if c.name == "⚔️ soudoyeur")
+    comptoir_contents = [m.content for m in comptoir.messages]
+    assert any("kingdoms-tavern-comptoir" in c for c in comptoir_contents)
+    assert any("<!-- kingdoms-tavern -->" in c for c in comptoir_contents)  # the drinks
+    # The auction panel rides the soudoyeur back room now — NOT the comptoir.
+    assert any("kingdoms-mercenary" in m.content for m in soudoyeur.messages)
+    assert not any("kingdoms-mercenary" in c for c in comptoir_contents)
     # The old copies OUTSIDE are swept — the facade survives.
     assert old_drinks.deleted is True
     assert old_mercenary.deleted is True
     facades = [m for m in taverne_channel.messages if "kingdoms-tavern-facade" in m.content]
     assert len(facades) <= 1  # deployed by the channel pass, never swept
+
+
+async def test_provisioning_creates_the_soudoyeur_hidden_back_room() -> None:
+    """taverne-soudoyeur-v1 (Drasah 26/10): the back room is created
+    HIDDEN (channel-level deny for @everyone AND the taverne role —
+    the channel deny beats the category allow), it carries the pin +
+    the auction panel, and the comptoir carries the ask-to-see
+    button."""
+    guild = MockGuild()
+    await _realm(guild)
+
+    await ensure_tavern_immersion_structure(guild)
+
+    role = find_tavern_role(guild)
+    assert role is not None
+    soudoyeur = next(c for c in guild.text_channels if c.name == "⚔️ soudoyeur")
+    assert soudoyeur.category is not None and soudoyeur.category.name == TAVERN_CATEGORY_NAME
+    everyone_deny = soudoyeur.permission_overwrite_for(guild.default_role)
+    assert everyone_deny is not None and everyone_deny.view_channel is False
+    role_deny = soudoyeur.permission_overwrite_for(role)
+    assert role_deny is not None and role_deny.view_channel is False  # hidden
+    # The pin + the auction panel ride the back room.
+    soudoyeur_contents = [m.content for m in soudoyeur.messages]
+    assert any(SOUDOYEUR_MARKER in c for c in soudoyeur_contents)
+    assert any(m.attachments for m in soudoyeur.messages)  # the hooded-table art
+    assert any("kingdoms-mercenary" in c for c in soudoyeur_contents)
+    # The ask-to-see button lives in the comptoir — ONE message.
+    comptoir = next(c for c in guild.text_channels if c.name == "comptoir")
+    calls = [m for m in comptoir.messages if SOUDOYEUR_CALL_MARKER in m.content]
+    assert len(calls) == 1
+    assert "kingdoms:tavern:soudoyeur:reveal" in (_button_custom_ids(calls[0].view) or [None])
+    # Idempotent provisioning: no second room, no second call, still hidden.
+    await ensure_tavern_immersion_structure(guild)
+    rooms = [c for c in guild.text_channels if c.name == "⚔️ soudoyeur"]
+    assert len(rooms) == 1
+    assert len([m for m in comptoir.messages if SOUDOYEUR_CALL_MARKER in m.content]) == 1
+    assert soudoyeur.permission_overwrite_for(role) is not None
+
+
+async def test_the_reveal_button_opens_the_room_to_everyone_and_never_returns() -> None:
+    """One click on « Demander à voir le Soudoyeur » drops the role's
+    channel deny (every insider sees the room), deletes the call
+    message, and a later provisioning NEVER redeploys the button nor
+    re-hides the room."""
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    role = find_tavern_role(guild)
+    assert role is not None
+    soudoyeur = next(c for c in guild.text_channels if c.name == "⚔️ soudoyeur")
+    comptoir = next(c for c in guild.text_channels if c.name == "comptoir")
+    member = MockMember(id=91, name="Curieux")
+    guild.add_member(member)
+    call_message = next(m for m in comptoir.messages if SOUDOYEUR_CALL_MARKER in m.content)
+
+    interaction = MockInteraction(user=member, guild=guild, locale="fr")
+    await KingdomSoudoyeurRevealButton("Demander à voir le Soudoyeur").callback(interaction)
+
+    # The role's channel deny is gone — the category allow takes over.
+    assert soudoyeur.permission_overwrite_for(role) is None
+    # The call message is deleted (no second click).
+    assert call_message.deleted is True
+    assert any("soudoyeur" in (m.content or "").lower() for m in interaction.followup.messages)
+
+    # Provisioning after the reveal: the room stays open, the button
+    # NEVER comes back, the pin and the auction panel stay single.
+    await ensure_tavern_immersion_structure(guild)
+    assert soudoyeur.permission_overwrite_for(role) is None  # never re-hidden
+    assert not any(
+        SOUDOYEUR_CALL_MARKER in m.content for m in comptoir.messages
+    )
+    assert len([m for m in soudoyeur.messages if SOUDOYEUR_MARKER in m.content]) == 1
+    # A second click (a stale button elsewhere) is a polite no-op.
+    again = MockInteraction(user=member, guild=guild, locale="fr")
+    await KingdomSoudoyeurRevealButton("Demander à voir le Soudoyeur").callback(again)
+    assert any("déjà" in (m.content or "") for m in again.followup.messages)

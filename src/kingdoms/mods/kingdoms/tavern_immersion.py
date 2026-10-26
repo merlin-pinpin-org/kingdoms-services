@@ -47,13 +47,17 @@ logger = logging.getLogger("kingdoms.tavern_immersion")
 
 FACADE_MARKER = "<!-- kingdoms-tavern-facade -->"
 COMPTOIR_MARKER = "<!-- kingdoms-tavern-comptoir -->"
+SOUDOYEUR_MARKER = "<!-- kingdoms-soudoyeur -->"
+SOUDOYEUR_CALL_MARKER = "<!-- kingdoms-soudoyeur-call -->"
 
 TAVERN_ROLE_NAME = "🍺 Dans la Taverne"
 TAVERN_CATEGORY_NAME = "🍺 Taverne"
 COMPTOIR_CHANNEL_NAME = "comptoir"
+SOUDOYEUR_CHANNEL_NAME = "⚔️ soudoyeur"
 
 ENTER_CUSTOM_ID = "kingdoms:tavern:enter"
 EXIT_CUSTOM_ID = "kingdoms:tavern:exit"
+REVEAL_CUSTOM_ID = "kingdoms:tavern:soudoyeur:reveal"
 
 _EPHEMERAL_SECONDS = 10.0
 _EPHEMERAL_TASKS: dict[int, asyncio.Task[None]] = {}
@@ -83,6 +87,23 @@ _STRINGS: dict[str, dict[str, str]] = {
             "coulent les écus et les rumeurs."
         ),
         "exit_button": "🚪 Sortir de la Taverne",
+        "soudoyeur_title": "⚔️ Le Soudoyeur",
+        "soudoyeur_intro": (
+            "Une capuche sombre veille sur la table, une dague posée près "
+            "d'une bourse bien remplie. Ici, les civilisations se vendent "
+            "au plus offrant."
+        ),
+        "call_intro": (
+            "Une rumeur court qu'un homme d'armes négocie ses lames au "
+            "fond de l'arrière-salle…"
+        ),
+        "call_button": "Demander à voir le Soudoyeur",
+        "revealed": (
+            "⚔️ Le Soudoyeur lève les yeux de sa chope — l'arrière-salle "
+            "s'ouvre à TOUS les convives de la Taverne."
+        ),
+        "already_revealed": "L'arrière-salle du Soudoyeur est déjà ouverte à tous.",
+        "reveal_failed": "❌ Le Soudoyeur reste introuvable — préviens un admin.",
         "exited": "🌙 Tu ressorts de la Taverne — la cour t'accueille de retour.",
         "already": "🍺 Tu es déjà derrière le comptoir.",
         "already_out": "Tu es déjà dehors — la porte est à ta droite.",
@@ -111,6 +132,23 @@ _STRINGS: dict[str, dict[str, str]] = {
             "rumors flow here."
         ),
         "exit_button": "🚪 Leave the Tavern",
+        "soudoyeur_title": "⚔️ The Soudoyer",
+        "soudoyeur_intro": (
+            "A dark hood watches over the table, a dagger resting near a "
+            "well-filled purse. Civilizations are sold here to the "
+            "highest bidder."
+        ),
+        "call_intro": (
+            "A rumor says a man-at-arms sells his blades in the back "
+            "room…"
+        ),
+        "call_button": "Ask to see the Soudoyer",
+        "revealed": (
+            "⚔️ The Soudoyer looks up from his tankard — the back room "
+            "opens to EVERY guest of the Tavern."
+        ),
+        "already_revealed": "The Soudoyer's back room is already open to everyone.",
+        "reveal_failed": "❌ The Soudoyer cannot be found — tell an admin.",
         "exited": "🌙 You step out of the Tavern — the court welcomes you back.",
         "already": "🍺 You are already at the counter.",
         "already_out": "You are already outside — the door is on your right.",
@@ -403,9 +441,8 @@ async def ensure_tavern_immersion_structure(guild: discord.Guild, locale: str = 
             for target in _immersion_targets(guild, category_id):
                 await _clear_member_view_deny(target, member)
 
-    # The comptoir pin (the door-out) first, then the MIGRATED game
-    # panels (Drasah 26/10: the drinks and the Chief's auction live
-    # INSIDE the comptoir now — the player orders at the counter).
+    # The comptoir pin (the door-out) first, then the drinks panel
+    # (Drasah 26/10: the player orders at the counter).
     try:
         await deploy_comptoir_panel(comptoir, locale)
     except Exception:
@@ -416,32 +453,64 @@ async def ensure_tavern_immersion_structure(guild: discord.Guild, locale: str = 
         await deploy_tavern_panel(comptoir, locale)
     except Exception:
         logger.warning("KINGDOMS TAVERN: drinks panel migration failed", exc_info=True)
+    # taverne-soudoyeur-v1 (Drasah 26/10): the Soudoyer's back room —
+    # created HIDDEN (even the insiders do not see it until a guest
+    # asks for him); once revealed it stays open to every insider.
+    soudoyeur, hidden = await ensure_soudoyeur_channel(guild, category, role)
     from kingdoms.mods.kingdoms.kingdom_mercenary_panel import deploy_mercenary_panel
 
-    try:
-        await deploy_mercenary_panel(comptoir, locale)
-    except Exception:
-        logger.warning("KINGDOMS TAVERN: mercenary panel migration failed", exc_info=True)
-    await _sweep_migrated_panels(guild, category_id)
+    if soudoyeur is not None:
+        try:
+            await deploy_soudoyeur_panel(soudoyeur, locale)
+        except Exception:
+            logger.warning("KINGDOMS TAVERN: soudoyeur pin deploy failed", exc_info=True)
+        try:
+            await deploy_mercenary_panel(soudoyeur, locale)
+        except Exception:
+            logger.warning(
+                "KINGDOMS TAVERN: mercenary panel migration failed", exc_info=True
+            )
+    if hidden:
+        try:
+            await deploy_soudoyeur_call(comptoir, locale)
+        except Exception:
+            logger.warning(
+                "KINGDOMS TAVERN: soudoyeur call deploy failed", exc_info=True
+            )
+    await _sweep_migrated_panels(
+        guild,
+        comptoir_id=getattr(comptoir, "id", None),
+        soudoyeur_id=getattr(soudoyeur, "id", None),
+        revealed=not hidden,
+    )
     return True
 
 
-async def _sweep_migrated_panels(guild: discord.Guild, taverne_category_id: int | None) -> None:
-    """Delete the OLD drinks/mercenary pins of the 🍺 taverne salon.
+async def _sweep_migrated_panels(
+    guild: discord.Guild,
+    *,
+    comptoir_id: int | None,
+    soudoyeur_id: int | None,
+    revealed: bool,
+) -> None:
+    """Sweep the panels that live somewhere else than their home salon.
 
-    taverne-panels-migration-v1 (Drasah 26/10): both panels moved into
-    the Comptoir — the copies left outside the Taverne category are
-    swept at every provisioning pass (bot messages carrying the
-    markers only; idempotent once clean).
+    taverne-panels-migration-v1 + taverne-soudoyeur-v1 (Drasah 26/10):
+    the drinks panel lives ONLY in the comptoir, the Soudoyer's auction
+    panel ONLY in the hidden soudoyeur back room, and the « Demander à
+    voir le Soudoyeur » button ONLY while the back room stays hidden
+    (once revealed it never comes back — no second click). Bot
+    messages carrying the markers only; idempotent once clean.
     """
     from kingdoms.mods.kingdoms.kingdom_mercenary_panel import MERCENARY_PANEL_MARKER
     from kingdoms.mods.kingdoms.kingdom_tavern_panel import TAVERN_PANEL_MARKER
 
-    markers = (TAVERN_PANEL_MARKER, MERCENARY_PANEL_MARKER)
+    rules: list[tuple[str, int | None]] = [
+        (TAVERN_PANEL_MARKER, comptoir_id),
+        (MERCENARY_PANEL_MARKER, soudoyeur_id),
+        (SOUDOYEUR_CALL_MARKER, None if revealed else comptoir_id),
+    ]
     for channel in list(getattr(guild, "text_channels", []) or []):
-        parent = getattr(channel, "category", None)
-        if parent is not None and getattr(parent, "id", None) == taverne_category_id:
-            continue
         try:
             messages = await channel_messages(channel)
         except Exception:
@@ -451,7 +520,11 @@ async def _sweep_migrated_panels(guild: discord.Guild, taverne_category_id: int 
             if not getattr(author, "bot", False):
                 continue
             text = message_text(message)
-            if not any(marker in text for marker in markers):
+            if not any(
+                marker in text
+                for marker, allowed in rules
+                if getattr(channel, "id", None) != allowed
+            ):
                 continue
             try:
                 await message.delete()
@@ -463,6 +536,152 @@ async def _sweep_migrated_panels(guild: discord.Guild, taverne_category_id: int 
                 logger.warning(
                     "KINGDOMS TAVERN: migrated panel sweep failed", exc_info=True
                 )
+
+
+async def ensure_soudoyeur_channel(
+    guild: discord.Guild, category: Any, role: Any
+) -> tuple[Any, bool]:
+    """Find (or create HIDDEN) the Soudoyer's back room.
+
+    Returns (channel, hidden): hidden means the taverne role still
+    carries the channel-level deny — the reveal drops it and the
+    category allow takes over (every insider sees the salon).
+    """
+    soudoyeur = _find_channel(guild, category, "soudoyeur")
+    if soudoyeur is None:
+        try:
+            soudoyeur = await guild.create_text_channel(
+                SOUDOYEUR_CHANNEL_NAME,
+                category=category,
+                overwrites={
+                    guild.default_role: discord.PermissionOverwrite(
+                        view_channel=False, read_message_history=False
+                    ),
+                    role: discord.PermissionOverwrite(
+                        view_channel=False, read_message_history=False
+                    ),
+                },
+                reason="taverne-soudoyeur-v1: arrière-salle du Soudoyeur",
+            )
+            logger.info("KINGDOMS TAVERN: soudoyeur salon created (hidden)")
+        except Exception:
+            logger.error("KINGDOMS TAVERN: soudoyeur salon creation failed", exc_info=True)
+            return None, True
+    if guild.me is not None:
+        try:
+            await soudoyeur.set_permissions(
+                guild.me,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, manage_channels=True
+                ),
+            )
+        except Exception:
+            logger.warning(
+                "KINGDOMS TAVERN: bot allow on soudoyeur failed", exc_info=True
+            )
+    overwrite = _member_overwrite(soudoyeur, role)
+    hidden = overwrite is not None and overwrite.view_channel is False
+    if not hidden:
+        # revealed: keep the @everyone deny (the category gates the
+        # outsiders) but never re-hide the room.
+        try:
+            await soudoyeur.set_permissions(
+                guild.default_role,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=False, read_message_history=False
+                ),
+            )
+        except Exception:
+            logger.warning(
+                "KINGDOMS TAVERN: soudoyeur everyone deny failed", exc_info=True
+            )
+    return soudoyeur, hidden
+
+
+def build_soudoyeur_content(locale: str) -> str:
+    strings = _strings(locale)
+    return (
+        f"{SOUDOYEUR_MARKER}\n"
+        f"**{strings['soudoyeur_title']}**\n{strings['soudoyeur_intro']}"
+    )
+
+
+def build_soudoyeur_call_content(locale: str) -> str:
+    strings = _strings(locale)
+    return (
+        f"{SOUDOYEUR_CALL_MARKER}\n{strings['call_intro']}"
+    )
+
+
+async def deploy_soudoyeur_panel(channel: Any, locale: str) -> bool:
+    """Pin the Soudoyer's art (the hooded table) in his back room."""
+    view = discord.ui.View(timeout=None)
+    return await _deploy_art_panel(
+        channel,
+        marker=SOUDOYEUR_MARKER,
+        content=build_soudoyeur_content(locale),
+        view=view,
+        which="mercenaire",
+    )
+
+
+async def deploy_soudoyeur_call(channel: Any, locale: str) -> bool:
+    """Pin the ask-to-see button in the comptoir (while the room is hidden)."""
+    content = build_soudoyeur_call_content(locale)
+    view = discord.ui.View(timeout=None)
+    view.add_item(KingdomSoudoyeurRevealButton(_strings(locale)["call_button"]))
+    try:
+        for message in await channel_messages(channel):
+            if SOUDOYEUR_CALL_MARKER in message_text(message):
+                await message.edit(content=content, view=view)
+                return True
+        await channel.send(content=content, view=view, allowed_mentions=NO_MENTIONS)
+        return True
+    except Exception:
+        logger.warning("KINGDOMS TAVERN: soudoyeur call deploy failed", exc_info=True)
+        return False
+
+
+async def reveal_soudoyeur(guild: discord.Guild) -> bool:
+    """Open the back room to every insider (drop the role's channel deny)."""
+    role = find_tavern_role(guild)
+    category = _find_category(guild, "taverne")
+    if role is None or category is None:
+        return False
+    soudoyeur = _find_channel(guild, category, "soudoyeur")
+    if soudoyeur is None:
+        return False
+    try:
+        await soudoyeur.set_permissions(role, overwrite=None)
+    except Exception:
+        logger.error("KINGDOMS TAVERN: soudoyeur reveal failed", exc_info=True)
+        return False
+    logger.info("KINGDOMS TAVERN: soudoyeur back room revealed")
+    return True
+
+
+async def _delete_soudoyeur_call(guild: discord.Guild) -> None:
+    """Remove the ask-to-see button message(s) — no second click."""
+    category = _find_category(guild, "taverne")
+    if category is None:
+        return
+    comptoir = _find_channel(guild, category, "comptoir")
+    if comptoir is None:
+        return
+    try:
+        for message in await channel_messages(comptoir):
+            if (
+                SOUDOYEUR_CALL_MARKER in message_text(message)
+                and getattr(getattr(message, "author", None), "bot", False)
+            ):
+                try:
+                    await message.delete()
+                except Exception:
+                    logger.warning(
+                        "KINGDOMS TAVERN: soudoyeur call delete failed", exc_info=True
+                    )
+    except Exception:
+        logger.warning("KINGDOMS TAVERN: soudoyeur call sweep failed", exc_info=True)
 
 
 def _art_file(which: str) -> discord.File | None:
@@ -686,3 +905,56 @@ class KingdomTavernExitButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await _move_member(interaction, entering=False)
+
+
+class KingdomSoudoyeurRevealButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=REVEAL_CUSTOM_ID,
+):
+    """The restart-proof « Demander à voir le Soudoyeur » button."""
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=REVEAL_CUSTOM_ID,
+                style=discord.ButtonStyle.primary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: Any,
+        /,
+    ) -> KingdomSoudoyeurRevealButton:
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        return cls(_strings(locale)["call_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        guild = interaction.guild
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        strings = _strings(locale)
+        if guild is None:
+            await _send_note(interaction, strings["reveal_failed"])
+            return
+        category = _find_category(guild, "taverne")
+        role = find_tavern_role(guild)
+        already = False
+        if category is not None and role is not None:
+            soudoyeur = _find_channel(guild, category, "soudoyeur")
+            if soudoyeur is not None:
+                overwrite = _member_overwrite(soudoyeur, role)
+                already = overwrite is not None and overwrite.view_channel is not False
+        if not already:
+            moved = await reveal_soudoyeur(guild)
+            if not moved:
+                await _send_note(interaction, strings["reveal_failed"])
+                return
+        await _delete_soudoyeur_call(guild)
+        await _send_note(
+            interaction,
+            strings["already_revealed"] if already else strings["revealed"],
+        )
