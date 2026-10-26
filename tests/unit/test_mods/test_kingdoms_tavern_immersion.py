@@ -10,6 +10,7 @@ member inside sees ONLY the Taverne; leaving drops the role.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterator
 
 import pytest
 
@@ -29,6 +30,18 @@ from kingdoms.mods.kingdoms.tavern_immersion import (
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockMember
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture(autouse=True)
+def _fast_ephemeral(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """10 ms TTL — the auto-delete timers never outlive the test loop."""
+    import kingdoms.mods.kingdoms.tavern_immersion as tavern_immersion
+
+    monkeypatch.setattr(tavern_immersion, "_EPHEMERAL_SECONDS", 0.01)
+    yield
+    for task in list(tavern_immersion._EPHEMERAL_TASKS.values()):
+        task.cancel()
+    tavern_immersion._EPHEMERAL_TASKS.clear()
 
 
 async def _realm(guild: MockGuild) -> None:
