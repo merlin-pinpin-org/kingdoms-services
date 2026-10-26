@@ -35,6 +35,8 @@ __all__ = [
     "KingdomKingNameButton",
     "KingdomKingNameModal",
     "KingdomMarketActionButton",
+    "KingdomMarketCancelButton",
+    "KingdomMarketConfirmButton",
     "KingdomMarketLedgerButton",
     "KingdomMarketLedgerModal",
     "KingdomMarketModal",
@@ -207,6 +209,8 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketTechButton,
         KingdomMarketActionButton,
         KingdomMarketLedgerButton,
+        KingdomMarketConfirmButton,
+        KingdomMarketCancelButton,
         KingdomRempartsGuardButton,
         KingdomRempartsPatrouilleButton,
         KingdomFFAJoinButton,
@@ -1224,6 +1228,236 @@ async def _market_marry_civ_view(
     return view
 
 
+def _market_next_patrouille_slot(
+    wiring: KingdomsPanelWiring, kingdom_id: str
+) -> int:
+    """Return the next patrol slot to unlock (1 first, then 2)."""
+    state = None
+    if wiring.attacks_service is not None:
+        try:
+            state = await wiring.attacks_service.technology_state(kingdom_id)
+        except Exception:
+            state = None
+    return 1 if not _patrouille_unlocked(state) else 2
+
+
+async def _market_buy_note(
+    interaction: discord.Interaction,
+    note: str,
+    kingdom_id: str,
+    refresh: bool = True,
+) -> None:
+    """The single post-purchase ephemeral echo (+ realm refresh)."""
+    message: Any = cast(Any, await interaction.followup.send(note, ephemeral=True))
+    _market_ttl(interaction, message)
+    if refresh:
+        await _refresh_realm_views_for_kingdom_safe(interaction.guild, kingdom_id)
+
+
+async def _market_purchase_flow(
+    interaction: discord.Interaction,
+    wiring: KingdomsPanelWiring,
+    king: Any,
+    kind: str,
+    item: str,
+    cost: int,
+    strings: dict[str, Any],
+) -> None:
+    """cartes-tcg-v2: the shared purchase path of the article card
+    ✅ button and the legacy modal sheet (marche-v2) — corruption and
+    explorateur open their lord/target select views first."""
+    economy = wiring.economy_service
+    if economy is None:
+        await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+        return
+    kingdom_id = king.kingdom_id or ""
+    if item == "corruption":
+        view = await _market_action_select_view(wiring, king, item, strings, anchor=interaction)
+        if view is None:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        await interaction.response.send_message(
+            strings["market_choose_corrupt"], view=view, ephemeral=True
+        )
+        return
+    if item == "explorateur":
+        # marche-v2 art. 6: the exploring lord is chosen AFTER the
+        # sheet — 48h lock, the map comes at the end.
+        view = await _market_lord_select_view(wiring, king, strings, anchor=interaction)
+        if view is None:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        await interaction.response.send_message(
+            str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
+            view=view,
+            ephemeral=True,
+        )
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        if kind == "tech":
+            await economy.buy_combat_technology(kingdom_id, item)
+            note = await _market_success_note(wiring, kingdom_id, item, strings)
+        elif item == "garde_royale":
+            # remparts-v2: the market sells the TOKEN — the King
+            # places it from the 🧱 Remparts salon.
+            stock = await economy.buy_royal_guard(kingdom_id)
+            note = str(strings["market_garde_token_ok"]).format(stock)
+        elif item == "patrouille":
+            # remparts-v2: the market sells the slot UNLOCK (slot 1
+            # first, then slot 2) — the King places the window from
+            # the 🧱 Remparts salon.
+            slot_no = await _market_next_patrouille_slot(wiring, kingdom_id)
+            await economy.buy_patrouille_slot(kingdom_id, slot_no)
+            note = str(strings["market_patrouille_slot_ok"]).format(slot_no)
+        else:  # mariage_arrange: the token, not the marriage (D60).
+            kingdom = await economy.buy_arranged_marriage_token(kingdom_id)
+            note = str(strings["market_arranged_token_ok"]).format(
+                int(getattr(kingdom, "arranged_marriage_stock", 0) or 0)
+            )
+    except Exception as exc:
+        note = await _market_failure_note(exc, wiring, king, item, cost, strings)
+        await _market_buy_note(interaction, note, kingdom_id, refresh=False)
+        return
+    await _record_clicked_chronicle(
+        wiring, str(interaction.user.id), "market_purchase",
+        item=_market_label(item, strings),
+        cost=str(int(cost or 0)),
+    )
+    await _market_buy_note(interaction, note, kingdom_id)
+
+
+def _market_card_file(item: str) -> discord.File | None:
+    """The TCG card of one article, when it was uploaded (cosmetic)."""
+    from kingdoms.mods.kingdoms.marche_art import card_filename, resolve_card
+
+    path = resolve_card(item)
+    if path is None:
+        logger.info("KINGDOMS MARKET: %r card missing (assets/marche)", item)
+        return None
+    return discord.File(path, filename=card_filename(item))
+
+
+async def _send_market_card(
+    interaction: discord.Interaction,
+    wiring: KingdomsPanelWiring,
+    king: Any,
+    kind: str,
+    item: str,
+    strings: dict[str, Any],
+) -> None:
+    """cartes-tcg-v2 (Drasah 26/10): reveal the article CARD face up
+    in an ephemeral — the TCG art, the full fiche (effect, cost, live
+    treasury, per-season remainder) and the ✅ Acheter / ❌ Annuler
+    buttons. No art uploaded? The sheet still works (cosmetic)."""
+    cost = int(getattr(_market_costs(wiring), item, 0) or 0)
+    fiche = await _market_fiche(wiring, king, item, strings)
+    embed = discord.Embed(
+        title=f"💰 {_market_label(item, strings)} — {cost} ⚙️",
+        description=fiche,
+        colour=discord.Colour.gold(),
+    )
+    file = _market_card_file(item)
+    if file is not None:
+        embed.set_image(url=f"attachment://{file.filename}")
+    view = discord.ui.View(timeout=None)
+    view.add_item(KingdomMarketConfirmButton(kind, item, strings))
+    view.add_item(KingdomMarketCancelButton(strings))
+    await interaction.response.send_message(
+        embed=embed,
+        files=[file] if file is not None else [],
+        view=view,
+        ephemeral=True,
+    )
+
+
+class KingdomMarketConfirmButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=(
+        r"kingdoms:market:confirm:(?P<kind>tech|action):(?P<item>embuscade"
+        r"|traquenard|contre_espionnage|sabotage|jeu_d_armes|explorateur"
+        r"|corruption|garde_royale|patrouille|mariage_arrange)"
+    ),
+):
+    """cartes-tcg-v2: the restart-proof ✅ of the revealed article card."""
+
+    def __init__(self, kind: str, item: str, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["market_buy_button"])[:80],
+                custom_id=f"kingdoms:market:confirm:{kind}:{item}",
+                style=discord.ButtonStyle.success,
+            )
+        )
+        self.kind = kind
+        self.item = item
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMarketConfirmButton:
+        """Rebuild the card confirm button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(match.group("kind"), match.group("item"), _strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Run the purchase the card announced (single ephemeral echo)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.economy_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
+            return
+        cost = int(getattr(_market_costs(wiring), self.item, 0) or 0)
+        await _market_purchase_flow(
+            interaction, wiring, king, self.kind, self.item, cost, strings
+        )
+
+
+class KingdomMarketCancelButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:market:cancel",
+):
+    """cartes-tcg-v2: the ❌ of the revealed card — face down again."""
+
+    def __init__(self, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["market_cancel_button"])[:80],
+                custom_id="kingdoms:market:cancel",
+                style=discord.ButtonStyle.danger,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMarketCancelButton:
+        """Rebuild the card cancel button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Fold the card back under the stall (edit the ephemeral)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        await interaction.response.edit_message(
+            content=strings["market_cancelled"], embed=None, view=None
+        )
+
+
 class KingdomMarketModal(discord.ui.Modal):
     """The marche-v2 article sheet (variant B): read the fiche, then buy.
 
@@ -1252,7 +1486,7 @@ class KingdomMarketModal(discord.ui.Modal):
         king: Any,
     ) -> None:
         label = _market_label(item, strings)
-        super().__init__(title=f"🛒 {label} — {cost} ⚙️"[:45], timeout=300)
+        super().__init__(title=f"💰 {label} — {cost} ⚙️"[:45], timeout=300)
         self.kind = kind
         self.item = item
         self.cost = cost
@@ -1262,91 +1496,22 @@ class KingdomMarketModal(discord.ui.Modal):
         self.fiche.label = str(strings["market_fiche_input"])[:45]
         self.fiche.default = fiche[:4000]
 
-    async def _next_patrouille_slot(
-        self, wiring: KingdomsPanelWiring, kingdom_id: str
-    ) -> int:
-        """Return the next patrol slot to unlock (1 first, then 2)."""
-        state = None
-        if wiring.attacks_service is not None:
-            try:
-                state = await wiring.attacks_service.technology_state(kingdom_id)
-            except Exception:
-                state = None
-        return 1 if not _patrouille_unlocked(state) else 2
-
-    async def _buy_note(self, interaction: discord.Interaction, note: str, refresh: bool = True) -> None:
-        message: Any = cast(Any, await interaction.followup.send(note, ephemeral=True))
-        _market_ttl(interaction, message)
-        if refresh:
-            await _refresh_realm_views_for_kingdom_safe(
-                interaction.guild, self.king.kingdom_id or ""
-            )
-
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Run the purchase the sheet announced (single ephemeral echo)."""
-        strings = self.strings
-        wiring = self.wiring
-        king = self.king
-        item = self.item
-        economy = wiring.economy_service
-        if economy is None:
-            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
-            return
-        kingdom_id = king.kingdom_id or ""
-        if item == "corruption":
-            view = await _market_action_select_view(wiring, king, item, strings, anchor=interaction)
-            if view is None:
-                await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
-                return
+        """Run the purchase the sheet announced (single ephemeral echo).
+
+        cartes-tcg-v2: the card flow now owns this path — the modal
+        stays wired for backward compatibility and delegates to the
+        shared :func:`_market_purchase_flow`.
+        """
+        if self.wiring.economy_service is None:
             await interaction.response.send_message(
-                strings["market_choose_corrupt"], view=view, ephemeral=True
+                self.strings["market_no_service"], ephemeral=True
             )
             return
-        if item == "explorateur":
-            # marche-v2 art. 6: the exploring lord is chosen AFTER the
-            # sheet — 48h lock, the map comes at the end.
-            view = await _market_lord_select_view(wiring, king, strings, anchor=interaction)
-            if view is None:
-                await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
-                return
-            await interaction.response.send_message(
-                str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
-                view=view,
-                ephemeral=True,
-            )
-            return
-        await interaction.response.defer(ephemeral=True)
-        try:
-            if self.kind == "tech":
-                await economy.buy_combat_technology(kingdom_id, item)
-                note = await _market_success_note(wiring, kingdom_id, item, strings)
-            elif item == "garde_royale":
-                # remparts-v2: the market sells the TOKEN — the King
-                # places it from the 🧱 Remparts salon.
-                stock = await economy.buy_royal_guard(kingdom_id)
-                note = str(strings["market_garde_token_ok"]).format(stock)
-            elif item == "patrouille":
-                # remparts-v2: the market sells the slot UNLOCK (slot 1
-                # first, then slot 2) — the King places the window from
-                # the 🧱 Remparts salon.
-                slot_no = await self._next_patrouille_slot(wiring, kingdom_id)
-                await economy.buy_patrouille_slot(kingdom_id, slot_no)
-                note = str(strings["market_patrouille_slot_ok"]).format(slot_no)
-            else:  # mariage_arrange: the token, not the marriage (D60).
-                kingdom = await economy.buy_arranged_marriage_token(kingdom_id)
-                note = str(strings["market_arranged_token_ok"]).format(
-                    int(getattr(kingdom, "arranged_marriage_stock", 0) or 0)
-                )
-        except Exception as exc:
-            note = await _market_failure_note(exc, wiring, king, item, self.cost, strings)
-            await self._buy_note(interaction, note, refresh=False)
-            return
-        await _record_clicked_chronicle(
-            wiring, str(interaction.user.id), "market_purchase",
-            item=_market_label(item, strings),
-            cost=str(int(self.cost or 0)),
+        await _market_purchase_flow(
+            interaction, self.wiring, self.king, self.kind, self.item,
+            self.cost, self.strings,
         )
-        await self._buy_note(interaction, note)
 
 
 def _patrouille_unlocked(state: Any) -> bool:
@@ -1403,19 +1568,7 @@ class KingdomMarketTechButton(
         if king is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
-        cost = int(getattr(_market_costs(wiring), self.tech, 0) or 0)
-        fiche = await _market_fiche(wiring, king, self.tech, strings)
-        await interaction.response.send_modal(
-            KingdomMarketModal(
-                kind="tech",
-                item=self.tech,
-                cost=cost,
-                fiche=fiche,
-                strings=strings,
-                wiring=wiring,
-                king=king,
-            )
-        )
+        await _send_market_card(interaction, wiring, king, "tech", self.tech, strings)
 
 
 class KingdomMarketActionButton(
@@ -1463,19 +1616,7 @@ class KingdomMarketActionButton(
         if king is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
-        cost = int(getattr(_market_costs(wiring), self.action, 0) or 0)
-        fiche = await _market_fiche(wiring, king, self.action, strings)
-        await interaction.response.send_modal(
-            KingdomMarketModal(
-                kind="action",
-                item=self.action,
-                cost=cost,
-                fiche=fiche,
-                strings=strings,
-                wiring=wiring,
-                king=king,
-            )
-        )
+        await _send_market_card(interaction, wiring, king, "action", self.action, strings)
 
 
 class KingdomRempartsOpenButton(

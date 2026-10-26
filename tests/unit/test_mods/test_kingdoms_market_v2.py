@@ -1,10 +1,10 @@
-"""Kingdoms Marché v2 tests: article sheets, single echo and ledger.
+"""Kingdoms Marché v2 tests: article cards, single echo and ledger.
 
-The marche-v2 spec (2026-10-13): every purchase rides a modal « fiche
-produit » (effect, cost, live treasury, per-season remainder), the echo
-after the purchase is ONE ephemeral note with the enriched errors, and
-every kingdom can open its 🏛️ Chambre des comptes (season balance +
-reverse-chronology register) from the Le-Royaume panel.
+The cartes-tcg-v2 spec (Drasah 26/10): every purchase flows through
+the revealed ephemeral CARD (effect, cost, live treasury, per-season
+remainder + ✅ Acheter / ❌ Annuler), the echo after the purchase is
+ONE ephemeral note with the enriched errors, and every kingdom can
+open its 🏛️ Chambre des comptes from the Le-Royaume panel.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from kingdoms.mods.kingdoms.economy import (
     InsufficientPointsError,
 )
 from kingdoms.mods.kingdoms.kingdom_persistent import (
+    KingdomMarketCancelButton,
     KingdomMarketLedgerButton,
     KingdomMarketTechButton,
     KingdomsPanelWiring,
@@ -97,20 +98,24 @@ def _wire(
     )
 
 
-async def test_sheet_carries_cost_wallet_limit_and_king_only_note() -> None:
+async def test_card_carries_fiche_and_confirm_cancel_buttons() -> None:
     _wire(economy=FakeEconomyService(wallet=9))
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketTechButton("jeu_d_armes", "Jeu d'armes", discord.ButtonStyle.primary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
-    sheet = str(modal.fiche.default or "")
+    assert interaction.response.ephemeral is True
+    card = interaction.response.message
+    assert card is not None
+    sheet = str(card.embed.description if card.embed else "")
     assert "EFFECT" in sheet
     assert "COST — 1 ⚙️" in sheet
     assert "CURRENT TREASURY — 9 ⚙️" in sheet
-    # jeu_d_armes is limited (1/season): the remainder rides the sheet.
+    # jeu_d_armes is limited (1/season): the remainder rides the card.
     assert "LEFT THIS SEASON — 1/1" in sheet
     assert "King only" in sheet
+    custom_ids = [child.item.custom_id for child in card.view.children]
+    assert "kingdoms:market:confirm:tech:jeu_d_armes" in custom_ids
+    assert "kingdoms:market:cancel" in custom_ids
 
 
 async def test_insufficient_treasury_error_names_the_missing_amount() -> None:
@@ -118,10 +123,11 @@ async def test_insufficient_treasury_error_names_the_missing_amount() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketTechButton("embuscade", "Embuscade", discord.ButtonStyle.primary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    card = interaction.response.message
+    assert card is not None
+    confirm = next(c for c in card.view.children if "confirm" in c.item.custom_id)
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     assert submit.followup.messages
     # embuscade costs 2, treasury holds 1 → missing 1 ⚙️.
     assert "1 ⚙️ short" in (submit.followup.messages[-1].content or "")
@@ -132,10 +138,11 @@ async def test_limit_error_names_the_season_counters() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketTechButton("jeu_d_armes", "Jeu d'armes", discord.ButtonStyle.primary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    card = interaction.response.message
+    assert card is not None
+    confirm = next(c for c in card.view.children if "confirm" in c.item.custom_id)
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     assert submit.followup.messages
     assert "Season limit reached (0/1)" in (submit.followup.messages[-1].content or "")
 
@@ -204,3 +211,13 @@ async def test_overview_panel_carries_the_ledger_button() -> None:
 
 
 _LEDGER_MATCH: Any = __import__("re").match(r"kingdoms:market:ledger", "kingdoms:market:ledger")
+
+async def test_cancel_button_folds_the_card_back() -> None:
+    from kingdoms.mods.kingdoms import kingdom_panels
+
+    strings = kingdom_panels._strings("en")
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    cancel = KingdomMarketCancelButton(strings)
+    await cancel.callback(interaction)
+    assert interaction.response.message is not None
+    assert "Purchase cancelled" in str(interaction.response.message.content or "")

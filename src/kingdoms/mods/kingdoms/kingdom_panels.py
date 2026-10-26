@@ -114,13 +114,13 @@ async def refresh_changelog(guild: discord.Guild, locale: str) -> bool:
         return False
     fr = str(locale).lower().startswith("fr")
     items = (
-        "🛒 Le panneau Marché est en ligne : technologies de combat et actions spéciales"
+        "💰 Le panneau Marché est en ligne : technologies de combat et actions spéciales"
         " (Explorateur, Corruption, Garde Royale) achetables par le Roi du royaume."
         "\n🛠️ Panneau admin enrichi : déploiement des salons + panels, resynchronisation, "
         "statut de la saison, affectation des joueurs en attente, ajout manuel de royaume — "
         "les actions sensibles demandent une confirmation."
         if fr
-        else "🛒 The Market panel is live: combat technologies and special actions"
+        else "💰 The Market panel is live: combat technologies and special actions"
         " (Explorer, Corruption, Royal Guard) purchasable by the kingdom's King."
         "\n🛠️ Richer admin panel: deploy salons + panels, resync, season status, "
         "assign waiting players, add a kingdom manually — sensitive actions ask for confirmation."
@@ -324,12 +324,17 @@ STRINGS: dict[str, dict[str, Any]] = {
         "season_status_queue": "⏳ Waiting players",
         "season_status_empty": "none yet",
         "season_status_hint": "This message is refreshed automatically by the bot.",
-        "market_title": "🛒 Kingdom Market",
+        "market_title": "💰 Kingdom Market",
         "market_hint_panel": (
             "👑 Only the King of a kingdom can buy — every purchase debits "
             "the kingdom treasury immediately (cost shown per article)."
         ),
         "market_fiche_input": "Article sheet (read only)",
+        # cartes-tcg-v2 (Drasah 26/10): the revealed card carries its
+        # own buttons — Buy / Cancel.
+        "market_buy_button": "✅ Buy",
+        "market_cancel_button": "❌ Cancel",
+        "market_cancelled": "Purchase cancelled — the card goes back under the merchant's stall.",
         "market_fiche_effect": "EFFECT — {0}",
         "market_fiche_cost": "COST — {0} ⚙️",
         "market_fiche_wallet": "CURRENT TREASURY — {0} ⚙️",
@@ -742,12 +747,17 @@ STRINGS: dict[str, dict[str, Any]] = {
         "season_status_queue": "⏳ Joueurs en attente",
         "season_status_empty": "aucun pour le moment",
         "season_status_hint": "Ce message est mis à jour automatiquement par le bot.",
-        "market_title": "🛒 Marché du Royaume",
+        "market_title": "💰 Marché du Royaume",
         "market_hint_panel": (
             "👑 Seul le Roi d'un royaume peut acheter — chaque achat débite "
             "immédiatement le trésor du royaume (coût affiché par article)."
         ),
         "market_fiche_input": "Fiche article (lecture seule)",
+        # cartes-tcg-v2 (Drasah 26/10): la carte révélée porte ses
+        # propres boutons — Acheter / Annuler.
+        "market_buy_button": "✅ Acheter",
+        "market_cancel_button": "❌ Annuler",
+        "market_cancelled": "Achat annulé — la carte retourne sous l'étal du marchand.",
         "market_fiche_effect": "EFFET — {0}",
         "market_fiche_cost": "COÛT — {0} ⚙️",
         "market_fiche_wallet": "TRÉSORERIE ACTUELLE — {0} ⚙️",

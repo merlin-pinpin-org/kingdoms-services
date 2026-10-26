@@ -137,7 +137,7 @@ _CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
     "candidatures": "📥 candidatures",
     "royaumes": "👑 royaumes",
     "scriptorium": "📜 scriptorium",
-    "marche": "🛒 marché",
+    "marche": "💰 marché",
     # no geopolitics here: its live name is owned by refresh_age_pin
     # (the age emoji is dynamic) — the charte must never fight it.
     "territoire": "🗺️ territoire",
@@ -616,7 +616,7 @@ category's display name is « Champs de Bataille » and must be spared
 
 KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
     "📜 scriptorium",
-    "🛒 marché",
+    "💰 marché",
     "🌍 géopolitique",
     "🗺️ territoire",
     "🍺 taverne",

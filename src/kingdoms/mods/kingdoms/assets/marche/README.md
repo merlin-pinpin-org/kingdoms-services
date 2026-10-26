@@ -1,28 +1,33 @@
 # 🎴 Cartes TCG du Marché
 
 Les **10 achats du Marché** du mod Kingdoms, déclinés en cartes (design Drasah).
-Ce dossier est la source unique des cartes ; le panneau Marché les affichera
-depuis ici (pattern `assets/taverne` / `scriptorium.png` : priorité au PNG,
-cosmétique si absent).
+Ce dossier est la source unique des cartes ; le panneau Marché révèle la carte
+en éphémère au clic sur un article (pattern `assets/taverne` : priorité au PNG,
+cosmétique si absent — la fiche d'achat fonctionne sans l'art).
 
 ## Déposer les cartes (drag-drop GitHub)
 
-Ouvrir ce dossier sur GitHub → **Add file → Upload files** → glisser les 10 PNG →
+Ouvrir ce dossier sur GitHub → **Add file → Upload files** → glisser les PNG →
 Commit directement sur `vibe/drasah/main`.
 
-## Nommage attendu (CLÉS FIGÉES = clés du catalogue config `TechnologyCosts`)
+## Nommage EN VIGUEUR (cartes-tcg-v2 — noms d'affichage déposés par Drasah)
 
-| Fichier | Carte | Coût | Limite / saison |
-|---|---|---|---|
-| `carte-embuscade.png` | Embuscade | 2 ⚙ | — |
-| `carte-traquenard.png` | Traquenard | 1 ⚙ | — |
-| `carte-contre_espionnage.png` | Contre-espionnage | 2 ⚙ | — |
-| `carte-sabotage.png` | Sabotage | 1 ⚙ | 2 |
-| `carte-jeu_d_armes.png` | Jeu d'armes | 1 ⚙ | 1 |
-| `carte-explorateur.png` | Explorateur | 2 ⚙ | 1 |
-| `carte-corruption.png` | Corruption | 4 ⚙ | 2 |
-| `carte-garde_royale.png` | Garde Royale | 2 ⚙ | — |
-| `carte-patrouille.png` | Patrouille | 2 ⚙ | 2 |
-| `carte-mariage_arrange.png` | Mariage arrangé | 3 ⚙ | — |
+Le resolver `marche_art.py` mappe chaque clé du catalogue `TechnologyCosts`
+vers le fichier déposé :
 
-PNG recommandé (portrait carte) : ~2:3, ≥ 512 px de haut.
+| Fichier | Clé config | Carte | Coût | Limite / saison |
+|---|---|---|---|---|
+| `Embuscade.png` | `embuscade` | Embuscade | 2 ⚙ | — |
+| `Traquenard.png` | `traquenard` | Traquenard | 1 ⚙ | — |
+| `Contre_Espionnage.png` | `contre_espionnage` | Contre-espionnage | 2 ⚙ | — |
+| `Sabotage.png` | `sabotage` | Sabotage | 1 ⚙ | 2 |
+| `Jeu_darme.png` | `jeu_d_armes` | Jeu d'armes | 1 ⚙ | 1 |
+| `Explorateur.png` | `explorateur` | Explorateur | 2 ⚙ | 1 |
+| `Corruption.png` | `corruption` | Corruption | 4 ⚙ | 2 |
+| `Garde_Royale.png` | `garde_royale` | Garde Royale | 2 ⚙ | — |
+| `Patrouille.png` | `patrouille` | Patrouille | 2 ⚙ | 2 |
+| `Mariage_Arrange.png` | `mariage_arrange` | Mariage arrangé | 3 ⚙ | — |
+
+`Dos_de_carte.png` (dos de carte « KINGDOM ») est réservé au futur flux
+**booster** (Drasah 26/10) — volontairement hors du mapping du Marché.
+PNG portrait ~2:3 (728×1024 déposés).

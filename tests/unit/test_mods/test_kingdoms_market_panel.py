@@ -268,6 +268,13 @@ async def test_market_panel_never_serializes_an_empty_action_row() -> None:
         assert len(row.children) >= 1
 
 
+def _card_confirm(interaction: Any) -> Any:
+    """The ✅ button of the revealed ephemeral article card."""
+    card = interaction.response.message
+    assert card is not None and card.view is not None
+    return next(c for c in card.view.children if "confirm" in c.item.custom_id)
+
+
 async def test_tech_button_opens_the_sheet_then_buys_through_the_economy_for_kings() -> None:
     economy = FakeEconomyService()
     _wiring(
@@ -277,16 +284,16 @@ async def test_tech_button_opens_the_sheet_then_buys_through_the_economy_for_kin
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketTechButton("embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary)
     await button.callback(interaction)
-    assert interaction.response.modal is not None
-    modal = interaction.response.modal
-    sheet = str(modal.fiche.default or "")
+    card = interaction.response.message
+    assert card is not None
+    sheet = str(card.embed.description if card.embed else "")
     assert "EFFECT" in sheet
     assert "COST" in sheet
     assert "CURRENT TREASURY" in sheet
     assert "King only" in sheet
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await _card_confirm(interaction).callback(submit)
     assert economy.tech_bought == [("k1", "embuscade")]
     assert submit.followup.messages
     assert "Purchased" in (submit.followup.messages[-1].content or "")
@@ -322,11 +329,10 @@ async def test_action_button_opens_the_territory_select_and_buys() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("corruption", "Corruption — 4 🔬", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    confirm = _card_confirm(interaction)
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     message = submit.response.message
     assert message is not None and message.view is not None
     select = next(iter(message.view.children))
@@ -354,11 +360,10 @@ async def test_explorateur_button_locks_the_chosen_lord() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("explorateur", "Explorateur", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    confirm = _card_confirm(interaction)
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     # The sheet opens the lord select instead of buying instantly.
     message = submit.response.message
     assert message is not None and message.view is not None
@@ -389,20 +394,18 @@ async def test_patrouille_button_buys_the_next_slot_unlock() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("patrouille", "Patrol — 2 🔬", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    confirm = _card_confirm(interaction)
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     assert economy.patrols == [("k1", 1)]  # slot 1 unlocked first
     assert submit.followup.messages  # the buy note echoes the unlock
     assert "1" in (submit.followup.messages[-1].content or "")
 
     # The second purchase unlocks the slot 2.
     await button.callback(interaction)
-    modal = interaction.response.modal
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await _card_confirm(interaction).callback(submit)
     assert economy.patrols == [("k1", 1), ("k1", 2)]
 
 
@@ -417,11 +420,10 @@ async def test_garde_royale_market_button_buys_a_token() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("garde_royale", "Garde Royale — 2 🔬", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    confirm = _card_confirm(interaction)
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     assert economy.guard_tokens == 1
     assert submit.followup.messages  # the token note echoes the stock
 
@@ -465,10 +467,9 @@ async def test_action_button_answers_no_options_when_empty() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("corruption", "Corruption", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
+    confirm = _card_confirm(interaction)
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await modal.on_submit(submit)
+    await confirm.callback(submit)
     assert submit.response.sent
     message = submit.response.message
     assert message is not None
