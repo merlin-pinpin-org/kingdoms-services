@@ -413,9 +413,12 @@ class TavernSettings(BaseModel):
     drink_cooldown_hours: int = Field(default=24, ge=0)
     """The GLOBAL delay between two drinks, whatever the drink."""
     drinks: tuple[TavernDrink, ...] = (
-        TavernDrink(key="verre", label="🍺 Verre", price=2, lock_minutes=60),
-        TavernDrink(key="vin", label="🍷 Vin", price=4, lock_minutes=180),
-        TavernDrink(key="alcool", label="🥃 Alcool fort", price=8, lock_minutes=360),
+        # taverne-comptoir-v3 (Drasah 26/10): medieval names — the
+        # KEYS stay frozen (they ride the wire custom_ids and the
+        # stored cooldowns).
+        TavernDrink(key="verre", label="🍺 Cervoise", price=2, lock_minutes=60),
+        TavernDrink(key="vin", label="🍷 Hypocras", price=4, lock_minutes=180),
+        TavernDrink(key="alcool", label="🥃 Eau-de-vie", price=8, lock_minutes=360),
     )
     """The three drinks — the panel and the service read ONLY this
     catalog (data, never code)."""

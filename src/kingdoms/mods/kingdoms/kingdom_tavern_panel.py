@@ -75,6 +75,22 @@ _STRINGS: dict[str, dict[str, str]] = {
         "unknown_drink": "Cette boisson n'existe pas au comptoir.",
         "failed": "La commande a échoué : `{message}`.",
         "menu_button": "🍺 Demander à boire",
+        "info_button": "🗣️ Demander un renseignement",
+        "purse_button": "💰 Regarder sa bourse",
+        "info_rp": (
+            "Le tenancier essuie un gobelet sans lever les yeux, puis "
+            "approche sa voix :\n"
+            "« Ici, rien n'est gratuit, seigneur. Les renseignements "
+            "coûtent cher… mais tu remarqueras que les langues ont "
+            "tendance à se délier lorsqu'on boit. »"
+        ),
+        "info_header": "**Ce que chaque boisson fait réellement :**",
+        "info_line": "• {label} — {effect} · verrou {time}",
+        "drink_effect_verre": "ouvre une fenêtre d'écoute des rumeurs les plus proches",
+        "drink_effect_vin": "révèle l'horaire des FFA",
+        "drink_effect_alcool": "force la prochaine map",
+        "drink_effect_generic": "les langues se délient",
+        "purse_content": "Ta bourse contient **{purse} écu(s)**.",
     },
     "en": {
         "panel_title": "🍺 The Tavern",
@@ -115,6 +131,22 @@ _STRINGS: dict[str, dict[str, str]] = {
         "unknown_drink": "This drink does not exist at the counter.",
         "failed": "The order failed: `{message}`.",
         "menu_button": "🍺 Ask for a drink",
+        "info_button": "🗣️ Ask for information",
+        "purse_button": "💰 Check your purse",
+        "info_rp": (
+            "The barkeep wipes a tankard without looking up, then "
+            "lowers his voice:\n"
+            "\"Nothing comes free here, my lord. Information costs "
+            "dear… though you may notice tongues tend to loosen over "
+            "a drink.\""
+        ),
+        "info_header": "**What each drink really does:**",
+        "info_line": "• {label} — {effect} · lock {time}",
+        "drink_effect_verre": "opens a listening window on the closest rumors",
+        "drink_effect_vin": "reveals the FFA schedule",
+        "drink_effect_alcool": "forces the next map",
+        "drink_effect_generic": "tongues loosen",
+        "purse_content": "Your purse holds **{purse} écu(s)**.",
     },
 }
 
@@ -143,6 +175,113 @@ def _drink_catalog(wiring: Any) -> tuple[Any, ...]:
     service = getattr(wiring, "kingdoms_service", None)
     config = getattr(service, "config", None) if service is not None else None
     return tuple(getattr(getattr(config, "tavern", None), "drinks", ()) or ())
+
+
+def build_info_content(wiring: Any, locale: str) -> str:
+    """The tenancier's ephemeral: RP intro, then the plain-truth
+    per-drink effects (taverne-comptoir-v3, Drasah 26/10)."""
+    strings = _strings(locale)
+    lines: list[str] = [strings["info_rp"], "", strings["info_header"]]
+    for drink in _drink_catalog(wiring):
+        effect = strings.get(
+            f"drink_effect_{drink.key}", strings["drink_effect_generic"]
+        )
+        lines.append(
+            strings["info_line"].format(
+                label=drink.label,
+                effect=effect,
+                time=_fmt_remaining(int(drink.lock_minutes) * 60),
+            )
+        )
+    return "\n".join(lines)
+
+
+class KingdomTavernInfoButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template="kingdoms:tavern:info",
+):
+    """The comptoir pin's « Demander un renseignement » — FIRST button,
+    the tenancier's ephemeral answer (RP + plain drink effects)."""
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:tavern:info",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: Any,
+        /,
+    ) -> KingdomTavernInfoButton:
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        return cls(_strings(locale)["info_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        wiring = _wiring()
+        try:
+            await interaction.response.send_message(
+                build_info_content(wiring, locale), ephemeral=True
+            )
+        except Exception:
+            logger.warning("KINGDOM TAVERN: info ephemeral failed", exc_info=True)
+
+
+class KingdomTavernPurseButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template="kingdoms:tavern:purse",
+):
+    """The comptoir pin's « Regarder sa bourse » — apart from the RP
+    row (its own button row below), shows the lord's écus."""
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:tavern:purse",
+                style=discord.ButtonStyle.secondary,
+                row=1,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: Any,
+        /,
+    ) -> KingdomTavernPurseButton:
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        return cls(_strings(locale)["purse_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        locale = str(interaction.locale) if interaction.locale else "fr"
+        strings = _strings(locale)
+        wiring = _wiring()
+        service = getattr(wiring, "tavern_service", None)
+        if service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        try:
+            lord = await service.lord(str(interaction.user.id))
+        except Exception as exc:
+            await interaction.response.send_message(_error_note(exc, strings), ephemeral=True)
+            return
+        await interaction.response.send_message(
+            strings["purse_content"].format(purse=lord.purse), ephemeral=True
+        )
 
 
 class KingdomTavernMenuButton(

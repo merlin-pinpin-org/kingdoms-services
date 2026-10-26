@@ -157,7 +157,9 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     )
     from kingdoms.mods.kingdoms.kingdom_tavern_panel import (
         KingdomTavernDrinkButton,
+        KingdomTavernInfoButton,
         KingdomTavernMenuButton,
+        KingdomTavernPurseButton,
     )
     from kingdoms.mods.kingdoms.tavern_immersion import (
         KingdomSoudoyeurRevealButton,
@@ -229,6 +231,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         # taverne-comptoir-v2 (Drasah 26/10): the comptoir pin's
         # drinks menu button (ephemeral interface).
         KingdomTavernMenuButton,
+        # taverne-comptoir-v3 (Drasah 26/10): the comptoir pin's
+        # information and purse buttons (ephemerals).
+        KingdomTavernInfoButton,
+        KingdomTavernPurseButton,
         # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's bid and
         # withdraw buttons of the taverne panel.
         KingdomMercenaryBidButton,

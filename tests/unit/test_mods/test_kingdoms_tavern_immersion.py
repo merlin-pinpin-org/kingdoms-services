@@ -158,6 +158,36 @@ async def test_enter_and_exit_move_the_member_role_and_answer_ephemeral() -> Non
     assert any("déjà" in (m.content or "") for m in out_again.followup.messages)
 
 
+async def test_the_info_and_purse_buttons_answer_ephemeral() -> None:
+    """taverne-comptoir-v3 (Drasah 26/10): « Demander un renseignement »
+    answers with the tenancier's RP + the plain drink effects; « Regarder
+    sa bourse » answers with the live purse (cold wiring: no service)."""
+    from kingdoms.mods.kingdoms.kingdom_tavern_panel import (
+        KingdomTavernInfoButton,
+        KingdomTavernPurseButton,
+    )
+
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    member = MockMember(id=93, name="Curieux")
+    guild.add_member(member)
+
+    info = MockInteraction(user=member, guild=guild, locale="fr")
+    await KingdomTavernInfoButton("🗣️ Demander un renseignement").callback(info)
+    assert info.response.sent and info.response.ephemeral  # EPHEMERAL answer
+    text = str(info.response.message.content or "")
+    assert "rien n'est gratuit" in text  # the tenancier's RP
+    assert "Ce que chaque boisson fait réellement" in text  # plain effects
+    assert "Cervoise" in text and "Hypocras" in text and "Eau-de-vie" in text
+
+    purse = MockInteraction(user=member, guild=guild, locale="fr")
+    await KingdomTavernPurseButton("💰 Regarder sa bourse").callback(purse)
+    # Cold wiring in unit tests: the polite no-service note.
+    assert purse.response.sent and purse.response.ephemeral
+    assert "Taverne n'est pas branché" in str(purse.response.message.content or "")
+
+
 async def test_the_ephemeral_notes_self_destruct() -> None:
     guild = MockGuild()
     await ensure_tavern_immersion_structure(guild)
@@ -308,9 +338,11 @@ async def test_provisioning_creates_the_soudoyeur_hidden_back_room() -> None:
     pins = [m for m in comptoir.messages if COMPTOIR_MARKER in m.content]
     assert len(pins) == 1
     assert _button_custom_ids(pins[0].view) == [
+        "kingdoms:tavern:info",  # first (taverne-comptoir-v3)
         "kingdoms:tavern:soudoyeur:reveal",
         "kingdoms:tavern:menu",
-        "kingdoms:tavern:exit",
+        "kingdoms:tavern:exit",  # last of the RP row
+        "kingdoms:tavern:purse",  # apart, its own row below
     ]
     # No standalone call message, no pinned drinks message anymore.
     assert not any(SOUDOYEUR_CALL_MARKER in m.content for m in comptoir.messages)
@@ -351,8 +383,10 @@ async def test_the_reveal_button_opens_the_room_to_everyone_and_never_returns() 
     # The comptoir pin is re-rendered WITHOUT the reveal button — the
     # door-out stays LAST whatever happens.
     assert _button_custom_ids(pin.view) == [
+        "kingdoms:tavern:info",
         "kingdoms:tavern:menu",
         "kingdoms:tavern:exit",
+        "kingdoms:tavern:purse",
     ]
 
     # Provisioning after the reveal: the room stays open and synced,
@@ -361,8 +395,10 @@ async def test_the_reveal_button_opens_the_room_to_everyone_and_never_returns() 
     assert soudoyeur.permission_overwrite_for(role) is None  # never re-hidden
     assert soudoyeur.permission_overwrite_for(guild.default_role) is None
     assert _button_custom_ids(pin.view) == [
+        "kingdoms:tavern:info",
         "kingdoms:tavern:menu",
         "kingdoms:tavern:exit",
+        "kingdoms:tavern:purse",
     ]
     assert len([m for m in soudoyeur.messages if SOUDOYEUR_MARKER in m.content]) == 1
     # A second click (a stale button elsewhere) is a polite no-op.

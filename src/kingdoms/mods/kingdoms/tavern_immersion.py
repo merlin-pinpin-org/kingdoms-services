@@ -98,7 +98,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "fond de l'arrière-salle…"
         ),
         "call_button": "Demander à voir le Soudoyeur",
-        "menu_button": "🍺 Demander à boire",
         "revealed": (
             "⚔️ Le Soudoyeur lève les yeux de sa chope — l'arrière-salle "
             "s'ouvre à TOUS les convives de la Taverne."
@@ -144,7 +143,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "room…"
         ),
         "call_button": "Ask to see the Soudoyer",
-        "menu_button": "🍺 Ask for a drink",
         "revealed": (
             "⚔️ The Soudoyer looks up from his tankard — the back room "
             "opens to EVERY guest of the Tavern."
@@ -719,18 +717,27 @@ def build_facade_content(locale: str) -> str:
 
 
 def build_comptoir_view(locale: str, hidden: bool = True) -> discord.ui.View:
-    """The comptoir pin's buttons (taverne-comptoir-v2, Drasah 26/10):
-    « Demander à voir le Soudoyeur » FIRST while the back room stays
-    hidden, « Demander à boire » in between, and the door-out LAST
-    whatever happens."""
-    from kingdoms.mods.kingdoms.kingdom_tavern_panel import KingdomTavernMenuButton
+    """The comptoir pin's buttons (taverne-comptoir-v3, Drasah
+    26/10): « Demander un renseignement » FIRST, the ask-to-see
+    Soudoyeur while the back room stays hidden, the drinks menu, the
+    door-out LAST whatever happens — and the purse button apart on
+    its own row below."""
+    from kingdoms.mods.kingdoms import kingdom_tavern_panel
+    from kingdoms.mods.kingdoms.kingdom_tavern_panel import (
+        KingdomTavernInfoButton,
+        KingdomTavernMenuButton,
+        KingdomTavernPurseButton,
+    )
 
     strings = _strings(locale)
+    tavern = kingdom_tavern_panel._strings(locale)
     view = discord.ui.View(timeout=None)
+    view.add_item(KingdomTavernInfoButton(tavern["info_button"]))  # first
     if hidden:
         view.add_item(KingdomSoudoyeurRevealButton(strings["call_button"]))
-    view.add_item(KingdomTavernMenuButton(strings["menu_button"]))
-    view.add_item(KingdomTavernExitButton(strings["exit_button"]))
+    view.add_item(KingdomTavernMenuButton(tavern["menu_button"]))
+    view.add_item(KingdomTavernExitButton(strings["exit_button"]))  # last
+    view.add_item(KingdomTavernPurseButton(tavern["purse_button"]))  # apart, row 2
     return view
 
 
