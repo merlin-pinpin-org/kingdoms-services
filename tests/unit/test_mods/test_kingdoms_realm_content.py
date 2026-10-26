@@ -801,16 +801,20 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     assert f"-# ||{VIEW_MARKER_PREFIX}:alliances-panel ·" in content
     assert re.search(rf"alliances-panel · [0-9a-f]{{8}}\|\|", content)
     assert "main : azteques" not in content
-    # the five ephemeral answers ride the panel, restart-proof custom ids
+    # alliances-panel-v5: 📅+🔭 MERGED — FOUR buttons ride the panel, the
+    # legacy "cycle" custom id no longer exposes a button (the wire keeps
+    # answering for pre-refresh clicks)
     ids = _ids(panel.view)
     for custom_id in (
-        "kingdoms:alliances:cycle",
         "kingdoms:alliances:next",
         "kingdoms:alliances:locked",
         "kingdoms:alliances:durations",
         "kingdoms:alliances:history",
     ):
         assert custom_id in ids
+    assert "kingdoms:alliances:cycle" not in ids
+    # a blank line airs the legend away from the help line (Drasah)
+    assert "\n\nL\u00e9gende :" in content
     # 🔤 Noms is gone — the names ride the crest mosaic now
     assert "kingdoms:alliances:names" not in ids
     # 📖 Historique rides LAST
@@ -826,7 +830,7 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     ]
     button_ids = [cid for cid in button_ids if cid]
     assert button_ids[-1] == "kingdoms:alliances:history"
-    assert button_ids[0] == "kingdoms:alliances:cycle"
+    assert button_ids[0] == "kingdoms:alliances:next"
 
 
 async def test_alliances_panel_renders_a_pre_ledger_hand() -> None:
@@ -959,13 +963,15 @@ async def test_next_button_previews_the_cycle_projection() -> None:
     )
 
     interaction = _alliances_interaction(guild)
-    await KingdomAlliancesNextButton("\U0001f52d Prochain cycle").callback(interaction)
+    await KingdomAlliancesNextButton("\U0001f4c5 Prochain cycle").callback(interaction)
 
     assert interaction.response.ephemeral is True
     message = interaction.response.message
     assert message is not None
     content = message.content or ""
-    assert "\U0001f52d Prochain cycle — Avalon" in content
+    # alliances-panel-v5: the merged button reads 📅, one bubble carries
+    # BOTH contents (countdown rides above the projection)
+    assert "\U0001f4c5 Prochain cycle — Avalon" in content
     assert "\u2705 Gard\u00e9es : Azt\u00e8ques" in content
     # alliances-panel-v2: a short intro sentence frames the projection
     assert "Projection" in content
@@ -1118,7 +1124,7 @@ async def test_alliances_ephemeral_answers_self_destruct() -> None:
     panel_mod.ALLIANCES_EPHEMERAL_TTL = 0.0
     try:
         interaction = _alliances_interaction(guild)
-        await KingdomAlliancesNextButton("\U0001f52d Prochain cycle").callback(interaction)
+        await KingdomAlliancesNextButton("\U0001f4c5 Prochain cycle").callback(interaction)
         assert interaction.response.ephemeral is True
         assert not getattr(interaction, "original_deleted", False)
         await asyncio.sleep(0.05)
@@ -1163,7 +1169,17 @@ async def test_cycle_button_counts_down_to_the_next_switch() -> None:
             territories_service=_TerritoriesService(),
             economy_service=_EconomyService(),
             attacks_service=_AttacksService(),
-            diplomacy_service=None,
+            diplomacy_service=_ProjectionDiplomacyService(
+                {
+                    "held": ["azteques"],
+                    "kept": ["azteques"],
+                    "arriving": [],
+                    "dropping": [],
+                    "near_unlocks": [],
+                    "married_elsewhere": [],
+                    "acquisitions": dict(_LedgerKingdom.civilization_acquisitions),
+                }
+            ),
         )
     )
 
@@ -1179,11 +1195,15 @@ async def test_cycle_button_counts_down_to_the_next_switch() -> None:
     content = (interaction.response.message.content or "") if interaction.response.message else ""
     assert "\U0001f4c5 Prochain cycle — Avalon" in content
     assert "dans **2h 5m**" in content
+    # alliances-panel-v5: ONE bubble, BOTH contents — the projection rides
+    # under the countdown (the fusion Drasah asked)
+    assert "Projection" in content
+    assert "\u2705 Gard\u00e9es : Azt\u00e8ques" in content
 
 
 async def test_cycle_button_without_a_season_reads_not_scheduled() -> None:
-    """alliances-panel-v3: no season (or a service without one) → the 📅
-    button still answers, with the plain "not scheduled" line."""
+    """alliances-panel-v5: no season (or a service without one) → the
+    merged view still answers — no countdown line, the no-data fallback."""
     from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesCycleButton
 
     guild = MockGuild()
@@ -1193,7 +1213,8 @@ async def test_cycle_button_without_a_season_reads_not_scheduled() -> None:
     interaction = _alliances_interaction(guild)
     await KingdomAlliancesCycleButton("\U0001f4c5").callback(interaction)
     content = (interaction.response.message.content or "") if interaction.response.message else ""
-    assert "Aucune saison active" in content
+    assert "Aucune saison active" not in content
+    assert "Aucune donn\u00e9e d'alliance" in content
 
 
 async def test_alliances_answers_replace_the_prior_ephemeral() -> None:

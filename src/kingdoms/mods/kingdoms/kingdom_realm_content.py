@@ -88,7 +88,8 @@ def _strings(locale: str) -> dict[str, str]:
             ),
             "alliances_panel_intro_cycle": (
                 "À chaque passage au prochain cycle, tes alliances s'actualisent !"
-                " Pour voir quand a lieu le prochain passage, clique sur 📅."
+                " Le bouton 📅 Prochain cycle indique quand a lieu le prochain passage"
+                " et projette ta main."
             ),
             "alliances_panel_married_line": "💍 {0} — {1}",
             "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} usage(s) de draft)",
@@ -103,7 +104,7 @@ def _strings(locale: str) -> dict[str, str]:
                 "-# ❓ Conditions d'obtention des civilisations : {0} → rubrique « 🤝 Diplomatie »."
             ),
             "alliances_btn_cycle": "📅",
-            "alliances_btn_next": "🔭 Prochain cycle",
+            "alliances_btn_next": "📅 Prochain cycle",
             "alliances_btn_locked": "🚫 Verrouillées",
             "alliances_btn_history": "📖 Historique",
             "alliances_btn_durations": "⏳ Durées",
@@ -299,8 +300,8 @@ def _strings(locale: str) -> dict[str, str]:
             " your mercenary contracts."
         ),
         "alliances_panel_intro_cycle": (
-            "At every cycle switch your alliances refresh! To see when the next"
-            " switch happens, click 📅."
+            "At every cycle switch your alliances refresh! The 📅 Next cycle"
+            " button shows when the next switch lands and projects your hand."
         ),
         "alliances_panel_merc_line": "⚔️ **{0}** — {1} ({2} draft use(s))",
         "alliances_panel_empty": (
@@ -312,7 +313,7 @@ def _strings(locale: str) -> dict[str, str]:
             "-# ❓ How to obtain the civilizations: {0} → « 🤝 Diplomatie » rubric."
         ),
         "alliances_btn_cycle": "📅",
-        "alliances_btn_next": "🔭 Next cycle",
+        "alliances_btn_next": "📅 Next cycle",
         "alliances_btn_locked": "🚫 Locked",
         "alliances_btn_history": "📖 History",
         "alliances_btn_durations": "⏳ Durations",
@@ -516,7 +517,6 @@ def _build_alliances_panel(
     import discord
 
     from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
-        KingdomAlliancesCycleButton,
         KingdomAlliancesDurationsButton,
         KingdomAlliancesHistoryButton,
         KingdomAlliancesLockedButton,
@@ -569,14 +569,16 @@ def _build_alliances_panel(
             *lines,
             "",
             help_line,
+            "",
             strings["alliances_panel_legend"],
             strings["alliances_panel_badges"],
             signature,
         ]
     )
-    # alliances-panel-v3 : 📅 en PREMIER bouton (Drasah), 📖 reste dernier
+    # alliances-panel-v5 : 📅+🔭 FUSIONNÉS en un seul bouton « 📅 Prochain
+    # cycle » (compte à rebours + projection dans la même éphémère),
+    # Drasah 26/10 ; 📖 reste dernier.
     buttons: list[Any] = [
-        KingdomAlliancesCycleButton(strings["alliances_btn_cycle"]),
         KingdomAlliancesNextButton(strings["alliances_btn_next"]),
         KingdomAlliancesLockedButton(strings["alliances_btn_locked"]),
         KingdomAlliancesDurationsButton(strings["alliances_btn_durations"]),

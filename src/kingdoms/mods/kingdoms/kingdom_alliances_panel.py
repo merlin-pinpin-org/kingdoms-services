@@ -184,14 +184,13 @@ def _as_utc(value: object) -> datetime | None:
     return stamp.astimezone(UTC)
 
 
-async def cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
-    """📅 The next cycle switch countdown (alliances-panel-v3, Drasah 26/10).
+async def _next_cycle_slot(wiring: Any) -> datetime | None:
+    """The next cycle switch slot (alliances-panel-v3/5, Drasah 26/10).
 
     Reads the SAME schedule the EventService runs on: the season's
     beta slots first (beta weekends override the cron), then the weekly
     ``events.cycle_cron`` slots since the season start — the first slot
-    after the game clock wins. No season → a plain "not scheduled" line
-    (never a crash, the button must always answer).
+    after the game clock wins. No season → None (never a crash).
     """
     service = getattr(wiring, "kingdoms_service", None)
     now = game_now()
@@ -220,31 +219,36 @@ async def cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
                 cron_slots_between(str(cron), started, now + timedelta(days=8), tz)
             )
     upcoming = sorted(stamp for stamp in candidates if stamp > now)
-    lines = [strings["alliances_cycle_title"].format(getattr(kingdom, "name", ""))]
-    if not upcoming:
-        lines.append(strings["alliances_cycle_none"])
-        return "\n".join(lines)
-    lines.append(
-        strings["alliances_cycle_line"].format(
-            _format_age(int((upcoming[0] - now).total_seconds()))
-        )
-    )
-    lines.append(strings["alliances_cycle_hint"])
-    return "\n".join(lines)
+    return upcoming[0] if upcoming else None
 
 
 async def next_cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
-    """🔭 The next-cycle preview: kept / arriving / dropping + hints."""
+    """📅 The MERGED next-cycle view (alliances-panel-v5, Drasah 26/10).
+
+    ONE button, ONE bubble: the countdown to the next cycle switch (the
+    old 📅 answer) rides ABOVE the projection of the hand (the old 🔭
+    answer). The projection stays read-only — the cycle recalculation
+    alone decides the truth.
+    """
+    lines = [strings["alliances_cycle_title"].format(getattr(kingdom, "name", ""))]
+    slot = await _next_cycle_slot(wiring)
+    if slot is not None:
+        lines.append(
+            strings["alliances_cycle_line"].format(
+                _format_age(int((slot - game_now()).total_seconds()))
+            )
+        )
+    lines.append("")
     projection = await _projection(wiring, kingdom)
     if projection is None:
-        return strings["alliances_no_data"]
+        lines.append(strings["alliances_no_data"])
+        return "\n".join(lines)
     names = _civ_names(wiring)
     # alliances-lisibilite-v1 T3 (Drasah 25/10): the 🎯 near-unlock
     # hints ("à 1 map près") are GONE from this answer — Drasah's call,
     # the near data stays in the projection but the view reads short.
-    return "\n".join(
+    lines.extend(
         [
-            strings["alliances_next_title"].format(getattr(kingdom, "name", "")),
             strings["alliances_next_intro"],
             strings["alliances_next_kept"].format(_label(names, projection.get("kept", []))),
             strings["alliances_next_arriving"].format(_label(names, projection.get("arriving", []))),
@@ -254,6 +258,7 @@ async def next_cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) ->
             ),
         ]
     )
+    return "\n".join(lines)
 
 
 async def locked_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
@@ -406,7 +411,10 @@ async def _replace_prior_answer(key: tuple[str, str]) -> None:
 
 
 _KIND_BUILDERS: dict[str, Any] = {
-    "cycle": cycle_note,
+    # alliances-panel-v5 : les custom ids legacy "cycle" ET "next" (les
+    # anciens panneaux déployés cliquables avant refresh) répondent la
+    # MÊME vue fusionnée.
+    "cycle": next_cycle_note,
     "next": next_cycle_note,
     "locked": locked_note,
     "durations": durations_note,
@@ -459,9 +467,10 @@ class KingdomAlliancesCycleButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:alliances:cycle",
 ):
-    """The restart-proof 📅 countdown button of the Alliances panel (v3)."""
+    """The restart-proof 📅 countdown button (legacy v3 wire — the merged
+    v5 view answers, the button no longer rides the panel)."""
 
-    _KIND = "cycle"
+    _KIND = "next"
 
     def __init__(
         self, label: str, style: discord.ButtonStyle = discord.ButtonStyle.secondary
