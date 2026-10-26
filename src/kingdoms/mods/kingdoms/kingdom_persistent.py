@@ -1350,8 +1350,11 @@ async def _send_market_card(
     in an ephemeral — the TCG art, the full fiche (effect, cost, live
     treasury, per-season remainder) and the ✅ Acheter / ❌ Annuler
     buttons. No art uploaded? The sheet still works (cosmetic)."""
+    logger.info("KINGDOMS MARKET TRACE: card build START kind=%r item=%r", kind, item)
     cost = int(getattr(_market_costs(wiring), item, 0) or 0)
+    logger.info("KINGDOMS MARKET TRACE: card cost=%s -> fiche", cost)
     fiche = await _market_fiche(wiring, king, item, strings)
+    logger.info("KINGDOMS MARKET TRACE: card fiche built (%d chars) -> embed/view", len(fiche))
     embed = discord.Embed(
         title=f"💰 {_market_label(item, strings)} — {cost} ⚙️",
         description=fiche,
@@ -1363,12 +1366,14 @@ async def _send_market_card(
     view = discord.ui.View(timeout=None)
     view.add_item(KingdomMarketConfirmButton(kind, item, strings))
     view.add_item(KingdomMarketCancelButton(strings))
+    logger.info("KINGDOMS MARKET TRACE: card READY item=%r file=%s -> send", item, file is not None)
     await interaction.response.send_message(
         embed=embed,
         files=[file] if file is not None else [],
         view=view,
         ephemeral=True,
     )
+    logger.info("KINGDOMS MARKET TRACE: card SENT item=%r", item)
 
 
 class KingdomMarketConfirmButton(
@@ -1402,6 +1407,7 @@ class KingdomMarketConfirmButton(
     ) -> KingdomMarketConfirmButton:
         """Rebuild the card confirm button from the wire."""
         locale = str(interaction.locale) if interaction.locale else "en"
+        logger.info("KINGDOMS MARKET TRACE: rebuild CONFIRM %r/%r from the wire", match.group("kind"), match.group("item"))
         return cls(match.group("kind"), match.group("item"), _strings(locale))
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -1447,6 +1453,7 @@ class KingdomMarketCancelButton(
     ) -> KingdomMarketCancelButton:
         """Rebuild the card cancel button from the wire."""
         locale = str(interaction.locale) if interaction.locale else "en"
+        logger.info("KINGDOMS MARKET TRACE: rebuild CANCEL from the wire")
         return cls(_strings(locale))
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -1553,11 +1560,13 @@ class KingdomMarketTechButton(
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         tech = match.group("tech")
+        logger.info("KINGDOMS MARKET TRACE: rebuild tech button %r from the wire", tech)
         label = f"{strings['market_tech'][tech]}"
         return cls(tech, label, discord.ButtonStyle.primary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the article sheet modal (marche-v2: no more instant buys)."""
+        logger.info("KINGDOMS MARKET TRACE: tech click %r ENTER (user=%s)", self.tech, getattr(interaction.user, "id", "?"))
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
@@ -1568,6 +1577,7 @@ class KingdomMarketTechButton(
         if king is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
+        logger.info("KINGDOMS MARKET TRACE: tech click %r king found -> card", self.tech)
         await _send_market_card(interaction, wiring, king, "tech", self.tech, strings)
 
 
@@ -1602,10 +1612,12 @@ class KingdomMarketActionButton(
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         action = match.group("action")
+        logger.info("KINGDOMS MARKET TRACE: rebuild action button %r from the wire", action)
         return cls(action, strings["market_action"][action], discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the article sheet modal (marche-v2: sheet before purchase)."""
+        logger.info("KINGDOMS MARKET TRACE: action click %r ENTER (user=%s)", self.action, getattr(interaction.user, "id", "?"))
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
@@ -1616,6 +1628,7 @@ class KingdomMarketActionButton(
         if king is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
+        logger.info("KINGDOMS MARKET TRACE: action click %r king found -> card", self.action)
         await _send_market_card(interaction, wiring, king, "action", self.action, strings)
 
 
