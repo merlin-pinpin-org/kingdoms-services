@@ -82,6 +82,9 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_panel_help": (
                 "-# ❓ Conditions d'alliance : 📜 Scriptorium → rubrique Diplomatie."
             ),
+            "alliances_panel_help_named": (
+                "-# ❓ Conditions d'obtention des civilisations : {0} → rubrique « 🤝 Diplomatie »."
+            ),
             "alliances_btn_next": "🔭 Prochain cycle",
             "alliances_btn_locked": "🚫 Verrouillées",
             "alliances_btn_history": "📖 Historique",
@@ -94,6 +97,9 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_next_arriving": "📥 Arrivent : {0}",
             "alliances_next_dropping": "📤 Quitteront la main : {0}",
             "alliances_next_elsewhere": "💍 Déjà mariée ailleurs : {0}",
+            "alliances_next_intro": (
+                "Projection de ta main au prochain cycle d'alliances — ce qui sera gardé, ce qui arrive, ce qui part."
+            ),
             "alliances_locked_title": "🚫 Verrouillées — {0}",
             "alliances_locked_line": "🚫 **{0}** — {1}",
             "alliances_locked_cond_maps": "cartes requises : {0}",
@@ -101,9 +107,17 @@ def _strings(locale: str) -> dict[str, str]:
             "alliances_locked_cond_none": "condition non remplie",
             "alliances_locked_married": "mariée à un autre royaume (exclusivité)",
             "alliances_locked_none": "Aucune civilisation verrouillée — tout le catalogue est jouable.",
+            "alliances_locked_intro": (
+                "💍 Uniquement les civilisations mariées à d'autres royaumes —"
+                " tes propres mariages restent à toi."
+            ),
+            "alliances_locked_none_married": (
+                "Aucune civilisation verrouillée par mariage — tout le catalogue reste jouable."
+            ),
             "alliances_history_title": "📖 Historique — {0}",
             "alliances_history_line": "{0} **{1}** — {2}",
             "alliances_history_none": "Aucune acquisition enregistrée pour le moment.",
+            "alliances_history_none_lost": "Aucune civilisation perdue — la main est intacte.",
             "alliances_durations_title": "⏳ Durées — {0}",
             "alliances_durations_line": "{0} **{1}**",
             "alliances_durations_since": "détenue depuis {0}",
@@ -254,6 +268,9 @@ def _strings(locale: str) -> dict[str, str]:
             " (conditions, marriages, Chief Mercenary)."
         ),
         "alliances_panel_help": "-# ❓ Alliance conditions: 📜 Scriptorium → Diplomatie rubric.",
+        "alliances_panel_help_named": (
+            "-# ❓ How to obtain the civilizations: {0} → « 🤝 Diplomatie » rubric."
+        ),
         "alliances_btn_next": "🔭 Next cycle",
         "alliances_btn_locked": "🚫 Locked",
         "alliances_btn_history": "📖 History",
@@ -266,6 +283,9 @@ def _strings(locale: str) -> dict[str, str]:
         "alliances_next_arriving": "📥 Arriving: {0}",
         "alliances_next_dropping": "📤 Leaving the hand: {0}",
         "alliances_next_elsewhere": "💍 Married elsewhere: {0}",
+        "alliances_next_intro": (
+            "Projection of your hand at the next alliance cycle — kept, arriving, leaving."
+        ),
         "alliances_locked_title": "🚫 Locked — {0}",
         "alliances_locked_line": "🚫 **{0}** — {1}",
         "alliances_locked_cond_maps": "required maps: {0}",
@@ -273,9 +293,16 @@ def _strings(locale: str) -> dict[str, str]:
         "alliances_locked_cond_none": "condition not met",
         "alliances_locked_married": "married to another kingdom (exclusivity)",
         "alliances_locked_none": "No locked civilization — the whole catalogue is playable.",
+        "alliances_locked_intro": (
+            "💍 Only the civilizations married to other kingdoms — your own marriages stay yours."
+        ),
+        "alliances_locked_none_married": (
+            "No civilization locked by marriage — the whole catalogue stays playable."
+        ),
         "alliances_history_title": "📖 History — {0}",
         "alliances_history_line": "{0} **{1}** — {2}",
         "alliances_history_none": "No acquisition recorded yet.",
+        "alliances_history_none_lost": "No lost civilization — the hand is intact.",
         "alliances_durations_title": "⏳ Durations — {0}",
         "alliances_durations_line": "{0} **{1}**",
         "alliances_durations_since": "held since {0}",
@@ -432,8 +459,11 @@ def _build_alliances_panel(
     badge (mosaic-emoji-badge: Twemoji glyph composited in pure
     Python, colour-square fallback offline), the written names stay the written names stay one 🔤 Noms click away, the married
     holders and the live mercenary contracts read as compact lines, and
-    the help line points at the Scriptorium's Diplomatie rubric. The
-    five ephemeral buttons ride the panel — the answers stay
+    the help line points at the Scriptorium's Diplomatie rubric — a
+    REAL clickable mention when the salon resolves (alliances-
+    panel-v2, Drasah 26/10). Four ephemeral buttons ride the panel
+    (🔤 Noms is gone — the names ride the crests), the signature
+    hides in a SPOILER on the « main » line, and the answers stay
     read-only, the cycle recalculation alone decides the truth.
     """
     import discord
@@ -442,7 +472,6 @@ def _build_alliances_panel(
         KingdomAlliancesDurationsButton,
         KingdomAlliancesHistoryButton,
         KingdomAlliancesLockedButton,
-        KingdomAlliancesNamesButton,
         KingdomAlliancesNextButton,
     )
 
@@ -469,7 +498,12 @@ def _build_alliances_panel(
     lines: list[str] = [strings["alliances_panel_legend"], strings["alliances_panel_badges"]]
     # empreinte main (T3b): the body must change when the HAND changes,
     # or the identity guard would keep a stale mosaic after a hand edit.
-    lines.append(strings["alliances_panel_hand"].format(", ".join(hand)))
+    # alliances-panel-v2 : la signature vit en SPOILER sur la ligne
+    # « main » — floutée pour les joueurs, lisible pour la garde.
+    lines.append(
+        strings["alliances_panel_hand"].format(", ".join(hand))
+        + f" · ||{VIEW_MARKER_PREFIX}:alliances-panel||"
+    )
     if not hand and not mercenary:
         lines.append(strings["alliances_panel_empty"])
     for civ_key, lord in married.items():
@@ -478,18 +512,23 @@ def _build_alliances_panel(
                 strings["alliances_panel_married_line"].format(civ_names.get(civ_key, civ_key), lord)
             )
     lines.extend(mercenary)
-    body = "\n".join([*lines, "", strings["alliances_panel_help"]])
+    mention = state.get("scriptorium_mention")
+    help_line = (
+        strings["alliances_panel_help_named"].format(mention)
+        if mention
+        else strings["alliances_panel_help"]
+    )
+    body = "\n".join([*lines, "", help_line])
     buttons: list[Any] = [
         KingdomAlliancesNextButton(strings["alliances_btn_next"]),
         KingdomAlliancesLockedButton(strings["alliances_btn_locked"]),
-        KingdomAlliancesHistoryButton(strings["alliances_btn_history"]),
         KingdomAlliancesDurationsButton(strings["alliances_btn_durations"]),
-        KingdomAlliancesNamesButton(strings["alliances_btn_names"]),
+        KingdomAlliancesHistoryButton(strings["alliances_btn_history"]),
     ]
     return _panel_view_with_buttons(
         strings["alliances_panel_title"].format(getattr(kingdom, "name", "")),
         body,
-        f"{VIEW_MARKER_PREFIX}:alliances-panel",
+        "",  # alliances-panel-v2 : la signature vit en spoiler dans le corps
         discord.Colour.dark_embed(),
         buttons,
         media="attachment://alliances.png" if hand else None,
@@ -546,6 +585,17 @@ async def deploy_realm_content(
 
     phase = await _season_phase(getattr(wiring, "kingdoms_service", None))
     state = await _gather_state(kingdom, wiring)
+    # alliances-panel-v2 : la ligne d'aide cite le salon Scriptorium
+    # réel (mention cliquable) quand il existe.
+    try:
+        from kingdoms.mods.kingdoms.kingdom_scriptorium import find_scriptorium_channel
+
+        scriptorium = find_scriptorium_channel(guild)
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: scriptorium lookup failed", exc_info=True)
+        scriptorium = None
+    if scriptorium is not None:
+        state["scriptorium_mention"] = f"<#{getattr(scriptorium, 'id', '')}>"
     strings = _strings(locale)
     # Drasah 19/10 (restructuration-serveur-v1): seigneurs/patrouille/
     # pigeon-voyageur are no longer salons — Remparts and Seigneurie
@@ -1399,7 +1449,8 @@ def _panel_view_with_buttons(
     )
     if buttons:
         container.add_item(discord.ui.ActionRow(*buttons))
-    container.add_item(discord.ui.TextDisplay(f"-# {marker}"))
+    if marker:
+        container.add_item(discord.ui.TextDisplay(f"-# {marker}"))
     view.add_item(container)
     if media:
         view.add_item(discord.ui.MediaGallery(discord.MediaGalleryItem(media=media)))

@@ -777,16 +777,32 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     assert "\U0001f48d Azt\u00e8ques — Luc" in content
     # the help line points at the Scriptorium's Diplomatie rubric
     assert "Scriptorium" in content and "Diplomatie" in content
-    # the five ephemeral answers ride the panel, restart-proof custom ids
+    # alliances-panel-v2: the signature hides in a SPOILER on the hand line
+    assert f"||{VIEW_MARKER_PREFIX}:alliances-panel||" in content
+    # the four ephemeral answers ride the panel, restart-proof custom ids
     ids = _ids(panel.view)
     for custom_id in (
         "kingdoms:alliances:next",
         "kingdoms:alliances:locked",
-        "kingdoms:alliances:history",
         "kingdoms:alliances:durations",
-        "kingdoms:alliances:names",
+        "kingdoms:alliances:history",
     ):
         assert custom_id in ids
+    # 🔤 Noms is gone — the names ride the crest mosaic now
+    assert "kingdoms:alliances:names" not in ids
+    # 📖 Historique rides LAST
+    rows = [
+        c
+        for c in _view_components(panel.view)
+        if type(c).__name__ == "ActionRow"
+    ]
+    button_ids = [
+        getattr(child, "custom_id", None)
+        for row in rows
+        for child in (getattr(row, "children", None) or ())
+    ]
+    button_ids = [cid for cid in button_ids if cid]
+    assert button_ids[-1] == "kingdoms:alliances:history"
 
 
 async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> None:
@@ -917,14 +933,42 @@ async def test_next_button_previews_the_cycle_projection() -> None:
     content = message.content or ""
     assert "\U0001f52d Prochain cycle — Avalon" in content
     assert "\u2705 Gard\u00e9es : Azt\u00e8ques" in content
+    # alliances-panel-v2: a short intro sentence frames the projection
+    assert "Projection" in content
 
 
-async def test_locked_button_names_the_locked_civ_and_why() -> None:
+async def test_locked_button_lists_only_the_married_elsewhere_civs() -> None:
+    """alliances-panel-v2: 🚫 shows ONLY the civs married to OTHER kingdoms —
+    the ~48-line catalogue sheet overflowed 2000 chars and broke the button."""
     from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesLockedButton
 
     guild = MockGuild()
     await ensure_realm_structure(guild, _LedgerKingdom(), [])
-    # an empty projection: the hand itself reads locked
+    # a projection with one civ married to a rival kingdom
+    _wire_alliances(
+        _ProjectionDiplomacyService(
+            {
+                "held": [],
+                "kept": [],
+                "arriving": [],
+                "dropping": [],
+                "near_unlocks": [],
+                "married_elsewhere": ["azteques"],
+                "acquisitions": {},
+            }
+        )
+    )
+
+    interaction = _alliances_interaction(guild)
+    await KingdomAlliancesLockedButton("\U0001f6ab Verrouill\u00e9es").callback(interaction)
+
+    assert interaction.response.ephemeral is True
+    content = (interaction.response.message.content or "") if interaction.response.message else ""
+    assert "\U0001f6ab **Azt\u00e8ques** — mari\u00e9e \u00e0 un autre royaume" in content
+    # the old condition-locked sheet is GONE
+    assert "condition non remplie" not in content
+
+    # ...and a hand with no rival marriages reads the none-married line
     _wire_alliances(
         _ProjectionDiplomacyService(
             {
@@ -938,31 +982,47 @@ async def test_locked_button_names_the_locked_civ_and_why() -> None:
             }
         )
     )
-
     interaction = _alliances_interaction(guild)
     await KingdomAlliancesLockedButton("\U0001f6ab Verrouill\u00e9es").callback(interaction)
-
-    assert interaction.response.ephemeral is True
     content = (interaction.response.message.content or "") if interaction.response.message else ""
-    assert "\U0001f6ab **Azt\u00e8ques** — condition non remplie" in content
+    assert "Aucune civilisation verrouill\u00e9e par mariage" in content
 
 
-async def test_history_durations_and_names_buttons_read_the_ledger() -> None:
-    from kingdoms.mods.kingdoms.kingdom_alliances_panel import (
-        KingdomAlliancesDurationsButton,
-        KingdomAlliancesHistoryButton,
-        KingdomAlliancesNamesButton,
-    )
+async def test_history_lists_only_the_lost_civilizations() -> None:
+    """alliances-panel-v2: 📖 Historique shows ONLY the civs acquired once
+    then LOST — a hand still holding its acquisitions reads "intacte"."""
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesHistoryButton
 
     guild = MockGuild()
     await ensure_realm_structure(guild, _LedgerKingdom(), [])
-    _wire_alliances(None)  # these three answers never touch the diplomacy seam
+    _wire_alliances(None)  # the history answer never touches the diplomacy seam
 
+    # intact hand: azteques is acquired AND still held → nothing lost
     interaction = _alliances_interaction(guild)
     await KingdomAlliancesHistoryButton("\U0001f4d6 Historique").callback(interaction)
     content = interaction.response.message.content if interaction.response.message else ""
     assert "\U0001f4d6 Historique — Avalon" in content
-    assert "\U0001f3b2 **Azt\u00e8ques** — " in content  # the origin emoji + date
+    assert "Aucune civilisation perdue" in content
+    assert "Azt\u00e8ques" not in content
+
+    # an emptied hand: azteques was acquired once, gone since → LOST
+    saved = _LedgerKingdom.civilizations
+    _LedgerKingdom.civilizations = []
+    try:
+        interaction = _alliances_interaction(guild)
+        await KingdomAlliancesHistoryButton("\U0001f4d6 Historique").callback(interaction)
+        content = interaction.response.message.content if interaction.response.message else ""
+        assert "\U0001f3b2 **Azt\u00e8ques** — " in content  # the origin emoji + date
+    finally:
+        _LedgerKingdom.civilizations = saved
+
+
+async def test_durations_button_reads_the_ledger() -> None:
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesDurationsButton
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    _wire_alliances(None)  # the durations answer never touches the diplomacy seam
 
     interaction = _alliances_interaction(guild)
     await KingdomAlliancesDurationsButton("\u23f3 Dur\u00e9es").callback(interaction)
@@ -970,11 +1030,63 @@ async def test_history_durations_and_names_buttons_read_the_ledger() -> None:
     assert "\u23f3 Dur\u00e9es — Avalon" in content
     assert "d\u00e9tenue depuis " in content
 
-    interaction = _alliances_interaction(guild)
-    await KingdomAlliancesNamesButton("\U0001f524 Noms").callback(interaction)
-    content = interaction.response.message.content if interaction.response.message else ""
-    assert "\U0001f524 Noms — Avalon" in content
-    assert "techtree : Aztecs" in content  # display name <-> provider name
+
+async def test_alliances_help_line_names_the_real_scriptorium() -> None:
+    """alliances-panel-v2: when the Scriptorium salon resolves, the help
+    line is a REAL clickable mention instead of a static pointer."""
+    from kingdoms.mods.kingdoms.kingdom_realm_content import (
+        _build_alliances_panel,
+        _strings,
+    )
+
+    view = _build_alliances_panel(
+        _strings("fr"), _LedgerKingdom(), {"civ_names": {}, "scriptorium_mention": "<#42>"}
+    )
+    text = _view_text(view)
+    assert "<#42>" in text
+    assert "Diplomatie" in text
+    # and without a resolvable salon the static fallback keeps the word
+    view = _build_alliances_panel(_strings("fr"), _LedgerKingdom(), {"civ_names": {}})
+    text = _view_text(view)
+    assert "Scriptorium" in text and "Diplomatie" in text
+    assert "<#" not in text
+
+
+async def test_alliances_ephemeral_answers_self_destruct() -> None:
+    """alliances-panel-v2: every ephemeral answer deletes itself after
+    ALLIANCES_EPHEMERAL_TTL — the old bubbles must not pile up in the salon."""
+    import asyncio
+
+    import kingdoms.mods.kingdoms.kingdom_alliances_panel as panel_mod
+    from kingdoms.mods.kingdoms.kingdom_alliances_panel import KingdomAlliancesNextButton
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _LedgerKingdom(), [])
+    _wire_alliances(
+        _ProjectionDiplomacyService(
+            {
+                "held": ["azteques"],
+                "kept": ["azteques"],
+                "arriving": [],
+                "dropping": [],
+                "near_unlocks": [],
+                "married_elsewhere": [],
+                "acquisitions": dict(_LedgerKingdom.civilization_acquisitions),
+            }
+        )
+    )
+
+    saved_ttl = panel_mod.ALLIANCES_EPHEMERAL_TTL
+    panel_mod.ALLIANCES_EPHEMERAL_TTL = 0.0
+    try:
+        interaction = _alliances_interaction(guild)
+        await KingdomAlliancesNextButton("\U0001f52d Prochain cycle").callback(interaction)
+        assert interaction.response.ephemeral is True
+        assert not getattr(interaction, "original_deleted", False)
+        await asyncio.sleep(0.05)
+        assert interaction.original_deleted is True
+    finally:
+        panel_mod.ALLIANCES_EPHEMERAL_TTL = saved_ttl
 
 
 async def test_alliances_panel_merges_the_mercenary_contracts() -> None:

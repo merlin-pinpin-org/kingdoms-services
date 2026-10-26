@@ -6,18 +6,21 @@ starter draft, 🗺️ cadastre condition, 💍 standard marriage, 👑 royal
 marriage, 📜 Chef Mercenaire) and the read-only ``alliance_projection``
 of the next cycle. This tranche surfaces them: the 🤝 Alliances salon
 of every realm wears a panel that reads the hand with ONE emoji per
-acquisition origin, and five restart-proof EPHEMERAL buttons answer
-the questions Drasah's players actually ask —
+acquisition origin, and four restart-proof EPHEMERAL buttons answer the questions
+Drasah's players actually ask —
 
-- 🔭 Prochain cycle — the projection: kept / arriving / dropping, the
-  🎯 « à 1 map près » hints, the exclusivity of the married elsewhere;
-- 🚫 Verrouillées — every locked civilization and WHY (its cadastre
-  condition, or another kingdom's active marriage — exclusivité D74);
-- 📖 Historique — the acquisition ledger: every civilization EVER
-  acquired, with its origin emoji and its date (the first origin is
-  the historical truth and is never rewritten);
+- 🔭 Prochain cycle — the projection: kept / arriving / dropping,
+  and the exclusivity of the married elsewhere;
+- 🚫 Verrouillées — ONLY the civilizations unavailable because
+  MARRIED to another kingdom (alliances-panel-v2, Drasah 26/10 —
+  the kingdom's own marriages stay its own);
 - ⏳ Durées — how long each alliance has been held (game clock);
-- 🔤 Noms — display name ↔ techtree (provider) name of each held civ.
+- 📖 Historique — ONLY the LOST civilizations (acquired once, no
+  longer in the hand), with origin emoji and date.
+
+alliances-panel-v2 (Drasah 26/10): every ephemeral answer
+SELF-DESTRUCTS after 10 minutes (ALLIANCES_EPHEMERAL_TTL) so the
+salon never silts up with stacked bubbles.
 
 Every button is a ``DynamicItem``: the custom_id carries the button
 kind, the kingdom resolves from the salon's realm category at click
@@ -28,6 +31,7 @@ the cycle recalculation alone decides the truth.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from datetime import datetime
@@ -178,6 +182,7 @@ async def next_cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) ->
     return "\n".join(
         [
             strings["alliances_next_title"].format(getattr(kingdom, "name", "")),
+            strings["alliances_next_intro"],
             strings["alliances_next_kept"].format(_label(names, projection.get("kept", []))),
             strings["alliances_next_arriving"].format(_label(names, projection.get("arriving", []))),
             strings["alliances_next_dropping"].format(_label(names, projection.get("dropping", []))),
@@ -189,51 +194,53 @@ async def next_cycle_note(wiring: Any, kingdom: Any, strings: dict[str, str]) ->
 
 
 async def locked_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
-    """🚫 Every locked civilization and WHY (condition or exclusivity)."""
+    """🚫 ONLY the civs married to OTHER kingdoms (alliances-panel-v2).
+
+    Drasah 26/10: the old sheet listed every locked civ of the
+    catalogue (~48 lines) — unreadable, and it overflowed Discord's
+    2000-char limit so the interaction FAILED. The button now shows
+    the only unavailable-for-a-reason-you-cannot-change civs: those
+    MARRIED ELSEWHERE (exclusivité D74) — the kingdom's own marriages
+    are acquisitions, they stay out of the list.
+    """
     projection = await _projection(wiring, kingdom)
     if projection is None:
         return strings["alliances_no_data"]
     names = _civ_names(wiring)
-    map_names = _map_names(wiring)
-    unlocked = {str(civ) for civ in projection.get("kept", [])}
-    unlocked.update(str(civ) for civ in projection.get("arriving", []))
-    elsewhere = {str(civ) for civ in projection.get("married_elsewhere", [])}
+    elsewhere = [str(civ) for civ in (projection.get("married_elsewhere", []) or [])]
     lines = [strings["alliances_locked_title"].format(getattr(kingdom, "name", ""))]
-    locked = [civ for civ in _catalog(wiring) if str(getattr(civ, "key", civ)) not in unlocked]
-    if not locked:
-        lines.append(strings["alliances_locked_none"])
+    lines.append(strings["alliances_locked_intro"])
+    if not elsewhere:
+        lines.append(strings["alliances_locked_none_married"])
         return "\n".join(lines)
-    for civ in locked:
-        key = str(getattr(civ, "key", civ))
-        if key in elsewhere:
-            reason = strings["alliances_locked_married"]
-        else:
-            required = [
-                map_names.get(str(map_key), str(map_key))
-                for map_key in (getattr(civ, "requires_map_keys", ()) or ())
-            ]
-            if required:
-                reason = strings["alliances_locked_cond_maps"].format(", ".join(required))
-            elif getattr(civ, "min_map_count", None):
-                reason = strings["alliances_locked_cond_count"].format(int(civ.min_map_count))
-            else:
-                reason = strings["alliances_locked_cond_none"]
-        lines.append(strings["alliances_locked_line"].format(names.get(key, key), reason))
+    for civ in elsewhere:
+        lines.append(
+            strings["alliances_locked_line"].format(
+                names.get(civ, civ), strings["alliances_locked_married"]
+            )
+        )
     return "\n".join(lines)
 
 
 async def history_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
-    """📖 The append-only ledger: every civilization EVER acquired."""
+    """📖 The LOST civilizations — acquired once, no longer in the hand."""
     names = _civ_names(wiring)
     ledger = dict(getattr(kingdom, "civilization_acquisitions", None) or {})
     lines = [strings["alliances_history_title"].format(getattr(kingdom, "name", ""))]
-    if not ledger:
-        lines.append(strings["alliances_history_none"])
-        return "\n".join(lines)
+    # alliances-panel-v2 (Drasah 26/10): ONLY the LOST civs ride the
+    # history — acquired once, gone from the hand since.
+    hand = {str(civ) for civ in getattr(kingdom, "civilizations", []) or []}
     entries = sorted(
-        ((str(civ), info) for civ, info in ledger.items() if isinstance(info, dict)),
+        (
+            (str(civ), info)
+            for civ, info in ledger.items()
+            if isinstance(info, dict) and str(civ) not in hand
+        ),
         key=lambda item: int(item[1].get("at", 0) or 0),
     )
+    if not entries:
+        lines.append(strings["alliances_history_none_lost"])
+        return "\n".join(lines)
     for civ, info in entries:
         stamp = datetime.fromtimestamp(int(info.get("at", 0) or 0), tz=ZoneInfo(_PARIS_TZ))
         lines.append(
@@ -285,6 +292,32 @@ async def names_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+# alliances-panel-v2 (Drasah 26/10): every ephemeral answer
+# self-destructs after ALLIANCES_EPHEMERAL_TTL seconds — a new click
+# is a new interaction (a new bubble), the old ones must not pile up.
+ALLIANCES_EPHEMERAL_TTL = 600.0
+_ANSWER_EPHEMERAL_TIMERS: dict[tuple[str, int], asyncio.Task[None]] = {}
+
+
+def _arm_answer_timer(kind: str, interaction: discord.Interaction) -> None:
+    """(Re)arm the auto-destruction of one ephemeral answer."""
+    key = (kind, id(interaction))
+    existing = _ANSWER_EPHEMERAL_TIMERS.pop(key, None)
+    if existing is not None:
+        existing.cancel()
+
+    async def _delete_later() -> None:
+        try:
+            await asyncio.sleep(ALLIANCES_EPHEMERAL_TTL)
+            await interaction.delete_original_response()
+        except Exception:
+            logger.debug("ALLIANCES PANEL: ephemeral auto-delete skipped", exc_info=True)
+        finally:
+            _ANSWER_EPHEMERAL_TIMERS.pop(key, None)
+
+    _ANSWER_EPHEMERAL_TIMERS[key] = asyncio.create_task(_delete_later())
+
+
 _KIND_BUILDERS: dict[str, Any] = {
     "next": next_cycle_note,
     "locked": locked_note,
@@ -304,6 +337,7 @@ async def _send_answer(kind: str, interaction: discord.Interaction) -> None:
     kingdom = await kingdom_of_interaction(wiring, interaction)
     if kingdom is None:
         await interaction.response.send_message(strings["alliances_kingdom_none"], ephemeral=True)
+        _arm_answer_timer(kind, interaction)
         return
     try:
         note = await _KIND_BUILDERS[kind](wiring, kingdom, strings)
@@ -311,6 +345,7 @@ async def _send_answer(kind: str, interaction: discord.Interaction) -> None:
         logger.warning("ALLIANCES PANEL: %s note failed", kind, exc_info=True)
         note = strings["alliances_no_data"]
     await interaction.response.send_message(note, ephemeral=True)
+    _arm_answer_timer(kind, interaction)
 
 
 class _AlliancesButtonMixin:
