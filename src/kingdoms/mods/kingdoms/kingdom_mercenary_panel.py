@@ -627,18 +627,39 @@ def _paris_today() -> str:
 
 
 async def refresh_mercenary_panels_safe(guild: discord.Guild | None, locale: str) -> None:
-    """Re-render the Chief's panel of a guild's taverne (best effort)."""
+    """Re-render the Chief's panel of a guild (best effort).
+
+    taverne-panels-migration-v1 (Drasah 26/10): the Chief lives INSIDE
+    the Comptoir salon now — the lookup prefers the comptoir and falls
+    back to the old 🍺 taverne salon (transition safety).
+    """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     if guild is None:
         return
-    for channel in getattr(guild, "channels", []):
-        if _slug(str(getattr(channel, "name", ""))) != "taverne":
-            continue
-        try:
-            await deploy_mercenary_panel(channel, locale)
-        except Exception:
-            logger.warning(
-                "KINGDOM MERCENARY: guild panel refresh failed", exc_info=True
-            )
+    channels = list(getattr(guild, "channels", []))
+    target = next(
+        (
+            channel
+            for channel in channels
+            if _slug(str(getattr(channel, "name", ""))) == "comptoir"
+        ),
+        None,
+    )
+    if target is None:
+        target = next(
+            (
+                channel
+                for channel in channels
+                if _slug(str(getattr(channel, "name", ""))) == "taverne"
+            ),
+            None,
+        )
+    if target is None:
         return
+    try:
+        await deploy_mercenary_panel(target, locale)
+    except Exception:
+        logger.warning(
+            "KINGDOM MERCENARY: guild panel refresh failed", exc_info=True
+        )

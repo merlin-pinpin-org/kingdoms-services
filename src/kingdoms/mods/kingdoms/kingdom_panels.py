@@ -1953,13 +1953,12 @@ async def _deploy_channel_panel(
             logger.warning("KINGDOM PANELS: gaia content deploy failed", exc_info=True)
         return "royaumes"
     if slug == "taverne":
-        # taverne-v1 (Drasah 24/10): the 🍺 taverne salon carries the
-        # drinks panel — idempotent, refreshed in place by its marker.
-        from kingdoms.mods.kingdoms.kingdom_tavern_panel import deploy_tavern_panel
-
-        await deploy_tavern_panel(channel, locale)
-        # taverne-immersion-v1 (Drasah 26/10): the facade — outside
-        # art + door-in button — rides the same salon (own marker).
+        # taverne-immersion-v1 (Drasah 26/10): the 🍺 taverne salon keeps
+        # ONLY the facade — outside art + door-in button (own marker).
+        # taverne-panels-migration-v1 (Drasah 26/10): the drinks panel
+        # and the Chief's auction MIGRATED inside the Comptoir salon of
+        # the private Taverne category (deployed by the provisioning
+        # pass of tavern_immersion, swept from here on every redeploy).
         from kingdoms.mods.kingdoms.tavern_immersion import deploy_tavern_facade
 
         try:
@@ -1968,14 +1967,6 @@ async def _deploy_channel_panel(
             logger.warning(
                 "KINGDOM PANELS: taverne facade deploy failed", exc_info=True
             )
-        # chef-mercenaire-v1 T2b (Drasah 25/10): the Chief's auction
-        # panel rides the SAME salon — its own marker, idempotent.
-        from kingdoms.mods.kingdoms.kingdom_mercenary_panel import deploy_mercenary_panel
-
-        try:
-            await deploy_mercenary_panel(channel, locale)
-        except Exception:
-            logger.warning("KINGDOM PANELS: mercenary panel deploy failed", exc_info=True)
         return "taverne"
     if slug == "machine-a-temps":
         from kingdoms.mods.kingdoms.kingdom_time_panel import deploy_time_panel

@@ -243,3 +243,27 @@ async def test_provisioning_self_heals_the_member_layer() -> None:
     deny = court.permission_overwrite_for(inside)
     assert deny is not None and deny.view_channel is False
     assert court.permission_overwrite_for(outside) is None
+
+async def test_the_drinks_and_mercenary_panels_migrate_into_the_comptoir() -> None:
+    """taverne-panels-migration-v1 (Drasah 26/10): both game panels
+    live INSIDE the comptoir; the old copies outside are swept."""
+    guild = MockGuild()
+    await _realm(guild)
+    taverne_channel = next(c for c in guild.text_channels if c.name == "🍺 taverne")
+    # The OLD pins left outside by taverne-v1 / T2b (bot-authored).
+    old_drinks = await taverne_channel.send("<!-- kingdoms-tavern -->\n**🍺 La Taverne**")
+    old_mercenary = await taverne_channel.send("<!-- kingdoms-mercenary -->\n⚔️ Chef Mercenaire")
+
+    await ensure_tavern_immersion_structure(guild)
+    await ensure_tavern_immersion_structure(guild)  # idempotent
+
+    comptoir = next(c for c in guild.text_channels if c.name == "comptoir")
+    contents = [m.content for m in comptoir.messages]
+    assert any("kingdoms-tavern-comptoir" in c for c in contents)
+    assert any("<!-- kingdoms-tavern -->" in c for c in contents)  # the drinks
+    assert any("kingdoms-mercenary" in c for c in contents)  # the Chief
+    # The old copies OUTSIDE are swept — the facade survives.
+    assert old_drinks.deleted is True
+    assert old_mercenary.deleted is True
+    facades = [m for m in taverne_channel.messages if "kingdoms-tavern-facade" in m.content]
+    assert len(facades) <= 1  # deployed by the channel pass, never swept

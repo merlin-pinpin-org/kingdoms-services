@@ -403,11 +403,66 @@ async def ensure_tavern_immersion_structure(guild: discord.Guild, locale: str = 
             for target in _immersion_targets(guild, category_id):
                 await _clear_member_view_deny(target, member)
 
+    # The comptoir pin (the door-out) first, then the MIGRATED game
+    # panels (Drasah 26/10: the drinks and the Chief's auction live
+    # INSIDE the comptoir now — the player orders at the counter).
     try:
         await deploy_comptoir_panel(comptoir, locale)
     except Exception:
         logger.warning("KINGDOMS TAVERN: comptoir panel deploy failed", exc_info=True)
+    from kingdoms.mods.kingdoms.kingdom_tavern_panel import deploy_tavern_panel
+
+    try:
+        await deploy_tavern_panel(comptoir, locale)
+    except Exception:
+        logger.warning("KINGDOMS TAVERN: drinks panel migration failed", exc_info=True)
+    from kingdoms.mods.kingdoms.kingdom_mercenary_panel import deploy_mercenary_panel
+
+    try:
+        await deploy_mercenary_panel(comptoir, locale)
+    except Exception:
+        logger.warning("KINGDOMS TAVERN: mercenary panel migration failed", exc_info=True)
+    await _sweep_migrated_panels(guild, category_id)
     return True
+
+
+async def _sweep_migrated_panels(guild: discord.Guild, taverne_category_id: int | None) -> None:
+    """Delete the OLD drinks/mercenary pins of the 🍺 taverne salon.
+
+    taverne-panels-migration-v1 (Drasah 26/10): both panels moved into
+    the Comptoir — the copies left outside the Taverne category are
+    swept at every provisioning pass (bot messages carrying the
+    markers only; idempotent once clean).
+    """
+    from kingdoms.mods.kingdoms.kingdom_mercenary_panel import MERCENARY_PANEL_MARKER
+    from kingdoms.mods.kingdoms.kingdom_tavern_panel import TAVERN_PANEL_MARKER
+
+    markers = (TAVERN_PANEL_MARKER, MERCENARY_PANEL_MARKER)
+    for channel in list(getattr(guild, "text_channels", []) or []):
+        parent = getattr(channel, "category", None)
+        if parent is not None and getattr(parent, "id", None) == taverne_category_id:
+            continue
+        try:
+            messages = await channel_messages(channel)
+        except Exception:
+            continue  # a channel the bot cannot read is not ours to sweep
+        for message in messages:
+            author = getattr(message, "author", None)
+            if not getattr(author, "bot", False):
+                continue
+            text = message_text(message)
+            if not any(marker in text for marker in markers):
+                continue
+            try:
+                await message.delete()
+                logger.info(
+                    "KINGDOMS TAVERN: migrated panel swept from %r",
+                    str(getattr(channel, "name", "?")),
+                )
+            except Exception:
+                logger.warning(
+                    "KINGDOMS TAVERN: migrated panel sweep failed", exc_info=True
+                )
 
 
 def _art_file(which: str) -> discord.File | None:
