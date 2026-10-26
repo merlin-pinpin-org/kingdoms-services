@@ -1228,7 +1228,7 @@ async def _market_marry_civ_view(
     return view
 
 
-def _market_next_patrouille_slot(
+async def _market_next_patrouille_slot(
     wiring: KingdomsPanelWiring, kingdom_id: str
 ) -> int:
     """Return the next patrol slot to unlock (1 first, then 2)."""
