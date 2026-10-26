@@ -271,8 +271,10 @@ async def locked_note(wiring: Any, kingdom: Any, strings: dict[str, str]) -> str
         return strings["alliances_no_data"]
     names = _civ_names(wiring)
     elsewhere = [str(civ) for civ in (projection.get("married_elsewhere", []) or [])]
+    # alliances-panel-v4 (Drasah 26/10) : plus de ligne-règle 💍 —
+    # une règle invisible n'a rien à faire dans l'éphémère, le titre
+    # dit déjà « Verrouillées par les mariages des autres royaumes ».
     lines = [strings["alliances_locked_title"].format(getattr(kingdom, "name", ""))]
-    lines.append(strings["alliances_locked_intro"])
     if not elsewhere:
         lines.append(strings["alliances_locked_none_married"])
         return "\n".join(lines)

@@ -65,12 +65,15 @@ def _strings(locale: str) -> dict[str, str]:
             "members_line": "👑 {0} + **{1}** seigneur(s) — {2} membre(s)",
             "no_king": "Roi non enrôlé",
             "alliances_panel_title": "📜 Alliances — {0}",
+            # alliances-panel-v4 (Drasah 26/10) : 🤝 « saison antérieure »
+            # disparaît — après reset TOUT est défini et traçable (le 🤝 du
+            # moteur reste un fallback silencieux pour les mains pré-registre).
             "alliances_panel_legend": (
                 "Légende : 🎲 Draft starter · 🗺️ Condition · 💍 Mariage ·"
-                " 👑 Royal · 📜 Mercenaire · 🤝 saison antérieure"
+                " 👑 Royal · 📜 Mercenaire"
             ),
             "alliances_panel_badges": (
-                "-# Chaque blason porte son NOM et l'🎲 🗺️ 💍 👑 📜 de sa provenance · 🤝 saison antérieure"
+                "-# Chaque blason porte son NOM et l'🎲 🗺️ 💍 👑 📜 de sa provenance"
             ),
             "alliances_panel_hand": "-# main : {0}",
             "alliances_panel_signature": "main : {0}",
@@ -121,7 +124,7 @@ def _strings(locale: str) -> dict[str, str]:
                 "-# À ce moment tes alliances s'actualisent — 🔭 Prochain cycle en donne la projection."
             ),
             "alliances_cycle_none": "❌ Aucune saison active — le prochain cycle n'est pas encore planifié.",
-            "alliances_locked_title": "🚫 Verrouillées — {0}",
+            "alliances_locked_title": "🚫 Verrouillées par les mariages des autres royaumes — {0}",
             "alliances_locked_line": "🚫 **{0}** — {1}",
             "alliances_locked_cond_maps": "cartes requises : {0}",
             "alliances_locked_cond_count": "{0} territoire(s) requis",
@@ -274,12 +277,14 @@ def _strings(locale: str) -> dict[str, str]:
         "members_line": "👑 {0} + **{1}** lord(s) — {2} member(s)",
         "no_king": "King not enrolled",
         "alliances_panel_title": "📜 Alliances — {0}",
+        # alliances-panel-v4: 🤝 "earlier season" is gone — after a
+        # reset everything is defined and traceable.
         "alliances_panel_legend": (
             "Legend: 🎲 Starter draft · 🗺️ Condition · 💍 Marriage ·"
-            " 👑 Royal · 📜 Mercenary · 🤝 earlier season"
+            " 👑 Royal · 📜 Mercenary"
         ),
         "alliances_panel_badges": (
-            "-# Every crest wears its NAME and its origin 🎲 🗺️ 💍 👑 📜 · 🤝 earlier season"
+            "-# Every crest wears its NAME and its origin 🎲 🗺️ 💍 👑 📜"
         ),
         "alliances_panel_married_line": "💍 {0} — {1}",
         "alliances_panel_hand": "-# hand: {0}",
@@ -328,7 +333,7 @@ def _strings(locale: str) -> dict[str, str]:
             "-# At that moment your alliances refresh — 🔭 Next cycle shows the projection."
         ),
         "alliances_cycle_none": "❌ No active season — the next cycle is not scheduled yet.",
-        "alliances_locked_title": "🚫 Locked — {0}",
+        "alliances_locked_title": "🚫 Locked by other kingdoms' marriages — {0}",
         "alliances_locked_line": "🚫 **{0}** — {1}",
         "alliances_locked_cond_maps": "required maps: {0}",
         "alliances_locked_cond_count": "{0} territory(/ies) required",
@@ -534,17 +539,13 @@ def _build_alliances_panel(
                     merc_uses,
                 )
             )
+    # alliances-panel-v4 (Drasah 26/10) : l'ordre demandé —
+    # 1. l'intro pédagogique, 2. l'aide ❓, 3. la légende, 4. la signature.
     lines: list[str] = [
-        strings["alliances_panel_legend"],
-        strings["alliances_panel_badges"],
-        "",
         strings["alliances_panel_intro_hand"],
         strings["alliances_panel_intro_rules"],
         strings["alliances_panel_intro_cycle"],
     ]
-    # alliances-panel-v3 : la ligne « main : » visible disparaît (doublon —
-    # les noms vivent sur la mosaïque) ; l'EMPREINTE main (garde d'identité)
-    # survit dans la SIGNATURE en spoiler, dernière ligne sous l'aide.
     if not hand and not mercenary:
         lines.append(strings["alliances_panel_empty"])
     lines.extend(mercenary)
@@ -554,12 +555,25 @@ def _build_alliances_panel(
         if mention
         else strings["alliances_panel_help"]
     )
-    signature = (
-        f"-# ||{VIEW_MARKER_PREFIX}:alliances-panel · "
-        + strings["alliances_panel_signature"].format(", ".join(hand))
-        + "||"
+    # alliances-panel-v4 : la signature garde le MARQUEUR mais perd les
+    # NOMS des civilisations (inutiles au joueur) ; la garde d'identité a
+    # encore besoin que le texte change quand la MAIN change (sinon edit
+    # court-circuité → mosaïque périmée) → une EMPREINTE silencieuse de 8
+    # hex (sha1 de la main) remplace la liste.
+    import hashlib
+
+    fingerprint = hashlib.sha1(", ".join(hand).encode("utf-8")).hexdigest()[:8]
+    signature = f"-# ||{VIEW_MARKER_PREFIX}:alliances-panel · {fingerprint}||"
+    body = "\n".join(
+        [
+            *lines,
+            "",
+            help_line,
+            strings["alliances_panel_legend"],
+            strings["alliances_panel_badges"],
+            signature,
+        ]
     )
-    body = "\n".join([*lines, "", help_line, signature])
     # alliances-panel-v3 : 📅 en PREMIER bouton (Drasah), 📖 reste dernier
     buttons: list[Any] = [
         KingdomAlliancesCycleButton(strings["alliances_btn_cycle"]),

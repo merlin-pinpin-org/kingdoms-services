@@ -782,12 +782,25 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     assert "ta main" in content
     assert "8 civilisations" in content
     assert "\U0001f4c5" in content
+    # alliances-panel-v4: 🤝 is GONE from the legend — after a reset
+    # everything is defined and traceable
+    assert "saison ant\u00e9rieure" not in content
+    # alliances-panel-v4: the order Drasah asked —
+    # intro → help ❓ → legend → signature
+    assert (
+        content.index("Ici se trouve ta main")
+        < content.index("Scriptorium")
+        < content.index("L\u00e9gende")
+        < content.index(f"-# ||{VIEW_MARKER_PREFIX}")
+    )
     # the visible « main : » line is GONE (doublon with the crest names)
     assert "\n-# main :" not in content
-    # alliances-panel-v3: the signature + hand fingerprint hide in a SPOILER
-    # on the LAST line, below the help line
+    # alliances-panel-v4: the signature keeps ONLY the marker + a SILENT
+    # 8-hex fingerprint — no civilization names (the identity guard still
+    # sees the text change when the hand changes)
     assert f"-# ||{VIEW_MARKER_PREFIX}:alliances-panel ·" in content
-    assert "main : azteques||" in content
+    assert re.search(rf"alliances-panel · [0-9a-f]{{8}}\|\|", content)
+    assert "main : azteques" not in content
     # the five ephemeral answers ride the panel, restart-proof custom ids
     ids = _ids(panel.view)
     for custom_id in (
@@ -816,8 +829,10 @@ async def test_alliances_panel_wears_the_origin_emojis_and_buttons() -> None:
     assert button_ids[0] == "kingdoms:alliances:cycle"
 
 
-async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> None:
-    """A pre-ledger season (a hand older than tranche 1) reads 🤝."""
+async def test_alliances_panel_renders_a_pre_ledger_hand() -> None:
+    """A pre-ledger season (a hand older than tranche 1) still renders —
+    the 🤝 fallback is now SILENT (alliances-panel-v4: 🤝
+    left the legend, everything is traceable after a reset)."""
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
 
@@ -828,8 +843,8 @@ async def test_alliances_panel_reads_the_handshake_emoji_before_the_ledger() -> 
         for m in _live(_channel(guild, "\U0001f91d alliances"))
         if f"{VIEW_MARKER_PREFIX}:alliances-panel" in _text(m)
     )
-    assert "saison ant\u00e9rieure" in _text(panel)
-    assert "\U0001f91d" in _text(panel)
+    text = _text(panel)
+    assert "saison ant\u00e9rieure" not in text
 
 
 def _view_components(view: Any) -> list:
@@ -870,8 +885,9 @@ async def test_alliances_panel_references_the_mosaic_via_a_media_gallery() -> No
         for gallery in galleries
         for item in getattr(gallery, "items", ())
     )
-    # the hand fingerprint keeps the identity guard honest across hand edits
-    assert "main :" in _text(panel)
+    # the silent 8-hex fingerprint keeps the identity guard honest across
+    # hand edits (alliances-panel-v4: no civ names in the signature)
+    assert re.search(r"alliances-panel · [0-9a-f]{8}\|\|", _text(panel))
 
 
 async def test_alliances_panel_edits_in_place_when_the_hand_grows() -> None:
@@ -899,7 +915,14 @@ async def test_alliances_panel_edits_in_place_when_the_hand_grows() -> None:
         assert after[0] is before[0]
         assert getattr(after[0], "edited", False) or after[0].edited
         assert getattr(after[0], "attachments", None)
-        assert "britons" in _text(after[0])
+        # the silent fingerprint changed with the hand → the edit fired
+        before_fp = re.search(
+            r"alliances-panel · ([0-9a-f]{8})\|\|", _text(before[0])
+        )
+        after_fp = re.search(
+            r"alliances-panel · ([0-9a-f]{8})\|\|", _text(after[0])
+        )
+        assert before_fp and after_fp and before_fp.group(1) != after_fp.group(1)
     finally:
         _LedgerKingdom.civilizations = ["azteques"]
         _LedgerKingdom.civilization_acquisitions = {
@@ -975,6 +998,10 @@ async def test_locked_button_lists_only_the_married_elsewhere_civs() -> None:
 
     assert interaction.response.ephemeral is True
     content = (interaction.response.message.content or "") if interaction.response.message else ""
+    # alliances-panel-v4: the title says it all, the invisible 💍 rule
+    # line is GONE
+    assert "\U0001f6ab Verrouill\u00e9es par les mariages des autres royaumes" in content
+    assert "Uniquement les civilisations mari\u00e9es" not in content
     assert "\U0001f6ab **Azt\u00e8ques** — mari\u00e9e \u00e0 un autre royaume" in content
     # the old condition-locked sheet is GONE
     assert "condition non remplie" not in content
