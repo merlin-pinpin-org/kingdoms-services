@@ -322,11 +322,19 @@ async def _ensure_charte_dividers(guild: discord.Guild) -> None:
     explicit @everyone view ALLOW stays visible to EVERY member — and
     a visible channel SURFACES its hidden category's header in the
     sidebar: the battlefield divider was the hole through which a
-    role-less newcomer saw « ⚔️ Champs de Bataille ». The divider now
-    MIRRORS its category's gating: hidden where the category denies
-    @everyone (the player roles keep the scenery through their allow),
-    public where the category is public — and the Conscription divider
-    mirrors the immersion deny (Lord/King) instead.
+    role-less newcomer saw « ⚔️ Champs de Bataille ».
+
+    divider-gating-v2 (Drasah 27/10, live incident): the ♻️ salons
+    reset is the heaviest API storm of the bot and the category's own
+    @everyone deny (best-effort edit) can be lost to a 429 — a divider
+    MIRRORING the live state then re-published the zone (blank kept
+    seeing the header + divider right after a reset). The battlefield
+    is a DECLARED player category: its divider now denies @everyone
+    UNCONDITIONALLY, whatever the live state says; only Conscription
+    mirrors its category (public to the newcomers by declaration). And
+    when the battlefield category's own deny is found missing, the
+    full gating pass re-runs right here (self-heal — a reset can no
+    longer leave the zone published).
     """
     for group in ("conscription", "champs-de-bataille"):
         category = _find_category(guild, _CHARTE_CATEGORY_DISPLAY[group])
@@ -348,11 +356,17 @@ async def _ensure_charte_dividers(guild: discord.Guild) -> None:
                 continue
         everyone = getattr(guild, "default_role", None)
         if everyone is not None:
-            hidden = False
-            category_lookup = getattr(category, "permission_overwrite_for", None)
-            if category_lookup is not None:
-                recorded = category_lookup(everyone)
-                hidden = recorded is not None and recorded.view_channel is False
+            if group == "champs-de-bataille":
+                # divider-gating-v2: a DECLARED player category — deny
+                # unconditionally, never trust the live (possibly 429-
+                # broken) category state the way a mirror would.
+                hidden = True
+            else:
+                hidden = False
+                category_lookup = getattr(category, "permission_overwrite_for", None)
+                if category_lookup is not None:
+                    recorded = category_lookup(everyone)
+                    hidden = recorded is not None and recorded.view_channel is False
             desired_everyone = discord.PermissionOverwrite(
                 view_channel=(False if hidden else True), send_messages=False
             )
@@ -390,6 +404,18 @@ async def _ensure_charte_dividers(guild: discord.Guild) -> None:
                     logger.warning(
                         "KINGDOM SETUP: divider role gating failed (%s)", group, exc_info=True
                     )
+        if group == "champs-de-bataille" and everyone is not None:
+            # divider-gating-v2 (self-heal): the reset storm can lose the
+            # category's own @everyone deny to a 429 — re-run the full
+            # gating pass instead of leaving the zone published (one edit
+            # per category, idempotent, steady state unchanged).
+            category_lookup = getattr(category, "permission_overwrite_for", None)
+            recorded = category_lookup(everyone) if category_lookup is not None else None
+            if recorded is None or recorded.view_channel is not False:
+                logger.warning(
+                    "KINGDOM SETUP: battlefield category deny missing on the divider pass — re-running the gating"
+                )
+                await _enforce_player_category_gating(guild)
 
 
 async def _apply_charte_topics(guild: discord.Guild) -> None:

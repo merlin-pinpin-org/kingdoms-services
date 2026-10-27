@@ -411,3 +411,32 @@ async def test_divider_mirrors_the_category_gating() -> None:
     assert lord_view is not None and lord_view.view_channel is False
     king_view = conscription_divider.permission_overwrite_for(king_role)
     assert king_view is not None and king_view.view_channel is False
+
+async def test_battlefield_divider_denies_everyone_even_when_the_category_is_public() -> None:
+    """divider-gating-v2 (Drasah 27/10, live incident): the ♻️ reset
+    storm lost the battlefield category's @everyone deny to a 429 and
+    the mirror divider re-published the zone. The divider must deny
+    @everyone UNCONDITIONALLY (declared player category) and the pass
+    must self-heal the lost category deny."""
+    import discord
+
+    guild = MockGuild()
+    lord_role = MockRole(name="Kingdoms Lord")
+    guild._roles[lord_role.id] = lord_role
+    battlefield = await guild.create_category("⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ")
+    # the broken live state: the category's @everyone deny is MISSING
+
+    await _ensure_charte_dividers(guild)
+
+    everyone = guild.default_role
+    divider = next(c for c in battlefield.channels if _slug(c.name) == "")
+    recorded = divider.permission_overwrite_for(everyone)
+    assert recorded is not None
+    assert recorded.view_channel is False  # denied even though the category is public
+    assert recorded.send_messages is False
+    lord_view = divider.permission_overwrite_for(lord_role)
+    assert lord_view is not None and lord_view.view_channel is True
+
+    # self-heal: the lost category deny was re-applied by the pass
+    category_view = battlefield.permission_overwrite_for(everyone)
+    assert category_view is not None and category_view.view_channel is False
