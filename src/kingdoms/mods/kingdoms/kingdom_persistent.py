@@ -3656,6 +3656,9 @@ class KingdomLaunchModal(discord.ui.Modal):
             await interaction.response.send_message(strings["launch_failed"].format("no service"), ephemeral=True)
             return
         await interaction.response.defer(ephemeral=True)
+        # reset-ghost-roles-v1: launch() ALSO wipes the season data —
+        # strip the player roles before the documents disappear.
+        await _strip_player_mod_roles_for_all_lords_safe(interaction.guild)
         try:
             await wiring.kingdoms_service.launch()
         except Exception as exc:
@@ -4464,6 +4467,92 @@ async def _purge_and_reinstall(guild: discord.Guild) -> tuple[bool, int]:
     return reinstalled, deleted
 
 
+async def _strip_player_mod_roles_for_all_lords_safe(guild: discord.Guild | None) -> int:
+    """Remove the Kingdoms player roles BEFORE a season wipe (reset-ghost-roles-v1).
+
+    Drasah's live finding (2026-10-27): after a back-to-setup reset the
+    ex-players kept their kingdoms_lord/kingdoms_king roles — the whole
+    channel gating (invariant nouvel arrivant, immersion-v1) is carried
+    by those roles, so they still saw every game salon (and NOT
+    Beta/Conscription, denied to the roles). Same doc-driven class as
+    the ghost 💍: once the lord documents are wiped nothing ever
+    iterates the members again. This sweep runs BEFORE the wipe (while
+    the documents still resolve the members) and ALSO reads the season
+    archives, healing the ghosts of previously wiped seasons whose
+    documents are already gone. Best-effort and idempotent: one
+    failed removal never blocks the others. Returns the number of
+    distinct members actually resolved.
+    """
+    if guild is None:
+        return 0
+    wiring = _wiring()
+    service = wiring.kingdoms_service
+    member_ids: set[str] = set()
+    try:
+        for lord in await service.lords() if service is not None else []:
+            member_ids.add(str(getattr(lord, "id", "")))
+    except Exception:
+        logger.warning("KINGDOMS: lord list read failed (player role strip)", exc_info=True)
+    try:
+        for archive in await service.season_archives() if service is not None else []:
+            for doc in archive.get("lords", []) or []:
+                if isinstance(doc, dict):
+                    raw = str(doc.get("_id", ""))
+                    if raw:
+                        member_ids.add(raw)
+    except Exception:
+        logger.warning("KINGDOMS: season archive read failed (player role strip)", exc_info=True)
+    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
+
+    roles: list[discord.Role] = []
+    for role_key, display_name in (
+        (ROLE_LORD, "Kingdoms Lord"),
+        (ROLE_KING, "Kingdoms King"),
+    ):
+        role: discord.Role | None = None
+        if wiring.mod_roles_service is not None:
+            try:
+                role_id = await wiring.mod_roles_service.resolve_role_id(
+                    str(guild.id), KINGDOM_MOD, role_key
+                )
+                if role_id is not None and role_id.isdigit():
+                    role = guild.get_role(int(role_id))
+            except Exception:
+                logger.warning(
+                    "KINGDOMS: mod role resolution failed (%s)", role_key, exc_info=True
+                )
+        if role is None:
+            role = discord.utils.get(guild.roles, name=display_name)
+        if role is not None:
+            roles.append(role)
+    if not roles:
+        logger.warning("KINGDOMS: player role strip found no Lord/King roles in guild %s", guild.id)
+        return 0
+    resolved = 0
+    for user_id in sorted(member_ids):
+        if not user_id.isdigit():
+            continue
+        member = await _resolve_member(guild, int(user_id))
+        if member is None:
+            continue
+        resolved += 1
+        try:
+            await member.remove_roles(
+                *roles, reason="kingdoms: wipe saison — rôles joueurs retirés"
+            )
+        except Exception:
+            logger.warning(
+                "KINGDOMS: player role strip failed for %s", user_id, exc_info=True
+            )
+    if resolved:
+        logger.info(
+            "KINGDOMS: reset-ghost-roles-v1 — %s member(s) stripped of Kingdoms Lord/King (guild %s)",
+            resolved,
+            guild.id,
+        )
+    return resolved
+
+
 async def _strip_marriage_livery_for_all_lords_safe(guild: discord.Guild | None) -> int:
     """Remove every marriage livery BEFORE a season wipe (ghost guard).
 
@@ -4535,6 +4624,10 @@ async def _run_back_to_setup(interaction: discord.Interaction, strings: dict[str
         # documents are gone a stale 💍 pseudo (or red role) would live
         # forever — strip the livery while the docs still resolve.
         await _strip_marriage_livery_for_all_lords_safe(guild)
+        # reset-ghost-roles-v1 (Drasah 27/10): the wipe erases the lord
+        # documents — the roles must die BEFORE, while the docs still
+        # resolve the members (the archives heal the older ghosts).
+        await _strip_player_mod_roles_for_all_lords_safe(guild)
         await wiring.kingdoms_service.reset()
         await wiring.kingdoms_service.launch()
     except Exception as exc:

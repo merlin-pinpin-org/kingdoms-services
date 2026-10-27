@@ -231,3 +231,58 @@ async def test_validation_seam_writes_the_alliances_message_in_both_phases() -> 
     assert len(live) == 1
     assert DRAFT_STARTER_MARKER in live[0].content
     assert "Aztèques" in live[0].content
+
+
+async def test_reset_strips_player_roles_before_the_wipe() -> None:
+    """reset-ghost-roles-v1 (Drasah 27/10): after a back-to-setup reset
+    the ex-players kept their Kingdoms Lord/King roles — the whole
+    channel gating is carried by those roles, so they still saw every
+    game salon (and NOT Beta/Conscription). The sweep strips the
+    player roles from the live lords AND heals the ghosts known only
+    from the season archives; the admin role survives."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        _strip_player_mod_roles_for_all_lords_safe,
+        register_kingdoms_panel_wiring,
+    )
+    from tests.mocks.discord_mock import MockMember, MockRole
+
+    class _Lord:
+        def __init__(self, lord_id: str) -> None:
+            self.id = lord_id
+
+    class _Service:
+        async def lords(self) -> list[_Lord]:
+            return [_Lord("111"), _Lord("222")]
+
+        async def season_archives(self) -> list[dict]:
+            # a previously wiped season: its lords docs are GONE, the
+            # archive is the only place member 333 still exists
+            return [{"lords": [{"_id": "333"}, {"_id": "111"}]}]
+
+    guild = MockGuild()
+    lord_role = MockRole(name="Kingdoms Lord")
+    king_role = MockRole(name="Kingdoms King")
+    admin_role = MockRole(name="Kingdoms Admin")
+    for role in (lord_role, king_role, admin_role):
+        guild._roles[role.id] = role
+    lord_member = MockMember(id=111, name="lord", roles=[lord_role, admin_role])
+    king_member = MockMember(id=222, name="king", roles=[king_role])
+    ghost_member = MockMember(id=333, name="ghost", roles=[lord_role])
+    for member in (lord_member, king_member, ghost_member):
+        guild.add_member(member)
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(kingdoms_service=_Service()))
+
+    assert await _strip_player_mod_roles_for_all_lords_safe(guild) == 3
+
+    # the player roles died, the admin role survives
+    assert lord_member.roles == [admin_role]
+    assert king_member.roles == []
+    assert ghost_member.roles == []
+
+    # idempotent: a second sweep changes nothing
+    assert await _strip_player_mod_roles_for_all_lords_safe(guild) == 3
+    assert lord_member.roles == [admin_role]
+    assert king_member.roles == []
+    assert ghost_member.roles == []
