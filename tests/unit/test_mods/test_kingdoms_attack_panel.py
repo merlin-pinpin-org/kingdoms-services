@@ -2223,3 +2223,170 @@ async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
         if task is not asyncio.current_task():
             task.cancel()
     await asyncio.sleep(0)
+async def test_declare_flow_zero_embuscade_opens_the_kingdom_step() -> None:
+    """embuscade-v1: zero bought Embuscade — NO mode view, the kingdom step first."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    view = (click.response.message or None) and click.response.message.view
+    assert view is not None
+    ids = [c.custom_id for c in view.children]
+    assert "kingdoms:attack:choose:kingdom" in ids
+    assert "kingdoms:attack:mode:embuscade" not in ids
+
+
+async def test_declare_flow_embuscade_mode_declares_the_ambush() -> None:
+    """embuscade-v1: bought cards open the MODE view; the ambush rides its own flow."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    await bundle.stock(aquitaine, embuscade=1)
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    # Step 0 — the mode view (classic vs embuscade, delays in the labels).
+    mode_view = click.response.message and click.response.message.view
+    assert mode_view is not None
+    ids = [c.custom_id for c in mode_view.children]
+    assert "kingdoms:attack:mode:classic" in ids
+    assert "kingdoms:attack:mode:embuscade" in ids
+    embuscade_button = next(
+        c for c in mode_view.children if c.custom_id == "kingdoms:attack:mode:embuscade"
+    )
+    assert "1h" in str(embuscade_button.label)
+    mode_click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:mode:embuscade",
+        locale="fr",
+    )
+    await embuscade_button.callback(mode_click)  # type: ignore[arg-type]
+    assert mode_click.response.message is not None
+    # Step 1 — the kingdom select, embuscade flavour (armed line).
+    kingdom_view = mode_click.response.message.view
+    assert kingdom_view is not None
+    assert "Embuscade armée" in str(mode_click.response.message.content)
+    kingdom_select = next(
+        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
+    )
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    assert step.response.message is not None
+    # Step 2 — the EMBUSCADE territory select ONLY (no classic select).
+    territory_view = step.response.message.view
+    assert territory_view is not None
+    tids = [c.custom_id for c in territory_view.children]
+    assert "kingdoms:attack:embuscade:territory" in tids
+    assert "kingdoms:attack:choose:territory" not in tids
+    embuscade_select = next(
+        c for c in territory_view.children if c.custom_id == "kingdoms:attack:embuscade:territory"
+    )
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await embuscade_select.callback(step2)  # type: ignore[arg-type]
+    # The ambush declared: exceptional attack, card consumed, wizard dead.
+    attacks = await bundle.attacks.attacks()
+    assert len(attacks) == 1
+    assert attacks[0].embuscade is True
+    assert str(attacks[0].state.value) == "declared"
+    assert attacks[0].map_key == target
+    assert click.original_deleted is True
+    fresh = await bundle.attacks.technology_state(aquitaine)
+    assert fresh.purchases.get("embuscade") == 0
+    assert step2.followup.messages
+    assert "Embuscade déclarée" in (step2.followup.messages[0].content or "")
+
+
+async def test_declare_flow_mode_classic_stays_a_normal_attack() -> None:
+    """embuscade-v1: the classic button keeps the normal flow — the card stays."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    await bundle.stock(aquitaine, embuscade=1)
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    mode_view = click.response.message and click.response.message.view
+    assert mode_view is not None
+    classic_button = next(
+        c for c in mode_view.children if c.custom_id == "kingdoms:attack:mode:classic"
+    )
+    mode_click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:mode:classic",
+        locale="fr",
+    )
+    await classic_button.callback(mode_click)  # type: ignore[arg-type]
+    kingdom_view = mode_click.response.message and mode_click.response.message.view
+    assert kingdom_view is not None
+    kingdom_select = next(
+        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
+    )
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    territory_view = step.response.message and step.response.message.view
+    territory_select = next(
+        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
+    )
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    attacks = await bundle.attacks.attacks()
+    assert len(attacks) == 1
+    assert not attacks[0].embuscade
+    assert str(attacks[0].state.value) == "declared"
+    # The bought Embuscade card is NOT consumed by a classic attack.
+    fresh = await bundle.attacks.technology_state(aquitaine)
+    assert fresh.purchases.get("embuscade") == 1

@@ -542,6 +542,14 @@ class AttackService:
     def gaia_attack_delay_minutes(self) -> int:
         """The configured Gaïa free-for-all delay (Itinéraire, live)."""
         return int(self._config.attacks.gaia_attack_delay_minutes)
+    @property
+    def embuscade_delay_minutes(self) -> int:
+        """The configured Embuscade delay (embuscade-v1 — the mode view's live Itinéraire).
+
+        The declare flow's mode view reads this LIVE value — never a
+        hardcoded copy of the exceptional fixed itinerary (60 min official).
+        """
+        return int(self._config.attacks.embuscade_delay_minutes)
 
     async def declare_attack(
         self,

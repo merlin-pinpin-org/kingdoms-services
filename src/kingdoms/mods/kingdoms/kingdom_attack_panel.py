@@ -324,8 +324,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "patrol_kingdom": "**{name}** jusqu'à {end}h00",
         "ai_level_desc": "IA de défense : {level}/5 · {count} territoire(s)",
         "choose_territory": "🗺️ **Choisis le territoire de {kingdom} à attaquer :**",
-        "embuscade_button": "🎯 Embuscade ({count} restant)",
-        "embuscade_no_stock": "❌ Ton royaume n'a acheté aucune Embuscade sur le marché des technologies.",
+        "mode_choose": "⚔️ **Déclarer une attaque — choisis ton itinéraire :**",
+        "mode_classic_button": "⚔️ Attaque classique — {delay} itinéraire",
+        "mode_embuscade_button": "🥷 Utiliser une embuscade — {delay} itinéraire",
+        "embuscade_armed_line": (
+            "🥷 **Embuscade armée** ({count} restant) — attaque exceptionnelle, hors budget hebdo."
+        ),
         "embuscade_choose": "🎯 **Embuscade — choisis le territoire cible :** (attaque exceptionnelle, hors budget hebdo)",
         "embuscade_note": (
             "🎯 **Embuscade déclarée sur {map}** — itinéraire **{delay} min**, rendez-vous à"
@@ -677,8 +681,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "patrol_kingdom": "**{name}** until {end}:00",
         "ai_level_desc": "Defense AI: {level}/5 · {count} territor(y|ies)",
         "choose_territory": "🗺️ **Choose the territory of {kingdom} to attack:**",
-        "embuscade_button": "🎯 Ambush ({count} left)",
-        "embuscade_no_stock": "❌ Your kingdom bought no Ambush on the technology market.",
+        "mode_choose": "⚔️ **Declare an attack — choose your itinerary:**",
+        "mode_classic_button": "⚔️ Classic attack — {delay} itinerary",
+        "mode_embuscade_button": "🥷 Use an ambush — {delay} itinerary",
+        "embuscade_armed_line": (
+            "🥷 **Ambush armed** ({count} left) — exceptional attack, outside the weekly budget."
+        ),
         "embuscade_choose": "🎯 **Ambush — choose the target territory:** (exceptional attack, outside the weekly budget)",
         "embuscade_note": (
             "🎯 **Ambush declared on {map}** — itinerary **{delay} min**, meeting at"
@@ -1213,9 +1221,15 @@ class KingdomAttackDeclareButton(
         """Guard the click, then open the GUIDED declaration flow.
 
         Drasah's recâblage (2026-10-14): the bare modal is replaced by
-        a guided ephemeral flow — kingdom → territory → (cover?) →
-        lobby — so the attacker SEES the defense AI level, the patrol
-        shields and the cadastre of every option before choosing.
+        a guided ephemeral flow — (mode?) kingdom → territory →
+        (cover?) → lobby — so the attacker SEES the defense AI level,
+        the patrol shields and the cadastre of every option before
+        choosing.
+
+        embuscade-v1 (Drasah 27/10): with bought Embuscade cards the
+        flow opens on the MODE view first (classic itinerary vs the
+        exceptional fixed 1h Embuscade); zero cards and the mode view
+        is not offered at all.
         """
         from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
 
@@ -1228,9 +1242,19 @@ class KingdomAttackDeclareButton(
         if lord is None:
             await interaction.response.send_message(strings["not_a_lord"], ephemeral=True)
             return
-        content, view = await _kingdom_select_view(
-            wiring, str(getattr(lord, "kingdom_id", "") or ""), strings, interaction
+        own_kingdom_id = str(getattr(lord, "kingdom_id", "") or "")
+        # embuscade-v1 (Drasah 27/10): with bought Embuscade cards in
+        # stock, the flow opens on a MODE view first — the classic
+        # itinerary vs the exceptional fixed 1h Embuscade. Zero stock
+        # and the mode view is NOT offered (« cette vue n'est pas
+        # proposée si 0 embuscade »): the kingdom step opens as before.
+        mode_content, mode_view = await _attack_mode_select_view(
+            wiring, own_kingdom_id, strings, interaction
         )
+        if mode_view is not None:
+            await interaction.response.send_message(mode_content, view=mode_view, ephemeral=True)
+            return
+        content, view = await _kingdom_select_view(wiring, own_kingdom_id, strings, interaction)
         if view is None:
             await interaction.response.send_message(strings["no_target"], ephemeral=True)
             return
@@ -1346,9 +1370,18 @@ async def _kingdom_step_options(
 
 
 async def _kingdom_select_view(
-    wiring: Any, own_kingdom_id: str, strings: dict[str, str], origin: Any = None
+    wiring: Any,
+    own_kingdom_id: str,
+    strings: dict[str, str],
+    origin: Any = None,
+    mode: str = "classic",
 ) -> tuple[str, discord.ui.View | None]:
-    """Step 1 — the attackable kingdoms (patrol-shielded ones stay visible)."""
+    """Step 1 — the attackable kingdoms (patrol-shielded ones stay visible).
+
+    embuscade-v1 (Drasah 27/10): in ``embuscade`` mode this same kingdom
+    step rides the ambush flow — the armed line under the select says
+    so — and the territory step that follows is the ambush's own.
+    """
     import discord
 
     kingdoms_service = wiring.kingdoms_service
@@ -1371,7 +1404,9 @@ async def _kingdom_select_view(
         chosen = [str(v) for v in values.get("values", [])]
         if not chosen:
             return
-        content, view = await _territory_select_view(wiring, own_kingdom_id, chosen[0], strings, origin)
+        content, view = await _territory_select_view(
+            wiring, own_kingdom_id, chosen[0], strings, origin, mode=mode
+        )
         if view is None:
             await target.response.edit_message(content=strings["no_target"], view=None)
             return
@@ -1381,6 +1416,12 @@ async def _kingdom_select_view(
     view = discord.ui.View(timeout=600)
     view.add_item(select)
     lines = [str(strings["choose_kingdom"])]
+    if mode == "embuscade":
+        lines.append(
+            str(strings["embuscade_armed_line"]).format(
+                count=await _embuscade_stock(wiring, own_kingdom_id),
+            )
+        )
     if protected:
         lines.append(str(strings["protected_line"]).format(kingdoms=" · ".join(protected)))
     lines.append(str(strings["traquenard_hint"]))
@@ -1388,9 +1429,19 @@ async def _kingdom_select_view(
 
 
 async def _territory_select_view(
-    wiring: Any, own_kingdom_id: str, kingdom_id: str, strings: dict[str, str], origin: Any = None
+    wiring: Any,
+    own_kingdom_id: str,
+    kingdom_id: str,
+    strings: dict[str, str],
+    origin: Any = None,
+    mode: str = "classic",
 ) -> tuple[str, discord.ui.View | None]:
-    """Step 2 — the territories of the chosen kingdom (tags + cadastre)."""
+    """Step 2 — the territories of the chosen kingdom (tags + cadastre).
+
+    embuscade-v1 (Drasah 27/10): in ``embuscade`` mode the select is
+    the ambush's OWN (it declares directly — no cover question, a
+    bought card is consumed, fixed itinerary).
+    """
     import discord
 
     kingdoms_service = wiring.kingdoms_service
@@ -1415,9 +1466,14 @@ async def _territory_select_view(
         )
         for t in owned
     ][:25]
+    embuscade_mode = mode == "embuscade"
     select: discord.ui.Select[Any] = discord.ui.Select(
-        custom_id="kingdoms:attack:choose:territory",
-        placeholder=str(strings["choose_territory"])[:100],
+        custom_id=(
+            "kingdoms:attack:embuscade:territory"
+            if embuscade_mode
+            else "kingdoms:attack:choose:territory"
+        ),
+        placeholder=str(strings["embuscade_choose" if embuscade_mode else "choose_territory"])[:100],
         options=options,
     )
 
@@ -1425,6 +1481,19 @@ async def _territory_select_view(
         values = getattr(target, "data", None) or {}
         chosen = [str(v) for v in values.get("values", [])]
         if not chosen:
+            return
+        # embuscade-v1 (Drasah 27/10): the ambush declares DIRECTLY
+        # here — no cover question (it strikes in the open), a bought
+        # card is consumed by the service and the fixed itinerary
+        # note follows. The selector ephemeral dies instantly, like
+        # the classic flow.
+        if embuscade_mode:
+            if origin is not None:
+                try:
+                    await origin.delete_original_response()
+                except Exception:
+                    logger.debug("kingdoms: selector ephemeral delete failed", exc_info=True)
+            await _declare_embuscade_attack(wiring, target, strings, chosen[0])
             return
         # battle-ai-rdv-v1 (Drasah 22/10): the map is chosen — the
         # selector ephemeral dies INSTANTLY (no stale wizard left
@@ -1447,113 +1516,156 @@ async def _territory_select_view(
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
     view.add_item(select)
-    # planification-attaque-v1 (Drasah 23/10): the Embuscade button
-    # rides the declare flow's step 2 — shown ONLY when the kingdom
-    # bought at least one Embuscade on the technology market. It is
-    # an EXCEPTIONAL attack: outside the weekly budget, fixed 1h
-    # itinerary (10 min in beta), open-faced (no cover), and the
-    # defense it triggers is exceptional too (no weekly point).
-    embuscade_stock = 0
-    if wiring.attacks_service is not None:
-        try:
-            embuscade_stock = int(
-                (
-                    await wiring.attacks_service.technology_state(own_kingdom_id)
-                ).purchases.get("embuscade", 0)
-            )
-        except Exception:
-            embuscade_stock = 0
-    if embuscade_stock > 0:
-        embuscade: discord.ui.Button[Any] = discord.ui.Button(
-            label=str(strings["embuscade_button"]).format(count=embuscade_stock)[:80],
-            style=discord.ButtonStyle.danger,
-            custom_id="kingdoms:attack:embuscade",
-        )
-
-        async def on_embuscade(target: discord.Interaction[Any]) -> None:
-            # The ambush picks its OWN territory (its own select) — a
-            # classic click on the select above stays the normal flow.
-            await _open_embuscade_step(
-                wiring, target, strings, own_kingdom_id, kingdom_id, options
-            )
-
-        embuscade.callback = on_embuscade  # type: ignore[method-assign, assignment]
-        view.add_item(embuscade)
+    # embuscade-v1 (Drasah 27/10): the step-2 Embuscade button is gone
+    # — the ambush is now chosen on the flow's MODE view (step 0) and
+    # rides this same kingdom → territory flow in embuscade mode.
     # restructuration-serveur-v1 b: the « ⚔️ Itinéraire » line reads the
     # delay LIVE from the config (player vs Gaïa target — never hardcoded,
     # the beta reconfigures and the Corbeau 24h follow-up overrides it
     # per-lord at the declaration itself).
     delay_minutes = _declare_delay_minutes(wiring, kingdom)
-    lines = [str(strings["choose_territory"]).format(kingdom=f"**{kingdom.name}**")]
+    if embuscade_mode and wiring.attacks_service is not None:
+        delay_minutes = int(wiring.attacks_service.embuscade_delay_minutes)
+    lines = [
+        str(strings["embuscade_choose"])
+        if embuscade_mode
+        else str(strings["choose_territory"]).format(kingdom=f"**{kingdom.name}**")
+    ]
     if delay_minutes:
         lines.append(str(strings["itinerary_line"]).format(minutes=delay_minutes))
     lines.append(str(strings["traquenard_hint"]))
     return "\n".join(lines), view
 
 
-async def _open_embuscade_step(
+async def _embuscade_stock(wiring: Any, own_kingdom_id: str) -> int:
+    """Return the kingdom's bought Embuscade cards (0 on any wiring hiccup)."""
+    if wiring.attacks_service is None:
+        return 0
+    try:
+        return int(
+            (await wiring.attacks_service.technology_state(own_kingdom_id)).purchases.get(
+                "embuscade", 0
+            )
+        )
+    except Exception:
+        return 0
+
+
+def _fmt_delay(minutes: int) -> str:
+    """Format an itinerary as « 1h », « 1h30 » or « 45 min » (embuscade-v1)."""
+    if minutes <= 0:
+        return "0 min"
+    hours, rest = divmod(int(minutes), 60)
+    if hours == 0:
+        return f"{rest} min"
+    if rest == 0:
+        return f"{hours}h"
+    return f"{hours}h{rest:02d}"
+
+
+async def _attack_mode_select_view(
     wiring: Any,
-    interaction: discord.Interaction[Any],
-    strings: dict[str, str],
     own_kingdom_id: str,
-    kingdom_id: str,
-    options: list[discord.SelectOption],
-) -> None:
-    """Step 2-Emb — the Embuscade's OWN territory pick (exceptional attack).
+    strings: dict[str, str],
+    origin: Any = None,
+) -> tuple[str, discord.ui.View | None]:
+    """Step 0 — the itinerary choice (embuscade-v1, Drasah 27/10).
 
-    planification-attaque-v1 (Drasah 23/10): the ambush never goes
-    through the cover question (it strikes in the open) and consumes
-    a bought ``embuscade`` instead of the weekly attack budget. The
-    itinerary is fixed and unreducible (1h official, 10 min beta).
+    Drasah's ruling: when the kingdom holds bought Embuscade cards,
+    « Déclarer une attaque » opens on a MODE view first — the classic
+    itinerary against the exceptional fixed 1h Embuscade — and the
+    ambush then rides its own kingdom → territory flow (no cover
+    question: it strikes in the open). With ZERO cards the mode view
+    is NOT offered (« cette vue n'est pas proposée si 0 embuscade »):
+    the flow starts at the kingdom step exactly as before.
     """
-    import discord  # noqa: F811 — local import mirrors the module's style
+    if wiring.attacks_service is None:
+        return "", None
+    if await _embuscade_stock(wiring, own_kingdom_id) <= 0:
+        return "", None
+    classic: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["mode_classic_button"]).format(
+            delay=_fmt_delay(int(wiring.attacks_service.player_attack_delay_minutes))
+        )[:80],
+        style=discord.ButtonStyle.primary,
+        custom_id="kingdoms:attack:mode:classic",
+    )
 
+    async def on_classic(target: discord.Interaction[Any]) -> None:
+        content, view = await _kingdom_select_view(
+            wiring, own_kingdom_id, strings, origin, mode="classic"
+        )
+        if view is None:
+            await target.response.edit_message(content=strings["no_target"], view=None)
+            return
+        await target.response.edit_message(content=content, view=view)
+
+    classic.callback = on_classic  # type: ignore[method-assign, assignment]
+    embuscade: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["mode_embuscade_button"]).format(
+            delay=_fmt_delay(int(wiring.attacks_service.embuscade_delay_minutes))
+        )[:80],
+        style=discord.ButtonStyle.danger,
+        custom_id="kingdoms:attack:mode:embuscade",
+    )
+
+    async def on_embuscade(target: discord.Interaction[Any]) -> None:
+        content, view = await _kingdom_select_view(
+            wiring, own_kingdom_id, strings, origin, mode="embuscade"
+        )
+        if view is None:
+            await target.response.edit_message(content=strings["no_target"], view=None)
+            return
+        await target.response.edit_message(content=content, view=view)
+
+    embuscade.callback = on_embuscade  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(classic)
+    view.add_item(embuscade)
+    lines = [str(strings["mode_choose"]), str(strings["traquenard_hint"])]
+    return "\n".join(lines), view
+
+
+async def _declare_embuscade_attack(
+    wiring: Any,
+    target: discord.Interaction[Any],
+    strings: dict[str, str],
+    map_key: str,
+) -> None:
+    """Declare the exceptional Embuscade at the mode flow's step 2 (embuscade-v1).
+
+    The former step-2 button's declare leg, extracted: the service
+    consumes the bought card, the fixed itinerary note follows, the
+    battle salon opens and the panel refreshes. The caller deletes
+    the original wizard (the selector ephemeral dies instantly).
+    """
     attacks = wiring.attacks_service
     if attacks is None:
-        await interaction.response.send_message(strings["no_service"], ephemeral=True)
+        await target.response.send_message(strings["no_service"], ephemeral=True)
         return
-    await interaction.response.defer(ephemeral=True)
-    select: discord.ui.Select[Any] = discord.ui.Select(
-        custom_id="kingdoms:attack:embuscade:territory",
-        placeholder=str(strings["embuscade_choose"])[:100],
-        options=options,
+    await target.response.defer(ephemeral=True)
+    try:
+        attack = await attacks.declare_embuscade(str(target.user.id), map_key, "")
+    except Exception as exc:
+        await target.followup.send(_combat_failure_note(exc, strings), ephemeral=True)
+        return
+    try:
+        delay_minutes = int((attack.expires_at - attack.declared_at).total_seconds() // 60)
+    except Exception:
+        delay_minutes = 0
+    note: Any = await _followup_send_ephemeral(
+        target,
+        strings["embuscade_note"].format(
+            map=attack.map_key,
+            delay=delay_minutes,
+            time=_fmt_paris(attack.expires_at),
+        ),
     )
-
-    async def on_choose(target: discord.Interaction[Any]) -> None:
-        values = getattr(target, "data", None) or {}
-        chosen = [str(v) for v in values.get("values", [])]
-        if not chosen:
-            return
-        await target.response.defer(ephemeral=True)
-        try:
-            attack = await attacks.declare_embuscade(str(target.user.id), chosen[0], "")
-        except Exception as exc:
-            await target.followup.send(_combat_failure_note(exc, strings), ephemeral=True)
-            return
-        try:
-            delay_minutes = int((attack.expires_at - attack.declared_at).total_seconds() // 60)
-        except Exception:
-            delay_minutes = 0
-        note: Any = await _followup_send_ephemeral(
-            target,
-            strings["embuscade_note"].format(
-                map=attack.map_key,
-                delay=delay_minutes,
-                time=_fmt_paris(attack.expires_at),
-            ),
-        )
-        _arm_declared_note_timer(
-            str(attack.id), target, int(getattr(note, "id", 0) or 0), attack.expires_at
-        )
-        await _open_attack_salon_safe(target.guild, wiring, strings, attack)
-        await refresh_attack_panel_safe(target.guild, _locale(target))
-
-    select.callback = on_choose  # type: ignore[method-assign, assignment]
-    view = discord.ui.View(timeout=600)
-    view.add_item(select)
-    await interaction.followup.send(
-        content=str(strings["embuscade_choose"]), view=view, ephemeral=True
+    _arm_declared_note_timer(
+        str(attack.id), target, int(getattr(note, "id", 0) or 0), attack.expires_at
     )
+    await _open_attack_salon_safe(target.guild, wiring, strings, attack)
+    await refresh_attack_panel_safe(target.guild, _locale(target))
 
 
 def _declare_delay_minutes(wiring: Any, kingdom: Any) -> int:
