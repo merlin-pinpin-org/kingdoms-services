@@ -527,8 +527,14 @@ class DiplomacyService:
         them; a lost territory drops its civ on the next pass (D32).
         Drasah's 2026-10-11 Lord's Day rule: an un-wed drafted
         civilization is LOST at the recalculation — only a marriage
-        keeps it; the cycle switch then draws a fresh draft per kingdom
-        (:meth:`KingdomsService.redraw_lords_day_draft`).
+        keeps it (cycles-sans-redraft-v1, Drasah 25/10: a cycle never
+        re-draws a hand).
+        chaine-vivante-v1 (Drasah 27/10): the unlock chains and the
+        held-civ counters read the LIVE hand computed by THIS pass
+        (:meth:`_live_hand`) — never the pre-recalc hand. His ruling:
+        « si tu n'as pas chinois alors tu n'as pas ces branches » — a
+        base that drops takes its branches down at the SAME cycle, a
+        married base keeps them.
         Lords of a kingdom flagged for a combat loss lose their marriage
         first (D34/D53). Returns the new lists for the diplomacy screen.
         """
@@ -548,13 +554,6 @@ class DiplomacyService:
                 and not lord.left
                 and lord.married_civilization is not None
             )
-            # the un-wed draft drops at the Lord's Day (Drasah's rule);
-            # only condition-met and married civilizations survive here
-            unlocked: list[str] = []
-            for civ in self._config.civilizations:
-                if await self._condition_met(civ, kingdom, owned, unlocked, married_count):
-                    if civ.key not in unlocked:
-                        unlocked.append(civ.key)
             secured = [
                 lord.married_civilization
                 for lord in lords
@@ -565,9 +564,10 @@ class DiplomacyService:
                 # Drasah's 2026-10-11 rule: secured for the whole season
                 and (kingdom.id not in dropped or bool(lord.royal_marriage))
             ]
-            for key in secured:
-                if key not in unlocked:
-                    unlocked.append(key)
+            # chaine-vivante-v1 (Drasah 27/10): the shared LIVE engine
+            # — the chains and the held-civ counters read the result of
+            # THIS pass, never the pre-recalc hand (no ghost grace).
+            unlocked = await self._live_hand(kingdom, owned, secured, married_count)
             kingdom.civilizations = unlocked
             kingdom.secured_civilizations = [c for c in secured if c]
             # alliances-lisibilite-v1 (Drasah 25/10): record the origin
@@ -599,10 +599,54 @@ class DiplomacyService:
         logger.info("kingdoms: alliances recomputed - %s", reports)
         return reports
 
+    async def _live_hand(
+        self,
+        kingdom: KingdomModel,
+        owned: list[str],
+        secured: list[str],
+        married_count: int,
+    ) -> list[str]:
+        """Compute the kingdom's LIVE hand (chaine-vivante-v1, Drasah 27/10).
+
+        ONE shared engine for the cycle recalculation and the alliances
+        projection (they must never diverge): the condition pass, the
+        marriage-secured keys, then a BOUNDED FIXPOINT — the unlock
+        chains and the held-civ counters read the LIVE hand, never the
+        pre-recalc hand. His ruling, born from his live simulation (a
+        6-territory kingdom held a drafted Chinois — Shu/Wei/Wu kept
+        riding the ghost ONE cycle too long): « si tu n'as pas chinois
+        alors tu n'as pas ces branches » — a base that drops takes its
+        branches down at the SAME cycle, a base unlocked late in the
+        pass — or secured by a MARRIAGE — carries them at the same
+        cycle, never the next.
+        """
+        unlocked: list[str] = []
+        for civ in self._config.civilizations:
+            if await self._condition_met(civ, kingdom, owned, unlocked, married_count):
+                if civ.key not in unlocked:
+                    unlocked.append(civ.key)
+        for key in secured:
+            if key is not None and key not in unlocked:
+                unlocked.append(key)
+        # the bounded fixpoint: every newly carried key can itself carry
+        # its own chain — the pass re-runs until it stabilises (worst
+        # case one iteration per declared civilization).
+        for _ in range(len(self._config.civilizations)):
+            changed = False
+            for civ in self._config.civilizations:
+                if civ.key in unlocked:
+                    continue
+                if await self._condition_met(civ, kingdom, owned, unlocked, married_count):
+                    unlocked.append(civ.key)
+                    changed = True
+            if not changed:
+                break
+        return unlocked
+
     async def alliance_projection(self, kingdom_id: str) -> dict[str, Any]:
         """Read-only alliances projection (alliances-lisibilite-v1, Drasah 25/10).
 
-        Evaluates the SAME ``_condition_met`` engine as the cycle
+        Evaluates the SAME ``_live_hand`` engine as the cycle
         recalculation but NEVER writes: the panel reads the current
         hand, the next-cycle preview (kept / arriving / dropping), the
         🎯 near-unlock hints (« à 1 map près ») and the civilizations
@@ -620,11 +664,6 @@ class DiplomacyService:
             and not lord.left
             and lord.married_civilization is not None
         )
-        unlocked: list[str] = []
-        for civ in self._config.civilizations:
-            if await self._condition_met(civ, kingdom, owned, unlocked, married_count):
-                if civ.key not in unlocked:
-                    unlocked.append(civ.key)
         secured = [
             lord.married_civilization
             for lord in lords
@@ -632,9 +671,9 @@ class DiplomacyService:
             and not lord.left
             and lord.married_civilization is not None
         ]
-        for key in secured:
-            if key is not None and key not in unlocked:
-                unlocked.append(key)
+        # chaine-vivante-v1: the SAME live engine as the cycle — the
+        # projection must never diverge from what the switch will do.
+        unlocked = await self._live_hand(kingdom, owned, secured, married_count)
         held = list(kingdom.civilizations)
         near: list[dict[str, Any]] = []
         for civ in self._config.civilizations:
@@ -752,8 +791,15 @@ class DiplomacyService:
         if civ.max_map_count is not None and len(owned) <= civ.max_map_count:
             return True
         if civ.requires_civilization is not None:
-            base = civ.requires_civilization
-            return base in unlocked or base in kingdom.civilizations
+            # chaine-vivante-v1 (Drasah 27/10): the chain reads the LIVE
+            # hand (``unlocked``) — never the pre-recalc hand: a base
+            # present in the old hand without its condition must NOT
+            # carry its branches one extra cycle (« si tu n'as pas
+            # chinois alors tu n'as pas ces branches »). The bounded
+            # fixpoint in :meth:`_live_hand` re-runs this branch after
+            # the marriages are secured, so a MARRIED base keeps its
+            # chain at the same cycle.
+            return civ.requires_civilization in unlocked
         if civ.requires_kingdom_name_pattern is not None:
             return re.fullmatch(civ.requires_kingdom_name_pattern, kingdom.name) is not None
         if civ.requires_tech_points is not None and (
@@ -763,7 +809,9 @@ class DiplomacyService:
         if civ.requires_marriages is not None and married_count >= civ.requires_marriages:
             return True
         if civ.requires_civilization_count is not None and (
-            len(set(unlocked) | set(kingdom.civilizations)) >= civ.requires_civilization_count
+            # chaine-vivante-v1: the held-civ counter reads the LIVE hand
+            # too — the pre-recalc hand is not "held" during the pass.
+            len(set(unlocked)) >= civ.requires_civilization_count
         ):
             return True
         return False

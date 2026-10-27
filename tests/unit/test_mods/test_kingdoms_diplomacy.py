@@ -518,3 +518,42 @@ async def test_alliance_projection_previews_the_next_cycle_read_only() -> None:
     fresh = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
     assert fresh.civilizations == hand
     assert "celtes" not in fresh.civilizations
+
+async def test_chain_falls_with_its_base_in_the_same_cycle() -> None:
+    """chaine-vivante-v1 (Drasah 27/10): the chain reads the LIVE hand,
+    never the pre-recalc hand — a base sitting in the OLD hand without
+    its condition must NOT carry its branches one cycle longer (his
+    live simulation: a 6-territory kingdom held a drafted Chinois and
+    Shu/Wei/Wu kept riding the ghost)."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    # the old hand carries Chinois WITHOUT its eau condition
+    await bundle.give("Aquitaine", "chinois", "shu")
+
+    reports = await bundle.diplomacy.recalculate()
+
+    # the base and its branches fall together — no one-cycle grace
+    assert "chinois" not in reports["Aquitaine"]
+    assert {"shu", "wei", "wu"}.isdisjoint(set(reports["Aquitaine"]))
+    # the projection agrees with the cycle (they share the live engine)
+    projection = await bundle.diplomacy.alliance_projection(aquitaine)
+    assert projection["dropping"] == ["chinois", "shu"]
+
+
+async def test_married_base_carries_its_chain() -> None:
+    """chaine-vivante-v1 (Drasah 27/10): a MARRIED base stays in the
+    live hand — its branches stay with it (the marriage protects the
+    base AND its chain: « si tu n'as pas chinois alors tu n'as pas ces
+    branches », the converse holds too)."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.give("Aquitaine", "chinois")
+    await bundle.diplomacy.marry("lord-a", "chinois")
+
+    reports = await bundle.diplomacy.recalculate()
+
+    # the married base stays and carries its whole chain at once
+    assert "chinois" in reports["Aquitaine"]
+    assert {"shu", "wei", "wu"} <= set(reports["Aquitaine"])
