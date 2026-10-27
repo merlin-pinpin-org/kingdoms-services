@@ -4447,6 +4447,11 @@ async def _purge_and_reinstall(guild: discord.Guild) -> tuple[bool, int]:
     except Exception:
         logger.exception("KINGDOMS ADMIN: salons reset failed for guild %s", guild.id)
         return False, deleted
+    # reset-visibility-v1 (Drasah 27/10): the purge kills the declared
+    # salons, but the member-level overwrites of the survivors (Drasah's
+    # hand-made Beta, the taverne zone) and the taverne door role would
+    # outlive the season — sweep them BEFORE the reinstall.
+    await _strip_member_overwrites_safe(guild)
     reinstalled = False
     try:
         from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
@@ -4551,6 +4556,122 @@ async def _strip_player_mod_roles_for_all_lords_safe(guild: discord.Guild | None
             guild.id,
         )
     return resolved
+
+
+def _member_overwrite_ids(target: object, bot_id: int | None) -> list[int]:
+    """The member-level overwrite user ids recorded on one target (duck-typed).
+
+    reset-visibility-v1 (Drasah 27/10): the same helper reads the ids
+    from every storage shape the codebase meets — the discord.py
+    ``overwrites`` view (resolved Members, or unresolved
+    ``Object(type=User)`` since the bot runs WITHOUT the members
+    intent), the mock tuple-keyed maps (``(id, is_role)`` in
+    ``_permissions``/``_overwrites``) and the prod raw overwrite list
+    (``.is_member()``/``.id``). The bot's own id is never returned.
+    """
+    ids: list[int] = []
+
+    def _record(user_id: object) -> None:
+        try:
+            resolved = int(user_id)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return
+        if resolved and resolved != bot_id and resolved not in ids:
+            ids.append(resolved)
+
+    view = getattr(target, "overwrites", None)
+    if view:
+        try:
+            for key, overwrite in list(view.items()):  # type: ignore[union-attr]
+                if overwrite is None:
+                    continue
+                if isinstance(key, discord.Member):
+                    _record(key.id)
+                elif isinstance(key, discord.Object) and getattr(key, "type", None) is discord.User:
+                    _record(key.id)
+        except Exception:
+            pass
+    for raw in (getattr(target, "_permissions", None), getattr(target, "_overwrites", None)):
+        if not raw:
+            continue
+        if isinstance(raw, dict):
+            for key, overwrite in raw.items():  # type: ignore[union-attr]
+                if overwrite is None:
+                    continue
+                if isinstance(key, tuple) and len(key) == 2 and key[1] is False:
+                    _record(key[0])
+        else:
+            for entry in raw:  # type: ignore[union-attr]
+                try:
+                    if entry.is_member():
+                        _record(entry.id)
+                except Exception:
+                    continue
+    return ids
+
+
+async def _strip_member_overwrites_safe(guild: discord.Guild | None) -> int:
+    """Wipe every MEMBER-level overwrite + the taverne door role at reset.
+
+    reset-visibility-v1 (Drasah 27/10): the taverne immersion poses
+    member-level view DENIES on every other category (Beta included)
+    and every un-synced channel — a member who never clicked Sortir
+    (crash, mid-season restart, or a reset while inside) kept them
+    forever: the provisioning self-heal iterates ``guild.members``,
+    EMPTY without the members intent, so nothing ever cleaned them
+    (blank could not see Beta — his name sat in the overwrites of the
+    hidden zones, « idem pour le rôle dans la taverne »). A season
+    reset must return EVERY member to the newcomer state, so the wipe
+    sweeps the overwrites by id (no member resolution needed).
+
+    The taverne door role (« 🍺 Dans la Taverne ») is DELETED: with no
+    members intent the role cannot be enumerated per member — dropping
+    the role strips it from everyone at once, and the taverne
+    provisioning recreates it fresh (no member holds it → the
+    self-heal re-applies no deny). Best effort, idempotent, the bot's
+    own overwrite is NEVER touched. Returns the number of strips.
+    """
+    if guild is None:
+        return 0
+    bot_id = getattr(getattr(guild, "me", None), "id", None)
+    targets: list[object] = [
+        *(list(getattr(guild, "categories", []) or [])),
+        *(list(getattr(guild, "text_channels", []) or [])),
+        *(list(getattr(guild, "voice_channels", []) or [])),
+        *(list(getattr(guild, "forums", []) or [])),
+    ]
+    cleared = 0
+    for target in targets:
+        for user_id in _member_overwrite_ids(target, bot_id):
+            try:
+                await target.set_permissions(  # type: ignore[union-attr]
+                    discord.Object(id=user_id, type=discord.User), overwrite=None
+                )
+                cleared += 1
+            except Exception:
+                logger.warning(
+                    "KINGDOMS: member overwrite strip failed on %r for %s",
+                    str(getattr(target, "name", "?")),
+                    user_id,
+                    exc_info=True,
+                )
+    try:
+        from kingdoms.mods.kingdoms.tavern_immersion import TAVERN_ROLE_NAME
+
+        door_role = discord.utils.get(getattr(guild, "roles", []) or [], name=TAVERN_ROLE_NAME)
+        if door_role is not None:
+            await door_role.delete(reason="kingdoms: reset saison — rôle Taverne retiré")  # type: ignore[union-attr]
+            cleared += 1
+            logger.info("KINGDOMS: reset-visibility-v1 — taverne door role deleted")
+    except Exception:
+        logger.warning("KINGDOMS: taverne door role delete failed", exc_info=True)
+    if cleared:
+        logger.info(
+            "KINGDOMS: reset-visibility-v1 — %s member overwrite(s)/door role stripped (guild %s)",
+            cleared,
+            guild.id,
+        )
+    return cleared
 
 
 async def _strip_marriage_livery_for_all_lords_safe(guild: discord.Guild | None) -> int:
@@ -5469,5 +5590,4 @@ class KingdomRealmButton(
         else:
             await interaction.followup.send(strings["realms_done"], ephemeral=True)
         await _refresh_realms_panel_safe(interaction.guild, locale)
-
 

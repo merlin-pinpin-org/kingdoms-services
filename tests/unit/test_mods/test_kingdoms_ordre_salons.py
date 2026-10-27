@@ -365,3 +365,49 @@ async def test_gaia_migration_without_gaia_category_is_silent() -> None:
     await guild.create_category("🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ")
     await _migrate_gaia_into_kingdoms(guild)  # must not raise
     assert {c.name for c in guild.categories} == {"🏰 ᴋɪɴɢᴅᴏᴍs-ɢᴀɪᴀ"}
+
+async def test_divider_mirrors_the_category_gating() -> None:
+    """reset-visibility-v1 (Drasah 27/10): a channel that explicitly
+    allows @everyone stays visible to every member AND surfaces its
+    hidden category's header — the battlefield divider was the hole
+    that let a role-less newcomer see ⚔️ Champs de Bataille. The
+    divider now mirrors its category (hidden where the category denies
+    @everyone, the player roles keep the scenery) and the Conscription
+    divider mirrors the immersion deny (Lord/King) instead."""
+    import discord
+
+    guild = MockGuild()
+    lord_role = MockRole(name="Kingdoms Lord")
+    king_role = MockRole(name="Kingdoms King")
+    for role in (lord_role, king_role):
+        guild._roles[role.id] = role
+    conscription = await guild.create_category("✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ")
+    battlefield = await guild.create_category("⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ")
+    await battlefield.set_permissions(
+        guild.default_role, overwrite=discord.PermissionOverwrite(view_channel=False)
+    )
+
+    await _ensure_charte_dividers(guild)
+
+    everyone = guild.default_role
+    battlefield_divider = next(c for c in battlefield.channels if _slug(c.name) == "")
+    recorded = battlefield_divider.permission_overwrite_for(everyone)
+    assert recorded is not None
+    assert recorded.view_channel is False  # no longer surfaces the hidden category
+    assert recorded.send_messages is False
+    # the players keep the scenery through the role allow
+    lord_view = battlefield_divider.permission_overwrite_for(lord_role)
+    assert lord_view is not None and lord_view.view_channel is True
+    king_view = battlefield_divider.permission_overwrite_for(king_role)
+    assert king_view is not None and king_view.view_channel is True
+
+    conscription_divider = next(c for c in conscription.channels if _slug(c.name) == "")
+    recorded = conscription_divider.permission_overwrite_for(everyone)
+    assert recorded is not None
+    assert recorded.view_channel is True  # the public zone stays public
+    assert recorded.send_messages is False
+    # the immersion deny mirrors on the divider (Lord/King)
+    lord_view = conscription_divider.permission_overwrite_for(lord_role)
+    assert lord_view is not None and lord_view.view_channel is False
+    king_view = conscription_divider.permission_overwrite_for(king_role)
+    assert king_view is not None and king_view.view_channel is False

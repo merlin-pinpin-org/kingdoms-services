@@ -317,6 +317,16 @@ async def _ensure_charte_dividers(guild: discord.Guild) -> None:
     ordre-salons-v1: the « ┈┈ ✦ ┈┈ » salon separates the panel zone
     from the war zone inside the two game categories. Mute: @everyone
     is denied send (the divider is scenery, not a salon to write in).
+
+    reset-visibility-v1 (Drasah 27/10): a channel that carries an
+    explicit @everyone view ALLOW stays visible to EVERY member — and
+    a visible channel SURFACES its hidden category's header in the
+    sidebar: the battlefield divider was the hole through which a
+    role-less newcomer saw « ⚔️ Champs de Bataille ». The divider now
+    MIRRORS its category's gating: hidden where the category denies
+    @everyone (the player roles keep the scenery through their allow),
+    public where the category is public — and the Conscription divider
+    mirrors the immersion deny (Lord/King) instead.
     """
     for group in ("conscription", "champs-de-bataille"):
         category = _find_category(guild, _CHARTE_CATEGORY_DISPLAY[group])
@@ -338,15 +348,48 @@ async def _ensure_charte_dividers(guild: discord.Guild) -> None:
                 continue
         everyone = getattr(guild, "default_role", None)
         if everyone is not None:
-            try:
-                await divider.set_permissions(
-                    everyone,
-                    overwrite=discord.PermissionOverwrite(
-                        view_channel=True, send_messages=False
-                    ),
-                )
-            except Exception:
-                logger.warning("KINGDOM SETUP: divider mute failed", exc_info=True)
+            hidden = False
+            category_lookup = getattr(category, "permission_overwrite_for", None)
+            if category_lookup is not None:
+                recorded = category_lookup(everyone)
+                hidden = recorded is not None and recorded.view_channel is False
+            desired_everyone = discord.PermissionOverwrite(
+                view_channel=(False if hidden else True), send_messages=False
+            )
+            divider_lookup = getattr(divider, "permission_overwrite_for", None)
+            recorded = divider_lookup(everyone) if divider_lookup is not None else None
+            if recorded != desired_everyone:
+                try:
+                    await divider.set_permissions(everyone, overwrite=desired_everyone)
+                except Exception:
+                    logger.warning("KINGDOM SETUP: divider mute failed (%s)", group, exc_info=True)
+        # the divider mirrors the category's role gating too (converge-skipped)
+        role_candidates = (
+            _PLAYER_ROLE_CANDIDATES
+            if group == "champs-de-bataille"
+            else _CONSCRIPTION_ROLE_CANDIDATES
+        )
+        for candidates in role_candidates:
+            role = next(
+                (r for r in (getattr(guild, "roles", []) or []) if str(getattr(r, "name", "")) in candidates),
+                None,
+            )
+            if role is None:
+                continue
+            desired_role = (
+                discord.PermissionOverwrite(view_channel=True, read_message_history=True)
+                if group == "champs-de-bataille"
+                else discord.PermissionOverwrite(view_channel=False)
+            )
+            divider_lookup = getattr(divider, "permission_overwrite_for", None)
+            recorded = divider_lookup(role) if divider_lookup is not None else None
+            if recorded != desired_role:
+                try:
+                    await divider.set_permissions(role, overwrite=desired_role)
+                except Exception:
+                    logger.warning(
+                        "KINGDOM SETUP: divider role gating failed (%s)", group, exc_info=True
+                    )
 
 
 async def _apply_charte_topics(guild: discord.Guild) -> None:

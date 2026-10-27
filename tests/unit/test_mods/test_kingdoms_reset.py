@@ -286,3 +286,47 @@ async def test_reset_strips_player_roles_before_the_wipe() -> None:
     assert lord_member.roles == [admin_role]
     assert king_member.roles == []
     assert ghost_member.roles == []
+
+async def test_reset_strips_member_overwrites_and_the_taverne_door_role() -> None:
+    """reset-visibility-v1 (Drasah 27/10): the taverne immersion poses
+    member-level view DENIES on every other category (Beta included) —
+    a member who never clicked Sortir keeps them forever (the self-heal
+    iterates guild.members, empty without the members intent). The
+    reset sweep clears every member overwrite (the bot's own allow and
+    the role denies survive) and deletes the door role."""
+    import discord
+
+    from kingdoms.mods.kingdoms.kingdom_persistent import _strip_member_overwrites_safe
+    from kingdoms.mods.kingdoms.tavern_immersion import TAVERN_ROLE_NAME
+
+    guild = MockGuild()
+    beta = await guild.create_category("Beta")
+    lord_role = MockRole(name="Kingdoms Lord")
+    guild._roles[lord_role.id] = lord_role
+    door_role = MockRole(name=TAVERN_ROLE_NAME)
+    guild._roles[door_role.id] = door_role
+
+    blank = MockMember(id=999, name="blank", roles=[door_role, lord_role])
+    guild.add_member(blank)
+    bot = guild.me
+
+    # the stale immersion state: member deny on Beta + role deny + bot allow
+    await beta.set_permissions(blank, overwrite=discord.PermissionOverwrite(view_channel=False))
+    await beta.set_permissions(lord_role, overwrite=discord.PermissionOverwrite(view_channel=False))
+    await beta.set_permissions(bot, overwrite=discord.PermissionOverwrite(view_channel=True))
+
+    async def _door_delete(*, reason: str | None = None) -> None:
+        guild._roles.pop(door_role.id, None)
+
+    door_role.delete = _door_delete  # type: ignore[method-assign]
+
+    assert await _strip_member_overwrites_safe(guild) == 2  # member deny + door role
+
+    # the member deny died; the role deny and the bot allow survive
+    assert beta.permission_overwrite_for(blank) is None
+    assert beta.permission_overwrite_for(lord_role) is not None
+    assert beta.permission_overwrite_for(bot) is not None
+    assert door_role.id not in guild._roles
+
+    # idempotent: a second sweep finds nothing left to clear
+    assert await _strip_member_overwrites_safe(guild) == 0
