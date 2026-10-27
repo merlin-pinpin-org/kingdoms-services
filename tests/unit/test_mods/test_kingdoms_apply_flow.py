@@ -287,3 +287,29 @@ def test_sheets_exist_in_both_locales_and_stay_under_the_2000_limit() -> None:
         assert len(strings["role_sheet_lord"]) < 2000
         assert strings["apply_sending"]
         assert strings["sent_ttl"]
+
+async def test_roleinfo_second_sheet_closes_the_first_window() -> None:
+    """fenetre-unique-v2 (Drasah 27/10): ONE live ephemeral window per
+    player — clicking Seigneur after Roi closes the Roi sheet instead of
+    stacking both below the panel (his 27/10 live report)."""
+    user = MockUser(id=777, name="blank")
+    first = MockInteraction(locale="fr", user=user)
+    second = MockInteraction(locale="fr", user=user)
+
+    king_button = KingdomRoleInfoButton("king", _strings("fr")["roleinfo_king_button"])
+    lord_button = KingdomRoleInfoButton("lord", _strings("fr")["roleinfo_lord_button"])
+
+    await king_button.callback(first)
+    assert first.response.message is not None  # the Roi sheet is open
+
+    await lord_button.callback(second)
+    # the first window was closed, the second is the live one
+    assert getattr(first, "original_deleted", False) is True
+    assert first.response.message is None
+    assert second.response.message is not None
+    assert second.response.message.content == _strings("fr")["role_sheet_lord"]
+
+    # bounded registry: one entry max per player
+    from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
+
+    assert list(_EPHEMERAL_WINDOWS) == ["777"]

@@ -376,7 +376,13 @@ class KingdomRoleInfoButton(
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         key = "role_sheet_king" if self.role == "king" else "role_sheet_lord"
+        # fenetre-unique-v2 (Drasah 27/10): one ephemeral window at a time
+        # — opening a sheet closes the player's previous window (his live
+        # report: the Roi and Seigneur sheets stacked below the panel).
+        user_id = str(getattr(interaction.user, "id", ""))
+        await _close_previous_ephemeral(user_id)
         await interaction.response.send_message(strings[key], ephemeral=True)
+        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic())
 
 
 class KingdomCandidatureButton(
@@ -1339,32 +1345,36 @@ def _market_card_file(item: str) -> discord.File | None:
     return discord.File(path, filename=card_filename(item))
 
 
-_MARKET_CARD_WINDOW_TTL = 15 * 60
+_EPHEMERAL_WINDOW_TTL = 15 * 60
 """fenetre-unique-v1 (Drasah 26/10): a card's interaction webhook token
 lives ~15 minutes — past that, the old ephemeral can no longer be
 deleted (Discord keeps it on the player's side until dismissed)."""
 
-_MARKET_CARD_WINDOWS: dict[str, tuple[discord.Interaction, float]] = {}
-"""One live revealed card per player (user id -> (interaction, opened_at)).
+_EPHEMERAL_WINDOWS: dict[str, tuple[discord.Interaction, float]] = {}
+"""One live ephemeral window per player (user id -> (interaction, opened_at)).
 fenetre-unique-v1 (Drasah 26/10): clicking another article CLOSES the
-previous card instead of stacking ephemerals. Bounded: one entry max per
-player, replaced on every reveal — no growth, no cleanup pass needed."""
+previous card instead of stacking ephemerals. fenetre-unique-v2
+(Drasah 27/10): the registry is shared by EVERY ephemeral reveal of the
+mod (revealed market card, role rights sheet, ...) — his 27/10 live
+report: the Roi and Seigneur sheets stacked below the panel. Bounded:
+one entry max per player, replaced on every reveal — no growth, no
+cleanup pass needed."""
 
 
-async def _close_previous_market_card(user_id: str) -> None:
-    """Best-effort: delete the player's previous revealed card."""
-    previous = _MARKET_CARD_WINDOWS.pop(user_id, None)
+async def _close_previous_ephemeral(user_id: str) -> None:
+    """Best-effort: delete the player's previous ephemeral window."""
+    previous = _EPHEMERAL_WINDOWS.pop(user_id, None)
     if previous is None:
         return
     old_interaction, opened_at = previous
-    if time.monotonic() - opened_at > _MARKET_CARD_WINDOW_TTL:
+    if time.monotonic() - opened_at > _EPHEMERAL_WINDOW_TTL:
         return  # token expiré — Discord laisse l'éphémère mourir seule
     try:
         await old_interaction.delete_original_response()
-        logger.info("KINGDOMS MARKET: previous card window closed for %s", user_id)
+        logger.info("KINGDOMS: previous ephemeral window closed for %s", user_id)
     except Exception:
         logger.info(
-            "KINGDOMS MARKET: previous card window close failed (ignored)",
+            "KINGDOMS: previous ephemeral window close failed (ignored)",
             exc_info=True,
         )
 
@@ -1402,14 +1412,14 @@ async def _send_market_card(
     # opening a new article closes the previous ephemeral (his 26/10
     # live report: stacked Contre-Espionnage + Jeu d'armes windows).
     user_id = str(getattr(interaction.user, "id", ""))
-    await _close_previous_market_card(user_id)
+    await _close_previous_ephemeral(user_id)
     await interaction.response.send_message(
         embed=embed,
         files=[file] if file is not None else [],
         view=view,
         ephemeral=True,
     )
-    _MARKET_CARD_WINDOWS[user_id] = (interaction, time.monotonic())
+    _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic())
     logger.info("KINGDOMS MARKET TRACE: card SENT item=%r", item)
 
 
@@ -5590,4 +5600,3 @@ class KingdomRealmButton(
         else:
             await interaction.followup.send(strings["realms_done"], ephemeral=True)
         await _refresh_realms_panel_safe(interaction.guild, locale)
-
