@@ -169,7 +169,10 @@ async def civ_crest_files(civ_keys: Any) -> list[discord.File]:
     return files
 
 
-_VS_BADGE_PATH = Path(__file__).resolve().parent / "assets" / "bataille" / "vs.png"
+# vs-badge-asset (Drasah 28/10): the badge rides at the path Drasah's
+# web upload landed on — assets/vs_badge_drasah_256.png (256px,
+# transparent, optimized from the original 1.7MB upload).
+_VS_BADGE_PATH = Path(__file__).resolve().parent / "assets" / "vs_badge_drasah_256.png"
 
 
 def vs_badge_file() -> discord.File | None:
@@ -177,9 +180,9 @@ def vs_badge_file() -> discord.File | None:
 
     Sits BETWEEN the two meeting-message crests — Discord shows
     the attached files side by side: [blason attaquant][VS]
-    [blason défenseur]. Cosmetic-only: until the PNG is committed
-    (Drasah provides it) the meeting message degrades to the two
-    crests alone.
+    [blason défenseur]. Cosmetic-only: if the asset file is missing
+    or unreadable the meeting message degrades to the two crests
+    alone.
     """
     try:
         if _VS_BADGE_PATH.is_file():
