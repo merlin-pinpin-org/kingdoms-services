@@ -411,8 +411,16 @@ STRINGS: dict[str, dict[str, Any]] = {
             "patrouille": "🛡️",
             "mariage_arrange": "💒",
         },
-        "market_tech_section": "🧪 Combat technologies",
-        "market_actions_section": "⚔️ Special actions",
+        # marche-visuel-v2 (Drasah 28/10): one merchant stall, four
+        # shelves (his taxonomy + order), all buttons same colour.
+        "market_crier": (
+            "⚙️ Traps, poisons and favours — everything has a price,"
+            " and the King pays!"
+        ),
+        "market_section_ia": "🤖 AI defense / attack management",
+        "market_section_defense": "🛡️ Kingdom defense",
+        "market_section_attaque": "⚔️ Attack improvements",
+        "market_section_speciales": "✨ Special actions",
         "market_hint": (
             "Only the King of a kingdom can buy. Every purchase debits the"
             " kingdom's tech-point treasury ({} ⚙️ per purchase)."
@@ -838,8 +846,16 @@ STRINGS: dict[str, dict[str, Any]] = {
             "patrouille": "🛡️",
             "mariage_arrange": "💒",
         },
-        "market_tech_section": "🧪 Technologies de combat",
-        "market_actions_section": "⚔️ Actions spéciales",
+        # marche-visuel-v2 (Drasah 28/10): une seule table de marchand,
+        # quatre rayons (sa taxonomie + son ordre), boutons uniformes.
+        "market_crier": (
+            "⚙️ Pièges, poisons et faveurs — tout se monnaye,"
+            " et c'est le Roi qui paie !"
+        ),
+        "market_section_ia": "🤖 Gestion de la défense / attaque IA",
+        "market_section_defense": "🛡️ Défense du royaume",
+        "market_section_attaque": "⚔️ Amélioration de l'attaque",
+        "market_section_speciales": "✨ Actions spéciales",
         "market_hint": (
             "Seul le Roi d'un royaume peut acheter. Chaque achat débite le"
             " trésor de points de tech du royaume ({} ⚙️ par achat)."
@@ -1684,6 +1700,18 @@ async def build_settings_panel(
     return view
 
 
+# marche-visuel-v2 (Drasah 28/10): la table unique du marchand —
+# quatre rayons (sa taxonomie, son ordre) : (clé strings de l'en-tête,
+# clés d'articles dans l'ordre d'étalage). Un rayon ≤ 5 boutons = une
+# seule ActionRow (règle D68 : jamais de rangée vide sérialisée).
+MARKET_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("market_section_ia", ("traquenard", "jeu_d_armes")),
+    ("market_section_defense", ("patrouille", "garde_royale")),
+    ("market_section_attaque", ("sabotage", "contre_espionnage", "embuscade")),
+    ("market_section_speciales", ("explorateur", "mariage_arrange", "corruption")),
+)
+
+
 async def build_market_panel(
     locale: str,
     kingdoms_service: Any = None,
@@ -1709,58 +1737,52 @@ async def build_market_panel(
 
         technologies = TechnologyCosts()
 
-    # Rows are packed dynamically in chunks of 5: a preallocated spare
-    # row would serialize as an EMPTY ActionRow, which Discord rejects
-    # ("Must be between 1 and 5 in length") — the whole panel send
-    # failed that way when the tech count dropped from 6 to 5 (D68).
-    tech_rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
-    tech_keys = (
+    # marche-visuel-v2 (Drasah 28/10): one merchant stall, four shelves
+    # in HIS order — every purchase button wears the same colour; the
+    # tech/action button CLASSES keep their distinct callbacks.
+    tech_class_keys = {
         "embuscade",
         "traquenard",
         "contre_espionnage",
         "sabotage",
         "jeu_d_armes",
-    )
-    for index, key in enumerate(tech_keys):
-        if index % 5 == 0:
-            tech_rows.append(discord.ui.ActionRow())
-        row = tech_rows[index // 5]
-        cost = int(getattr(technologies, key))
-        row.add_item(
-            KingdomMarketTechButton(
-                key,
-                f"{strings['market_tech'][key]} — {cost} ⚙️",
-                discord.ButtonStyle.primary,
+    }
+    shelf_items: list[Any] = []
+    for header_key, keys in MARKET_SECTIONS:
+        shelf_items.append(discord.ui.TextDisplay(f"## {strings[header_key]}"))
+        row = discord.ui.ActionRow()
+        for key in keys:
+            cost = int(getattr(technologies, key))
+            label = (
+                strings["market_tech"][key]
+                if key in tech_class_keys
+                else strings["market_action"][key]
             )
-        )
-    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    # marche-v2 article 7 became remparts-v2 (Drasah 14/10): the Garde
-    # Royale returns to the market as a TOKEN purchase — the Remparts
-    # salon keeps the PLACEMENT.
-    for key in ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange"):
-        cost = int(getattr(technologies, key))
-        action_row.add_item(
-            KingdomMarketActionButton(
-                key,
-                f"{strings['market_action'][key]} — {cost} ⚙️",
-                discord.ButtonStyle.secondary,
+            button_cls = (
+                KingdomMarketTechButton
+                if key in tech_class_keys
+                else KingdomMarketActionButton
             )
-        )
+            row.add_item(
+                button_cls(
+                    key,
+                    f"{label} — {cost} ⚙️",
+                    discord.ButtonStyle.primary,
+                )
+            )
+        shelf_items.append(row)
 
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay(f"# {strings['market_title']}"),
             discord.ui.Separator(),
+            discord.ui.TextDisplay(strings["market_crier"]),
+            discord.ui.Separator(),
             # marche-v2: the King-only rule is finally visible on the
             # pinned panel (Drasah's decision, 2026-10-13).
             discord.ui.TextDisplay(strings["market_hint_panel"]),
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## {strings['market_tech_section']}"),
-            *tech_rows,
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## {strings['market_actions_section']}"),
-            action_row,
+            *shelf_items,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {MARKET_PANEL_MARKER}"),
             accent_colour=GOLD,
@@ -1775,7 +1797,14 @@ async def _deploy_market_panel(
     kingdoms_service: Any,
 ) -> None:
     """Edit the market panel in place, or pin a fresh one (vues-silencieuses-v1)."""
+    from kingdoms.mods.kingdoms.marche_art import banner_file
+
     view = await build_market_panel(locale, kingdoms_service)
+    # marche-visuel-v2: the banner (generated crier scene) rides as an
+    # attachment on the pinned panel message — attached on the first
+    # edit after upload, kept afterwards (never re-uploaded in steady
+    # state, and no drop when the asset is absent).
+    banner = banner_file()
     marked: list[Any] = [
         message
         for message in await channel_messages(channel)
@@ -1788,14 +1817,29 @@ async def _deploy_market_panel(
             except Exception:
                 logger.warning("KINGDOM PANELS: market duplicate purge failed", exc_info=True)
         existing = marked[0]
-        if message_text_squashed(existing) == view_text(view):
+        text_converged = message_text_squashed(existing) == view_text(view)
+        banner_missing = banner is not None and not existing.attachments
+        if text_converged and not banner_missing:
             return
         try:
-            await existing.edit(view=view)
+            if banner is not None:
+                await existing.edit(
+                    view=view,
+                    files=[discord.File(str(banner), filename="marche_banner.png")],
+                )
+            else:
+                await existing.edit(view=view)
             return
         except Exception:
             logger.warning("KINGDOM PANELS: market panel edit failed, resending", exc_info=True)
-    await channel.send(view=view, allowed_mentions=NO_MENTIONS)
+    if banner is not None:
+        await channel.send(
+            view=view,
+            files=[discord.File(str(banner), filename="marche_banner.png")],
+            allowed_mentions=NO_MENTIONS,
+        )
+    else:
+        await channel.send(view=view, allowed_mentions=NO_MENTIONS)
 
 
 async def refresh_season_status(

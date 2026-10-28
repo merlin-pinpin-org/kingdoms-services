@@ -43,3 +43,14 @@ def resolve_card(item: str) -> Path | None:
 def card_filename(item: str) -> str:
     """The filename the card travels under on the wire."""
     return _CARDS.get(item, f"{item}.png")
+
+
+# marche-visuel-v2 (Drasah 28/10): the market banner (the generated
+# crier scene, uploaded by Drasah) — cosmetic, the panel works without
+# it (pattern assets/taverne).
+_BANNER_PATH = _ASSET_DIR.parent / "marche_banner.png"
+
+
+def banner_file() -> Path | None:
+    """Return the market banner path (None = asset not uploaded yet)."""
+    return _BANNER_PATH if _BANNER_PATH.is_file() else None
