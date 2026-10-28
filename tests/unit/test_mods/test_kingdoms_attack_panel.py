@@ -2759,3 +2759,55 @@ async def test_vs_badge_file_reads_the_local_asset(monkeypatch, tmp_path) -> Non
     (tmp_path / "vs.png").write_bytes(b"png")
     badge = civ_crests.vs_badge_file()
     assert badge is not None and badge.filename == "vs.png"
+
+
+async def test_pickban_and_reveal_dms_carry_the_closing_time(monkeypatch) -> None:
+    """dm-fenetres-v1 (Drasah 28/10, règle transverse « toute fenêtre
+    affiche son délai »): le DM de pick & ban affiche l'heure de
+    FERMETURE de la fenêtre, le DM de reveal affiche l'heure du RDV
+    (heure de Paris)."""
+    from datetime import UTC, datetime
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+
+    fr = panel._strings("fr")
+    en = panel._strings("en")
+    assert "{deadline}" in fr["pickban_dm"] and "Fermeture de la fenêtre" in fr["pickban_dm"]
+    assert "{deadline}" in en["pickban_dm"] and "Window closes" in en["pickban_dm"]
+    assert "{deadline}" in fr["pickban_reveal_dm"] and "RDV : {deadline}" in fr["pickban_reveal_dm"]
+    assert "{deadline}" in en["pickban_reveal_dm"] and "Meeting: {deadline}" in en["pickban_reveal_dm"]
+
+    class _Attack:
+        id = "a-1"
+        attacker_lord_id = "111"
+        defender_lord_id = "222"
+        ai_defender = False
+        map_key = "fortress"
+        expires_at = datetime(2026, 10, 28, 20, 40, tzinfo=UTC)
+        pickban = {  # noqa: RUF012
+            "attacker_picks": ["francs", "goths", "huns"],
+            "attacker_dm": {"channel_id": 10, "message_id": 11},
+            "defender_dm": {"channel_id": 20, "message_id": 21},
+        }
+
+    contents: list[str] = []
+
+    async def fake_edit(bot, ref, content, view, files=None):  # type: ignore[no-untyped-def]
+        contents.append(str(content))
+        return True
+
+    async def fake_dm(bot, player_id, content, view=None):  # type: ignore[no-untyped-def]
+        contents.append(str(content))
+
+    async def fake_mosaic(entries, filename="reveal.png", **kwargs):  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr(panel, "_edit_dm_message_safe", fake_edit)
+    monkeypatch.setattr(panel, "_dm_user_safe", fake_dm)
+    monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
+
+    await panel._edit_pickban_dms_reveal(None, _Attack(), None, fr)
+    # Both DM edits wear the RDV time in Paris (20:40 UTC → 21:40 Paris).
+    assert len(contents) == 2
+    assert all("28/10 21:40" in content for content in contents)
+    assert all("RDV : 28/10 21:40" in content for content in contents)

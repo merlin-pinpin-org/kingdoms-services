@@ -384,6 +384,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** pick de civilisation par ordre de préférence "
             "(ton classement ordonne les replis).\n"
+            "🕒 **Fermeture de la fenêtre : {deadline}** (heure du RDV).\n"
             "Si tu possèdes un Sabotage ou un Faucon, tu pourras en faire usage dans le salon de la bataille.\n"
             "\n"
             "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
@@ -400,7 +401,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_waiting": "⏳ Picks enregistrés et validés — en attente de l'adversaire.",
         "pickban_reveal_dm": (
             "🎭 **Reveal — {map}**\nLes 3 civilisations potentielles de ton"
-            " adversaire (ordre aléatoire) :\n**{civs}**\n\n🗡️ Veux-tu saboter"
+            " adversaire (ordre aléatoire) :\n**{civs}**\n\n🕒 **RDV : {deadline}** —"
+            " la fenêtre de sabotage se ferme à cette heure.\n🗡️ Veux-tu saboter"
             " ou utiliser un Faucon ? — jusqu'à 2 civilisations adverses"
             " retirées par camp.\n⚔️ Sinon, valide avec Passer — un joueur"
             " absent du salon vocal à l'heure du RDV est déclaré forfait !"
@@ -409,7 +411,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_default_reveal_dm": (
             "🎭 **Reveal — {map}**\n⏱️ Le draft a été clôturé à l'heure : les"
             " civilisations jamais classées ont été tirées au sort (aucun"
-            " sabotage ni Faucon).\nLes 3 civilisations potentielles de ton"
+            " sabotage ni Faucon).\n🕒 Le RDV a lieu maintenant — rejoins le"
+            " salon vocal.\nLes 3 civilisations potentielles de ton"
             " adversaire (ordre aléatoire) :\n**{civs}**"
         ),
         "sab_pass_button": "⚔️ Passer — je suis prêt",
@@ -749,6 +752,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilization picks by"
             " order of preference (your ranking orders the fallbacks).\n"
+            "🕒 **Window closes: {deadline}** (meeting time).\n"
             "If you own a Sabotage or a Faucon, you will use it in the battle room.\n"
             "\n"
             "⚠️ **Anti-blocking rule**: no choice validated before the meeting → "
@@ -763,7 +767,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_waiting": "⏳ Picks recorded and validated — waiting for the adversary.",
         "pickban_reveal_dm": (
             "🎭 **Reveal — {map}**\nYour adversary's 3 potential civilizations"
-            " (random order):\n**{civs}**\n\n🗡️ Do you want to sabotage or use"
+            " (random order):\n**{civs}**\n\n🕒 **Meeting: {deadline}** — the sabotage"
+            " window closes at that time.\n🗡️ Do you want to sabotage or use"
             " a Faucon? — up to 2 enemy civilizations removed per side.\n⚔️"
             " Otherwise confirm with Pass — a player missing from the voice"
             " room at the meeting time is a forfeit!"
@@ -772,7 +777,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_default_reveal_dm": (
             "🎭 **Reveal — {map}**\n⏱️ The draft closed on time: the"
             " never-ranked civilizations were drawn at random (no sabotage,"
-            " no Faucon).\nYour adversary's 3 potential civilizations"
+            " no Faucon).\n🕒 The meeting is NOW — join the voice salon.\n"
+            "Your adversary's 3 potential civilizations"
             " (random order):\n**{civs}**"
         ),
         "sab_pass_button": "⚔️ Pass — I am ready",
@@ -3575,7 +3581,9 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
         enemy = "defender" if side == "attacker" else "attacker"
         shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
         civs = ", ".join(shuffled) or "—"
-        content = strings["pickban_reveal_dm"].format(map=attack.map_key, civs=civs)
+        content = strings["pickban_reveal_dm"].format(
+            map=attack.map_key, civs=civs, deadline=_fmt_paris(attack.expires_at)
+        )
         # sabotage-ux-v1 (Drasah 22/10): the reveal keeps the stock
         # line visible (the sabotage phase follows right after).
         if wiring is not None:
@@ -3896,6 +3904,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
         strings["pickban_dm"].format(
             map=attack.map_key,
             count=min(3, len(hand)) or 1,
+            deadline=_fmt_paris(attack.expires_at),
             hand=", ".join(hand) or "—",
             theirs=", ".join(adversary_hand) or "—",
         )
@@ -3919,6 +3928,7 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
             strings["pickban_dm"].format(
                 map=attack.map_key,
                 count=min(3, len(adversary)) or 1,
+                deadline=_fmt_paris(attack.expires_at),
                 hand=", ".join(adversary) or "—",
                 theirs=", ".join(theirs) or "—",
             )

@@ -440,3 +440,23 @@ async def test_battlefield_divider_denies_everyone_even_when_the_category_is_pub
     # self-heal: the lost category deny was re-applied by the pass
     category_view = battlefield.permission_overwrite_for(everyone)
     assert category_view is not None and category_view.view_channel is False
+
+def test_season_management_salon_is_retired() -> None:
+    """saison-removal-v1 (Drasah 27/10): the 🗓️ gestion saison salon is
+    GONE from the declaration and the charte (names + topics) — and rides
+    the legacy sweep so the LIVE salon disappears at the next
+    provisioning (nothing in the mod ever targeted it)."""
+    from pathlib import Path
+
+    from kingdoms.mods.kingdoms import kingdom_setup as setup
+
+    assert "gestion-saison" not in setup._CHARTE
+    assert "gestion-saison" not in setup._CHARTE_TOPICS
+    assert "gestion-saison" in setup.LEGACY_SALON_SLUGS
+    # The declaration itself no longer creates the salon.
+    repo_yaml = Path(__file__).resolve().parents[3] / "config" / "mods" / "kingdoms.yaml"
+    text = repo_yaml.read_text(encoding="utf-8")
+    # The declaration no longer carries the salon block (only the
+    # removal comment mentions it).
+    assert "season_management" not in text
+    assert "display_name: 🗓️" not in text

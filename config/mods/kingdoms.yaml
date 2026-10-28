@@ -124,13 +124,9 @@ channels:
     access:
       everyone_view: false
       view: [Kingdoms Admin]
-  - key: season_management
-    display_name: 🗓️ gestion saison
-    description: Season management (admin only)
-    group: admin
-    access:
-      everyone_view: false
-      view: [Kingdoms Admin]
+  # saison-removal-v1 (Drasah 27/10): the 🗓️ gestion saison salon is
+  # GONE — nothing in the mod ever targeted it (no panel, no command);
+  # the live salon is swept as a legacy slug at the next provisioning.
   - key: time_machine
     display_name: ⏱️ machine à temps
     description: Game-clock test panel — fast-forward and snapshots (admin only)

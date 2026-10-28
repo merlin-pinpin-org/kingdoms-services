@@ -150,7 +150,10 @@ _CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
     "declarer-une-attaque": "⚔️ déclarer une attaque",
     "pourparlers": "🕊️ pourparlers",
     "parametres": "⚙️ paramètres",
-    "gestion-saison": "🗓️ gestion saison",
+    # saison-removal-v1 (Drasah 27/10): the 🗓️ gestion saison salon
+    # is RETIRED — nothing in the mod ever targeted it (no panel, no
+    # command); the live salon is swept at the next provisioning (its
+    # slug sits in LEGACY_SALON_SLUGS).
     "machine-a-temps": "⏱️ machine à temps",
     "distributeur": "🎁 distributeur",
     # console-removal-v1 (Drasah 25/10): the 🛠 console-admin salon is
@@ -176,7 +179,6 @@ _CHARTE_TOPICS: dict[str, str] = {
     "declarer-une-attaque": "Le pas des bannières — déclare ta guerre, seigneur.",
     "pourparlers": "Sous la tente blanche : les négociations entre royaumes en guerre.",
     "parametres": "Les réglages du mod — réservés aux mains qui tirent les ficelles.",
-    "gestion-saison": "Le sablier des saisons — ouverture, clôture et bascule.",
     "machine-a-temps": "Le mécanisme d'horloger — avancer l'âge du monde à des fins de test.",
     "distributeur": "La réserve secrète — distribuer des éléments à un royaume (test).",
     "demandes": "Les requêtes des seigneurs : modifications et départs.",
@@ -660,6 +662,10 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     # flows live on the ⚙️ Paramètres panel; the beta taverne button
     # calls the Mercenary Chief (chef-mercenaire-v1 T3).
     "console-admin",
+    # saison-removal-v1 (Drasah 27/10): the 🗓️ gestion saison salon
+    # retires — nothing in the mod ever targeted it (no panel, no
+    # command lived there); the live salon is swept here.
+    "gestion-saison",
 )
 """The retired salons-first rubric salons (patch restructuration-royaume):
 their content moved into the Scriptorium ephemeral rubrics — plus the
