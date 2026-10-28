@@ -975,6 +975,62 @@ async def test_pickban_view_selects_acknowledge_and_validate() -> None:
     assert len(view.children) == 4  # 3 picks + validate
 
 
+async def test_pickban_validate_rejects_duplicates_and_missing_picks() -> None:
+    """pickban-doublon-v1 (Drasah 28/10): a DUPLICATE answers the dedicated
+    wording (« vous ne pouvez pas avoir de doublons »), a MISSING pick keeps
+    the old « Classe d'abord » one — the two cases are split."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomPickBanView
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(attacks_service=object()))
+    view = KingdomPickBanView("a-1", "king-a", "attacker", ["francs", "bretons", "goths"], "fr")
+
+    # Duplicates: the same civilization twice → the dedicated message.
+    for select, vals in zip(view.rank_selects, [["francs"], ["francs"], []]):
+        select.values = vals  # type: ignore[misc]
+    click = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await view._on_validate(click)  # type: ignore[arg-type]
+    assert click.response.ephemeral is True
+    content = str(click.response.message.content or "") if click.response.message else ""
+    assert "doublons dans vos choix de civilisations" in content
+    assert "Classe d'abord" not in content
+
+    # A missing pick keeps the old wording.
+    for select, vals in zip(view.rank_selects, [["francs"], [], []]):
+        select.values = vals  # type: ignore[misc]
+    click2 = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await view._on_validate(click2)  # type: ignore[arg-type]
+    content2 = str(click2.response.message.content or "") if click2.response.message else ""
+    assert "Classe d'abord tes 3 civilisations" in content2
+
+
+def test_room_dm_carries_voice_salon_and_time_window() -> None:
+    """room-dm-v2 (Drasah 28/10, sa maquette): « Tiens-toi prêt » — the DM
+    points at the voice channel AND the attack salon, then carries the
+    presence time window (the T+5 forfait line) and the encouragement."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _strings
+
+    fr = _strings("fr")
+    dm = fr["room_dm"].format(map="fortress", room="<#10>", salon="<#20>")
+    dm += fr["room_dm_deadline"].format(deadline="14h30")
+    dm += fr["room_dm_luck"]
+    assert "Tiens-toi prêt — fortress" in dm
+    assert "<#10>" in dm and "<#20>" in dm
+    assert "avant 14h30" in dm and "forfait" in dm
+    assert "Bonne chance" in dm
+
+    en = _strings("en")
+    dm_en = en["room_dm"].format(map="fortress", room="<#10>", salon="<#20>")
+    dm_en += en["room_dm_deadline"].format(deadline="14:30")
+    dm_en += en["room_dm_luck"]
+    assert "Stand ready — fortress" in dm_en
+    assert "before 14:30" in dm_en and "forfeit" in dm_en
+    assert "Good luck" in dm_en
+
+
 async def test_room_and_ready_custom_ids_fit_the_discord_limit() -> None:
     """Live beta 18/10: the RDV DM died with 50035 (custom_id > 100) —
     the persistent ids must stay short whatever the attack id length."""

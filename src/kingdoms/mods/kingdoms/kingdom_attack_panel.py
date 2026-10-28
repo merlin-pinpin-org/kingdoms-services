@@ -394,6 +394,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_pick": "Choix {n}",
         "pickban_validate": "✅ Valider",
         "pickban_missing": "❌ Classe d'abord tes {count} civilisations.",
+        "pickban_duplicate": (
+            "❌ Vous ne pouvez pas avoir de doublons dans vos choix de civilisations."
+        ),
         "pickban_waiting": "⏳ Picks enregistrés et validés — en attente de l'adversaire.",
         "pickban_reveal_dm": (
             "🎭 **Reveal — {map}**\nLes 3 civilisations potentielles de ton"
@@ -469,10 +472,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_ping_message": ("⚔️ {attacker} {defender} — la salle de bataille est ouverte, à vos armes !"),
         "room_ping_attacker_only": ("⚔️ {attacker} — la salle de bataille est ouverte, à vos armes !"),
         "room_dm": (
-            "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
-            "Rejoins ton adversaire : {room} — le déroulé (ID de la partie, ✅ Prêt,"
-            " résultat) vit dans le salon de l'attaque."
+            "🏟️ **Tiens-toi prêt — {map}**\n"
+            "Rejoins ton adversaire en vocal : {room}\n"
+            "Rejoins le salon textuel pour continuer : {salon}"
         ),
+        "room_dm_deadline": (
+            "\n\n⏳ Présence obligatoire (vocal ou ✅ Prêt) avant {deadline} —"
+            " passé ce délai, un absent est déclaré forfait."
+        ),
+        "room_dm_luck": "\n\nBonne chance ! 🍀",
         "result_button": "🏆 Déclarer le vainqueur",
         "draft_button": "📜 Voir la draft",
         "draft_sheet": "📜 Draft — {map}",
@@ -751,6 +759,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_pick": "Choice {n}",
         "pickban_validate": "✅ Validate",
         "pickban_missing": "❌ Rank your {count} civilizations first.",
+        "pickban_duplicate": "❌ You cannot have duplicates in your civilization choices.",
         "pickban_waiting": "⏳ Picks recorded and validated — waiting for the adversary.",
         "pickban_reveal_dm": (
             "🎭 **Reveal — {map}**\nYour adversary's 3 potential civilizations"
@@ -824,10 +833,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_ping_message": ("⚔️ {attacker} {defender} — the battle room is open, to arms!"),
         "room_ping_attacker_only": ("⚔️ {attacker} — the battle room is open, to arms!"),
         "room_dm": (
-            "🏟️ **The battle room is open — {map}**\n"
-            "Join your adversary: {room} — the rundown (game ID, ✅ Ready, result)"
-            " lives in the attack's salon."
+            "🏟️ **Stand ready — {map}**\n"
+            "Join your adversary in the voice channel: {room}\n"
+            "Join the text salon to carry on: {salon}"
         ),
+        "room_dm_deadline": (
+            "\n\n⏳ Presence required (voice or ✅ Ready) before {deadline} —"
+            " past that line, a no-show forfeits."
+        ),
+        "room_dm_luck": "\n\nGood luck! 🍀",
         "result_button": "🏆 Declare the winner",
         "draft_button": "📜 View the draft",
         "draft_sheet": "📜 Draft — {map}",
@@ -3423,7 +3437,13 @@ class KingdomPickBanView(discord.ui.View):
         picks: list[str] = []
         for select in self.rank_selects:
             picks.extend(select.values)
-        if len(picks) != len(self.rank_selects) or len(set(picks)) != len(picks):
+        # pickban-doublon-v1 (Drasah 28/10): the old single message
+        # answered « classe tes civs » to BOTH a missing pick and a
+        # DUPLICATE — the duplicate case now has its own wording.
+        if len(set(picks)) != len(picks):
+            await interaction.response.send_message(strings["pickban_duplicate"], ephemeral=True)
+            return
+        if len(picks) != len(self.rank_selects):
             await interaction.response.send_message(
                 strings["pickban_missing"].format(count=len(self.rank_selects)), ephemeral=True
             )
@@ -4662,15 +4682,22 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 logger.warning("KINGDOM ATTACK: meeting message post failed", exc_info=True)
         for player_id in _score_players(attack):
             await _grant_battle_room_role_safe(guild, role, player_id)
-        for player_id in _score_players(attack):
-            await _dm_user_safe(
-                bot,
-                player_id,
-                strings["room_dm"].format(
-                    map=attack.map_key,
-                    room=f"<#{channel.id}>",
-                ),
+        # room-dm-v2 (Drasah 28/10, sa maquette) : « Tiens-toi prêt » —
+        # le vocal D'UNE part, le salon textuel de l'attaque D'AUTRE
+        # part, puis la FENÊTRE DE TEMPS (la ligne T+5 du service :
+        # ready_deadline, affichée à Paris) et les encouragements.
+        # Un salon absent (config cassée, cas Check 75) ou une deadline
+        # absente dégrade le DM en omettant la ligne — jamais en erreur.
+        salon_mention = f"<#{salon.id}>" if salon is not None else ""
+        deadline = int((attack.score or {}).get("ready_deadline") or 0)
+        dm = strings["room_dm"].format(map=attack.map_key, room=f"<#{channel.id}>", salon=salon_mention)
+        if deadline > 0:
+            dm += strings["room_dm_deadline"].format(
+                deadline=_fmt_paris(datetime.fromtimestamp(deadline, tz=UTC))
             )
+        dm += strings["room_dm_luck"]
+        for player_id in _score_players(attack):
+            await _dm_user_safe(bot, player_id, dm)
     except Exception:
         logger.warning("KINGDOM ATTACK: battle room opening failed", exc_info=True)
 
