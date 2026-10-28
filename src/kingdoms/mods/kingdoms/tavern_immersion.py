@@ -318,6 +318,71 @@ async def exit_tavern(guild: discord.Guild, member: Any, role: Any, taverne_cate
     except Exception:
         logger.error("KINGDOMS TAVERN: exit remove_roles failed", exc_info=True)
         raise
+    # taverne-selfheal-v1 (Drasah 28/10, live report Rakussy): the exit
+    # is the exact moment the incident surfaces — sweep the whole zone
+    # so the leaver AND every other orphan heal NOW, not at the next
+    # provisioning pass. Best effort: a failed sweep never breaks the
+    # exit.
+    try:
+        await sweep_tavern_state(guild)
+    except Exception:
+        logger.warning("KINGDOMS TAVERN: post-exit sweep failed", exc_info=True)
+
+
+async def sweep_tavern_state(guild: discord.Guild) -> None:
+    """Idempotent orphan-heal sweep of the whole Taverne zone.
+
+    taverne-selfheal-v1 (Drasah 28/10, live report Rakussy): two live
+    regressions share one cause — the immersion state heals only at
+    the provisioning pass (boot, /kingdom, 🚀 Déployer), never during a
+    session. (1) A half-done exit (a 429 mid-loop, a bot restart inside
+    the immersion) leaves ORPHAN member denies — the player loses the
+    view of his own realm until the next pass. (2) The category's own
+    @everyone deny can be lost to a 429 during the ♻️ salons reset
+    (the divider-gating-v2 pattern) — the revealed soudoyeur is SYNCED
+    with the category, so the back room leaks to everyone. This sweep
+    re-applies BOTH layers: the category overwrites (deny @everyone,
+    allow role, allow bot — converged-skip keeps the steady state free
+    of API writes) and the member state (every role holder re-denied,
+    every other member swept clean of stale denies).
+    """
+    role = find_tavern_role(guild)
+    if role is None:
+        return
+    category = _find_category(guild, "taverne")
+    if category is None:
+        return
+    try:
+        if not _denied_for(category, guild.default_role):
+            await category.set_permissions(
+                guild.default_role,
+                overwrite=discord.PermissionOverwrite(view_channel=False, read_message_history=False),
+                reason="taverne-selfheal-v1: deny @everyone",
+            )
+        await category.set_permissions(
+            role,
+            overwrite=discord.PermissionOverwrite(
+                view_channel=True, read_message_history=True, send_messages=True
+            ),
+        )
+        if guild.me is not None:
+            await category.set_permissions(
+                guild.me,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, manage_channels=True
+                ),
+            )
+    except Exception:
+        logger.warning("KINGDOMS TAVERN: sweep category overwrites failed", exc_info=True)
+    category_id = getattr(category, "id", None)
+    for member in list(getattr(guild, "members", []) or []):
+        inside = role in list(getattr(member, "roles", []) or [])
+        if inside:
+            for target in _immersion_targets(guild, category_id):
+                await _deny_member_view(target, member)
+        else:
+            for target in _immersion_targets(guild, category_id):
+                await _clear_member_view_deny(target, member)
 
 
 async def _deny_view(target: Any, role: Any, *, reason: str) -> None:

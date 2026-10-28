@@ -111,6 +111,28 @@ def outgame_visible(guild: discord.Guild, member: Any) -> bool:
     return bool(recorded is not None and getattr(recorded, "view_channel", False))
 
 
+async def clear_outgame_allow_safe(guild: discord.Guild, user_id: str | int) -> None:
+    """Clear one member's out-of-game allow (best effort, idempotent).
+
+    validation-immersion-v1 (Drasah 28/10, live report Rakussy): a
+    candidate who opted into « tout visible » BEFORE his approval keeps
+    a MEMBER-level allow that overrides the role deny — he still sees
+    « Postuler » after joining his kingdom. Called at approval: the
+    freshly-validated player falls back to the immersion default.
+    """
+    if guild is None or not str(user_id).isdigit():
+        return
+    member = guild.get_member(int(user_id))
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(user_id))
+        except Exception:
+            return
+    if member is None:
+        return
+    await set_outgame_visibility(guild, member, False)
+
+
 # ---------------------------------------------------------------- strings
 
 

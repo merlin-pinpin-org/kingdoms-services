@@ -509,6 +509,17 @@ async def _apply_candidature_approval(
         except Exception:
             logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
             extra += " " + strings["no_service"]
+    # validation-immersion-v1 (Drasah 28/10, live report Rakussy): an
+    # approved candidate's out-of-game opt-in (a MEMBER allow over
+    # Beta/Conscription that beats the role deny) dies with his
+    # validation — « Postuler » hides, the immersion default takes over.
+    if guild is not None and applicant_id:
+        try:
+            from kingdoms.mods.kingdoms.kingdom_immersion import clear_outgame_allow_safe
+
+            await clear_outgame_allow_safe(guild, applicant_id)
+        except Exception:
+            logger.warning("CANDIDATURES: outgame allow clear failed", exc_info=True)
     # Live incident (Drasah 26/10, Aubin):
     # a LORD approved mid-season is enrolled and granted the kingdoms_lord
     # role, but the realm categories are gated by MEMBER-level overwrites

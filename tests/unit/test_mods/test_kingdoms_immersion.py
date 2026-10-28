@@ -156,3 +156,30 @@ def test_realm_sheet_carries_the_out_of_game_footer_zone() -> None:
         getattr(node, "custom_id", None) for node in _walk(containers[0])
     }
     assert "kingdoms:user:settings:open" not in game_ids
+
+
+async def test_clear_outgame_allow_safe_strips_the_member_allow() -> None:
+    """validation-immersion-v1 (Drasah 28/10, live report Rakussy): the
+    approved candidate's pre-validation opt-in (a MEMBER allow that
+    beats the role deny) is cleared — « Postuler » hides for the
+    freshly-validated player; unknown users are a silent no-op."""
+    from kingdoms.mods.kingdoms.kingdom_immersion import (
+        clear_outgame_allow_safe,
+    )
+
+    guild = MockGuild()
+    beta, conscription, _lord, _admin = await _guild_with_zones(guild)
+    await apply_immersion_gating(guild)
+    member = MockMember(id=42)
+    guild.add_member(member)
+    await set_outgame_visibility(guild, member, True)  # the pre-validation opt-in
+    assert outgame_visible(guild, member) is True
+
+    await clear_outgame_allow_safe(guild, member.id)
+
+    assert outgame_visible(guild, member) is False
+    for category in (beta, conscription):
+        assert category.permission_overwrite_for(member) is None
+
+    # An unknown id is a silent no-op (best effort, never raises).
+    await clear_outgame_allow_safe(guild, 424242)

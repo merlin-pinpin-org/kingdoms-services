@@ -1515,6 +1515,16 @@ def _candidature_view(
                 except Exception:
                     logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
                     note += " " + strings["no_service"]
+            # validation-immersion-v1 (Drasah 28/10): the approved
+            # candidate's out-of-game opt-in (member allow over Beta/
+            # Conscription) is cleared — « Postuler » hides.
+            if interaction.guild is not None and applicant is not None:
+                try:
+                    from kingdoms.mods.kingdoms.kingdom_immersion import clear_outgame_allow_safe
+
+                    await clear_outgame_allow_safe(interaction.guild, applicant.group(1))
+                except Exception:
+                    logger.warning("CANDIDATURES: outgame allow clear failed", exc_info=True)
         await interaction.followup.send(note, ephemeral=True)
 
     from kingdoms.mods.kingdoms.kingdom_persistent import KingdomCandidatureButton

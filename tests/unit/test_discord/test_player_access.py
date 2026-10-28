@@ -15,7 +15,11 @@ from typing import Any
 import discord
 import pytest
 
-from kingdoms.discord.player_access import PLAYER_ROLE_NAMES, apply_player_gating
+from kingdoms.discord.player_access import (
+    ADMIN_ROLE_NAMES,
+    PLAYER_ROLE_NAMES,
+    apply_player_gating,
+)
 from kingdoms.discord.pinned_views import apply_read_only_policy
 from tests.mocks.discord_mock import MockGuild, MockRole, MockTextChannel
 
@@ -97,3 +101,44 @@ async def test_read_only_policy_single_edit_and_idempotent(
     await apply_read_only_policy(guild, channel, "home", str(guild.id), settings_db=None)
 
     assert channel.edit_calls == 1  # converged — zero API write on re-pass
+
+
+@pytest.mark.asyncio
+async def test_home_admin_gating_drops_stale_player_roles(
+    stack: tuple[MockGuild, _CountingChannel],
+) -> None:
+    """home-admin-v1: the home channel is admin-only — the Lord/King
+    overwrites left by the previous policy are DROPPED, not ignored."""
+    guild, channel = stack
+
+    await apply_player_gating(guild, channel)  # the old player policy first
+    assert channel.edit_calls == 1
+
+    await apply_player_gating(guild, channel, ADMIN_ROLE_NAMES)
+
+    assert channel.edit_calls == 2  # one more bulk write
+    overwrites = channel.overwrites
+    assert overwrites[guild.default_role].view_channel is False
+    admin = next(r for r in guild.roles if r.name == "Kingdoms Admin")
+    assert overwrites[admin].view_channel is True
+    for name in ("Kingdoms Lord", "Kingdoms King"):
+        role = next(r for r in guild.roles if r.name == name)
+        assert role not in overwrites  # the stale player allow is gone
+
+    await apply_player_gating(guild, channel, ADMIN_ROLE_NAMES)  # the re-pass
+
+    assert channel.edit_calls == 2  # converged — zero API write
+
+
+@pytest.mark.asyncio
+async def test_home_admin_gating_preserves_foreign_overwrites(
+    stack: tuple[MockGuild, _CountingChannel],
+) -> None:
+    guild, channel = stack
+    foreign = MockRole(name="Diplomate")
+    guild._roles[foreign.id] = foreign
+    channel._overwrites[foreign] = discord.PermissionOverwrite(view_channel=True)
+
+    await apply_player_gating(guild, channel, ADMIN_ROLE_NAMES)
+
+    assert channel.overwrites[foreign].view_channel is True  # untouched

@@ -31,6 +31,7 @@ from kingdoms.mods.kingdoms.tavern_immersion import (
     enter_tavern,
     exit_tavern,
     find_tavern_role,
+    sweep_tavern_state,
 )
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockMember
 
@@ -405,3 +406,31 @@ async def test_the_reveal_button_opens_the_room_to_everyone_and_never_returns() 
     again = MockInteraction(user=member, guild=guild, locale="fr")
     await KingdomSoudoyeurRevealButton("Demander à voir le Soudoyeur").callback(again)
     assert any("déjà" in (m.content or "") for m in again.followup.messages)
+
+
+async def test_sweep_tavern_state_heals_orphans_between_provisionings() -> None:
+    """taverne-selfheal-v1 (Drasah 28/10, live report Rakussy): a
+    half-done exit leaves an ORPHAN member deny (the player loses the
+    view of his own realm) and the category's @everyone deny can be
+    lost to a 429 — the sweep (run at every exit) heals both layers
+    without waiting for the next provisioning pass."""
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    court = next(c for c in guild.categories if c.name != TAVERN_CATEGORY_NAME)
+    taverne = next(c for c in guild.categories if c.name == TAVERN_CATEGORY_NAME)
+    # The orphan: a stale member deny on a member WITHOUT the role.
+    ghost = MockMember(id=77, name="Ghost")
+    guild.add_member(ghost)
+    await court.set_permissions(
+        ghost, overwrite=__import__("discord").PermissionOverwrite(view_channel=False)
+    )
+    # The lost @everyone deny on the category (the ♻️ 429 pattern).
+    await taverne.set_permissions(guild.default_role, overwrite=None)
+
+    await sweep_tavern_state(guild)
+    await sweep_tavern_state(guild)  # idempotent
+
+    assert court.permission_overwrite_for(ghost) is None
+    everyone = taverne.permission_overwrite_for(guild.default_role)
+    assert everyone is not None and everyone.view_channel is False

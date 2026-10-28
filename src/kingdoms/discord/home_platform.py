@@ -1,10 +1,10 @@
 """discord.py platform seam for the 🏛-kingdoms-home managed channel.
 
 The home channel's pinned menu's buttons answer ephemerally, guarded at
-click time. permissions-serveur-v1 (Drasah 19/10): the channel is now
-masked for @everyone like the rest of the mod — the player roles
-(granted at acceptance) carry the view; the read-only pinned policy
-stays.
+click time. permissions-serveur-v1 (Drasah 19/10): the channel is
+masked for @everyone like the rest of the mod; home-admin-v1
+(Drasah 28/10): only the admin role carries the view — the read-only
+pinned policy stays.
 """
 from __future__ import annotations
 
@@ -55,22 +55,25 @@ class DiscordHomeChannelPlatform:
         return guild.get_channel(int(channel_id)) is not None
 
     async def apply_policy(self, guild_id: str, channel_id: str) -> None:
-        """Apply the pinned read-only default + the player gating.
+        """Apply the pinned read-only default + the admin-only gating.
 
-        permissions-serveur-v1 (Drasah 19/10): the home channel is now
+        permissions-serveur-v1 (Drasah 19/10): the home channel is
         masked for @everyone (a newcomer sees only Conscription and
-        Beta) — the player roles granted at acceptance unlock it. The
-        read-only pinned policy stays.
+        Beta). home-admin-v1 (Drasah 28/10, live report Rakussy): the
+        player roles no longer unlock it — the freshly-validated Lord
+        saw the staff front door; only Kingdoms Admin keeps the view
+        (stale Lord/King overwrites are dropped by the gating itself).
+        The read-only pinned policy stays.
         """
         from kingdoms.discord.pinned_views import apply_read_only_policy
-        from kingdoms.discord.player_access import apply_player_gating
+        from kingdoms.discord.player_access import ADMIN_ROLE_NAMES, apply_player_gating
 
         guild = await self._guild(guild_id)
         channel = guild.get_channel(int(channel_id)) if guild and channel_id.isdigit() else None
         await apply_read_only_policy(guild, channel, "home", guild_id)
         if guild is not None and isinstance(channel, discord.TextChannel):
             try:
-                await apply_player_gating(guild, channel)
+                await apply_player_gating(guild, channel, ADMIN_ROLE_NAMES)
             except Exception:
                 logger.warning("HOME CHANNEL: player gating failed", exc_info=True)
 
