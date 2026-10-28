@@ -3662,6 +3662,22 @@ async def _edit_pickban_dms_phase_done(bot: Any, attack: Any, strings: dict[str,
             await _dm_user_safe(bot, player_id, content, None)
 
 
+async def _sweep_sabotage_dms_on_open_safe(bot: Any, attack: Any, strings: dict[str, str]) -> None:
+    """Clear the sabotage DMs' buttons when the meeting opens (best effort).
+
+    dm-expiration-v1 (Drasah 27/10, appliqué 28/10): once the deadline
+    is past, the MP buttons must DISAPPEAR — the UI mirrors the dead
+    phase, not just a server-side rejection. The settled flow already
+    edits both DMs (the ⚔️ Passer callback); the T-defaulted flow
+    (a camp never settled — ``score_due`` flips ``sabotage_resolved``
+    service-side) left the 🗡️/⚔️ buttons rendered forever. Called from
+    the tick at every meeting open: the edit is idempotent (the
+    settled flow re-edits the same content), it only ever REMOVES
+    components — a late sweep never revives a dead phase.
+    """
+    await _edit_pickban_dms_phase_done(bot, attack, strings)
+
+
 async def _open_meeting_and_room_safe(bot: Any, attack: Any, wiring: Any, strings: dict[str, str], locale: str) -> None:
     """Open the meeting + the battle room once both camps settled (v4).
 
@@ -4078,6 +4094,13 @@ async def _run_phases_announce_safe(
         # both players.
         scores = await attacks_service.score_due()
         for attack in scores:
+            # dm-expiration-v1 (Drasah 27/10): a meeting that opens
+            # on the T-default (a camp never settled its sabotage)
+            # must not leave the Saboter/Passer buttons rendered in
+            # the DMs — the sweep re-edits both DMs WITHOUT their
+            # view (idempotent in the settled flow, which already
+            # carries the same « phase over » content).
+            await _sweep_sabotage_dms_on_open_safe(bot, attack, strings)
             await _open_battle_room(bot, guild, attack, kingdoms_service, locale)
         dirty += len(scores)
         # A lone result declaration holds score_confirm_minutes, then

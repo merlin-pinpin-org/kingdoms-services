@@ -2297,6 +2297,47 @@ async def test_sabotage_open_button_without_any_resource_answers_no_resources() 
     await asyncio.sleep(0)
 
 
+async def test_meeting_open_sweep_clears_the_sabotage_dm_buttons(monkeypatch) -> None:
+    """dm-expiration-v1 (Drasah 27/10): a meeting that opens on the
+    T-default (a camp never settled) re-edits both DMs WITHOUT their
+    view — the dead phase's 🗡️/⚔️ buttons disappear from the MP, the UI
+    mirrors the server state instead of answering a rejection."""
+
+    class _Attack:
+        id = "a-1"
+        attacker_lord_id = "111"
+        defender_lord_id = "222"
+        ai_defender = False
+        map_key = "fortress"
+        pickban = {  # noqa: RUF012
+            "attacker_dm": {"channel_id": 10, "message_id": 11},
+            "defender_dm": {"channel_id": 20, "message_id": 21},
+        }
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+
+    edits: list[tuple[dict, str, object]] = []
+    reposts: list[str] = []
+
+    async def fake_edit(bot, ref, content, view, files=None):  # type: ignore[no-untyped-def]
+        edits.append((dict(ref), content, view))
+        return True
+
+    async def fake_dm(bot, player_id, content, view=None):  # type: ignore[no-untyped-def]
+        reposts.append(str(player_id))
+
+    monkeypatch.setattr(panel, "_edit_dm_message_safe", fake_edit)
+    monkeypatch.setattr(panel, "_dm_user_safe", fake_dm)
+
+    await panel._sweep_sabotage_dms_on_open_safe(None, _Attack(), panel._strings("fr"))
+    # Both stored DMs are re-edited, view STRIPPED (the buttons go away).
+    assert len(edits) == 2
+    assert all(view is None for _, _, view in edits)
+    assert all("Phase de sabotage terminée — fortress" in content for _, content, _ in edits)
+    # Both edits succeeded — no fallback repost, no stacking bubble.
+    assert reposts == []
+
+
 async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
     """sabotage-ux-v1: the « ⚔️ … à vos armes ! » ping of the room is
     recorded when the room opens and gets the 🏆 winner stamped at
