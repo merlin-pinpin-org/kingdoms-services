@@ -2178,6 +2178,69 @@ async def test_sabotage_panel_timer_sweeps_the_closed_panel() -> None:
     await asyncio.sleep(0)
 
 
+async def test_sabotage_open_button_without_any_resource_answers_no_resources() -> None:
+    """sabotage-garde-v1 (Drasah 28/10): a lord owning NEITHER a bought
+    Sabotage NOR a usable Faucon clicks 🗡️ Saboter — the click answers
+    the sab_no_resources ephemeral AT ONCE (before the guard, the Faucon
+    button showed anyway whenever the volière was wired and the civ
+    pick then died on a raw English error)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _SABOTAGE_PANELS,
+        KingdomSabotageOpenButton,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    # The volière service IS wired (the old bug lived here) but the
+    # kingdom owns NO faucon slot and bought NO sabotage.
+    register_kingdoms_panel_wiring(
+        KingdomsPanelWiring(
+            kingdoms_service=bundle.kingdoms,
+            attacks_service=bundle.attacks,
+            territories_service=bundle.territories,
+            voliere_service=object(),
+        )
+    )
+    strings = _strings("fr")
+    open_btn = KingdomSabotageOpenButton(str(attack.id), "king-a", strings["sab_open_button"])
+    click = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await open_btn.callback(click)  # type: ignore[arg-type]
+    assert click.response.ephemeral is True
+    content = str(click.response.message.content or "") if click.response.message else ""
+    assert "ne disposez pas de sabotage ni de Faucon" in content
+    assert (str(attack.id), "king-a") not in _SABOTAGE_PANELS
+    # A faucon slot in cooldown is just as unavailable as no slot.
+    kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
+    kingdom.voliere_slots = ["faucon"]
+    kingdom.voliere_cooldowns = {"faucon": 1900000000}
+    await bundle.store.upsert_kingdom(kingdom.to_mongo())
+    click2 = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await open_btn.callback(click2)  # type: ignore[arg-type]
+    content2 = str(click2.response.message.content or "") if click2.response.message else ""
+    assert click2.response.ephemeral is True
+    assert "ne disposez pas de sabotage ni de Faucon" in content2
+    # With a landed faucon the menu DOES open (the guard passes).
+    kingdom.voliere_cooldowns = {"faucon": 0}
+    await bundle.store.upsert_kingdom(kingdom.to_mongo())
+    click3 = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await open_btn.callback(click3)  # type: ignore[arg-type]
+    panel3 = str(click3.response.message.content or "") if click3.response.message else ""
+    assert "0/2" in panel3
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
 async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
     """sabotage-ux-v1: the « ⚔️ … à vos armes ! » ping of the room is
     recorded when the room opens and gets the 🏆 winner stamped at
@@ -2475,6 +2538,34 @@ async def test_scoreboard_without_id_is_one_centered_waiting_line() -> None:
     assert body.count("en attente de l'ID") == 1
     assert "ID à renseigner" not in body
     assert "en attente du Prêt" not in body
+
+
+async def test_scoreboard_drops_the_text_vs_and_the_civs_line() -> None:
+    """blasons-affichage-v1 (Drasah 28/10): the painted banner above the
+    scoreboard already carries the names AND the civilizations — the
+    monospace block keeps the pseudos + Prêt states, no text « VS »
+    separator, no civs line (the banner says it)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _room_body_text, _strings
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    attack = await bundle.fresh_attack()
+    attack.lobby_url = "https://example.com/lobby"
+    attack.pickban = {
+        "attacker_picks": ["francs", "celtes", "goths"],
+        "defender_picks": ["huns", "perses", "bretons"],
+    }
+    body = await _room_body_text(attack, bundle.kingdoms, _strings("fr"))
+    # The played civs never ride the text block anymore.
+    assert "francs" not in body
+    assert "huns" not in body
+    # No text VS between the pseudos — the banner's badge says it.
+    assert " VS " not in body
+    # The scoreboard keeps its map, ID and Prêt states.
+    assert "⚔️" in body
+    assert "🆔" in body
+    assert "en attente du Prêt" in body
 
 
 async def test_draft_view_button_lists_the_sniped_picks() -> None:

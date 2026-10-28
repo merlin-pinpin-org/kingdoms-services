@@ -330,6 +330,58 @@ async def test_mosaic_file_wears_one_emoji_badge_per_tile(monkeypatch: pytest.Mo
     assert pixel(12 + 52, 24 + 52) == (255, 0, 0)
 
 
+async def test_mosaic_file_without_origin_badges_paints_plain_tiles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """blasons-affichage-v1 (Drasah 28/10): with_origin_badges=False strips
+    the origin badge — the pick-ban REVEAL mosaics wear plain crests (the
+    ⭐ star was useless there); the Alliances panel keeps its own badges."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import (
+        MOSAIC_BADGE,
+        MOSAIC_BADGE_INSET,
+        MOSAIC_COLS,
+        MOSAIC_TILE,
+        _decode_png_rgba,
+        civ_crest_mosaic_file,
+    )
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        return _tiny_red_png()
+
+    calls: list[str] = []
+
+    async def fake_emoji_bytes(code: str) -> bytes:
+        calls.append(code)
+        return _tiny_colored_png(0, 0, 255)
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", fake_emoji_bytes)
+
+    file = await civ_crest_mosaic_file(
+        [("francs", "starter"), ("huns", "marriage")],
+        filename="reveal.png",
+        with_origin_badges=False,
+    )
+    assert file is not None and file.filename == "reveal.png"
+    # No emoji glyph is even fetched — the badge is not drawn at all.
+    assert calls == []
+    decoded = _decode_png_rgba(_file_bytes(file))
+    assert decoded is not None
+    width, height, pixels = decoded
+    assert (width, height) == (MOSAIC_COLS * MOSAIC_TILE, 1 * MOSAIC_TILE)
+
+    def pixel(x: int, y: int) -> tuple[int, int, int, int]:
+        dest = (y * width + x) * 4
+        return (pixels[dest], pixels[dest + 1], pixels[dest + 2], pixels[dest + 3])
+
+    # The badge corner stays transparent (no emoji, no colour square).
+    bx = MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2
+    assert pixel(bx, bx) == (0, 0, 0, 0)
+    # The crest itself still rides the tile.
+    assert pixel(12 + 52, 24 + 52) == (255, 0, 0, 255)
+
+
 async def test_mosaic_tile_wears_the_civ_name_caption(monkeypatch: pytest.MonkeyPatch) -> None:
     """mosaic-name-captions: each tile's NAME rides a dark strip above the crest."""
     from kingdoms.mods.kingdoms import civ_crests

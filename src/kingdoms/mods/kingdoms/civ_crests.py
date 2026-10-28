@@ -590,7 +590,7 @@ def _draw_emoji_badge(
 
 
 async def civ_crest_mosaic_file(
-    entries: Any, filename: str = "alliances.png"
+    entries: Any, filename: str = "alliances.png", *, with_origin_badges: bool = True
 ) -> discord.File | None:
     """Compose the hand's crests into ONE mosaic attachment (None = empty hand).
 
@@ -598,7 +598,10 @@ async def civ_crest_mosaic_file(
     an optional THIRD element: the civ's display name, painted as a
     caption strip attached above its crest. Every tile wears its
     crest and its ORIGIN EMOJI badge (colour square fallback
-    offline), in hand order, five tiles per row. An undecodable or missing crest falls back to the
+    offline) — unless with_origin_badges is False, which strips the
+    badge (blasons-affichage-v1, Drasah 28/10: the pick-ban REVEAL
+    mosaics wear plain crests, the origin star is useless there), in
+    hand order, five tiles per row. An undecodable or missing crest falls back to the
     default crest — the mosaic always goes out complete. The encoded
     PNG is CACHED per (tiles, filename) — an unchanged hand reuses the
     previous bytes and costs zero downloads and zero compositing.
@@ -615,7 +618,9 @@ async def civ_crest_mosaic_file(
         tiles.append((civ_key, origin, name))
     if not tiles:
         return None
-    fingerprint = _mosaic_fingerprint(tiles, filename)
+    fingerprint = _mosaic_fingerprint(
+        tiles, filename + ("" if with_origin_badges else "|nobadges")
+    )
     cached = _MOSAIC_CACHE.get(fingerprint)
     if cached is not None:
         return discord.File(io.BytesIO(cached), filename=filename)
@@ -647,11 +652,12 @@ async def civ_crest_mosaic_file(
             MOSAIC_CREST,
             crest,
         )
-        code = ORIGIN_EMOJI_CODES.get(origin, DEFAULT_EMOJI_CODE)
-        if not _draw_emoji_badge(
-            canvas, canvas_w, tile_x, tile_y, await _emoji_bytes(code)
-        ):
-            _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
+        if with_origin_badges:
+            code = ORIGIN_EMOJI_CODES.get(origin, DEFAULT_EMOJI_CODE)
+            if not _draw_emoji_badge(
+                canvas, canvas_w, tile_x, tile_y, await _emoji_bytes(code)
+            ):
+                _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
     png = _encode_png_rgba(canvas_w, canvas_h, bytes(canvas))
     if len(_MOSAIC_CACHE) >= MOSAIC_CACHE_MAX:
         _MOSAIC_CACHE.pop(next(iter(_MOSAIC_CACHE)))

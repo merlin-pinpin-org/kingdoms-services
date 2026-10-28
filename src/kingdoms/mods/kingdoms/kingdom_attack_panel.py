@@ -447,7 +447,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_role": "Bataille {map}",
         "room_scoreboard_map": "⚔️ {map}",
         "room_scoreboard_id": "🆔 ID : {id}",
-        "room_vs": "VS",
         "room_side_attacker": "Attaquant",
         "room_side_defender": "Défenseur",
         "room_side_ready": "✅ Prêt",
@@ -803,7 +802,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_role": "Battle {map}",
         "room_scoreboard_map": "⚔️ {map}",
         "room_scoreboard_id": "🆔 Game ID: {id}",
-        "room_vs": "VS",
         "room_side_attacker": "Attacker",
         "room_side_defender": "Defender",
         "room_side_ready": "✅ Ready",
@@ -3566,9 +3564,13 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
         # blasons-affichage-v1 (Drasah 28/10): the revealed civs wear
         # ONE composite mosaic — each name painted above its crest
         # (the alliances-lisibilite-v1 style), in the SAME shuffled
-        # order as the names (the raw pick order stays hidden).
+        # order as the names (the raw pick order stays hidden). The
+        # origin badge is STRIPPED here (revelation 28/10): the ⭐ is
+        # useless on a reveal, the Alliances panel keeps its own.
         mosaic = await civ_crest_mosaic_file(
-            [(civ, "", civ) for civ in shuffled], filename="reveal.png"
+            [(civ, "", civ) for civ in shuffled],
+            filename="reveal.png",
+            with_origin_badges=False,
         )
         files = [mosaic] if mosaic is not None else None
         ref = pickban.get(f"{side}_dm") or {}
@@ -3606,9 +3608,12 @@ async def _edit_pickban_dms_default_reveal(
         content = strings["pickban_default_reveal_dm"].format(map=attack.map_key, civs=civs)
         # blasons-affichage-v1 (Drasah 28/10): the defaulted reveal
         # wears the SAME one-mosaic look — each name painted above
-        # its crest, in the SAME shuffled order as the names.
+        # its crest, in the SAME shuffled order as the names, WITHOUT
+        # the origin badge (the ⭐ is useless on a reveal).
         mosaic = await civ_crest_mosaic_file(
-            [(civ, "", civ) for civ in shuffled], filename="reveal.png"
+            [(civ, "", civ) for civ in shuffled],
+            filename="reveal.png",
+            with_origin_badges=False,
         )
         files = [mosaic] if mosaic is not None else None
         ref = pickban.get(f"{side}_dm") or {}
@@ -4383,11 +4388,13 @@ async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str,
 
     Symmetric view: the neutral infos (map, game ID) centered on top,
     the attacker on the LEFT and the defender on the RIGHT, each with
-    their civilization and their OWN Prêt state. A monospace block
+    their OWN Prêt state. A monospace block
     keeps the alignment stable whatever the name lengths — a Prêt
     click edits the player's half in place, never a new message.
+    blasons-affichage-v1 (Drasah 28/10): the civs line and the text
+    VS are GONE — the painted banner above already carries the names
+    and the civilizations, the block keeps the pseudos + Prêt states.
     """
-    pickban: dict[str, Any] = dict(attack.pickban or {})
     score = dict(attack.score or {})
     ready = {str(player) for player in (score.get("ready") or [])}
     url = str(attack.lobby_url or "").strip()
@@ -4418,8 +4425,11 @@ async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str,
         _score_center(strings["room_scoreboard_map"].format(map=attack.map_key)),
         _score_center(id_line),
         "",
-        _score_row(attacker, defender, strings["room_vs"]),
-        _score_row(_final_civ(pickban, "attacker"), _final_civ(pickban, "defender"), ""),
+        # blasons-affichage-v1 (Drasah 28/10, doublon retiré): the
+        # painted banner above the scoreboard already carries the
+        # names AND the civs — the text block keeps the pseudos and
+        # the Prêt states only, no text VS, no civs line.
+        _score_row(attacker, defender, ""),
         _score_row(attacker_status, defender_status, ""),
     ]
     body = "```\n" + "\n".join(rows) + "\n```"
@@ -5684,6 +5694,19 @@ async def _sabotage_action_button(
         lord = await _lord_of(wiring.kingdoms_service, user_id)
         kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
         if not kingdom_id:
+            return None
+        # sabotage-garde-v1 (Drasah 28/10): the 🦅 button only shows
+        # when the Faucon REALLY sits in the volière AND is back from
+        # its cooldown — the SAME rule as the stock line. Before
+        # this, a lord with NOTHING still got the button and the civ
+        # pick died on a raw English error; now the menu stays empty
+        # and the 🗡️ click answers sab_no_resources at once.
+        from kingdoms.mods.kingdoms.kingdom_persistent import _kingdom_by_id_safe
+
+        kingdom = await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
+        if kingdom is None or "faucon" not in (kingdom.voliere_slots or []):
+            return None
+        if int(kingdom.voliere_cooldowns.get("faucon", 0) or 0) > int(game_now().timestamp()):
             return None
     else:
         kingdom_id = str(attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id)
