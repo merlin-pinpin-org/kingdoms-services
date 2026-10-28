@@ -25,6 +25,7 @@ import io
 import logging
 import struct
 import zlib
+from pathlib import Path
 from typing import Any
 
 import discord
@@ -166,6 +167,27 @@ async def civ_crest_files(civ_keys: Any) -> list[discord.File]:
                 data = downloaded
         files.append(discord.File(io.BytesIO(data), filename=filename))
     return files
+
+
+_VS_BADGE_PATH = Path(__file__).resolve().parent / "assets" / "bataille" / "vs.png"
+
+
+def vs_badge_file() -> discord.File | None:
+    """blasons-vs-v1 (Drasah 28/10): the VS badge PNG (LOCAL asset).
+
+    Sits BETWEEN the two meeting-message crests — Discord shows
+    the attached files side by side: [blason attaquant][VS]
+    [blason défenseur]. Cosmetic-only: until the PNG is committed
+    (Drasah provides it) the meeting message degrades to the two
+    crests alone.
+    """
+    try:
+        if _VS_BADGE_PATH.is_file():
+            return discord.File(_VS_BADGE_PATH, filename="vs.png")
+    except Exception:
+        logger.info("KINGDOMS: vs badge asset unreadable", exc_info=True)
+    return None
+
 
 # alliances-lisibilite-v1 T3 (Drasah 25/10): the Alliances surfaces now
 # wear ONE composite mosaic instead of N full-size attachments — the

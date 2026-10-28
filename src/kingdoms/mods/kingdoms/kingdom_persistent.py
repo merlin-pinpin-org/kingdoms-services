@@ -142,6 +142,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomAttackInfoButton,
         KingdomAttackManagerButton,
         KingdomDefenseManagerButton,
+        KingdomDraftViewButton,
         KingdomPlanButton,
         KingdomPlanCancelButton,
         KingdomRoomResultButton,
@@ -196,6 +197,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomAttackInfoButton,
         KingdomAttackManagerButton,
         KingdomDefenseManagerButton,
+        KingdomDraftViewButton,
         # planification-attaque-v1 (Drasah 23/10): the planning
         # wizard, the kingdom's plan list and the plan cancel.
         KingdomPlanButton,

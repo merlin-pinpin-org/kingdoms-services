@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 
 import discord
 
-from kingdoms.mods.kingdoms.civ_crests import civ_crest_files
+from kingdoms.mods.kingdoms.civ_crests import civ_crest_files, vs_badge_file
 from kingdoms.mods.kingdoms.game_clock import game_now
 
 logger = logging.getLogger(__name__)
@@ -475,6 +475,14 @@ _STRINGS: dict[str, dict[str, str]] = {
             " résultat) vit dans le salon de l'attaque."
         ),
         "result_button": "🏆 Déclarer le vainqueur",
+        "draft_button": "📜 Voir la draft",
+        "draft_sheet": (
+            "📜 **Draft — {map}**\n"
+            "Les 3 civilisations de chaque camp (ordre aléatoire — le classement"
+            " reste secret), les sabotées barrées :"
+        ),
+        "draft_side_attacker": "⚔️ **{player}** : {civs}",
+        "draft_side_defender": "🛡️ **{player}** : {civs}",
         "result_select_title": "🏆 **Qui remporte la partie ?**",
         "result_select_placeholder": "Le vainqueur de la game",
         "result_confirm_title": "🏆 **Vainqueur : {winner}** — confirmer ce résultat ?",
@@ -825,6 +833,14 @@ _STRINGS: dict[str, dict[str, str]] = {
             " lives in the attack's salon."
         ),
         "result_button": "🏆 Declare the winner",
+        "draft_button": "📜 View the draft",
+        "draft_sheet": (
+            "📜 **Draft — {map}**\n"
+            "Each side's 3 civilizations (random order — the ranking"
+            " stays secret), sabotaged picks struck through:"
+        ),
+        "draft_side_attacker": "⚔️ **{player}**: {civs}",
+        "draft_side_defender": "🛡️ **{player}**: {civs}",
         "result_select_title": "🏆 **Who wins the game?**",
         "result_select_placeholder": "The game's winner",
         "result_confirm_title": "🏆 **Winner: {winner}** — confirm this result?",
@@ -4202,6 +4218,43 @@ def _final_civ(pickban: dict[str, Any], side: str) -> str:
     return next((civ for civ in picks if civ not in struck), "")
 
 
+async def _draft_sheet_text(attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> str:
+    """blasons-vs-v1 (Drasah 28/10): the 📜 « Voir la draft » sheet.
+
+    Each side's 3 picks in RANDOM order (the ranking itself
+    stays secret forever, like the reveal DMs), the sabotaged
+    picks struck through: ~~Mongols~~ ❌.
+    """
+    pickban = dict(attack.pickban or {})
+    attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
+    if attack.ai_defender:
+        defender = str(strings["defender_ai"])
+    else:
+        defender = await _lord_name(kingdoms_service, attack.defender_lord_id or "")
+
+    def _side_picks(side: str) -> str:
+        picks = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
+        enemy = "defender" if side == "attacker" else "attacker"
+        struck = {str(civ) for civ in (pickban.get(f"{enemy}_sabotages") or [])}
+        shuffled = _shuffled_civs(picks)
+        return (
+            " · ".join(f"~~{civ}~~ ❌" if civ in struck else civ for civ in shuffled)
+            or "—"
+        )
+
+    return "\n".join(
+        (
+            str(strings["draft_sheet"]).format(map=attack.map_key),
+            str(strings["draft_side_attacker"]).format(
+                player=attacker, civs=_side_picks("attacker")
+            ),
+            str(strings["draft_side_defender"]).format(
+                player=defender, civs=_side_picks("defender")
+            ),
+        )
+    )
+
+
 def _battle_room_overwrites(guild: Any, role: Any) -> dict[Any, discord.PermissionOverwrite]:
     """Build the battle-room channel overwrites (players' role only).
 
@@ -4267,6 +4320,10 @@ async def _room_view(
     """
     score = dict(attack.score or {})
     view = discord.ui.View(timeout=None)
+    # blasons-vs-v1 (Drasah 28/10): the 📜 draft button sits on its
+    # OWN row above the ID/Prêt controls — the ephemeral sheet
+    # (single window) answers each side's 3 civs, snipes barred.
+    view.add_item(KingdomDraftViewButton(str(attack.id), strings["draft_button"]))
     url_set = bool(str(attack.lobby_url or "").strip())
     if url_set:
         attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
@@ -4490,6 +4547,23 @@ async def _conquest_detail(kingdoms_service: Any, attack: Any, strings: dict[str
     return "\n".join(lines)
 
 
+async def _meeting_crest_files(pickban: dict[str, Any]) -> list[discord.File]:
+    """blasons-vs-v1 (Drasah 28/10): the meeting message's crests.
+
+    [blason attaquant][badge VS][blason défenseur] — Discord shows
+    the attached files side by side under the text. The VS badge
+    is a LOCAL asset (civ_crests.vs_badge_file): until the PNG
+    is committed the message degrades to the two crests alone,
+    and the later content-only edits keep the attachments.
+    """
+    files = await civ_crest_files([_final_civ(pickban, "attacker")])
+    badge = vs_badge_file()
+    if badge is not None:
+        files.append(badge)
+    files.extend(await civ_crest_files([_final_civ(pickban, "defender")]))
+    return files
+
+
 async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
     """Open the battle room of a meeting (Drasah 18/10 v2).
 
@@ -4548,12 +4622,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 message = await salon.send(
                     await _room_body_text(attack, kingdoms_service, strings),
                     view=await _room_view(attack, kingdoms_service, strings),
-                    files=await civ_crest_files(
-                        [
-                            _final_civ(pickban, "attacker"),
-                            _final_civ(pickban, "defender"),
-                        ]
-                    ),
+                    files=await _meeting_crest_files(pickban),
                 )
                 await _record_meeting_message_safe(attack, int(salon.id), int(message.id))
                 # battle-room-id-v2 (Drasah 22/10): the salon PINGS the
@@ -4862,6 +4931,64 @@ async def _cleanup_one_attack_salon(guild: Any, attacks_service: Any, attack: An
     except Exception:
         logger.warning("KINGDOM ATTACK: attack salon cleanup flag failed", exc_info=True)
     return 1
+
+
+class KingdomDraftViewButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:room:draft:(?P<key>[0-9a-f]{16})",
+):
+    """blasons-vs-v1 (Drasah 28/10): the 📜 « Voir la draft » button
+
+    of the meeting message — each side's 3 civs in random order,
+    the sabotaged picks struck through, in THE player's single
+    ephemeral window (the ranking stays secret forever).
+    """
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:room:draft:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomDraftViewButton:
+        """Resolve the room key back to an attack id (restart-safe)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        attack_id = await _resolve_room_attack_id_async(match["key"])
+        return cls(attack_id, _strings(_locale(interaction))["draft_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Answer the draft sheet in the single ephemeral window."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _open_unique_ephemeral,
+            _wiring,
+        )
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await _open_unique_ephemeral(interaction, strings["no_service"])
+            return
+        try:
+            attack = next(
+                item_ for item_ in await wiring.attacks_service.attacks() if str(item_.id) == self.attack_id
+            )
+        except Exception:
+            await _open_unique_ephemeral(interaction, strings["gaia_gone"])
+            return
+        content = await _draft_sheet_text(attack, wiring.kingdoms_service, strings)
+        await _open_unique_ephemeral(interaction, content)
 
 
 class KingdomRoomUrlButton(

@@ -2475,3 +2475,96 @@ async def test_scoreboard_without_id_is_one_centered_waiting_line() -> None:
     assert body.count("en attente de l'ID") == 1
     assert "ID à renseigner" not in body
     assert "en attente du Prêt" not in body
+
+
+async def test_draft_view_button_lists_the_sniped_picks() -> None:
+    """blasons-vs-v1 (Drasah 28/10): the 📜 « Voir la draft » button of
+    the meeting message — each side's 3 civs in the ephemeral sheet,
+    the sabotaged picks struck through (~~civ~~ ❌)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomDraftViewButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    attack = await bundle.fresh_attack()
+    # A resolved draft: 3 picks per side, one snipe on each side.
+    attack.pickban = {
+        "attacker_picks": ["francs", "celtes", "goths"],
+        "defender_picks": ["huns", "perses", "bretons"],
+        "attacker_sabotages": ["huns"],  # the attacker struck the defender
+        "defender_sabotages": ["goths"],  # the defender struck the attacker
+    }
+    await bundle.store.upsert_attack(attack.to_mongo())
+    _wiring(bundle)
+    strings = _strings("fr")
+    button = KingdomDraftViewButton(str(attack.id), strings["draft_button"])
+    assert str(button.item.custom_id).startswith("kingdoms:attack:room:draft:")
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        guild=MockGuild(),
+        locale="fr",
+    )
+    await button.callback(click)  # type: ignore[arg-type]
+    body = str(click.response.message and click.response.message.content or "")
+    assert click.response.ephemeral is True
+    assert "Draft" in body
+    # Every side's civs ride the sheet, snipes struck through.
+    assert "francs" in body and "celtes" in body
+    assert "perses" in body and "bretons" in body
+    assert "~~goths~~ ❌" in body
+    assert "~~huns~~ ❌" in body
+
+
+async def test_meeting_crest_files_put_the_vs_badge_in_the_middle(monkeypatch) -> None:
+    """blasons-vs-v1 (Drasah 28/10): the meeting message's attachments
+    read [blason attaquant][VS][blason défenseur] — and degrade to the
+    two crests alone while the VS asset is not committed."""
+    import io as _io
+
+    import discord as _discord
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+
+    async def fake_crests(civs):
+        return [
+            _discord.File(_io.BytesIO(b"x"), filename=f"{str(c)}.png") for c in (civs or [])
+        ]
+
+    def fake_badge():
+        return _discord.File(_io.BytesIO(b"vs"), filename="vs.png")
+
+    monkeypatch.setattr(panel, "civ_crest_files", fake_crests)
+    monkeypatch.setattr(panel, "vs_badge_file", fake_badge)
+    pickban = {
+        "attacker_picks": ["francs"],
+        "defender_picks": ["huns"],
+        "attacker_sabotages": [],
+        "defender_sabotages": [],
+    }
+    files = await panel._meeting_crest_files(pickban)
+    assert [f.filename for f in files] == ["francs.png", "vs.png", "huns.png"]
+    # No committed asset yet → the two crests alone (cosmetic fallback).
+    monkeypatch.setattr(panel, "vs_badge_file", lambda: None)
+    files = await panel._meeting_crest_files(pickban)
+    assert [f.filename for f in files] == ["francs.png", "huns.png"]
+
+
+async def test_vs_badge_file_reads_the_local_asset(monkeypatch, tmp_path) -> None:
+    """blasons-vs-v1: the badge resolves assets/bataille/vs.png — and
+    stays silent (None) when the PNG is not there."""
+    import io as _io
+
+    import discord as _discord
+
+    from kingdoms.mods.kingdoms import civ_crests
+
+    monkeypatch.setattr(
+        civ_crests, "_VS_BADGE_PATH", tmp_path / "vs.png"
+    )
+    assert civ_crests.vs_badge_file() is None
+    (tmp_path / "vs.png").write_bytes(b"png")
+    badge = civ_crests.vs_badge_file()
+    assert badge is not None and badge.filename == "vs.png"

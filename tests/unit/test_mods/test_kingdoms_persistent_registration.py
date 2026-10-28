@@ -66,3 +66,13 @@ def test_the_attack_info_button_is_registered() -> None:
     register_kingdoms_persistent_items(bot)  # type: ignore[arg-type]
 
     assert any(item.__name__ == "KingdomAttackInfoButton" for item in bot.registered)
+
+
+def test_the_draft_view_button_is_registered() -> None:
+    """blasons-vs-v1 (Drasah 28/10): the 📜 « Voir la draft » button of
+    the meeting message must survive a restart."""
+    bot = _RecordingBot()
+
+    register_kingdoms_persistent_items(bot)  # type: ignore[arg-type]
+
+    assert any(item.__name__ == "KingdomDraftViewButton" for item in bot.registered)
