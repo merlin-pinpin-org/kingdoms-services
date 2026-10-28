@@ -873,6 +873,24 @@ async def _loop_sleep_seconds(bot: Any, default_seconds: int) -> int:
     return base
 
 
+async def _sweep_tavern_zone_safe(bot: Any) -> None:
+    """Self-heal the whole Taverne zone of every guild (every tick).
+
+    taverne-exit-atomique-v1: the orphan sweep (denies + category
+    overwrites) used to run only at exit_tavern and provisioning — a
+    mid-session 429 left the zone broken until the next pass. The tick
+    makes the heal continuous; idempotent + converged-skip means zero
+    API writes in a healthy steady state.
+    """
+    from kingdoms.mods.kingdoms.tavern_immersion import sweep_tavern_state
+
+    for guild in list(getattr(bot, "guilds", []) or []):
+        try:
+            await sweep_tavern_state(guild)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: tavern zone sweep failed", exc_info=True)
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
@@ -883,6 +901,12 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
         await sync_game_offset(getattr(bot, "kingdoms_service", None))
         await _sync_marriage_locks_safe(bot)
         await _mercenary_tick_safe(bot)
+        # taverne-exit-atomique-v1 (Drasah 28/10, live report Chiron):
+        # the tavern zone sweep every tick — converged-skip keeps the
+        # steady state at zero API writes, and any 429 damage (category
+        # deny lost, orphan member denies) heals within one tick
+        # instead of waiting for the next provisioning pass.
+        await _sweep_tavern_zone_safe(bot)
         events = getattr(bot, "kingdoms_events_service", None)
         if events is None:
             continue

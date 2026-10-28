@@ -183,3 +183,29 @@ async def test_clear_outgame_allow_safe_strips_the_member_allow() -> None:
 
     # An unknown id is a silent no-op (best effort, never raises).
     await clear_outgame_allow_safe(guild, 424242)
+
+
+async def test_immersion_gating_strips_stale_outgame_allows_of_kingdom_members() -> None:
+    """outgame-sweep-v1 (Drasah 28/10, live report Chiron): the « tout
+    visible » member allow outlives the approval moment when the player
+    was validated before validation-immersion-v1 — every provisioning
+    pass now strips it from kingdom members, while out-of-game players
+    keep their opt-in untouched."""
+    guild = MockGuild()
+    beta, conscription, lord, _admin = await _guild_with_zones(guild)
+    member = MockMember(id=42, roles=[lord])
+    guild.add_member(member)
+    outsider = MockMember(id=43)
+    guild.add_member(outsider)
+    await apply_immersion_gating(guild)
+
+    await set_outgame_visibility(guild, member, True)  # stale kingdom allow
+    await set_outgame_visibility(guild, outsider, True)  # legit out-of-game opt-in
+
+    await apply_immersion_gating(guild)  # the sweep
+
+    assert outgame_visible(guild, member) is False
+    assert outgame_visible(guild, outsider) is True
+    for category in (beta, conscription):
+        assert category.permission_overwrite_for(member) is None
+        assert category.permission_overwrite_for(outsider) is not None

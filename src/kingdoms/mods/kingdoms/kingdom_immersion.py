@@ -51,10 +51,27 @@ async def apply_immersion_gating(guild: discord.Guild) -> None:
 
     immersion-v1: the deny rides the ROLE (lord/king/admin alike —
     Drasah: « chacun pourra faire ce qu'il a envie »), so the immersion
-    is the default for every accepted member. Member-level allows are
-    never touched here — an opted-in member keeps his exception.
+    is the default for every accepted member. Member-level allows of
+    out-of-game players are never touched — BUT outgame-sweep-v1
+    strips the « tout visible » allow of every KINGDOM member at each
+    pass (a lord who keeps it sees « Postuler » leak — live report
+    Chiron): the immersion default always wins in-game.
     """
     roles = list(getattr(guild, "roles", []) or [])
+    # outgame-sweep-v1 (Drasah 28/10, live report Chiron): the member
+    # allow « tout visible » is only cleared at the APPROVAL moment
+    # (validation-immersion-v1) — a player validated before that fix
+    # (or who re-clicked « voir tout » afterwards) keeps his allow
+    # forever, and « Postuler » leaks for a kingdom member. Every
+    # provisioning pass now strips the allow from ANY member carrying a
+    # kingdom role (lord/king/admin alike — same philosophy as the role
+    # deny above). Idempotent, converged-skip on healthy members.
+    kingdom_roles = [
+        role
+        for candidates in _IMMERSION_ROLE_CANDIDATES
+        for role in roles
+        if str(getattr(role, "name", "")) in candidates
+    ]
     for slug in IMMERSION_CATEGORY_SLUGS:
         category = _find_category_by_slug(guild, slug)
         if category is None:
@@ -69,6 +86,13 @@ async def apply_immersion_gating(guild: discord.Guild) -> None:
                 )
             except Exception:
                 logger.warning("KINGDOM IMMERSION: %s deny failed for %s", slug, candidates, exc_info=True)
+    if kingdom_roles:
+        for member in list(getattr(guild, "members", []) or []):
+            member_roles = list(getattr(member, "roles", []) or [])
+            if not any(role in member_roles for role in kingdom_roles):
+                continue
+            if outgame_visible(guild, member):
+                await set_outgame_visibility(guild, member, False)
 
 
 async def set_outgame_visibility(guild: discord.Guild, member: Any, visible: bool) -> bool:

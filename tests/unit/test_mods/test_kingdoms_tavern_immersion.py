@@ -434,3 +434,73 @@ async def test_sweep_tavern_state_heals_orphans_between_provisionings() -> None:
     assert court.permission_overwrite_for(ghost) is None
     everyone = taverne.permission_overwrite_for(guild.default_role)
     assert everyone is not None and everyone.view_channel is False
+
+
+async def test_exit_retries_the_role_removal_then_heals(monkeypatch: pytest.MonkeyPatch) -> None:
+    """taverne-exit-atomique-v1 (Drasah 28/10, live report Chiron): the
+    role leaves FIRST (with retries on a 429) — a transient failure does
+    not leave the half-out state (role kept, soudoyeur visible, sweep
+    re-denying the realm at the next pass)."""
+    import kingdoms.mods.kingdoms.tavern_immersion as tavern_immersion
+
+    sleeps: list[float] = []
+
+    async def _fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(tavern_immersion.asyncio, "sleep", _fake_sleep, raising=False)
+
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    court = next(c for c in guild.categories if c.name != TAVERN_CATEGORY_NAME)
+    role = find_tavern_role(guild)
+    category_id = next(c.id for c in guild.categories if c.name == TAVERN_CATEGORY_NAME)
+    member = MockMember(id=88, name="Chiron")
+    guild.add_member(member)
+    await enter_tavern(guild, member, role, category_id)
+    assert court.permission_overwrite_for(member) is not None
+
+    real_remove = member.remove_roles
+    calls = {"n": 0}
+
+    async def _flaky_remove(*args: object, **kwargs: object) -> None:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("429 storm")
+        await real_remove(*args, **kwargs)  # type: ignore[arg-type]
+
+    member.remove_roles = _flaky_remove  # type: ignore[method-assign]
+
+    await exit_tavern(guild, member, role, category_id)
+
+    assert calls["n"] == 2  # retried exactly once
+    assert sleeps == [2.0]  # backoff before the retry
+    assert role not in member.roles
+    assert court.permission_overwrite_for(member) is None
+
+
+async def test_exit_hard_failure_leaves_the_player_coherently_inside() -> None:
+    """The 3rd failed removal re-raises WITHOUT touching the denies —
+    the player stays fully inside (role + denies), never half out."""
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    court = next(c for c in guild.categories if c.name != TAVERN_CATEGORY_NAME)
+    role = find_tavern_role(guild)
+    category_id = next(c.id for c in guild.categories if c.name == TAVERN_CATEGORY_NAME)
+    member = MockMember(id=89, name="StuckCoherent")
+    guild.add_member(member)
+    await enter_tavern(guild, member, role, category_id)
+
+    async def _boom(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("429 forever")
+
+    member.remove_roles = _boom  # type: ignore[method-assign]
+
+    with pytest.raises(RuntimeError):
+        await exit_tavern(guild, member, role, category_id)
+
+    # Coherent inside state: role kept AND court deny kept.
+    assert role in member.roles
+    assert court.permission_overwrite_for(member) is not None

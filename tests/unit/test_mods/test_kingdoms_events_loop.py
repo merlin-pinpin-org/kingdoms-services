@@ -311,3 +311,26 @@ async def test_ffa_salon_purge_is_idempotent_and_ref_driven() -> None:
     await _ffa_salon_purge_safe(guild, ffa)
     await _ffa_salon_purge_safe(guild, _Ffa(salon_id=None))
     await _ffa_salon_purge_safe(None, ffa)
+
+
+async def test_the_tick_sweeps_the_tavern_zone_of_every_guild(monkeypatch: pytest.MonkeyPatch) -> None:
+    """taverne-exit-atomique-v1 (Drasah 28/10, live report Chiron): the
+    orphan sweep runs every tick (continuous self-heal), best effort per
+    guild — one broken guild never stops the others."""
+    from types import SimpleNamespace
+
+    import kingdoms.mods.kingdoms.kingdom_events_loop as events_loop
+    import kingdoms.mods.kingdoms.tavern_immersion as tavern_immersion
+
+    calls: list[object] = []
+
+    async def _maybe_boom(guild: object) -> None:
+        if getattr(guild, "id", None) == 1:
+            raise RuntimeError("broken guild")
+        calls.append(guild)
+
+    monkeypatch.setattr(tavern_immersion, "sweep_tavern_state", _maybe_boom)
+
+    guilds: list[object] = [SimpleNamespace(id=1), SimpleNamespace(id=2)]
+    await events_loop._sweep_tavern_zone_safe(SimpleNamespace(guilds=guilds))
+    assert len(calls) == 1  # the healthy guild swept, the broken one skipped

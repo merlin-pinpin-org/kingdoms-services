@@ -310,14 +310,28 @@ async def enter_tavern(guild: discord.Guild, member: Any, role: Any, taverne_cat
 
 
 async def exit_tavern(guild: discord.Guild, member: Any, role: Any, taverne_category_id: int | None) -> None:
-    """Restore the court (clear the member denies), then close the door."""
+    """Close the door FIRST (role removal, retried), then restore the court.
+
+    taverne-exit-atomique-v1 (Drasah 28/10, live report Chiron): the
+    role is the ONLY truth of « inside » — when remove_roles failed
+    mid-exit (a 429), the player kept the role (soudoyeur still
+    visible, the room follows the category) while the self-heal sweep
+    read « role holder ⇒ inside » and re-denied his realm at the next
+    pass — the kingdom vanished again. Removing the role FIRST (with
+    retries) makes the exit atomic: a hard failure leaves him
+    COHERENTLY inside (role + denies intact), never half out.
+    """
+    for attempt in range(3):
+        try:
+            await member.remove_roles(role, reason="taverne-immersion-v2: sortie")
+            break
+        except Exception:
+            if attempt == 2:
+                logger.error("KINGDOMS TAVERN: exit remove_roles failed", exc_info=True)
+                raise
+            await asyncio.sleep(2.0 * (attempt + 1))
     for target in _immersion_targets(guild, taverne_category_id):
         await _clear_member_view_deny(target, member)
-    try:
-        await member.remove_roles(role, reason="taverne-immersion-v2: sortie")
-    except Exception:
-        logger.error("KINGDOMS TAVERN: exit remove_roles failed", exc_info=True)
-        raise
     # taverne-selfheal-v1 (Drasah 28/10, live report Rakussy): the exit
     # is the exact moment the incident surfaces — sweep the whole zone
     # so the leaver AND every other orphan heal NOW, not at the next
