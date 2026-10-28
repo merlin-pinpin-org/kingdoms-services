@@ -55,3 +55,14 @@ def test_the_five_alliances_buttons_are_registered() -> None:
         "KingdomAlliancesNamesButton",
     ):
         assert any(item.__name__ == name for item in bot.registered), name
+
+
+def test_the_attack_info_button_is_registered() -> None:
+    """attaque-ergonomie-v1 (Drasah 28/10): the ⚔️ attack/defense info
+    button must survive a restart — it replaced the declaration
+    thread of every attack salon."""
+    bot = _RecordingBot()
+
+    register_kingdoms_persistent_items(bot)  # type: ignore[arg-type]
+
+    assert any(item.__name__ == "KingdomAttackInfoButton" for item in bot.registered)
