@@ -3987,26 +3987,58 @@ async def _run_start_season(interaction: discord.Interaction, strings: dict[str,
 
 
 async def _run_start_beta(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
-    """Open the beta start panel (« Maintenant » / « Programmer… »).
+    """Arm the beta NOW in ONE click (beta-oneclick-v1, Drasah 27/10).
 
-    The Drasah 17/10 decision: « Démarrer la beta » lives next to
-    « Démarrer la saison » on the Paramètres panel — same beta-weekend-v2
-    flow as the console's ``lancer_beta now`` answer.
+    The former « Maintenant / Programmer… » confirmation panel is GONE
+    — clicking « Démarrer la beta » arms the beta immediately and the
+    season starts on its own (beta-auto-season-v1). The click is
+    acknowledged silently: the season STATUS message carries the new
+    state (no success ephemeral in this salon anymore); errors stay
+    ephemeral.
     """
-    from kingdoms.mods.kingdoms.beta_panel import beta_start_panel
+    from kingdoms.mods.kingdoms.beta_panel import (
+        _auto_start_season_safe,
+        _refresh_taverne_mercenary_safe,
+    )
+    from kingdoms.mods.kingdoms.game_clock import game_now
 
     wiring = _wiring()
-    if wiring.events_service is None:
+    events = wiring.events_service
+    if events is None:
         await interaction.response.send_message(
             strings["start_beta_failed"].format("no service"), ephemeral=True
         )
         return
-    # BetaStartView resolves the events service through ``console.bot``
-    # — a light shim exposes the live wiring (§3b click-time resolve).
-    console_shim = SimpleNamespace(bot=SimpleNamespace(kingdoms_events_service=wiring.events_service))
-    locale = str(interaction.locale) if interaction.locale else "en"
-    content, view = beta_start_panel(console_shim, locale)
-    await interaction.response.send_message(content, view=view, ephemeral=True)
+    await interaction.response.defer()
+    # _auto_start_season_safe reads the beta panel strings (auto_* keys).
+    locale = "fr" if str(interaction.locale or "").lower().startswith("fr") else "en"
+    from kingdoms.mods.kingdoms.beta_panel import _strings as beta_strings
+
+    beta_s = beta_strings(locale)
+    try:
+        report = await events.activate_beta("now", start_at=game_now())
+    except Exception as exc:
+        await interaction.followup.send(
+            strings["start_beta_failed"].format(type(exc).__name__), ephemeral=True
+        )
+        return
+    logger.info("KINGDOMS ADMIN: beta armed in one click (kind=%s)", dict(report).get("kind", "?"))
+    # beta-auto-season-v1: the season starts on its own — no second
+    # click on « Démarrer la saison ». The console shim exposes the
+    # live wiring to the BetaStartView-style helpers (§3b click-time
+    # resolve) — BOTH services: _auto_start_season_safe reads
+    # kingdoms_service through the seam, the previous shim exposed
+    # only the events service (the auto-start silently no-op'ed).
+    console_shim = SimpleNamespace(
+        bot=SimpleNamespace(
+            kingdoms_events_service=events,
+            kingdoms_service=wiring.kingdoms_service,
+        )
+    )
+    await _auto_start_season_safe(console_shim, interaction, beta_s)
+    # mercenary-beta-refresh-v1: the Chief's taverne panel shows the
+    # beta call button right after the arm — not at the 20h open.
+    await _refresh_taverne_mercenary_safe(interaction)
 
 
 async def _run_season_mode(interaction: discord.Interaction, strings: dict[str, Any]) -> None:

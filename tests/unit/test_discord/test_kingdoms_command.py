@@ -16,6 +16,7 @@ from kingdoms.mods.kingdoms.kingdoms import DEFAULT_LOCALE, STRINGS, register_ki
 EXPECTED_SUBCOMMANDS = (
     "cadastre",
     "kingdom",
+    "profile",
     "delays",
     "diplomacy",
     "gazette",
@@ -80,9 +81,54 @@ def test_strings_cover_both_locales() -> None:
     assert DEFAULT_LOCALE == "en"
 
 
-@pytest.mark.parametrize("screen", ("cadastre", "kingdom", "delays", "diplomacy", "gazette"))
+@pytest.mark.parametrize("screen", ("cadastre", "kingdom", "profile", "delays", "diplomacy", "gazette"))
 def test_subcommand_names_are_discord_safe(screen: str) -> None:
     """Discord names: lowercase, no space, within the 32-char limit."""
     assert screen == screen.lower()
     assert " " not in screen
     assert len(screen) <= 32
+
+
+async def test_profil_toggle_round_trip_on_the_mock_guild() -> None:
+    """profil-toggle-v1 (Drasah 27/10): the /kingdoms profil subcommand
+    flips the calling member's view of the Profils category — a
+    member-level deny to hide, a cleared overwrite to show."""
+    from tests.mocks.discord_mock import MockGuild, MockMember
+
+    from kingdoms.mods.kingdoms.kingdoms import STRINGS
+
+    client, tree = _build_tree()
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
+    command = next(cmd for cmd in group.commands if cmd.name == "profile")
+    assert isinstance(command, app_commands.Command)
+
+    guild = MockGuild()
+    await guild.create_category("👤 ᴘʀᴏꜰɪʟs")
+    member = MockMember(id=42, name="Toggle")
+    guild.add_member(member)
+    # a fake interaction carrying the callback's contract
+    interaction = type("I", (), {})()
+    interaction.guild = guild
+    interaction.user = member
+    interaction.guild_id = guild.id
+    interaction.locale = discord.Locale.france
+    sent: list[tuple[str, bool]] = []
+
+    async def send_message(*args: object, **kwargs: object) -> None:
+        sent.append((" ".join(str(a) for a in args), bool(kwargs.get("ephemeral"))))
+
+    interaction.response = type("R", (), {"send_message": staticmethod(send_message)})()
+
+    await command.callback(interaction)  # type: ignore[arg-type]
+
+    fr = STRINGS["fr"]
+    assert any(fr["profil_hidden"] in text for text, _ in sent)
+    overwrite = guild.categories[0].permission_overwrite_for(member)
+    assert overwrite is not None and overwrite.view_channel is False
+
+    sent.clear()
+    await command.callback(interaction)  # type: ignore[arg-type]
+
+    assert any(fr["profil_shown"] in text for text, _ in sent)
+    assert guild.categories[0].permission_overwrite_for(member) is None
+    await client.close()

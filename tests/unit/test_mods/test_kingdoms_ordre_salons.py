@@ -141,6 +141,7 @@ async def test_category_order_beta_conscription_realms_admin_profiles_last() -> 
     # everything created in the WORST order — the pass must sort it out
     await guild.create_category("👤 ᴘʀᴏꜰɪʟs")
     await guild.create_category("⚙️ ᴀᴅᴍɪɴ")
+    await guild.create_category("🍺 Taverne")
     await guild.create_category("🏰 ᴋɪɴɢᴅᴏᴍs")
     await guild.create_category("🏰 ɢᴀɪᴀ")
     await guild.create_category("⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ")
@@ -157,8 +158,11 @@ async def test_category_order_beta_conscription_realms_admin_profiles_last() -> 
     assert order["🏰 ᴋɪɴɢᴅᴏᴍs"] == 3
     assert order["🏰 ɢᴀɪᴀ"] == 4
     assert order["🏰 Avalon"] == 5
-    assert order["⚙️ ᴀᴅᴍɪɴ"] == 6  # ALWAYS behind the last realm
-    assert order["👤 ᴘʀᴏꜰɪʟs"] == 7  # at the very bottom
+    # taverne-position-v1 (Drasah 27/10): the Taverne reads JUST ABOVE
+    # the Admin category — behind the realms, in front of the staff zone.
+    assert order["🍺 Taverne"] == 6
+    assert order["⚙️ ᴀᴅᴍɪɴ"] == 7  # ALWAYS behind the last realm
+    assert order["👤 ᴘʀᴏꜰɪʟs"] == 8  # at the very bottom
 
     # a new realm category falls to the bottom of Discord's sidebar —
     # re-running the pass pushes Admin (and Profils) back in place
@@ -167,8 +171,9 @@ async def test_category_order_beta_conscription_realms_admin_profiles_last() -> 
     await _enforce_category_order(guild)
     order = {c.name: c.position for c in guild.categories}
     assert order["🏰 Camelot"] == 6
-    assert order["⚙️ ᴀᴅᴍɪɴ"] == 7
-    assert order["👤 ᴘʀᴏꜰɪʟs"] == 8
+    assert order["🍺 Taverne"] == 7
+    assert order["⚙️ ᴀᴅᴍɪɴ"] == 8
+    assert order["👤 ᴘʀᴏꜰɪʟs"] == 9
     assert camelot is not None
 
 

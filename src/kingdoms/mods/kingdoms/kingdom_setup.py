@@ -470,6 +470,12 @@ async def _enforce_category_order(guild: discord.Guild) -> None:
         if slug in by_slug
     ]
     ordered += realms
+    # taverne-position-v1 (Drasah 27/10): the Taverne category reads
+    # JUST ABOVE the Admin category — behind the realms (the game zone
+    # stays first), in front of the staff zone. Decoration-blind slug
+    # (« 🍺 Taverne » → « taverne »), skipped silently when absent.
+    if "taverne" in by_slug:
+        ordered.append(by_slug["taverne"])
     if "admin" in by_slug:
         ordered.append(by_slug["admin"])  # ALWAYS behind the last realm
     for position, category in enumerate(ordered):

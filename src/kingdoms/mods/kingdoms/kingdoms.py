@@ -83,6 +83,19 @@ STRINGS: dict[str, dict[str, str]] = {
             "No kingdom to display: name an existing kingdom, or enroll first "
             "(`/kingdoms join`)."
         ),
+        "profil_name": "profile",
+        "profil_description": "Hide or show the Profiles category for yourself",
+        "profil_no_guild": "⚠️ This command only lives on a server.",
+        "profil_missing": "⚠️ The Profiles category does not exist on this server.",
+        "profil_hidden": (
+            "🙈 The **Profiles** category is now hidden from your sidebar "
+            "— run `/kingdoms profile` again to show it back."
+        ),
+        "profil_shown": (
+            "👁️ The **Profiles** category is visible again "
+            "— run `/kingdoms profile` again to hide it."
+        ),
+        "profil_failed": "⚠️ The operation failed ({error}).",
     },
     "fr": {
         "group_description": "Écrans de la saison Kingdoms : cadastre, royaume, délais, diplomatie, gazette",
@@ -133,6 +146,20 @@ STRINGS: dict[str, dict[str, str]] = {
             "Aucun royaume à afficher : nommez un royaume existant, ou inscrivez-vous "
             "d'abord (`/kingdoms inscrire`)."
         ),
+        "profil_name": "profil",
+        "profil_description": "Masquer ou afficher la catégorie Profils pour toi",
+        "profil_no_guild": "⚠️ Cette commande ne vit que sur un serveur.",
+        "profil_missing": "⚠️ La catégorie Profils n'existe pas sur ce serveur.",
+        "profil_hidden": (
+            "🙈 La catégorie **Profils** est masquée pour toi — elle n'apparaît "
+            "plus dans ta barre latérale. Relance `/kingdoms profil` pour "
+            "l'afficher à nouveau."
+        ),
+        "profil_shown": (
+            "👁️ La catégorie **Profils** est de nouveau visible. Relance "
+            "`/kingdoms profil` pour la masquer."
+        ),
+        "profil_failed": "⚠️ L'opération a échoué ({error}).",
     },
 }
 
@@ -220,6 +247,7 @@ def register_kingdoms_command(
     tree.add_command(group)
     _register_placeholder_screen(group, "cadastre", "cadastre_title")
     _register_profile_screen(group, service)
+    _register_profile_toggle(group)
     _register_placeholder_screen(group, "delays", "delays_title")
     _register_diplomacy_screen(group)
     _register_placeholder_screen(group, "gazette", "gazette_title")
@@ -317,6 +345,83 @@ async def _send_profile(
         interaction.user.id,
         interaction.guild_id,
     )
+
+
+def _register_profile_toggle(group: app_commands.Group) -> None:
+    """profil-toggle-v1 (Drasah 27/10): `/kingdoms profil` hides or shows
+    the player's own view of the Profils category.
+
+    A member-level overwrite on the category (deny view to hide, cleared
+    to show) — light, reversible, per-player, idempotent; the category
+    itself and every other member's view are untouched (Profils stays
+    last in the sidebar either way).
+    """
+
+    @group.command(
+        name=localized(
+            "commands.kingdoms_profil_name",
+            STRINGS[DEFAULT_LOCALE]["profil_name"],
+        ),
+        description=localized(
+            "commands.kingdoms_profil_description",
+            STRINGS[DEFAULT_LOCALE]["profil_description"],
+        ),
+    )
+    async def profil(interaction: discord.Interaction) -> None:
+        """Toggle the calling member's view of the Profils category."""
+        strings = _strings_for(interaction.locale)
+        guild = interaction.guild
+        if guild is None:
+            await interaction.response.send_message(
+                strings["profil_no_guild"], ephemeral=True
+            )
+            return
+        from kingdoms.mods.kingdoms.kingdom_profiles import PROFILES_CATEGORY
+        from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+        wanted = _slug(PROFILES_CATEGORY)
+        category = next(
+            (
+                c
+                for c in getattr(guild, "categories", []) or []
+                if _slug(str(getattr(c, "name", ""))) == wanted
+            ),
+            None,
+        )
+        if category is None:
+            await interaction.response.send_message(
+                strings["profil_missing"], ephemeral=True
+            )
+            return
+        member = interaction.user
+        lookup = getattr(category, "permission_overwrite_for", None)
+        current = lookup(member) if lookup is not None else None
+        hidden = current is not None and current.view_channel is False
+        try:
+            if hidden:
+                await category.set_permissions(member, overwrite=None)
+                note = strings["profil_shown"]
+            else:
+                await category.set_permissions(
+                    member,
+                    overwrite=discord.PermissionOverwrite(
+                        view_channel=False, read_message_history=False
+                    ),
+                )
+                note = strings["profil_hidden"]
+        except Exception as exc:
+            logger.warning("KINGDOMS: profil toggle failed", exc_info=True)
+            await interaction.response.send_message(
+                strings["profil_failed"].format(error=type(exc).__name__), ephemeral=True
+            )
+            return
+        await interaction.response.send_message(note, ephemeral=True)
+        logger.info(
+            "kingdoms: Profils %s for %s in guild %s",
+            "shown" if hidden else "hidden",
+            member.id,
+            interaction.guild_id,
+        )
 
 
 def _register_diplomacy_screen(group: app_commands.Group) -> None:
