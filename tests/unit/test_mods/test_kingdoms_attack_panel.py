@@ -2478,9 +2478,10 @@ async def test_scoreboard_without_id_is_one_centered_waiting_line() -> None:
 
 
 async def test_draft_view_button_lists_the_sniped_picks() -> None:
-    """blasons-vs-v1 (Drasah 28/10): the 📜 « Voir la draft » button of
-    the meeting message — each side's 3 civs in the ephemeral sheet,
-    the sabotaged picks struck through (~~civ~~ ❌)."""
+    """blasons-affichage-v1 (Drasah 28/10): the 📜 « Voir la draft »
+    button answers Drasah's TWO-COLUMN embed — each side's 3 civs
+    numbered 1️⃣2️⃣3️⃣ under its player's name, the sabotaged picks
+    struck through (~~civ~~ ❌)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         KingdomDraftViewButton,
         _strings,
@@ -2508,48 +2509,50 @@ async def test_draft_view_button_lists_the_sniped_picks() -> None:
         locale="fr",
     )
     await button.callback(click)  # type: ignore[arg-type]
-    body = str(click.response.message and click.response.message.content or "")
     assert click.response.ephemeral is True
-    assert "Draft" in body
-    # Every side's civs ride the sheet, snipes struck through.
-    assert "francs" in body and "celtes" in body
-    assert "perses" in body and "bretons" in body
-    assert "~~goths~~ ❌" in body
-    assert "~~huns~~ ❌" in body
+    embed = click.response.message and click.response.message.embed
+    assert embed is not None
+    assert "Draft" in str(embed.title)
+    assert len(embed.fields) == 2
+    left, right = embed.fields
+    assert left.name.startswith("⚔️") and right.name.startswith("🛡️")
+    # Every side's civs ride the two columns, snipes struck through.
+    assert "1️⃣" in left.value and "2️⃣" in left.value and "3️⃣" in left.value
+    assert "francs" in left.value and "celtes" in left.value
+    assert "~~goths~~ ❌" in left.value
+    assert "perses" in right.value and "bretons" in right.value
+    assert "~~huns~~ ❌" in right.value
 
 
-async def test_meeting_crest_files_put_the_vs_badge_in_the_middle(monkeypatch) -> None:
-    """blasons-vs-v1 (Drasah 28/10): the meeting message's attachments
-    read [blason attaquant][VS][blason défenseur] — and degrade to the
-    two crests alone while the VS asset is not committed."""
-    import io as _io
-
-    import discord as _discord
-
+async def test_meeting_files_wear_the_alliances_mosaic_banner(monkeypatch) -> None:
+    """blasons-affichage-v1 (Drasah 28/10): the meeting message wears ONE
+    composite banner — [crest + nom attaquant][VS][crest + nom défenseur],
+    the Alliances mosaic style — and degrades to the text alone when the
+    banner cannot be built."""
     from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
 
-    async def fake_crests(civs):
-        return [
-            _discord.File(_io.BytesIO(b"x"), filename=f"{str(c)}.png") for c in (civs or [])
-        ]
+    class _File:
+        filename = "vs_meeting.png"
 
-    def fake_badge():
-        return _discord.File(_io.BytesIO(b"vs"), filename="vs.png")
+    async def fake_banner(attacker_civ, defender_civ):
+        return _File()
 
-    monkeypatch.setattr(panel, "civ_crest_files", fake_crests)
-    monkeypatch.setattr(panel, "vs_badge_file", fake_badge)
+    monkeypatch.setattr(panel, "meeting_vs_mosaic_file", fake_banner)
     pickban = {
         "attacker_picks": ["francs"],
         "defender_picks": ["huns"],
         "attacker_sabotages": [],
         "defender_sabotages": [],
     }
-    files = await panel._meeting_crest_files(pickban)
-    assert [f.filename for f in files] == ["francs.png", "vs.png", "huns.png"]
-    # No committed asset yet → the two crests alone (cosmetic fallback).
-    monkeypatch.setattr(panel, "vs_badge_file", lambda: None)
-    files = await panel._meeting_crest_files(pickban)
-    assert [f.filename for f in files] == ["francs.png", "huns.png"]
+    files = await panel._meeting_files(pickban)
+    assert [f.filename for f in files] == ["vs_meeting.png"]
+    # Banner unbuildable (no civ resolvable) → the text alone.
+    async def fake_none(attacker_civ, defender_civ):
+        return None
+
+    monkeypatch.setattr(panel, "meeting_vs_mosaic_file", fake_none)
+    files = await panel._meeting_files(pickban)
+    assert files == []
 
 
 async def test_vs_badge_file_reads_the_local_asset(monkeypatch, tmp_path) -> None:

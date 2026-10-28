@@ -198,17 +198,54 @@ async def test_pickban_reveal_dm_attaches_enemy_crests(monkeypatch: pytest.Monke
             return _User()
 
     sent: dict[str, list[str]] = {}
+    bodies: dict[str, str] = {}
 
     async def _dm(bot: object, user_id: str, content: str, view: object = None, files: object = None) -> None:
         sent[user_id] = [f.filename for f in (files or [])]  # type: ignore[attr-defined]
+        bodies[user_id] = str(content)
 
     import kingdoms.mods.kingdoms.kingdom_attack_panel as panel
 
     monkeypatch.setattr(panel, "_dm_user_safe", _dm)
     await _edit_pickban_dms_reveal(_Bot(), _Attack(), None, panel._strings("fr"))
-    # the attacker sees the DEFENDER's picks (shuffled order kept, not the ranking)
-    assert sorted(sent["111"]) == ["celtes.png", "huns.png"]
-    assert sorted(sent["222"]) == ["francs.png", "goths.png"]
+    # blasons-affichage-v1: ONE composite mosaic (each name painted above
+    # its crest) — and the names still ride the text body.
+    assert sent["111"] == ["reveal.png"]
+    assert sent["222"] == ["reveal.png"]
+    assert "celtes" in bodies["111"] and "huns" in bodies["111"]
+    assert "francs" in bodies["222"] and "goths" in bodies["222"]
+
+
+async def test_meeting_vs_mosaic_paints_the_banner_and_caches(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    """blasons-affichage-v1 (Drasah 28/10): the meeting banner is ONE
+    composite PNG — [crest + nom][VS][crest + nom], the Alliances style.
+    The VS tile survives a missing asset, and the banner is cached per
+    (attacker, defender) pair."""
+    import struct
+
+    from kingdoms.mods.kingdoms import civ_crests
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        return b"png"  # undecodable → the default crest fallback
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_VS_BADGE_PATH", tmp_path / "missing.png")
+    first = await civ_crests.meeting_vs_mosaic_file("francs", "huns")
+    assert first is not None and first.filename == "vs_meeting.png"
+    data = first.fp.read()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n"
+    width, height = struct.unpack(">II", data[16:24])
+    assert (width, height) == (3 * civ_crests.MOSAIC_TILE, civ_crests.MOSAIC_TILE)
+    # Cache hit — the same pair reuses the previous bytes, zero recompute.
+    second = await civ_crests.meeting_vs_mosaic_file("francs", "huns")
+    assert second is not None and second.fp.read() == data
+    # A present VS asset paints the middle tile (a different pair: the
+    # cache must not shadow the new badge state).
+    badge_path = tmp_path / "vs.png"
+    badge_path.write_bytes(civ_crests._DEFAULT_CREST_BYTES)
+    monkeypatch.setattr(civ_crests, "_VS_BADGE_PATH", badge_path)
+    third = await civ_crests.meeting_vs_mosaic_file("celtes", "huns")
+    assert third is not None and third.fp.read()[:4] == b"\x89P"
 
 
 # ----------------------------------------------------------------------

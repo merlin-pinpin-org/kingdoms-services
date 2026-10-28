@@ -657,3 +657,73 @@ async def civ_crest_mosaic_file(
         _MOSAIC_CACHE.pop(next(iter(_MOSAIC_CACHE)))
     _MOSAIC_CACHE[fingerprint] = png
     return discord.File(io.BytesIO(png), filename=filename)
+
+
+async def meeting_vs_mosaic_file(attacker_civ: str, defender_civ: str) -> discord.File | None:
+    """blasons-affichage-v1 (Drasah 28/10): the meeting message's banner.
+
+    ONE composite image in the alliances-lisibilite-v1 mosaic style —
+    [crest + nom de l'attaquant][badge VS][crest + nom du défenseur]:
+    each civilization's name painted on a caption strip above its
+    crest (the Alliances panel look), Drasah's VS badge between them.
+    Fallbacks: an unknown or undownloadable crest falls back to the
+    default crest, a missing VS asset leaves the middle tile's « VS »
+    caption alone — the banner always goes out complete. The encoded
+    PNG is cached per (attacker, defender) pair.
+    """
+    attacker = str(attacker_civ or "").strip()
+    defender = str(defender_civ or "").strip()
+    fingerprint = f"meeting:{attacker}:{defender}"
+    cached = _MOSAIC_CACHE.get(fingerprint)
+    if cached is not None:
+        return discord.File(io.BytesIO(cached), filename="vs_meeting.png")
+
+    async def _crest_data(civ: str) -> bytes:
+        data = _DEFAULT_CREST_BYTES
+        url = civ_crest_url(civ)
+        if url is not None:
+            downloaded = await _crest_bytes(url)
+            if downloaded is not None:
+                data = downloaded
+        return data
+
+    canvas_w = 3 * MOSAIC_TILE
+    canvas = bytearray(canvas_w * MOSAIC_TILE * 4)
+    for index, civ in enumerate((attacker, "", defender)):
+        tile_x = index * MOSAIC_TILE
+        _draw_caption(canvas, canvas_w, tile_x, 0, civ if index != 1 else "VS")
+        art_y = MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H + 2
+        if index == 1:
+            # The middle tile: Drasah's local VS badge (caption alone
+            # when the asset is missing — the tile never breaks).
+            badge = None
+            try:
+                if _VS_BADGE_PATH.is_file():
+                    badge = _decode_png_rgba(_VS_BADGE_PATH.read_bytes())
+            except Exception:
+                badge = None
+            if badge is None:
+                continue
+            art_w, art_h, art_pixels = badge
+        else:
+            decoded = _decode_png_rgba(await _crest_data(civ))
+            if decoded is None:
+                decoded = _decode_png_rgba(_DEFAULT_CREST_BYTES)
+            if decoded is None:
+                continue
+            art_w, art_h, art_pixels = decoded
+        art = _resample_rgba(art_w, art_h, art_pixels, MOSAIC_CREST, MOSAIC_CREST)
+        _paste(
+            canvas,
+            canvas_w,
+            tile_x + (MOSAIC_TILE - MOSAIC_CREST) // 2,
+            art_y,
+            MOSAIC_CREST,
+            MOSAIC_CREST,
+            art,
+        )
+    png = _encode_png_rgba(canvas_w, MOSAIC_TILE, bytes(canvas))
+    if len(_MOSAIC_CACHE) >= MOSAIC_CACHE_MAX:
+        _MOSAIC_CACHE.pop(next(iter(_MOSAIC_CACHE)))
+    _MOSAIC_CACHE[fingerprint] = png
+    return discord.File(io.BytesIO(png), filename="vs_meeting.png")

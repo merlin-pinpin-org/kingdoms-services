@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 
 import discord
 
-from kingdoms.mods.kingdoms.civ_crests import civ_crest_files, vs_badge_file
+from kingdoms.mods.kingdoms.civ_crests import civ_crest_mosaic_file, meeting_vs_mosaic_file
 from kingdoms.mods.kingdoms.game_clock import game_now
 
 logger = logging.getLogger(__name__)
@@ -476,13 +476,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "result_button": "🏆 Déclarer le vainqueur",
         "draft_button": "📜 Voir la draft",
-        "draft_sheet": (
-            "📜 **Draft — {map}**\n"
-            "Les 3 civilisations de chaque camp (ordre aléatoire — le classement"
-            " reste secret), les sabotées barrées :"
+        "draft_sheet": "📜 Draft — {map}",
+        "draft_sheet_help": (
+            "Ordre des choix des joueurs durant la draft (ordre aléatoire —"
+            " le classement reste secret), les sabotées barrées :"
         ),
-        "draft_side_attacker": "⚔️ **{player}** : {civs}",
-        "draft_side_defender": "🛡️ **{player}** : {civs}",
         "result_select_title": "🏆 **Qui remporte la partie ?**",
         "result_select_placeholder": "Le vainqueur de la game",
         "result_confirm_title": "🏆 **Vainqueur : {winner}** — confirmer ce résultat ?",
@@ -834,13 +832,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "result_button": "🏆 Declare the winner",
         "draft_button": "📜 View the draft",
-        "draft_sheet": (
-            "📜 **Draft — {map}**\n"
-            "Each side's 3 civilizations (random order — the ranking"
-            " stays secret), sabotaged picks struck through:"
+        "draft_sheet": "📜 Draft — {map}",
+        "draft_sheet_help": (
+            "The players' pick order during the draft (random order — the"
+            " ranking stays secret), sabotaged picks struck through:"
         ),
-        "draft_side_attacker": "⚔️ **{player}**: {civs}",
-        "draft_side_defender": "🛡️ **{player}**: {civs}",
         "result_select_title": "🏆 **Who wins the game?**",
         "result_select_placeholder": "The game's winner",
         "result_confirm_title": "🏆 **Winner: {winner}** — confirm this result?",
@@ -3567,10 +3563,14 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
         if wiring is not None:
             content = f"{content}\n\n{await _sabotage_stock_line(wiring, attack, side, strings)}"
         view = _sabotage_dm_view(str(attack.id), player_id, "fr")
-        # civ-crests-v1 (Drasah 20/10): the revealed civs wear their
-        # blasons — the crest PNGs attach under the text, in the SAME
-        # shuffled order as the names (the raw pick order stays hidden).
-        files = await civ_crest_files(shuffled)
+        # blasons-affichage-v1 (Drasah 28/10): the revealed civs wear
+        # ONE composite mosaic — each name painted above its crest
+        # (the alliances-lisibilite-v1 style), in the SAME shuffled
+        # order as the names (the raw pick order stays hidden).
+        mosaic = await civ_crest_mosaic_file(
+            [(civ, "", civ) for civ in shuffled], filename="reveal.png"
+        )
+        files = [mosaic] if mosaic is not None else None
         ref = pickban.get(f"{side}_dm") or {}
         edited = False
         if ref.get("channel_id") and ref.get("message_id"):
@@ -3604,9 +3604,13 @@ async def _edit_pickban_dms_default_reveal(
         shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
         civs = ", ".join(shuffled) or "—"
         content = strings["pickban_default_reveal_dm"].format(map=attack.map_key, civs=civs)
-        # civ-crests-v1 (Drasah 20/10): the revealed civs wear their
-        # blasons, in the SAME shuffled order as the names.
-        files = await civ_crest_files(shuffled)
+        # blasons-affichage-v1 (Drasah 28/10): the defaulted reveal
+        # wears the SAME one-mosaic look — each name painted above
+        # its crest, in the SAME shuffled order as the names.
+        mosaic = await civ_crest_mosaic_file(
+            [(civ, "", civ) for civ in shuffled], filename="reveal.png"
+        )
+        files = [mosaic] if mosaic is not None else None
         ref = pickban.get(f"{side}_dm") or {}
         edited = False
         if ref.get("channel_id") and ref.get("message_id"):
@@ -4218,11 +4222,12 @@ def _final_civ(pickban: dict[str, Any], side: str) -> str:
     return next((civ for civ in picks if civ not in struck), "")
 
 
-async def _draft_sheet_text(attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> str:
-    """blasons-vs-v1 (Drasah 28/10): the 📜 « Voir la draft » sheet.
+async def _draft_sheet_embed(attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> discord.Embed:
+    """blasons-affichage-v1 (Drasah 28/10): the 📜 « Voir la draft » sheet.
 
-    Each side's 3 picks in RANDOM order (the ranking itself
-    stays secret forever, like the reveal DMs), the sabotaged
+    Drasah's two-column layout: each side's 3 picks in RANDOM order
+    (the ranking itself stays secret forever, like the reveal DMs)
+    under its player's name — 1️⃣ 2️⃣ 3️⃣ numbering, the sabotaged
     picks struck through: ~~Mongols~~ ❌.
     """
     pickban = dict(attack.pickban or {})
@@ -4232,27 +4237,27 @@ async def _draft_sheet_text(attack: Any, kingdoms_service: Any, strings: dict[st
     else:
         defender = await _lord_name(kingdoms_service, attack.defender_lord_id or "")
 
-    def _side_picks(side: str) -> str:
+    async def _side_picks(side: str) -> str:
         picks = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
         enemy = "defender" if side == "attacker" else "attacker"
         struck = {str(civ) for civ in (pickban.get(f"{enemy}_sabotages") or [])}
         shuffled = _shuffled_civs(picks)
+        marks = ("1️⃣", "2️⃣", "3️⃣")
         return (
-            " · ".join(f"~~{civ}~~ ❌" if civ in struck else civ for civ in shuffled)
+            "\n".join(
+                f"{marks[i]} {f'~~{civ}~~ ❌' if civ in struck else civ}"
+                for i, civ in enumerate(shuffled[: len(marks)])
+            )
             or "—"
         )
 
-    return "\n".join(
-        (
-            str(strings["draft_sheet"]).format(map=attack.map_key),
-            str(strings["draft_side_attacker"]).format(
-                player=attacker, civs=_side_picks("attacker")
-            ),
-            str(strings["draft_side_defender"]).format(
-                player=defender, civs=_side_picks("defender")
-            ),
-        )
+    embed = discord.Embed(
+        title=str(strings["draft_sheet"]).format(map=attack.map_key),
+        description=str(strings["draft_sheet_help"]),
     )
+    embed.add_field(name=f"⚔️ {attacker}", value=await _side_picks("attacker"), inline=True)
+    embed.add_field(name=f"🛡️ {defender}", value=await _side_picks("defender"), inline=True)
+    return embed
 
 
 def _battle_room_overwrites(guild: Any, role: Any) -> dict[Any, discord.PermissionOverwrite]:
@@ -4547,21 +4552,19 @@ async def _conquest_detail(kingdoms_service: Any, attack: Any, strings: dict[str
     return "\n".join(lines)
 
 
-async def _meeting_crest_files(pickban: dict[str, Any]) -> list[discord.File]:
-    """blasons-vs-v1 (Drasah 28/10): the meeting message's crests.
+async def _meeting_files(pickban: dict[str, Any]) -> list[discord.File]:
+    """blasons-affichage-v1 (Drasah 28/10): the meeting message's banner.
 
-    [blason attaquant][badge VS][blason défenseur] — Discord shows
-    the attached files side by side under the text. The VS badge
-    is a LOCAL asset (civ_crests.vs_badge_file): until the PNG
-    is committed the message degrades to the two crests alone,
-    and the later content-only edits keep the attachments.
+    ONE composite image (the alliances-lisibilite-v1 mosaic style):
+    [crest + nom de l'attaquant][badge VS][crest + nom du défenseur] —
+    the names painted above the crests, Drasah's VS badge between
+    them. An absent banner (nothing resolvable) degrades to the
+    text alone, and the later content-only edits keep the attachment.
     """
-    files = await civ_crest_files([_final_civ(pickban, "attacker")])
-    badge = vs_badge_file()
-    if badge is not None:
-        files.append(badge)
-    files.extend(await civ_crest_files([_final_civ(pickban, "defender")]))
-    return files
+    banner = await meeting_vs_mosaic_file(
+        _final_civ(pickban, "attacker"), _final_civ(pickban, "defender")
+    )
+    return [banner] if banner is not None else []
 
 
 async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
@@ -4614,15 +4617,17 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
             logger.warning("KINGDOM ATTACK: no attack salon for the meeting message")
         else:
             try:
-                # civ-crests-v1 (Drasah 20/10): the meeting message wears
-                # both final civs' blasons, attached under the text. The
-                # later content-only edits keep them (attachments survive
-                # a Discord edit that does not pass ``files``).
+                # blasons-affichage-v1 (Drasah 28/10): the meeting
+                # message wears ONE composite banner — [crest + nom
+                # attaquant][VS][crest + nom défenseur], the Alliances
+                # mosaic style. The later content-only edits keep it
+                # (attachments survive a Discord edit that does not
+                # pass ``files``).
                 pickban = dict(attack.pickban or {})
                 message = await salon.send(
                     await _room_body_text(attack, kingdoms_service, strings),
                     view=await _room_view(attack, kingdoms_service, strings),
-                    files=await _meeting_crest_files(pickban),
+                    files=await _meeting_files(pickban),
                 )
                 await _record_meeting_message_safe(attack, int(salon.id), int(message.id))
                 # battle-room-id-v2 (Drasah 22/10): the salon PINGS the
@@ -4987,8 +4992,8 @@ class KingdomDraftViewButton(
         except Exception:
             await _open_unique_ephemeral(interaction, strings["gaia_gone"])
             return
-        content = await _draft_sheet_text(attack, wiring.kingdoms_service, strings)
-        await _open_unique_ephemeral(interaction, content)
+        embed = await _draft_sheet_embed(attack, wiring.kingdoms_service, strings)
+        await _open_unique_ephemeral(interaction, "", embed=embed)
 
 
 class KingdomRoomUrlButton(
