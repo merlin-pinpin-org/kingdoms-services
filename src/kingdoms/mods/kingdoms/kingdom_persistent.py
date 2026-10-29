@@ -1367,8 +1367,17 @@ _EPHEMERAL_WINDOW_TTL = 15 * 60
 lives ~15 minutes — past that, the old ephemeral can no longer be
 deleted (Discord keeps it on the player's side until dismissed)."""
 
-_EPHEMERAL_WINDOWS: dict[str, tuple[discord.Interaction, float]] = {}
-"""One live ephemeral window per player (user id -> (interaction, opened_at)).
+_EPHEMERAL_WINDOWS: dict[str, tuple[discord.Interaction, float, Any]] = {}
+"""One live ephemeral window per player: (interaction, opened_at, message).
+
+fenetre-unique-v3 (chambre-des-comptes-fix-v3, Drasah 29/10): windows
+opened through defer+followup carry their FOLLOWUP MESSAGE as the third
+slot — deleting them via ``delete_original_response`` would delete the
+PANEL the component sits on (a type-6 deferred interaction's original
+response IS the component's message — Drasah's live report: the
+Le-Royaume panel vanished on a ledger click). Windows opened through
+``response.send_message`` keep the legacy 2-tuple shape and the original
+response path.
 fenetre-unique-v1 (Drasah 26/10): clicking another article CLOSES the
 previous card instead of stacking ephemerals. fenetre-unique-v2
 (Drasah 27/10): the registry is shared by EVERY ephemeral reveal of the
@@ -1383,11 +1392,18 @@ async def _close_previous_ephemeral(user_id: str) -> None:
     previous = _EPHEMERAL_WINDOWS.pop(user_id, None)
     if previous is None:
         return
-    old_interaction, opened_at = previous
+    old_interaction, opened_at = previous[0], previous[1]
+    window = previous[2] if len(previous) > 2 else None
     if time.monotonic() - opened_at > _EPHEMERAL_WINDOW_TTL:
         return  # token expiré — Discord laisse l'éphémère mourir seule
     try:
-        await old_interaction.delete_original_response()
+        if window is not None:
+            # A defer+followup window: delete the followup MESSAGE —
+            # never ``delete_original_response`` (type-6 defer makes
+            # the original response THE PANEL the button sits on).
+            await window.delete()
+        else:
+            await old_interaction.delete_original_response()
         logger.info("KINGDOMS: previous ephemeral window closed for %s", user_id)
     except Exception:
         logger.info(
@@ -2478,12 +2494,12 @@ class KingdomMarketCardInfoButton(
         ]
         file = _market_card_file(self.card)
         await _close_previous_ephemeral(user_id)
-        await interaction.followup.send(
+        window = await interaction.followup.send(
             "\n".join(lines),
             files=[file] if file is not None else [],
             ephemeral=True,
         )
-        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic())
+        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic(), window)
 
 
 class KingdomMarketLedgerButton(
@@ -2547,10 +2563,10 @@ class KingdomMarketLedgerButton(
         )
         user_id = str(getattr(interaction.user, "id", ""))
         await _close_previous_ephemeral(user_id)
-        await interaction.followup.send(
+        window = await interaction.followup.send(
             content, files=card_files, view=card_info_view, ephemeral=True
         )
-        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic())
+        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic(), window)
 
 
 async def _lord_of(kingdoms_service: Any, user_id: str) -> Any | None:

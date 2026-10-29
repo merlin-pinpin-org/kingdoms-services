@@ -273,7 +273,10 @@ async def test_ledger_second_click_closes_the_previous_window() -> None:
     await KingdomMarketLedgerButton("Ledger").callback(first)
     second: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await KingdomMarketLedgerButton("Ledger").callback(second)
-    assert first.original_deleted is True
+    # fix-v3: the previous window (defer+followup) is closed by deleting
+    # its FOLLOWUP MESSAGE — never the interaction original response
+    # (type-6 defer would delete the PANEL the button sits on).
+    assert first.followup.messages[-1].deleted is True
     assert second.original_deleted is not True
     from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
 

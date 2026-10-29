@@ -785,6 +785,11 @@ class MockGuild(discord.Guild):
         self._channels[channel.id] = channel
         return channel
 
+    async def delete(self, *, delay: float | None = None) -> None:
+        """Mirror :meth:`discord.Message.delete` — fenetre-unique-v3:
+        the registry deletes defer+followup windows by their MESSAGE."""
+        self.deleted = True
+
     async def delete_channel(self, channel: MockChannel) -> None:
         self._channels.pop(channel.id, None)
         category = getattr(channel, "category", None)
@@ -823,12 +828,18 @@ class MockMessage(discord.Message):
         self.author = author if author is not None else MockUser(name="TestBot", bot=True)
         self.embeds = [embed] if embed is not None else []
         self.view = view
+        self.deleted = False
         self.files: list[Any] | None = files
         self.attachments: list[Any] = list(files) if files else []
         self._edited = False
         for key, value in kwargs.items():
             setattr(self, key, value)
         self._sync_ui_surfaces(view)
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        """Mirror :meth:`discord.Message.delete` — fenetre-unique-v3:
+        the registry deletes defer+followup windows by their MESSAGE."""
+        self.deleted = True
 
     def _sync_ui_surfaces(self, view: discord.ui.View | None) -> None:
         self.layout = view if isinstance(view, discord.ui.LayoutView) else None
