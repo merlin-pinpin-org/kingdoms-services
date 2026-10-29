@@ -39,6 +39,7 @@ __all__ = [
     "KingdomMarketActionButton",
     "KingdomMarketCancelButton",
     "KingdomMarketConfirmButton",
+    "KingdomMarketCardInfoButton",
     "KingdomMarketLedgerButton",
     "KingdomMarketModal",
     "KingdomMarketTechButton",
@@ -214,6 +215,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketTechButton,
         KingdomMarketActionButton,
         KingdomMarketLedgerButton,
+        KingdomMarketCardInfoButton,
         KingdomMarketConfirmButton,
         KingdomMarketCancelButton,
         KingdomRempartsGuardButton,
@@ -2360,7 +2362,7 @@ def _market_ledger_card_files(held: list[tuple[str, str, int]]) -> list[discord.
 
 async def _market_ledger_content(
     wiring: KingdomsPanelWiring, kingdom: Any, strings: dict[str, Any]
-) -> tuple[str, list[discord.File]]:
+) -> tuple[str, list[discord.File], discord.ui.View | None]:
     """Build the chambre-des-comptes ephemeral sheet (v2→v3, Drasah 29/10).
 
     Top to bottom: the season balance (spent / treasury / limits), the
@@ -2384,7 +2386,104 @@ async def _market_ledger_content(
         lines.extend(line for _key, line, _stock in held)
     else:
         lines.append(str(strings["market_ledger_cards_empty"]))
-    return "\n".join(lines), _market_ledger_card_files(held)
+    card_files = _market_ledger_card_files(held)
+    # chambre-des-comptes-v5 (Drasah 29/10): « sous ces cartes il
+    # faudrait un bouton sous chaque carte pour en savoir plus » — one
+    # secondary button per held card type, packed two per row under the
+    # 2-column mosaic so each button sits under its card.
+    card_info_view: discord.ui.View | None = None
+    if held:
+        card_info_view = discord.ui.View(timeout=None)
+        for index, (key, _line, _stock) in enumerate(held):
+            card_info_view.add_item(
+                KingdomMarketCardInfoButton(key, strings, row=index // 2)
+            )
+    return "\n".join(lines), card_files, card_info_view
+
+
+async def _market_card_stock(
+    wiring: KingdomsPanelWiring, kingdom_id: str, key: str
+) -> int:
+    """The REMAINING stock of one card key (0 on any read failure)."""
+    if wiring.attacks_service is None or not kingdom_id:
+        return 0
+    try:
+        state = await wiring.attacks_service.technology_state(kingdom_id)
+        purchases = dict(getattr(state, "purchases", None) or {})
+        return int(purchases.get(key, 0) or 0)
+    except Exception:
+        logger.info("KINGDOMS MARKET: card stock read failed")
+        return 0
+
+
+class KingdomMarketCardInfoButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:market:cardinfo:(?P<card>[a-z_]+)",
+):
+    """chambre-des-comptes-v5 (Drasah 29/10): « en savoir plus » per held
+    card — one secondary button under the mosaic, opening the card's own
+    sheet: its full TCG art, its EFFECT text and how many remain in hand.
+    Restart-proof (DynamicItem), and it opens through the shared
+    single-window registry like every other sheet."""
+
+    def __init__(
+        self, card: str, strings: dict[str, Any], row: int | None = None
+    ) -> None:
+        emojis = strings.get("market_ledger_emoji") or {}
+        label = f"{emojis.get(card, '•')} {_market_label(card, strings)}"
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:market:cardinfo:{card}",
+                style=discord.ButtonStyle.secondary,
+                row=row,
+            )
+        )
+        self.card = card
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMarketCardInfoButton:
+        """Rebuild the info button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(match["card"], _strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the held card's own sheet, ephemeral, single window."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        user_id = str(getattr(interaction.user, "id", ""))
+        await interaction.response.defer(ephemeral=True)
+        lord = await _lord_of(wiring.kingdoms_service, user_id)
+        kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord else ""
+        stock = await _market_card_stock(wiring, kingdom_id, self.card)
+        emojis = strings.get("market_ledger_emoji") or {}
+        label = _market_label(self.card, strings)
+        lines = [
+            f"# {emojis.get(self.card, '•')} {label}",
+            "",
+            str(strings["market_fiche_effect"]).format(
+                strings["market_effect"].get(self.card, "")
+            ),
+            "",
+            str(strings["market_ledger_card_line"]).format(
+                emojis.get(self.card, "•"), label, stock
+            ),
+        ]
+        file = _market_card_file(self.card)
+        await _close_previous_ephemeral(user_id)
+        await interaction.followup.send(
+            "\n".join(lines),
+            files=[file] if file is not None else [],
+            ephemeral=True,
+        )
+        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic())
 
 
 class KingdomMarketLedgerButton(
@@ -2443,10 +2542,14 @@ class KingdomMarketLedgerButton(
         # clock stops), THEN build, then the sheet rides a followup
         # through the shared single-window registry.
         await interaction.response.defer(ephemeral=True)
-        content, card_files = await _market_ledger_content(wiring, kingdom, strings)
+        content, card_files, card_info_view = await _market_ledger_content(
+            wiring, kingdom, strings
+        )
         user_id = str(getattr(interaction.user, "id", ""))
         await _close_previous_ephemeral(user_id)
-        await interaction.followup.send(content, files=card_files, ephemeral=True)
+        await interaction.followup.send(
+            content, files=card_files, view=card_info_view, ephemeral=True
+        )
         _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic())
 
 

@@ -82,9 +82,7 @@ def banner_file() -> Path | None:
 # (« toujours en cache pour soulager ») — an unchanged hand replays
 # the previous bytes with zero decodes and zero compositing.
 from kingdoms.mods.kingdoms.civ_crests import (  # noqa: E402  (appended block)
-    MOSAIC_CAPTION_H,
     MOSAIC_CAPTION_Y,
-    MOSAIC_COLS,
     _decode_png_rgba,
     _draw_caption,
     _encode_png_rgba,
@@ -92,14 +90,23 @@ from kingdoms.mods.kingdoms.civ_crests import (  # noqa: E402  (appended block)
     _resample_rgba,
 )
 
-HELD_CARD_W = 128
-"""Tile width of one held card (matches the civ-crest tile grid)."""
+HELD_CARD_W = 256
+"""Tile width of one held card. chambre-des-comptes-v5 (Drasah 29/10:
+« pas très lisible ») — the v4 tiles doubled: 256px per card. TWO tiles
+per row (512px canvas): Discord inline-renders anything wider scaled
+DOWN to ~672px, so a 5-column 1280px grid would undo the x2."""
 
-HELD_CARD_H = 180
-"""Tile height: the 728x1024 cards keep their ~7:10 portrait ratio."""
+HELD_CARD_H = 360
+"""Tile height: the 728x1024 cards keep their ~7:10 portrait ratio (x2)."""
 
-HELD_TILE_H = MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H + 2 + HELD_CARD_H
-"""Caption strip (2px margin + 20px strip + 2px gap) + the card art."""
+HELD_STRIP_H = 40
+"""The X<stock> strip height — doubled too, the counter paints at 4x."""
+
+HELD_COLS = 2
+"""Two tiles per row (kept readable at Discord's render width)."""
+
+HELD_TILE_H = MOSAIC_CAPTION_Y + HELD_STRIP_H + 2 + HELD_CARD_H
+"""Caption strip (2px margin + 40px strip + 2px gap) + the card art."""
 
 _HELD_CACHE: dict[str, bytes] = {}
 _HELD_CACHE_MAX = 32
@@ -134,14 +141,14 @@ def held_cards_mosaic_png(held: list[tuple[str, int]]) -> bytes | None:
     cached = _HELD_CACHE.get(fingerprint)
     if cached is not None:
         return cached
-    rows = (len(tiles) + MOSAIC_COLS - 1) // MOSAIC_COLS
-    canvas_w = MOSAIC_COLS * HELD_CARD_W
+    rows = (len(tiles) + HELD_COLS - 1) // HELD_COLS
+    canvas_w = HELD_COLS * HELD_CARD_W
     canvas_h = rows * HELD_TILE_H
     canvas = bytearray(canvas_w * canvas_h * 4)
     for index, (key, stock) in enumerate(tiles):
-        tile_x = (index % MOSAIC_COLS) * HELD_CARD_W
-        tile_y = (index // MOSAIC_COLS) * HELD_TILE_H
-        art_y = tile_y + MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H + 2
+        tile_x = (index % HELD_COLS) * HELD_CARD_W
+        tile_y = (index // HELD_COLS) * HELD_TILE_H
+        art_y = tile_y + MOSAIC_CAPTION_Y + HELD_STRIP_H + 2
         art = _HELD_ART_CACHE.get(key)
         if art is None:
             decoded = None
@@ -159,7 +166,16 @@ def held_cards_mosaic_png(held: list[tuple[str, int]]) -> bytes | None:
                 _HELD_ART_CACHE[key] = art
         if art is not None:
             _paste(canvas, canvas_w, tile_x, art_y, HELD_CARD_W, HELD_CARD_H, art)
-        _draw_caption(canvas, canvas_w, tile_x, tile_y, f"X{stock}")
+        _draw_caption(
+            canvas,
+            canvas_w,
+            tile_x,
+            tile_y,
+            f"X{stock}",
+            tile_w=HELD_CARD_W,
+            strip_h=HELD_STRIP_H,
+            scale=4,
+        )
     png = _encode_png_rgba(canvas_w, canvas_h, bytes(canvas))
     if len(_HELD_CACHE) >= _HELD_CACHE_MAX:
         _HELD_CACHE.pop(next(iter(_HELD_CACHE)))

@@ -525,31 +525,50 @@ def _glyph_rows(char: str) -> tuple[str, ...] | None:
     return ("     ", "     ") + rows
 
 
-def _draw_caption(canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, name: str) -> None:
-    """Paint the civ's NAME on a dark strip attached above its crest."""
+def _draw_caption(
+    canvas: bytearray,
+    canvas_w: int,
+    tile_x: int,
+    tile_y: int,
+    name: str,
+    *,
+    tile_w: int = MOSAIC_TILE,
+    strip_h: int = MOSAIC_CAPTION_H,
+    scale: int = 2,
+) -> None:
+    """Paint text on a dark strip above a mosaic tile.
+
+    chambre-des-comptes-v5 (Drasah 29/10): the held-cards mosaic tiles
+    are 2x wider than the civ-crest tiles and want their X<stock>
+    counter painted BIG — tile_w/strip_h/scale generalise the original
+    hardcoded 128x20 strip (defaults keep the crest behaviour intact).
+    """
     text = (name or "").strip()
     glyphs = [g for c in text if (g := _glyph_rows(c)) is not None] if text else []
     if not glyphs:
         return
     strip_y = tile_y + MOSAIC_CAPTION_Y
-    for y in range(MOSAIC_CAPTION_H):
+    for y in range(strip_h):
         dest = ((strip_y + y) * canvas_w + tile_x + 2) * 4
-        row = canvas_w * 4
-        span = (MOSAIC_TILE - 4) * 4
+        span = (tile_w - 4) * 4
         for offset in range(0, span, 4):
             canvas[dest + offset : dest + offset + 3] = _CAPTION_BG[:3]
             canvas[dest + offset + 3] = _CAPTION_BG[3]
-    scale, spacing = 2, 1
-    max_w = MOSAIC_TILE - 4
+    spacing = 1
+    max_w = tile_w - 4
     width = (5 * scale + spacing) * len(glyphs) - spacing
     if width > max_w:
         spacing = 0
         width = 5 * scale * len(glyphs)
-    if width > max_w:
-        scale, spacing = 1, 1
+    while width > max_w and scale > 1:
+        scale -= 1
+        spacing = 1
         width = (5 * scale + spacing) * len(glyphs) - spacing
+        if width > max_w:
+            spacing = 0
+            width = 5 * scale * len(glyphs)
     x = tile_x + 2 + (max_w - width) // 2
-    top = strip_y + (MOSAIC_CAPTION_H - 9 * scale) // 2
+    top = strip_y + (strip_h - 9 * scale) // 2
     for rows in glyphs:
         for ry, row in enumerate(rows):
             for rx, cell in enumerate(row):

@@ -21,6 +21,7 @@ from kingdoms.mods.kingdoms.economy import (
 )
 from kingdoms.mods.kingdoms.kingdom_persistent import (
     KingdomMarketCancelButton,
+    KingdomMarketCardInfoButton,
     KingdomMarketLedgerButton,
     KingdomMarketTechButton,
     KingdomsPanelWiring,
@@ -220,10 +221,32 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
     png = files[0].fp.read()
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
     from kingdoms.mods.kingdoms.civ_crests import _decode_png_rgba
-    from kingdoms.mods.kingdoms.marche_art import HELD_CARD_H, HELD_CARD_W
+    from kingdoms.mods.kingdoms.marche_art import (
+        HELD_CARD_H,
+        HELD_CARD_W,
+        HELD_COLS,
+        HELD_TILE_H,
+    )
 
+    # v5: tiles x2 (256x360), TWO columns — Discord scales wider images
+    # down, so the canvas stays at 512px and the cards read at full size.
     width, height, _pixels = _decode_png_rgba(png) or (0, 0, b"")
-    assert (width, height) == (5 * HELD_CARD_W, HELD_CARD_H + 24)
+    assert (width, height) == (
+        HELD_COLS * HELD_CARD_W,
+        ((2 + HELD_COLS - 1) // HELD_COLS) * HELD_TILE_H,
+    )
+    # v5: one « en savoir plus » button per held card under the mosaic,
+    # two per row, none for the 0-stock card.
+    info_custom_ids = [
+        item.custom_id for item in window.view.children  # type: ignore[union-attr]
+    ]
+    assert info_custom_ids == [
+        "kingdoms:market:cardinfo:sabotage",
+        "kingdoms:market:cardinfo:embuscade",
+    ]
+    # two buttons fit ONE row (they both sit under the 2-column grid).
+    rows = [getattr(item, "row", None) for item in window.view.children]  # type: ignore[union-attr]
+    assert all(row == rows[0] for row in rows)
     # no service wired for the modal anymore — the window is THE answer
     assert interaction.response.modal is None
 
@@ -236,8 +259,10 @@ async def test_ledger_window_lists_both_empty_states() -> None:
     sheet = str(interaction.followup.messages[-1].content or "")
     assert "No purchase yet." in sheet
     assert "No card in hand right now." in sheet
-    # the followup window exists but carries NO art — empty hand.
-    assert not (interaction.followup.messages[-1].files or [])
+    # the followup window exists but carries NO art and NO buttons.
+    window = interaction.followup.messages[-1]
+    assert not (window.files or [])
+    assert not (window.view.children if window.view else [])
 
 
 async def test_ledger_second_click_closes_the_previous_window() -> None:
@@ -255,6 +280,38 @@ async def test_ledger_second_click_closes_the_previous_window() -> None:
     entry = _EPHEMERAL_WINDOWS.get("111")
     assert entry is not None
     assert entry[0] is second  # the registry holds the LAST window
+
+
+async def test_ledger_card_info_button_opens_the_card_sheet() -> None:
+    """chambre-des-comptes-v5: « en savoir plus » per held card — the
+    button rebuilds from the wire and opens the card's own ephemeral
+    sheet (full TCG art + effect + remaining stock), replacing the
+    player's window (single-window rule)."""
+    import re as _re
+
+    kingdom = FakeKingdom(id="k1", name="Merlinia")
+    _wire(kingdoms=[kingdom], attacks=FakeAttacksService({"sabotage": 2}))
+    match: Any = _re.match(
+        r"kingdoms:market:cardinfo:(?P<card>[a-z_]+)",
+        "kingdoms:market:cardinfo:sabotage",
+    )
+    button = await KingdomMarketCardInfoButton.from_custom_id(
+        MockInteraction(user=MockUser(id=111), locale="en-US"),  # type: ignore[arg-type]
+        discord.ui.Button(),  # type: ignore[arg-type]
+        match,  # type: ignore[arg-type]
+    )
+    assert button.item.custom_id == "kingdoms:market:cardinfo:sabotage"
+    assert "Sabotage" in (button.item.label or "")
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await button.callback(interaction)
+    assert interaction.response.deferred is True
+    assert interaction.followup.messages, "the card sheet must reach the player"
+    sheet = str(interaction.followup.messages[-1].content or "")
+    assert "Sabotage" in sheet
+    assert sheet.index("EFFECT") < sheet.index("×2")
+    # the card's full TCG art rides as the sheet's attachment.
+    filenames = [f.filename for f in (interaction.followup.messages[-1].files or [])]
+    assert filenames == ["Sabotage.png"]
 
 
 async def test_overview_panel_carries_the_ledger_button() -> None:
