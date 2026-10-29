@@ -2516,10 +2516,13 @@ class KingdomMarketCardInfoButton(
         # (cosmetic — the text lines still ride the edit).
         file = _market_card_file(self.card) or _market_card_back_file()
         files = [file] if file is not None else []
+        # fix-v1 (live traceback 29/10 16h48): discord.py 2.7's
+        # edit_original_response takes NO ``files`` kwarg — a NEW
+        # attachment rides ``attachments`` as a File (an empty list
+        # clears the previous image instead).
         await interaction.edit_original_response(
             content="\n".join([content, *fiche]),
-            files=files,
-            attachments=[],
+            attachments=files,
             view=card_info_view,
         )
 
