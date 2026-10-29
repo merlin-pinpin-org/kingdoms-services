@@ -205,12 +205,19 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
     assert "**Sabotage** — ×2" in sheet
     assert "**Embuscade** — ×1" in sheet
     assert "Traquenard" not in sheet  # 0 stock → not listed
-    # v3: the held cards ride as their TCG art in attachments, one per
-    # type, in the section's order — a 0-stock card ships no art.
-    filenames = [f.filename for f in (interaction.response.message.files or [])]
-    assert "Sabotage.png" in filenames
-    assert "Embuscade.png" in filenames
-    assert "Traquenard.png" not in filenames
+    # v4: the held cards ride as ONE small-tile mosaic attachment
+    # (v3's giant per-card posters drowned the sheet, Drasah 29/10) —
+    # a 0-stock card ships no tile.
+    files = list(interaction.response.message.files or [])
+    filenames = [f.filename for f in files]
+    assert filenames == ["cartes_en_main.png"]
+    png = files[0].fp.read()
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
+    from kingdoms.mods.kingdoms.civ_crests import _decode_png_rgba
+    from kingdoms.mods.kingdoms.marche_art import HELD_CARD_H, HELD_CARD_W
+
+    width, height, _pixels = _decode_png_rgba(png) or (0, 0, b"")
+    assert (width, height) == (5 * HELD_CARD_W, HELD_CARD_H + 24)
     # no service wired for the modal anymore — the window is THE answer
     assert interaction.response.modal is None
 

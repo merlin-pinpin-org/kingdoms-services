@@ -15,6 +15,7 @@ ride an ephemeral message that expires with the process anyway.
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 import time
@@ -2304,12 +2305,14 @@ _LEDGER_CARD_KEYS = ("sabotage", "contre_espionnage", "embuscade", "traquenard")
 
 async def _market_ledger_cards(
     wiring: KingdomsPanelWiring, kingdom_id: str, strings: dict[str, Any]
-) -> list[tuple[str, str]]:
-    """One entry per card type still held: (card key, text line).
+) -> list[tuple[str, str, int]]:
+    """One entry per card type still held: (card key, text line, stock).
 
     chambre-des-comptes-v3 (Drasah 29/10): the key rides along so the
     ledger can attach the card's TCG art next to its line — he wants
     the cards VISIBLE (« l'image concrète plutôt que textuel »).
+    v4: the raw stock rides along too — the MOSAIC painter stamps each
+    card's X<stock> counter onto its tile.
     """
     purchases: dict[str, Any] = {}
     if wiring.attacks_service is not None and kingdom_id:
@@ -2319,7 +2322,7 @@ async def _market_ledger_cards(
         except Exception:
             logger.info("KINGDOMS MARKET: card stock read failed")
     emojis = strings.get("market_ledger_emoji") or {}
-    entries: list[tuple[str, str]] = []
+    entries: list[tuple[str, str, int]] = []
     for key in _LEDGER_CARD_KEYS:
         stock = int(purchases.get(key, 0) or 0)
         if stock <= 0:
@@ -2330,24 +2333,29 @@ async def _market_ledger_cards(
                 str(strings["market_ledger_card_line"]).format(
                     emojis.get(key, "•"), _market_label(key, strings), stock
                 ),
+                stock,
             )
         )
     return entries
 
 
-def _market_ledger_card_files(held: list[tuple[str, str]]) -> list[discord.File]:
-    """The held cards' TCG art — one attachment per type (v3, ≤10).
+def _market_ledger_card_files(held: list[tuple[str, str, int]]) -> list[discord.File]:
+    """The held cards' TCG art — ONE mosaic attachment (v4, Drasah 29/10).
 
-    Deduplicated like the text lines: two Sabotage in hand attach ONE
-    Sabotage card (the quantity lives on the text line). A missing
-    art stays cosmetic — the sheet works with or without the PNG.
+    Drasah's live report killed v3 (one 728x1024 card per attachment):
+    the posters rendered ENORMOUS and drowned the sheet. v4 composes
+    the cards into a single small-tile mosaic, each tile stamped with
+    its X<stock> counter, CACHED per hand so an unchanged hand replays
+    the previous bytes (« toujours en cache pour soulager »). An empty
+    hand or a compositing failure stays cosmetic: no attachment, the
+    text lines alone.
     """
-    files: list[discord.File] = []
-    for key, _line in held[:10]:  # Discord attachment cap, defensive
-        file = _market_card_file(key)
-        if file is not None:
-            files.append(file)
-    return files
+    from kingdoms.mods.kingdoms.marche_art import held_cards_mosaic_png
+
+    png = held_cards_mosaic_png([(key, stock) for key, _line, stock in held])
+    if png is None:
+        return []
+    return [discord.File(io.BytesIO(png), filename="cartes_en_main.png")]
 
 
 async def _market_ledger_content(

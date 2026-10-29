@@ -472,6 +472,18 @@ _FONT: dict[str, tuple[str, ...]] = {
     "X": ("X   X", "X   X", " X X ", "  X  ", " X X ", "X   X", "X   X"),
     "Y": ("X   X", "X   X", " X X ", "  X  ", "  X  ", "  X  ", "  X  "),
     "Z": ("XXXXX", "    X", "   X ", " X   ", "X    ", "X    ", "XXXXX"),
+    # 0-9 (chambre-des-comptes-v4, Drasah 29/10): the held-cards
+    # mosaic paints its X<stock> counters with this font too.
+    "0": ("XXXXX", "X   X", "X  XX", "X X X", "XX  X", "X   X", "XXXXX"),
+    "1": ("  X  ", " XX  ", "  X  ", "  X  ", "  X  ", "  X  ", "XXXXX"),
+    "2": ("XXXXX", "    X", "    X", "XXXXX", "X    ", "X    ", "XXXXX"),
+    "3": ("XXXXX", "    X", "    X", " XXX ", "    X", "    X", "XXXXX"),
+    "4": ("X   X", "X   X", "X   X", "XXXXX", "    X", "    X", "    X"),
+    "5": ("XXXXX", "X    ", "X    ", "XXXXX", "    X", "    X", "XXXXX"),
+    "6": ("XXXXX", "X    ", "X    ", "XXXXX", "X   X", "X   X", "XXXXX"),
+    "7": ("XXXXX", "    X", "    X", "   X ", "  X  ", "  X  ", "  X  "),
+    "8": ("XXXXX", "X   X", "X   X", "XXXXX", "X   X", "X   X", "XXXXX"),
+    "9": ("XXXXX", "X   X", "X   X", "XXXXX", "    X", "    X", "XXXXX"),
 }
 
 # accented capitals render as base letter + a 2-row diacritic above
