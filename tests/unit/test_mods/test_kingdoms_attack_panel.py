@@ -414,6 +414,13 @@ async def test_defend_button_answers_the_surprise_cases() -> None:
     assert "déjà défendu" in str(again.response.message.content)
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.defender_lord_id == "lord-b"
+    # defend-probe-leak (Drasah 29/10): the outsider clicks AGAIN on
+    # the now-defended attack — he still gets the GENERIC refusal, the
+    # « déjà défendu » answer must never leak to a foreign lord.
+    probe = MockInteraction(user=MockUser(id="lord-a"), guild=guild, locale="fr")  # type: ignore[arg-type]
+    await button.callback(probe)  # type: ignore[arg-type]
+    assert "Vous ne pouvez défendre" in str(probe.response.message.content)
+    assert "déjà défendu" not in str(probe.response.message.content)
 
 
 async def test_history_button_lists_resolved_confrontations() -> None:

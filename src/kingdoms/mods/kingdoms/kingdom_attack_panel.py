@@ -2141,6 +2141,12 @@ class KingdomAttackDefendButton(
         defending kingdom registers the defense with NO public sign
         (the salon base message stays untouched) ; another lord of the
         same kingdom gets « Le royaume est déjà défendu ».
+
+        defend-probe-leak (Drasah 29/10): the WRONG-KINGDOM check runs
+        FIRST — an outsider (the attacker's camp probing the button)
+        must NEVER learn whether a defense is already in place. The
+        « already defended » answer exists only for the defending
+        kingdom's own lords.
         """
         from kingdoms.mods.kingdoms.kingdom_persistent import (
             _lord_of, _open_unique_ephemeral, _wiring
@@ -2161,6 +2167,12 @@ class KingdomAttackDefendButton(
             await _open_unique_ephemeral(interaction, strings["gaia_gone"])
             return
         lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        # defend-probe-leak (Drasah 29/10): ANY lord outside the
+        # defending kingdom gets the SAME generic refusal — probing the
+        # button must never reveal whether a defense is already taken.
+        if lord is None or str(getattr(lord, "kingdom_id", "") or "") != str(attack.defender_kingdom_id):
+            await _open_unique_ephemeral(interaction, strings["defend_wrong_kingdom"])
+            return
         if getattr(attack, "state", None) is not AttackState.DECLARED and not getattr(attack, "ai_defender", False):
             # A defense is already in place — the kingdom is defended
             # (the defender's NAME stays hidden until the reveal).
@@ -2168,9 +2180,6 @@ class KingdomAttackDefendButton(
             return
         if getattr(attack, "state", None) is not AttackState.DECLARED:
             await _open_unique_ephemeral(interaction, strings["gaia_gone"])
-            return
-        if lord is None or str(getattr(lord, "kingdom_id", "") or "") != str(attack.defender_kingdom_id):
-            await _open_unique_ephemeral(interaction, strings["defend_wrong_kingdom"])
             return
         await interaction.response.defer(ephemeral=True)
         try:
