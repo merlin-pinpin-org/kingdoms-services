@@ -39,7 +39,6 @@ __all__ = [
     "KingdomMarketCancelButton",
     "KingdomMarketConfirmButton",
     "KingdomMarketLedgerButton",
-    "KingdomMarketLedgerModal",
     "KingdomMarketModal",
     "KingdomMarketTechButton",
     "KingdomProfileButton",
@@ -2272,6 +2271,10 @@ def _market_ledger_text(wiring: KingdomsPanelWiring, kingdom: Any, strings: dict
     if limits_parts:
         lines.append(str(strings["market_ledger_limits"]).format(" · ".join(limits_parts)))
 
+    # chambre-des-comptes-v2 (Drasah 29/10): the purchases now ride a
+    # rich ephemeral view — they get their own section header.
+    lines.append("")
+    lines.append(f"## {strings['market_ledger_purchases_title']}")
     if not registry:
         lines.append(str(strings["market_ledger_empty"]))
     else:
@@ -2292,25 +2295,61 @@ def _market_ledger_text(wiring: KingdomsPanelWiring, kingdom: Any, strings: dict
     return "\n".join(lines)
 
 
-class KingdomMarketLedgerModal(discord.ui.Modal):
-    """The read-only chambre des comptes of one kingdom (marche-v2)."""
+# chambre-des-comptes-v2 (Drasah 29/10): the consumable market cards
+# shown « in hand », in the market's shelf order — the counter is the
+# REMAINING stock (``purchases``), never the season total (Drasah:
+# « le nombre restant »).
+_LEDGER_CARD_KEYS = ("sabotage", "contre_espionnage", "embuscade", "traquenard")
 
-    register: discord.ui.TextInput[KingdomMarketLedgerModal] = discord.ui.TextInput(
-        label="Register",
-        style=discord.TextStyle.paragraph,
-        required=False,
-        max_length=4000,
-    )
 
-    def __init__(self, *, kingdom: Any, strings: dict[str, Any]) -> None:
-        name = str(getattr(kingdom, "name", "") or "")
-        super().__init__(title=str(strings["market_ledger_title"]).format(name)[:45], timeout=300)
-        self.register.label = str(strings["market_ledger_input"])[:45]
-        self.register.default = _market_ledger_text(_wiring(), kingdom, strings)[:4000]
+async def _market_ledger_cards(
+    wiring: KingdomsPanelWiring, kingdom_id: str, strings: dict[str, Any]
+) -> list[str]:
+    """One line per card type still held, carrying the remaining stock."""
+    purchases: dict[str, Any] = {}
+    if wiring.attacks_service is not None and kingdom_id:
+        try:
+            state = await wiring.attacks_service.technology_state(kingdom_id)
+            purchases = dict(getattr(state, "purchases", None) or {})
+        except Exception:
+            logger.info("KINGDOMS MARKET: card stock read failed")
+    emojis = strings.get("market_ledger_emoji") or {}
+    lines: list[str] = []
+    for key in _LEDGER_CARD_KEYS:
+        stock = int(purchases.get(key, 0) or 0)
+        if stock <= 0:
+            continue
+        lines.append(
+            str(strings["market_ledger_card_line"]).format(
+                emojis.get(key, "•"), _market_label(key, strings), stock
+            )
+        )
+    return lines
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Close silently: the ledger is consultative."""
-        await interaction.response.defer()
+
+async def _market_ledger_content(
+    wiring: KingdomsPanelWiring, kingdom: Any, strings: dict[str, Any]
+) -> str:
+    """Build the chambre-des-comptes ephemeral sheet (v2, Drasah 29/10).
+
+    Top to bottom: the season balance (spent / treasury / limits), the
+    purchases in reverse chronology, then the CARDS IN HAND — one line
+    per card type with the remaining stock, deduplicated (multiple
+    buys of the same card read ONE line + its counter). Replaces the
+    read-only modal of marche-v2 (raw text) with the rich ephemeral
+    rendering of the shared single-window registry.
+    """
+    name = str(getattr(kingdom, "name", "") or "")
+    lines = [
+        f"# {str(strings['market_ledger_title']).format(name)}",
+        "",
+        _market_ledger_text(wiring, kingdom, strings),
+    ]
+    lines.append("")
+    lines.append(f"## {strings['market_ledger_cards_title']}")
+    cards = await _market_ledger_cards(wiring, str(getattr(kingdom, "id", "")), strings)
+    lines.extend(cards or [str(strings["market_ledger_cards_empty"])])
+    return "\n".join(lines)
 
 
 class KingdomMarketLedgerButton(
@@ -2341,7 +2380,7 @@ class KingdomMarketLedgerButton(
         return cls(_strings(locale)["market_ledger_button"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the kingdom ledger modal (read-only, whole kingdom)."""
+        """Open the ledger in THE player's single ephemeral window (v2)."""
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
@@ -2357,8 +2396,13 @@ class KingdomMarketLedgerButton(
                 strings["church_marry_kingdom_none"], ephemeral=True
             )
             return
-        await interaction.response.send_modal(
-            KingdomMarketLedgerModal(kingdom=kingdom, strings=strings)
+        # chambre-des-comptes-v2 (Drasah 29/10): the read-only modal
+        # becomes a rich ephemeral through the shared single-window
+        # registry — balance, purchases and cards in hand, and the
+        # previous window of the player closes instead of stacking.
+        await _open_unique_ephemeral(
+            interaction,
+            await _market_ledger_content(wiring, kingdom, strings),
         )
 
 

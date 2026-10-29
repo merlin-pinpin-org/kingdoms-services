@@ -10,6 +10,7 @@ open its 🏛️ Chambre des comptes from the Le-Royaume panel.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 from typing import Any
 
 import discord
@@ -81,11 +82,22 @@ class FakeEconomyService:
         return object()
 
 
+class FakeAttacksService:
+    """AttacksService stand-in: the card stock counters (``purchases``)."""
+
+    def __init__(self, purchases: dict[str, int] | None = None) -> None:
+        self._purchases = dict(purchases or {})
+
+    async def technology_state(self, kingdom_id: str) -> object:
+        return SimpleNamespace(purchases=dict(self._purchases))
+
+
 def _wire(
     *,
     economy: FakeEconomyService | None = None,
     lords: list[FakeLord] | None = None,
     kingdoms: list[FakeKingdom] | None = None,
+    attacks: FakeAttacksService | None = None,
 ) -> None:
     register_kingdoms_panel_wiring(
         KingdomsPanelWiring(
@@ -94,6 +106,7 @@ def _wire(
                 kingdoms or [FakeKingdom(id="k1")],
             ),
             economy_service=economy or FakeEconomyService(),
+            attacks_service=attacks,
         )
     )
 
@@ -157,7 +170,11 @@ async def test_ledger_button_rebuilds_from_custom_id() -> None:
     assert button.item.custom_id == "kingdoms:market:ledger"
 
 
-async def test_ledger_modal_shows_balance_and_reverse_chronology() -> None:
+async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
+    """chambre-des-comptes-v2 (Drasah 29/10): the button opens ONE
+    ephemeral window (never a modal) carrying the balance, the
+    purchases in reverse chronology and the CARDS IN HAND — one line
+    per card type with the REMAINING stock."""
     kingdom = FakeKingdom(
         id="k1",
         name="Merlinia",
@@ -167,28 +184,55 @@ async def test_ledger_modal_shows_balance_and_reverse_chronology() -> None:
             {"item": "explorateur", "detail": "islands — owner k1", "cost": 2, "at": 900},
         ],
     )
-    _wire(kingdoms=[kingdom])
+    _wire(
+        kingdoms=[kingdom],
+        attacks=FakeAttacksService({"sabotage": 2, "embuscade": 1, "traquenard": 0}),
+    )
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await KingdomMarketLedgerButton("🏛️ Chambre des comptes").callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
-    assert "Merlinia" in str(modal.title)
-    register = str(modal.register.default or "")
-    assert "spent: 6 ⚙️" in register
-    assert "treasury: 7 ⚙️" in register
+    assert interaction.response.ephemeral is True
+    sheet = str(interaction.response.message.content or "")
+    assert "Merlinia" in sheet
+    assert "spent: 6 ⚙️" in sheet
+    assert "treasury: 7 ⚙️" in sheet
+    assert "## Purchases" in sheet
     # Reverse chronology: the newest purchase (at=900) comes first.
-    assert register.index("Explorer") < register.index("Corruption")
-    assert "4 ⚙️" in register
-    assert "/2" in register  # corruption counter against its 2/season limit
+    assert sheet.index("Explorer") < sheet.index("Corruption")
+    assert "4 ⚙️" in sheet
+    assert "/2" in sheet  # corruption counter against its 2/season limit
+    # Cards in hand — deduplicated, one line per type + remaining stock.
+    assert "## Cards in hand" in sheet
+    assert "**Sabotage** — ×2" in sheet
+    assert "**Embuscade** — ×1" in sheet
+    assert "Traquenard" not in sheet  # 0 stock → not listed
+    # no service wired for the modal anymore — the window is THE answer
+    assert interaction.response.modal is None
 
 
-async def test_ledger_modal_lists_the_empty_state() -> None:
+async def test_ledger_window_lists_both_empty_states() -> None:
     _wire(kingdoms=[FakeKingdom(id="k1", market_registry=[])])
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await KingdomMarketLedgerButton("Ledger").callback(interaction)
-    modal = interaction.response.modal
-    assert modal is not None
-    assert "No purchase yet." in str(modal.register.default or "")
+    sheet = str(interaction.response.message.content or "")
+    assert "No purchase yet." in sheet
+    assert "No card in hand right now." in sheet
+
+
+async def test_ledger_second_click_closes_the_previous_window() -> None:
+    """fenetre-unique-v2 rule: ONE ephemeral window per player — the
+    second ledger click closes the first sheet instead of stacking."""
+    _wire(kingdoms=[FakeKingdom(id="k1", market_registry=[])])
+    first: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await KingdomMarketLedgerButton("Ledger").callback(first)
+    second: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await KingdomMarketLedgerButton("Ledger").callback(second)
+    assert first.original_deleted is True
+    assert second.original_deleted is not True
+    from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
+
+    entry = _EPHEMERAL_WINDOWS.get("111")
+    assert entry is not None
+    assert entry[0] is second  # the registry holds the LAST window
 
 
 async def test_overview_panel_carries_the_ledger_button() -> None:
