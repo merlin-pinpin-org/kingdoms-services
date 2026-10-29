@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import time
 from typing import Any, Protocol
 
@@ -658,6 +659,72 @@ async def _reuse_pinned_dashboard(
     return None
 
 
+class LiveRefreshButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"live:refresh:(?P<game_key>[a-z0-9]+)",
+):
+    """The dashboard's refresh button: force an update, revive the loop.
+
+    On the PINNED dashboard the click forces an immediate refresh
+    (``ensure_live_dashboard``) and restarts the auto-update loop when
+    its task died; on an EPHEMERAL dashboard the click re-renders the
+    view with a fresh snapshot (the ephemeral refreshes on open, the
+    button makes it refresh on demand).
+    """
+
+    def __init__(self, game_key: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                custom_id=f"live:refresh:{game_key}",
+                label=label,
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.game_key = game_key
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LiveRefreshButton:
+        """Rebuild from the wire; the label rides the original button."""
+        button = item if isinstance(item, discord.ui.Button) else None
+        label = (button.label if button is not None else None) or "Refresh"
+        return cls(match["game_key"], label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Force a refresh now; revive the loop when it died."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        bot = interaction.client
+        game_key = self.game_key
+        # 1. the auto-update loop: revive it when dead (owner direction)
+        from kingdoms.discord.live import restart_live_dashboard_refresh
+
+        restarted = await restart_live_dashboard_refresh(bot)
+        # 2. force an immediate refresh of the pinned dashboard
+        registry = getattr(bot, "_live_registry", None)
+        client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
+        if registry is not None and client is not None and interaction.guild_id:
+            try:
+                await ensure_live_dashboard(bot, str(interaction.guild_id), client, registry, game_key)
+            except Exception:
+                logger.warning(
+                    "live refresh button: forced refresh failed (guild %s) — best-effort",
+                    interaction.guild_id,
+                    exc_info=True,
+                )
+        # 3. the ephemeral answer: a fresh dashboard view for the clicker
+        from kingdoms.discord.home import _build_live_view
+
+        view = await _build_live_view(interaction, game_key)
+        await interaction.followup.send(view=view, ephemeral=True)
+        if restarted:
+            logger.info("live refresh button: the auto-update loop was revived")
+
+
 def build_dashboard_view(
     snapshot: dict[str, Any],
     body: str,
@@ -689,6 +756,13 @@ def build_dashboard_view(
     )
     from kingdoms.discord.ui.view_footer import add_view_footer
 
+    # the refresh button (owner direction): force an update, and restart
+    # the auto-update loop when it died (both surfaces, one code path)
+    view.add_item(
+        discord.ui.ActionRow(
+            LiveRefreshButton(game_key, _t(bot, locale, "refresh", "Refresh")).item
+        )
+    )
     return add_view_footer(view, f"panel:game:{game_key}:live")
 
 
@@ -766,6 +840,8 @@ async def start_live_dashboard_refresh(
     (recreating a deleted message, healing a broken stream) — it walks
     every game of every guild.
     """
+    bot._live_clients = clients  # type: ignore[attr-defined]  # the refresh button restarts the loop
+    bot._live_registry = registry  # type: ignore[attr-defined]
 
     async def _run() -> None:
         watchers = [
@@ -868,6 +944,27 @@ def _match_fingerprint(match: dict[str, Any]) -> str:
         ).hexdigest()[:12]
     except (TypeError, ValueError):
         return ""
+
+
+async def restart_live_dashboard_refresh(bot: discord.Client) -> bool:
+    """Revive the auto-update loop when its task died (owner direction).
+
+    The refresh button calls this: a dead stream + a dead interval loop
+    leave a frozen dashboard; the restart rebuilds both (the streams
+    and the 15 s safety-net interval) from the clients kept on the bot.
+    Returns True when a restart happened, False when the loop lives.
+    """
+    task = getattr(bot, "_live_refresh_task", None)
+    if task is not None and not task.done():
+        return False
+    clients = getattr(bot, "_live_clients", None)
+    registry = getattr(bot, "_live_registry", None)
+    if not clients or registry is None:
+        return False
+    task = asyncio.create_task(start_live_dashboard_refresh(bot, clients, registry))
+    bot._live_refresh_task = task  # type: ignore[attr-defined]
+    logger.info("live dashboard refresh loop restarted (was dead)")
+    return True
 
 
 async def _watch_stream(

@@ -199,6 +199,9 @@ class KingdomsBot(discord.Client):
         self.add_dynamic_items(ProfileRemoveAccountButton)
         self.add_dynamic_items(ProfileRenameButton)
         self.add_dynamic_items(ProfileSiteSelect)
+        from kingdoms.discord.live import LiveRefreshButton
+
+        self.add_dynamic_items(LiveRefreshButton)
         from kingdoms.discord.admin_panel_games import register_games_admin_items
 
         register_games_admin_items(self)
@@ -938,7 +941,9 @@ def _start_live_dashboards(bot: KingdomsBot) -> asyncio.Task[None] | None:
             logger.warning("live dashboard: no client for game %s yet", game_key)
     if not clients:
         return None
-    return asyncio.create_task(start_live_dashboard_refresh(bot, clients, registry))  # type: ignore[arg-type]
+    task: Any = asyncio.create_task(start_live_dashboard_refresh(bot, clients, registry))
+    bot._live_refresh_task = task  # type: ignore[attr-defined]  # the refresh button revives it
+    return task  # type: ignore[no-any-return]
 
 
 def _build_home_channel_service(

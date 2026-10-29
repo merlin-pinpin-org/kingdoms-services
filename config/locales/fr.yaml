@@ -309,6 +309,7 @@ fr:
     offline_separator: — hors ligne —
     no_players: Aucun joueur lié — ajoutez votre profil AoE2 depuis le menu profil (/home → Profil).
     all_offline: Tout le monde est hors ligne depuis plus d'une heure.
+    refresh: Rafraîchir
     unavailable: 'Dashboard indisponible : CORE_URI n''est pas configuré.'
     linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Ajoutez-en d'autres depuis le menu profil (/home → Profil).
     unlinked: Profil `{profile}` délié.

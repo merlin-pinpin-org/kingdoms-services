@@ -871,6 +871,18 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
 async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -> None:
     """Render one game's live dashboard ephemerally (/live, the menu panel)."""
     await interaction.response.defer(ephemeral=True, thinking=True)
+    view = await _build_live_view(interaction, game_key)
+    await interaction.followup.send(view=view, ephemeral=True)
+
+
+async def _build_live_view(
+    interaction: discord.Interaction, game_key: str = "aoe2"
+) -> Any:
+    """Build the ephemeral live dashboard view (no defer, no send).
+
+    Shared by /live, the menu button and the dashboard's refresh
+    button (which already deferred): the caller owns the transport.
+    """
     from kingdoms.discord.live import collect_profile_stats, render_dashboard
 
     snapshot: dict[str, Any] = {"players": [], "generated_at": 0, "degraded": True}
@@ -900,7 +912,7 @@ async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -
     # THE dashboard rendering (unified, owner direction): the same view
     # the pinned channel shows — Container + the id under it, one code path.
     view = build_dashboard_view(snapshot, body, interaction.client, locale=locale, game_key=game_key)
-    await interaction.followup.send(view=view, ephemeral=True)
+    return view
 
 
 async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) -> None:

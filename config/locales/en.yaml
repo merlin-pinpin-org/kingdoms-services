@@ -309,6 +309,7 @@ en:
     offline_separator: — offline —
     no_players: No linked players yet — add your AoE2 profile from the profile menu (/home → Profile).
     all_offline: Everyone is offline for more than an hour.
+    refresh: Refresh
     unavailable: 'Live dashboard unavailable: CORE_URI not configured.'
     linked: Linked profile `{profile}` to <@{user}> — the dashboard will show it. Add more from the profile menu (/home → Profile).
     unlinked: Profile `{profile}` unlinked.
