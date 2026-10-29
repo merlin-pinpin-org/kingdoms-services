@@ -287,6 +287,78 @@ async def test_reset_strips_player_roles_before_the_wipe() -> None:
     assert king_member.roles == []
     assert ghost_member.roles == []
 
+async def test_reset_deletes_the_season_player_roles_and_their_mappings() -> None:
+    """reset-ghost-roles-v2 (Drasah 29/10): blank — an ex-king of a
+    previous season — kept his Kingdoms King role after back-to-setup
+    (the v1 sweep is doc-driven, blind to a ghost whose docs AND
+    archives no longer resolve him). The wipe now DELETES the season
+    player roles (taverne door pattern: every holder stripped at once)
+    and drops their mappings (a stale mapping would pin a dead role id
+    forever); the reprovision recreates fresh roles and re-gates the
+    categories. kingdoms_admin is a staff role: it survives."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        _delete_season_player_roles_safe,
+        _reprovision_mod_roles_safe,
+        register_kingdoms_panel_wiring,
+    )
+    from tests.mocks.discord_mock import MockGuild, MockMember, MockRole
+
+    class _SpyRole(MockRole):
+        deleted = False
+
+        async def delete(self, *, reason: str | None = None) -> None:
+            self.deleted = True
+
+    class _RoleService:
+        def __init__(self) -> None:
+            self.deleted_mappings: list[str] = []
+            self.setup_calls: list[str] = []
+
+        async def resolve_role_id(self, guild_id: str, mod: str, role_key: str) -> None:
+            return None
+
+        async def delete_role_mapping(self, guild_id: str, mod: str, role_key: str) -> bool:
+            self.deleted_mappings.append(role_key)
+            return True
+
+        async def setup_mod_roles(self, guild_id: str, mod_name: str) -> dict:
+            self.setup_calls.append(mod_name)
+            return {}
+
+    guild = MockGuild()
+    lord_role = _SpyRole(name="Kingdoms Lord")
+    king_role = _SpyRole(name="Kingdoms King")
+    lock_role = _SpyRole(name="💍 Verrouillé")
+    admin_role = _SpyRole(name="Kingdoms Admin")
+    for role in (lord_role, king_role, lock_role, admin_role):
+        guild._roles.append(role)
+    ghost_member = MockMember(id=999, name="blank", roles=[king_role, admin_role])
+    guild.add_member(ghost_member)
+
+    service = _RoleService()
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(mod_roles_service=service))
+
+    # the three season roles die, the admin role survives
+    assert await _delete_season_player_roles_safe(guild) == 3
+    assert lord_role.deleted and king_role.deleted and lock_role.deleted
+    assert not admin_role.deleted
+    # their mappings died with them (no stale dead role id pinned)
+    assert service.deleted_mappings == [
+        "kingdoms_lord",
+        "kingdoms_king",
+        "kingdoms_locked",
+    ]
+
+    # the reprovision recreates the mod roles fresh
+    await _reprovision_mod_roles_safe(guild)
+    assert service.setup_calls == ["kingdoms"]
+
+    # idempotent: a second pass changes nothing and never raises
+    assert await _delete_season_player_roles_safe(guild) == 3
+    assert await _delete_season_player_roles_safe(None) == 0
+    await _reprovision_mod_roles_safe(None)
+
 async def test_reset_strips_member_overwrites_and_the_taverne_door_role() -> None:
     """reset-visibility-v1 (Drasah 27/10): the taverne immersion poses
     member-level view DENIES on every other category (Beta included) —

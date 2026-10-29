@@ -265,6 +265,24 @@ class ModRolesService:
         """
         await self._persist_mapping(guild_id, mod, role_key, role_id)
 
+    async def delete_role_mapping(self, guild_id: str, mod: str, role_key: str) -> bool:
+        """Drop one logical-key to platform-role mapping (reset-ghost-roles-v2).
+
+        The season wipes DELETE the player roles on the platform; a
+        stale mapping would make ``_resolve_or_provision`` return a dead
+        role id forever (the resolution never re-checks the platform
+        role still exists). Dropping the mapping lets the next
+        provisioning recreate the role and persist a fresh id. Best
+        effort: a failed delete never blocks the caller.
+        """
+        try:
+            return bool(await self._db.delete_role_mapping(guild_id, mod, role_key))
+        except Exception:
+            logger.warning(
+                "MOD-ROLE mapping delete failed (%s:%s)", mod, role_key, exc_info=True
+            )
+            return False
+
     async def resolve_role_id(self, guild_id: str, mod: str, role_key: str) -> str | None:
         """Resolve a logical role key to a platform role id.
 

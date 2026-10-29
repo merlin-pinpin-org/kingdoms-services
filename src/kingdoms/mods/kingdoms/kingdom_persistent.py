@@ -3701,11 +3701,18 @@ class KingdomLaunchModal(discord.ui.Modal):
         # reset-ghost-roles-v1: launch() ALSO wipes the season data —
         # strip the player roles before the documents disappear.
         await _strip_player_mod_roles_for_all_lords_safe(interaction.guild)
+        # reset-ghost-roles-v2 (Drasah 29/10): deleting the ROLES heals
+        # the ghosts the doc-driven sweep cannot see (blank's Kingdoms
+        # King) — launch() is a season wipe like back-to-setup.
+        await _delete_season_player_roles_safe(interaction.guild)
         try:
             await wiring.kingdoms_service.launch()
         except Exception as exc:
             await interaction.followup.send(strings["launch_failed"].format(type(exc).__name__), ephemeral=True)
             return
+        # reset-ghost-roles-v2: fresh roles + re-gated categories, so the
+        # next acceptance grants a working role again.
+        await _reprovision_mod_roles_safe(interaction.guild)
         await interaction.followup.send(strings["launch_done_free"], ephemeral=True)
         if interaction.guild is not None:
             await _refresh_season_status_safe(interaction.guild, self.locale)
@@ -4632,6 +4639,94 @@ async def _strip_player_mod_roles_for_all_lords_safe(guild: discord.Guild | None
     return resolved
 
 
+async def _delete_season_player_roles_safe(guild: discord.Guild | None) -> int:
+    """Delete the season player ROLES before a wipe (reset-ghost-roles-v2).
+
+    Drasah's live finding (2026-10-29): blank — an ex-KING of a previous
+    season — kept his Kingdoms King role after a back-to-setup reset,
+    so he still saw every game salon. The v1 sweep is doc-driven
+    (current lords + season archives): a ghost whose documents AND
+    archives no longer resolve him is invisible to it forever. Deleting
+    the ROLES — the pattern already proven by the taverne door role
+    (reset-visibility-v1) — strips every holder at once, independent of
+    the members intent and of any document. The role MAPPINGS die with
+    them (a stale mapping would pin a dead role id and ``_resolve_or_
+    provision`` never re-checks the platform); the wipe flow recreates
+    fresh roles via ``_reprovision_mod_roles_safe`` right after the
+    data wipe. ``kingdoms_admin`` is a staff role: it survives.
+    """
+    if guild is None:
+        return 0
+    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
+
+    wiring = _wiring()
+    service = wiring.mod_roles_service
+    deleted = 0
+    for role_key, display_name in (
+        (ROLE_LORD, "Kingdoms Lord"),
+        (ROLE_KING, "Kingdoms King"),
+        ("kingdoms_locked", MARRIAGE_LOCK_ROLE_NAME),
+    ):
+        role: discord.Role | None = None
+        if service is not None:
+            try:
+                role_id = await service.resolve_role_id(str(guild.id), KINGDOM_MOD, role_key)
+                if role_id is not None and role_id.isdigit():
+                    role = guild.get_role(int(role_id))
+            except Exception:
+                logger.warning(
+                    "KINGDOMS: mod role resolution failed (%s, role delete)", role_key, exc_info=True
+                )
+        if role is None:
+            role = discord.utils.get(getattr(guild, "roles", []) or [], name=display_name)
+        if role is not None:
+            try:
+                await role.delete(
+                    reason="kingdoms: wipe saison — rôle joueur supprimé (reset-ghost-roles-v2)"
+                )
+                deleted += 1
+            except Exception:
+                logger.warning("KINGDOMS: player role delete failed (%s)", role_key, exc_info=True)
+        if service is not None:
+            await service.delete_role_mapping(str(guild.id), KINGDOM_MOD, role_key)
+    if deleted:
+        logger.info(
+            "KINGDOMS: reset-ghost-roles-v2 — %s season player role(s) deleted (guild %s)",
+            deleted,
+            guild.id,
+        )
+    return deleted
+
+
+async def _reprovision_mod_roles_safe(guild: discord.Guild | None) -> None:
+    """Recreate the deleted player roles and re-gate the categories (v2).
+
+    ``_delete_season_player_roles_safe`` dropped the roles AND their
+    mappings: ``setup_mod_roles`` recreates the missing ones and
+    persists fresh ids, then the player category gating pass re-writes
+    the overwrites so the fresh roles (new ids) unlock the categories
+    again — without this, nobody could be granted a working view until
+    the next boot provisioning. Best effort, idempotent.
+    """
+    if guild is None:
+        return
+    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD
+
+    wiring = _wiring()
+    if wiring.mod_roles_service is not None:
+        try:
+            await wiring.mod_roles_service.setup_mod_roles(str(guild.id), KINGDOM_MOD)
+            logger.info("KINGDOMS: reset-ghost-roles-v2 — player roles re-provisioned (guild %s)", guild.id)
+        except Exception:
+            logger.warning("KINGDOMS: player role re-provision failed", exc_info=True)
+    from kingdoms.mods.kingdoms.kingdom_setup import _enforce_player_category_gating
+
+    try:
+        await _enforce_player_category_gating(guild)
+    except Exception:
+        logger.warning("KINGDOMS: player category re-gating failed", exc_info=True)
+
+
 def _member_overwrite_ids(target: object, bot_id: int | None) -> list[int]:
     """The member-level overwrite user ids recorded on one target (duck-typed).
 
@@ -4815,6 +4910,13 @@ async def _run_back_to_setup(interaction: discord.Interaction, strings: dict[str
         await interaction.followup.send(strings["back_setup_failed"].format("no service"), ephemeral=True)
         return
     try:
+        # reset-ghost-roles-v2 (Drasah 29/10): blank — an ex-king of a
+        # previous season — kept his Kingdoms King after the reset: the
+        # v1 doc-driven sweep is blind to ghosts whose docs AND archives
+        # no longer resolve them. The season player ROLES are DELETED
+        # (taverne door pattern): every holder is stripped at once. The
+        # mappings die too, and the fresh roles come back below.
+        await _delete_season_player_roles_safe(guild)
         # BEFORE the wipe: the sync pass is doc-driven, once the lord
         # documents are gone a stale 💍 pseudo (or red role) would live
         # forever — strip the livery while the docs still resolve.
@@ -4825,6 +4927,10 @@ async def _run_back_to_setup(interaction: discord.Interaction, strings: dict[str
         await _strip_player_mod_roles_for_all_lords_safe(guild)
         await wiring.kingdoms_service.reset()
         await wiring.kingdoms_service.launch()
+        # reset-ghost-roles-v2: the fresh roles must exist BEFORE the
+        # reinstall — the category gating pass resolves them by name to
+        # write the view overwrites, and acceptance needs a live role.
+        await _reprovision_mod_roles_safe(guild)
     except Exception as exc:
         logger.exception("KINGDOMS ADMIN: back-to-setup data wipe failed for guild %s", guild.id)
         await interaction.followup.send(
