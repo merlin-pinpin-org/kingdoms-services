@@ -16,7 +16,13 @@ RUN VIRTUAL_ENV=/app/.venv uv sync --frozen --no-dev
 
 FROM python:3.12-slim AS runtime
 WORKDIR /app
-ENV PATH="/app/.venv/bin:$PATH" \
+# marche-banner-live-v2 (Drasah 29/10): the bot resolves « kingdoms »
+# from the installed WHEEL (site-packages) — a repo-root asset was
+# invisible to the process. The checkout /app/src IS the pinned commit,
+# so putting it first makes __file__ + relative assets deterministic
+# (same content as the wheel, assets readable beside the code).
+ENV PYTHONPATH="/app/src" \
+    PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 COPY --from=build /app/.venv ./.venv

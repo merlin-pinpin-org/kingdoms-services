@@ -50,12 +50,16 @@ def card_filename(item: str) -> str:
 # it (pattern assets/taverne).
 # marche-banner-live-v1 (Drasah 29/10): the web upload landed at the
 # repo ROOT as « marché.jpg » (the path field of the GitHub uploader was
-# left untouched — same story as the VS badge). First candidate stays
-# the canonical path: a future clean re-upload takes priority over the
-# root fallback.
+# left untouched — same story as the VS badge).
+# marche-banner-live-v2 (Drasah 29/10): the container resolves the
+# package from site-packages (the wheel) unless PYTHONPATH puts the
+# checkout first — candidates cover the canonical package path, the
+# repo root (parents[4], checkout layout), AND the workdir (/app in the
+# container). First existing file wins; None = no art, no crash.
 _BANNER_CANDIDATES: tuple[Path, ...] = (
     _ASSET_DIR.parent / "marche_banner.png",
     Path(__file__).resolve().parents[4] / "marché.jpg",
+    Path.cwd() / "marché.jpg",
 )
 
 

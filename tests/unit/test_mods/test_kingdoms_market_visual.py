@@ -30,10 +30,11 @@ def test_section_and_crier_strings_exist_in_both_locales() -> None:
 def test_banner_file_prefers_the_canonical_path_then_the_root_fallback(
     tmp_path: "object",
 ) -> None:
-    """marche-banner-live-v1 (Drasah 29/10): the web upload landed at the
-    repo ROOT as « marché.jpg » — banner_file() tries the canonical
-    assets path first, then the root fallback, and answers None when
-    neither exists (the panel works without the art)."""
+    """marche-banner-live-v2 (Drasah 29/10): the web upload landed at the
+    repo ROOT as « marché.jpg » and the container imports the wheel —
+    banner_file() tries the canonical assets path first, then the
+    fallbacks (repo root via parents[4], workdir via cwd), and answers
+    None when none exists (the panel works without the art)."""
     from pathlib import Path
 
     from kingdoms.mods.kingdoms import marche_art
