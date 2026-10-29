@@ -1825,7 +1825,7 @@ async def _deploy_market_panel(
             if banner is not None:
                 await existing.edit(
                     view=view,
-                    files=[discord.File(str(banner), filename="marche_banner.png")],
+                    files=[discord.File(str(banner), filename=f"marche_banner{banner.suffix.lower()}")],
                 )
             else:
                 await existing.edit(view=view)
@@ -1835,7 +1835,7 @@ async def _deploy_market_panel(
     if banner is not None:
         await channel.send(
             view=view,
-            files=[discord.File(str(banner), filename="marche_banner.png")],
+            files=[discord.File(str(banner), filename=f"marche_banner{banner.suffix.lower()}")],
             allowed_mentions=NO_MENTIONS,
         )
     else:

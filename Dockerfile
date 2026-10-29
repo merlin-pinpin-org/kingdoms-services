@@ -23,6 +23,12 @@ COPY --from=build /app/.venv ./.venv
 COPY src/ ./src/
 COPY config/ ./config/
 COPY data/ ./data/
+# marche-banner-live-v1 (Drasah 29/10): the market banner landed at the
+# repo ROOT via the GitHub web upload (marché.jpg) — ship it to /app so
+# banner_file() finds it (parents[4]). ⚠️ If marché.jpg ever leaves the
+# repo root, remove this line too (COPY of a missing file breaks the
+# build) — the canonical assets/marche_banner.png needs no COPY at all.
+COPY marché.jpg ./marché.jpg
 COPY docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x entrypoint.sh && apt-get update -qq \
     && apt-get install -y -qq --no-install-recommends curl \

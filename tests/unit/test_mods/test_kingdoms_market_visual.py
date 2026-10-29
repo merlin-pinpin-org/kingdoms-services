@@ -25,3 +25,33 @@ def test_section_and_crier_strings_exist_in_both_locales() -> None:
         assert strings["market_crier"]
         for header, _ in MARKET_SECTIONS:
             assert strings[header], (locale, header)
+
+
+def test_banner_file_prefers_the_canonical_path_then_the_root_fallback(
+    tmp_path: "object",
+) -> None:
+    """marche-banner-live-v1 (Drasah 29/10): the web upload landed at the
+    repo ROOT as « marché.jpg » — banner_file() tries the canonical
+    assets path first, then the root fallback, and answers None when
+    neither exists (the panel works without the art)."""
+    from pathlib import Path
+
+    from kingdoms.mods.kingdoms import marche_art
+
+    original = marche_art._BANNER_CANDIDATES
+    try:
+        canonical = Path(str(tmp_path) + "/assets/marche_banner.png")
+        fallback = Path(str(tmp_path) + "/marché.jpg")
+        marche_art._BANNER_CANDIDATES = (canonical, fallback)
+
+        assert marche_art.banner_file() is None  # nothing uploaded yet
+
+        fallback.parent.mkdir(parents=True, exist_ok=True)
+        fallback.write_bytes(b"\xff\xd8fake")
+        assert marche_art.banner_file() == fallback  # root fallback found
+
+        canonical.parent.mkdir(parents=True, exist_ok=True)
+        canonical.write_bytes(b"\x89PNGfake")
+        assert marche_art.banner_file() == canonical  # canonical wins
+    finally:
+        marche_art._BANNER_CANDIDATES = original

@@ -48,9 +48,20 @@ def card_filename(item: str) -> str:
 # marche-visuel-v2 (Drasah 28/10): the market banner (the generated
 # crier scene, uploaded by Drasah) — cosmetic, the panel works without
 # it (pattern assets/taverne).
-_BANNER_PATH = _ASSET_DIR.parent / "marche_banner.png"
+# marche-banner-live-v1 (Drasah 29/10): the web upload landed at the
+# repo ROOT as « marché.jpg » (the path field of the GitHub uploader was
+# left untouched — same story as the VS badge). First candidate stays
+# the canonical path: a future clean re-upload takes priority over the
+# root fallback.
+_BANNER_CANDIDATES: tuple[Path, ...] = (
+    _ASSET_DIR.parent / "marche_banner.png",
+    Path(__file__).resolve().parents[4] / "marché.jpg",
+)
 
 
 def banner_file() -> Path | None:
     """Return the market banner path (None = asset not uploaded yet)."""
-    return _BANNER_PATH if _BANNER_PATH.is_file() else None
+    for candidate in _BANNER_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    return None
