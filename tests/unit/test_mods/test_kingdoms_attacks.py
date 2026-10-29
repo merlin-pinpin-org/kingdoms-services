@@ -127,6 +127,50 @@ class Bundle:
         await self.territories.draw_initial(seed=seed)
 
 
+async def test_cover_can_be_a_foreign_lord_but_never_of_the_attacked_kingdom() -> None:
+    """bluff-externe-v1 (Drasah 29/10): the counter-espionage cover may
+    be a lord of a FOREIGN kingdom (the false flag adds tension) — but
+    NEVER a lord of the ATTACKED kingdom, and the charge survives a
+    refused cover."""
+    from kingdoms.mods.kingdoms.attacks import AttackError
+
+    bundle = Bundle()
+    await bundle.launch_season()
+    # A third, foreign kingdom: Provence (king-c) owns no territory —
+    # it only supplies a COVER lord.
+    await bundle.kingdoms.enroll("king-c", "King C", LordRole.KING, proposed_name="Provence")
+    await bundle.draw(31)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # The Bundle has no stock helper (it lives on PhasesBundle) — seed
+    # the purchase document directly.
+    from kingdoms.mods.kingdoms.models import TechnologyState
+
+    state = TechnologyState(_id=aquitaine, season_id="s", tech_points=0, purchases={"contre_espionnage": 1})
+    await bundle.store.upsert_technology(state.to_mongo())
+    # A FOREIGN cover lord (Provence) is valid — the false flag paints.
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://lobby", cover_lord_id="king-c"
+    )
+    assert attack.cover_lord_id == "king-c"
+    assert (await bundle.attacks.technology_state(aquitaine)).purchases["contre_espionnage"] == 0
+    # A cover of the ATTACKED kingdom is refused — the charge survives
+    # and no attack document is created.
+    await bundle.store.upsert_technology(
+        TechnologyState(
+            _id=aquitaine, season_id="s", tech_points=0, purchases={"contre_espionnage": 1}
+        ).to_mongo()
+    )
+    before = len(await bundle.attacks.attacks())
+    with pytest.raises(AttackError):
+        await bundle.attacks.declare_attack(
+            "king-a", target, "aoe2de://x", cover_lord_id="lord-b"
+        )
+    assert len(await bundle.attacks.attacks()) == before
+    assert (await bundle.attacks.technology_state(aquitaine)).purchases["contre_espionnage"] == 1
+
+
 async def test_declare_defend_resolve_captures_the_territory() -> None:
     """Nominal 1v1: declare, defend, resolve for the attacker, transfer."""
     bundle = Bundle()

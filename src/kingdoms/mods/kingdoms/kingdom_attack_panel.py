@@ -342,14 +342,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "cover_question": (
             "🕶️ Utiliser un contre-espionnage ? (1 charge — l'attaque sera annoncée sous"
-            " le pseudo d'un autre seigneur, démasqué à la fin du Siège)"
+            " le pseudo d'un autre seigneur — de ton royaume ou d'un autre —"
+            " démasqué à la fin du Siège)"
         ),
         "cover_yes_button": "🕶️ OUI — bluffer",
         "cover_no_button": "❌ NON — à visage découvert",
-        "choose_cover": "🕶️ Sous le pseudo de quel seigneur déclarer l'attaque ?",
-        "cover_no_lords": (
-            "🕵️ Ton royaume n'a aucun autre seigneur actif — impossible de bluffer :"
-            " l'attaque part à visage découvert (aucune charge consommée)."
+        "choose_cover": (
+            "🕶️ Sous l'identité de quel seigneur déclarer l'attaque ?"
+            " (tous royaumes, sauf le royaume attaqué)"
         ),
         "announce_v1": (
             "⚔️ {attacker} du royaume {kingdom} a lancé une attaque sur le royaume"
@@ -375,7 +375,11 @@ _STRINGS: dict[str, dict[str, str]] = {
             " défense devient Facile pendant 6h et les mariages scellés prennent +2h"
             " de verrou."
         ),
-        "reveal_cover": ("🕶️ Reveal — l'attaque sur **{map}** était menée par **{lord}** (la couverture tombe)."),
+        "reveal_cover": (
+            "🕶️ Reveal — l'attaque sur **{map}** était menée par **{attacker}** du"
+            " royaume **{attacker_kingdom}**, sous la couverture de **{cover}** du"
+            " royaume **{cover_kingdom}**. La couverture tombe."
+        ),
         "reveal_ai": (
             "🤖 Personne n'a défendu **{map}** — l'IA du royaume **{kingdom}** prend la défense"
             " (niveau **{level}**/5) !"
@@ -714,14 +718,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "cover_question": (
             "🕶️ Use a counter-espionage? (1 charge — the attack is announced under"
-            " another lord's name, unmasked at the end of the Siege)"
+            " another lord's name — yours or a foreign kingdom's — unmasked at"
+            " the end of the Siege)"
         ),
         "cover_yes_button": "🕶️ YES — bluff",
         "cover_no_button": "❌ NO — open-faced",
-        "choose_cover": "🕶️ Under which lord's name should the attack be declared?",
-        "cover_no_lords": (
-            "🕵️ Your kingdom has no other active lord — no bluff possible: the"
-            " attack is declared in the open (no charge consumed)."
+        "choose_cover": (
+            "🕶️ Under which lord's identity should the attack be declared?"
+            " (any kingdom, never the attacked one)"
         ),
         "announce_v1": (
             "⚔️ {attacker} of kingdom {kingdom} has launched an attack on kingdom"
@@ -744,7 +748,11 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🪤 A kingdom may activate a Traquenard on its adversary: the defense AI"
             " turns Easy for 6h and sealed marriages gain +2h of lock."
         ),
-        "reveal_cover": ("🕶️ Reveal — the attack on **{map}** was led by **{lord}** (the cover drops)."),
+        "reveal_cover": (
+            "🕶️ Reveal — the attack on **{map}** was led by **{attacker}** of kingdom"
+            " **{attacker_kingdom}**, under the cover of **{cover}** of kingdom"
+            " **{cover_kingdom}**. The cover drops."
+        ),
         "reveal_ai": (
             "🤖 Nobody defended **{map}** — the AI of kingdom **{kingdom}** takes the defense (level **{level}**/5)!"
         ),
@@ -1057,6 +1065,26 @@ async def _kingdom_name(kingdoms_service: Any, kingdom_id: str | None) -> str:
     if kingdom is None:
         return str(kingdom_id or "—")
     return str(getattr(kingdom, "name", None) or kingdom_id)
+
+
+async def _lord_kingdom_name(kingdoms_service: Any, lord_id: str | None) -> str:
+    """Resolve a lord's kingdom display name (empty on any hiccup).
+
+    bluff-externe-v1 (Drasah 29/10): the cover paints the COVER lord's
+    kingdom — on any resolution failure the surface degrades to the
+    neutral fallback, NEVER to the real attacker's kingdom.
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
+
+    if not lord_id or kingdoms_service is None:
+        return ""
+    try:
+        lord = await _lord_of(kingdoms_service, lord_id)
+        if lord is None or not getattr(lord, "kingdom_id", None):
+            return ""
+        return await _kingdom_name(kingdoms_service, lord.kingdom_id)
+    except Exception:
+        return ""
 
 
 def _declare_view(strings: dict[str, str]) -> discord.ui.View:
@@ -1541,6 +1569,7 @@ async def _territory_select_view(
             strings,
             chosen[0],
             own_kingdom_id,
+            kingdom_id,
             is_gaia=bool(getattr(kingdom, "is_gaia", False)),
         )
 
@@ -1773,11 +1802,14 @@ async def _declare_player_attack(
     await refresh_attack_panel_safe(target.guild, _locale(target))
 
 
-async def _kingdom_other_lords(wiring: Any, kingdom_id: str, except_user_id: str) -> list[Any]:
-    """Return the kingdom's OTHER active lords (the bluff candidates).
+async def _cover_candidates(wiring: Any, defender_kingdom_id: str, except_user_id: str) -> list[Any]:
+    """Return the bluff candidates (bluff-externe-v1, Drasah 29/10).
 
-    Drasah 18/10 v5: a lone lord cannot bluff anyone — the cover flow
-    needs to know it BEFORE offering the OUI/NON question.
+    EVERY active lord of the season is eligible — the attacker's own
+    kingdom (D77) AND the foreign kingdoms (the false flag adds
+    tension) — EXCEPT the lords of the ATTACKED kingdom and the
+    attacker himself. The service re-checks the rule at the
+    declaration (_engage_cover).
     """
     if wiring.kingdoms_service is None:
         return []
@@ -1789,8 +1821,9 @@ async def _kingdom_other_lords(wiring: Any, kingdom_id: str, except_user_id: str
     return [
         lord
         for lord in lords
-        if str(lord.kingdom_id) == str(kingdom_id)
+        if getattr(lord, "kingdom_id", None)
         and not getattr(lord, "left", False)
+        and str(lord.kingdom_id) != str(defender_kingdom_id)
         and str(lord.id) != str(except_user_id)
     ]
 
@@ -1801,6 +1834,7 @@ async def _open_cover_step(
     strings: dict[str, str],
     map_key: str,
     own_kingdom_id: str,
+    defender_kingdom_id: str,
     *,
     is_gaia: bool = False,
 ) -> None:
@@ -1810,9 +1844,12 @@ async def _open_cover_step(
     defender to bluff (Drasah 14/10 — Gaïa is attackable like any
     kingdom, the battle just accepts extra lords).
 
-    Drasah 18/10 v5: a LONE lord cannot bluff anyone either — the
-    question is skipped and an explicit note says why (the live beta
-    showed a silent jump to the lobby instead).
+    bluff-externe-v1 (Drasah 29/10): the candidates are ALL active
+    lords of the season — ANY kingdom, including foreign ones (the
+    false flag adds tension) — EXCEPT the lords of the ATTACKED
+    kingdom and the attacker himself. With no eligible candidate the
+    attack declares OPENLY and SILENTLY: no note, no charge consumed
+    (Drasah 5a — no information pollution on every attack).
     """
     import discord
 
@@ -1825,35 +1862,57 @@ async def _open_cover_step(
         return
     state = await attacks_service.technology_state(own_kingdom_id)
     has_stock = state.purchases.get("contre_espionnage", 0) > 0
-    other_lords = await _kingdom_other_lords(wiring, own_kingdom_id, str(interaction.user.id))
-    if not has_stock or not other_lords:
+    candidates = await _cover_candidates(wiring, defender_kingdom_id, str(interaction.user.id))
+    if not has_stock or not candidates:
         await _declare_player_attack(wiring, interaction, strings, map_key, None)
-        if has_stock:
-            await interaction.followup.send(strings["cover_no_lords"], ephemeral=True)
         return
     view = discord.ui.View(timeout=600)
 
     async def open_lobby(cover_lord_id: str | None, target: discord.Interaction[Any]) -> None:
         await _declare_player_attack(wiring, target, strings, map_key, cover_lord_id)
 
+    async def _cover_options(target: discord.Interaction[Any]) -> list[discord.SelectOption[Any]]:
+        """The eligible lords sorted by (kingdom, name) with the kingdom
+        as the option description — the attacker sees WHO belongs to
+        WHICH kingdom before painting the false flag."""
+        lords = await _cover_candidates(wiring, defender_kingdom_id, str(target.user.id))
+        kingdom_names: dict[str, str] = {}
+        try:
+            kingdom_names = {
+                str(k.id): str(k.name) for k in await wiring.kingdoms_service.kingdoms()
+            }
+        except Exception:
+            kingdom_names = {}
+        entries = [
+            (
+                kingdom_names.get(str(getattr(lord, "kingdom_id", "")), ""),
+                str(getattr(lord, "display_name", lord.id)),
+                lord,
+            )
+            for lord in lords
+        ]
+        entries.sort(key=lambda entry: (entry[0].lower(), entry[1].lower()))
+        return [
+            discord.SelectOption(
+                label=entry[1][:100],
+                value=str(entry[2].id)[:100],
+                description=entry[0][:100],
+            )
+            for entry in entries
+        ][:25]
+
     async def on_yes(target: discord.Interaction[Any]) -> None:
-        lords = await _kingdom_other_lords(wiring, own_kingdom_id, str(target.user.id))
-        if not lords:
+        options = await _cover_options(target)
+        if not options:
             # Nobody left to bluff (a departure since the question was
-            # shown) — declare openly and say WHY, never silently.
+            # shown) — declare openly, SILENTLY (bluff-externe-v1 5a:
+            # no note, no charge consumed).
             await open_lobby(None, target)
-            await target.followup.send(strings["cover_no_lords"], ephemeral=True)
             return
         select: discord.ui.Select[Any] = discord.ui.Select(
             custom_id="kingdoms:attack:choose:cover",
             placeholder=str(strings["choose_cover"])[:100],
-            options=[
-                discord.SelectOption(
-                    label=str(getattr(lord, "display_name", lord.id))[:100],
-                    value=str(lord.id)[:100],
-                )
-                for lord in lords
-            ][:25],
+            options=options,
         )
 
         async def on_cover(chosen: discord.Interaction[Any]) -> None:
@@ -1944,7 +2003,15 @@ async def _open_attack_salon_safe(guild: Any, wiring: Any, strings: dict[str, st
     shown_id = attack.cover_lord_id or attack.attacker_lord_id
     shown_name = await _lord_name(kingdoms_service, shown_id)
     defender_name = await _kingdom_name(kingdoms_service, attack.defender_kingdom_id)
-    attacker_kingdom_name = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
+    # bluff-externe-v1 (Drasah 29/10): the illusion wears the COVER
+    # lord's KINGDOM too — a foreign cover paints the whole false
+    # flag; the real attacker's kingdom stays hidden until the reveal
+    # (an unresolvable cover degrades to the neutral fallback, never
+    # to the real kingdom).
+    if attack.cover_lord_id:
+        attacker_kingdom_name = await _lord_kingdom_name(kingdoms_service, attack.cover_lord_id) or "—"
+    else:
+        attacker_kingdom_name = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
     # battle-room-id-v2 (Drasah 22/10): the generated name becomes a
     # readable ⚔️ duel — ``⚔️-drasah-vs-bourgogne`` (the attacker's
     # name VS the DEFENDER KINGDOM's name — the defender PLAYER is
@@ -4174,12 +4241,23 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
     for attack in await attacks_service.reveal_due():
         played += 1
         if attack.cover_lord_id:
+            # bluff-externe-v1 (Drasah 29/10): the reveal puts
+            # EVERYTHING clear — the real attacker AND his kingdom,
+            # under the cover of whom and of which kingdom.
             await _attack_salon_send_safe(
                 guild,
                 attack,
                 strings["reveal_cover"].format(
                     map=attack.map_key,
-                    lord=await _lord_name(kingdoms_service, attack.attacker_lord_id),
+                    attacker=await _lord_name(kingdoms_service, attack.attacker_lord_id),
+                    attacker_kingdom=await _kingdom_name(
+                        kingdoms_service, attack.attacker_kingdom_id
+                    ),
+                    cover=await _lord_name(kingdoms_service, attack.cover_lord_id),
+                    cover_kingdom=await _lord_kingdom_name(
+                        kingdoms_service, attack.cover_lord_id
+                    )
+                    or "—",
                 ),
             )
         if attack.ai_defender:

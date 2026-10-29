@@ -282,6 +282,111 @@ async def test_declaration_names_the_cover_not_the_attacker() -> None:
     assert "king-a" not in salon.name
 
 
+async def test_declaration_paints_the_foreign_cover_kingdom_too() -> None:
+    """bluff-externe-v1 4a (Drasah 29/10): the illusion wears the COVER
+    lord's KINGDOM — a foreign cover paints the whole false flag; the
+    real attacker's kingdom appears NOWHERE before the reveal."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_attack_salon_safe, _strings
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+    from kingdoms.mods.kingdoms.models import LordRole
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    # A third, foreign kingdom supplies the cover lord.
+    await bundle.kingdoms.enroll("king-c", "King C", LordRole.KING, proposed_name="Provence")
+    await bundle.draw(26)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    await bundle.stock(aquitaine, contre_espionnage=1)
+    attack = await bundle.attacks.declare_attack(
+        "king-a",
+        target,
+        "",
+        cover_lord_id="king-c",
+        now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC),
+    )
+    assert attack.cover_lord_id == "king-c"
+    _wiring(bundle)
+    guild = MockGuild()
+    await guild.create_text_channel("Déclarer une attaque")
+    await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), attack)
+    salon = next(c for c in guild.text_channels if c.name != "Déclarer une attaque")
+    # The salon name never leaks the real attacker.
+    assert salon.name == "🗡️-king-c-vs-bourgogne"
+    assert "king-a" not in salon.name
+    # The announcement paints the WHOLE false flag: the cover lord AND
+    # his kingdom — never the real attacker or Aquitaine.
+    announce = str(salon.messages[0].content or "")
+    assert "<@king-c>" in announce
+    assert "**Provence**" in announce
+    assert "king-a" not in announce
+    assert "Aquitaine" not in announce
+
+
+async def test_cover_select_offers_every_lord_except_the_attacked_kingdom() -> None:
+    """bluff-externe-v1 (Drasah 29/10): after OUI the cover select lists
+    every active lord — the foreign kingdoms included — EXCEPT the
+    lords of the attacked kingdom; each option carries its kingdom as
+    the description."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.models import LordRole
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.kingdoms.enroll("king-c", "King C", LordRole.KING, proposed_name="Provence")
+    await bundle.kingdoms.enroll("lord-c", "Lord C", LordRole.LORD, kingdom_name="Provence")
+    await bundle.draw(27)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    await bundle.stock(aquitaine, contre_espionnage=1)
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",  # type: ignore[arg-type]
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    kingdom_view = click.response.message and click.response.message.view
+    kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [bourgogne]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    territory_select = next(
+        c for c in step.response.message.view.children if c.custom_id == "kingdoms:attack:choose:territory"
+    )
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        data={"values": [target]},
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    cover_view = step2.response.message.view
+    yes = next(c for c in cover_view.children if c.custom_id == "kingdoms:attack:cover:yes")
+    oui = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),
+        locale="fr",  # type: ignore[arg-type]
+    )
+    await yes.callback(oui)  # type: ignore[arg-type]
+    select = next(c for c in oui.response.message.view.children if c.custom_id == "kingdoms:attack:choose:cover")
+    values = [o.value for o in select.options]
+    # Every active lord EXCEPT the attacker and the attacked kingdom.
+    assert "lord-a" in values  # the attacker's own kingdom stays eligible
+    assert "king-c" in values and "lord-c" in values  # the foreign kingdom
+    assert "king-b" not in values and "lord-b" not in values  # the attacked kingdom
+    descriptions = {o.value: str(o.description or "") for o in select.options}
+    assert descriptions["king-c"] == "Provence"
+    assert descriptions["lord-a"] == "Aquitaine"
+
+
 async def test_cancel_attack_button_refunds_and_purges_the_salon() -> None:
     """b: the DECLARANT alone, inside the 10-minute window — budgets
     refunded (attacker AND defender when recorded), the salon purged."""
@@ -575,11 +680,11 @@ async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
     assert "kingdoms:attack:cover:no" in ids
 
 
-async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
-    """Drasah 18/10 v5: a lone lord cannot bluff — even WITH a
-    contre-espionnage charge the question is skipped, the attack
-    declares openly and an explicit note says why (live beta: the OUI
-    click jumped to the lobby in silence)."""
+async def test_declare_flow_skips_the_cover_silently_when_no_lord_is_eligible() -> None:
+    """bluff-externe-v1 5a (Drasah 29/10): with NO eligible cover
+    candidate the question is skipped and the attack declares openly
+    and SILENTLY — no note, no charge consumed (the note of the solo
+    case was information pollution on every attack)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         KingdomAttackDeclareButton,
         _strings,
@@ -591,7 +696,9 @@ async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
     aquitaine = await bundle.kingdom_id("Aquitaine")
     bourgogne = await bundle.kingdom_id("Bourgogne")
     target = (await bundle.owner_maps(bourgogne))[0]
-    # The king is ALONE: the only other Aquitaine lord left the season.
+    # No eligible candidate: the only other Aquitaine lord left the
+    # season and the remaining lords all belong to the ATTACKED
+    # kingdom (Bourgogne) — excluded by the bluff-externe-v1 rule.
     lord_a = next(item for item in await bundle.kingdoms.lords() if str(item.id) == "lord-a")
     lord_a.left = True
     await bundle.store.upsert_lord(lord_a.to_mongo())
@@ -628,10 +735,13 @@ async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
     assert attacks[0].cover_lord_id is None
     assert step2.response.deferred is True
     assert not step2.response.message
-    # …and the note explains WHY (no silent skip, no charge consumed).
+    # …and NO note at all: only the itinerary confirmation follows
+    # (the only lords left belong to the ATTACKED kingdom — excluded
+    # by rule, and saying why would be information pollution).
     bodies = [str(m.content or "") for m in step2.followup.messages]
     assert any("Attaque déclarée" in body for body in bodies)
-    assert any("aucun autre seigneur actif" in body for body in bodies)
+    assert all("bluff" not in body for body in bodies)
+    assert all("seigneur actif" not in body for body in bodies)
     fresh_state = await bundle.attacks.technology_state(aquitaine)
     assert fresh_state.purchases.get("contre_espionnage") == 1
 
@@ -956,6 +1066,44 @@ async def test_scheduler_reveal_names_the_defender_in_the_salon() -> None:
     battle = [m for m in salon2.messages if "Bataille en vue" in (m.content or "")]
     assert battle
     assert "défenseur : Lord B" in (battle[-1].content or "")
+
+
+async def test_scheduler_reveal_clears_the_whole_false_flag() -> None:
+    """bluff-externe-v1 (Drasah 29/10): at the T-15 reveal the salon
+    message puts EVERYTHING clear — the real attacker AND his kingdom,
+    under the cover of whom and of which kingdom. Zéro assistance
+    elsewhere: the salon of the attack is the ONLY place it lands."""
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import run_attack_phases_safe
+    from kingdoms.mods.kingdoms.models import LordRole
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.kingdoms.enroll("king-c", "King C", LordRole.KING, proposed_name="Provence")
+    await bundle.draw(28)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.stock(aquitaine, contre_espionnage=1)
+    attack = await bundle.attacks.declare_attack(
+        "king-a",
+        (await bundle.owner_maps(bourgogne))[0],
+        "",
+        cover_lord_id="king-c",
+        now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC),
+    )
+    guild = await _salon_guild(bundle, attack)
+    salon = next(c for c in guild.text_channels if c.name != "Déclarer une attaque")
+    bot = _GuildBot(bundle, guild)
+    attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
+    await run_attack_phases_safe(bot)
+    reveal = [m for m in salon.messages if "Reveal" in (m.content or "")]
+    assert reveal
+    content = str(reveal[-1].content or "")
+    assert "King A" in content  # the REAL attacker
+    assert "Aquitaine" in content  # his real kingdom
+    assert "King C" in content  # the cover lord
+    assert "Provence" in content  # the cover kingdom
+    assert "La couverture tombe" in content
 
 
 async def test_pickban_view_selects_acknowledge_and_validate() -> None:

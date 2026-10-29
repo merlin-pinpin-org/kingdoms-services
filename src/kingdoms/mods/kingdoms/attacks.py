@@ -567,7 +567,10 @@ class AttackService:
         the declared territory owner must be another player kingdom.
         The optional cover (Contre-espionnage, D77) displays another
         lord instead of the real attacker until the T-15 reveal — one
-        bought cover is consumed on use. The Traquenard v2 (Drasah
+        bought cover is consumed on use. bluff-externe-v1 (Drasah
+        29/10): the cover may be ANY active lord of the season —
+        including a lord of a FOREIGN kingdom (the false flag adds
+        tension) — EXCEPT a lord of the ATTACKED kingdom. The Traquenard v2 (Drasah
         2026-10-14) is INDEPENDENT of the declaration: the kingdom
         activates it from its own salon (see ``activate_traquenard``)
         and every attack declared against the target inside the 6h
@@ -585,7 +588,11 @@ class AttackService:
         # taverne-v1: a drinking lord declares NOTHING either.
         self._refuse_tavern(lord, timestamp)
         territory = await self._validate_attack_target(lord, map_key, timestamp)
-        cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
+        cover = (
+            await self._engage_cover(lord, cover_lord_id, territory.owner_kingdom_id)
+            if cover_lord_id
+            else None
+        )
         if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
             f"attack budget of {lord.display_name} ({lord.attack_used})"
         ):
@@ -1138,13 +1145,24 @@ class AttackService:
         ):
             raise LordLockedError("the lord is locked by a missed FFA (ffa-exploration-v1)")
 
-    async def _engage_cover(self, lord: LordModel, cover_lord_id: str) -> str:
-        """Validate and consume one cover (Contre-espionnage, D77)."""
+    async def _engage_cover(
+        self, lord: LordModel, cover_lord_id: str, defender_kingdom_id: str
+    ) -> str:
+        """Validate and consume one cover (Contre-espionnage, D77).
+
+        bluff-externe-v1 (Drasah 29/10): the cover may be ANY active
+        lord of the season — including a lord of ANOTHER kingdom (the
+        false flag adds tension) — EXCEPT a lord of the ATTACKED
+        kingdom (the defender must never see one of his own attack
+        him) and the attacker himself.
+        """
         if cover_lord_id == lord.id:
             raise AttackError("the cover lord cannot be the attacker himself")
         cover = await self._require_lord(cover_lord_id)
         if cover.left or cover.kingdom_id is None:
             raise AttackError("the cover lord is no active lord of the season")
+        if str(cover.kingdom_id) == str(defender_kingdom_id):
+            raise AttackError("the cover lord cannot belong to the attacked kingdom")
         state = await self.technology_state(lord.kingdom_id or "")
         bought = state.purchases.get("contre_espionnage", 0)
         if bought <= 0:
