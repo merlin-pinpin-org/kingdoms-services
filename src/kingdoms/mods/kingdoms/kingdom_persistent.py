@@ -5402,13 +5402,16 @@ class KingdomRealmRenameModal(discord.ui.Modal):
         strings = realm_strings(self.locale)
         wiring = _wiring()
         if wiring.kingdoms_service is None:
-            await interaction.response.send_message(strings["realms_failed"].format("no service"), ephemeral=True)
+            await interaction.response.send_message(strings["realms_failed"].format(error="no service"), ephemeral=True)
             return
         await interaction.response.defer(ephemeral=True)
         try:
             kingdom = await wiring.kingdoms_service.rename_kingdom(self.kingdom_id, (self.new_name.value or "").strip())
         except Exception as exc:
-            await interaction.followup.send(strings["realms_failed"].format(type(exc).__name__), ephemeral=True)
+            # realms-midseason-v1: {error} is a NAMED placeholder — a
+            # positional .format() raised KeyError 'error' and masked
+            # the real cause with silence.
+            await interaction.followup.send(strings["realms_failed"].format(error=type(exc).__name__), ephemeral=True)
             return
         if interaction.guild is not None and str(kingdom.validation) == "approved":
             category = _find_realm_category(interaction.guild, kingdom.name)
@@ -5701,7 +5704,7 @@ class KingdomRealmButton(
             await interaction.response.send_message("Only admins can validate kingdoms.", ephemeral=True)
             return
         if wiring.kingdoms_service is None or interaction.guild is None:
-            await interaction.response.send_message(strings["realms_failed"].format("no service"), ephemeral=True)
+            await interaction.response.send_message(strings["realms_failed"].format(error="no service"), ephemeral=True)
             return
         if self.action == "rename":
             await interaction.response.send_modal(KingdomRealmRenameModal(locale, self.kingdom_id))
@@ -5763,7 +5766,18 @@ class KingdomRealmButton(
                 kingdom = await wiring.kingdoms_service.refuse_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)
         except Exception as exc:
-            await interaction.followup.send(strings["realms_failed"].format(type(exc).__name__), ephemeral=True)
+            # realms-midseason-v1 (Drasah 29/10): {error} is a NAMED
+            # placeholder — the positional .format() raised KeyError
+            # 'error', so Drasah saw NO ephemeral message at all and
+            # the panel refresh below was skipped: the Valider button
+            # stayed open on a kingdom already flipped APPROVED in DB.
+            await interaction.followup.send(
+                strings["realms_failed"].format(error=type(exc).__name__), ephemeral=True
+            )
+            # the kingdom was approved (or refused/deleted) BEFORE the
+            # crash — the panel must reflect the DB state even on a
+            # partial provisioning failure, never leave a stale button.
+            await _refresh_realms_panel_safe(interaction.guild, locale)
             return
         if self.action == "delete-confirm":
             await interaction.followup.send(strings["realms_deleted"], ephemeral=True)

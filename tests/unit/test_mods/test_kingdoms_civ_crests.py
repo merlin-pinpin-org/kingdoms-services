@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -151,6 +152,72 @@ async def test_draft_starter_attaches_the_hand_crests(monkeypatch: pytest.Monkey
     assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
     assert len(live) == 1
+
+
+async def test_draft_starter_passes_a_list_to_channel_send(monkeypatch: pytest.MonkeyPatch) -> None:
+    """realms-midseason-v1 (Drasah 29/10): the mosaic is ONE discord.File.
+
+    The draft starter used to hand that single File straight to
+    ``channel.send(files=...)`` — discord.py iterates ``files``, so the
+    mid-season Valider flow died with TypeError: 'File' object is not
+    iterable right after provisioning the salons (empty salons, Valider
+    button left open). The kwarg must be a LIST (possibly empty).
+    """
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        announce_draft_starter,
+        ensure_realm_structure,
+    )
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        return b"png"
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+
+    class _Civ:
+        def __init__(self, key: str, display_name: str) -> None:
+            self.key = key
+            self.display_name = display_name
+
+    class _Config:
+        civilizations = (_Civ("azteques", "Aztèques"),)
+
+    class _Service:
+        config = _Config()
+
+    class _Kingdom:
+        id = "k-1"
+        name = "Midland"
+        validation = "approved"
+        is_gaia = False
+        civilizations = ["azteques"]  # noqa: RUF012
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+    alliances = next(c for c in guild.categories[0].channels if c.name == "🤝 alliances")
+    seen: list[Any] = []
+
+    real_send = alliances.send
+
+    async def spy_send(content: str | None = None, **kwargs: Any) -> Any:
+        seen.append(kwargs.get("files"))
+        return await real_send(content, **kwargs)
+
+    alliances.send = spy_send  # type: ignore[method-assign]
+    assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
+    assert seen, "the draft starter must send at least once"
+    for files in seen:
+        assert isinstance(files, list), "files= must be a list, never a bare File"
+
+
+def test_realms_failed_placeholder_is_named_in_both_locales() -> None:
+    """realms-midseason-v1: {error} is NAMED — a positional .format() raised
+    KeyError 'error' and silently swallowed the real provisioning error."""
+    from kingdoms.mods.kingdoms.kingdom_realms import _strings
+
+    for locale in ("en", "fr"):
+        rendered = _strings(locale)["realms_failed"].format(error="TypeError")
+        assert "TypeError" in rendered
 
 
 # ----------------------------------------------------------------------

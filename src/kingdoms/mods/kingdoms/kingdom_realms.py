@@ -751,13 +751,19 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
     # wears ONE composite mosaic (starter-badge tile per civ) — the
     # page fits again, the civ-crests-v1 full-size attachments are
     # gone.
-    files = await civ_crest_mosaic_file(
+    # realms-midseason-v1 (Drasah 29/10): civ_crest_mosaic_file returns
+    # ONE discord.File (or None) — passing it straight into ``files=``
+    # made discord.py choke with TypeError: 'File' object is not
+    # iterable, killing the mid-season Valider flow right after the
+    # salons were provisioned (empty salons, button left open).
+    mosaic = await civ_crest_mosaic_file(
         [
             (str(civ_key), "starter", names.get(str(civ_key), str(civ_key)))
             for civ_key in kingdom.civilizations
         ],
         filename="draft-starter.png",
     )
+    files = [mosaic] if mosaic is not None else []
     marked, stale = await _split_marked_and_stale(channel, DRAFT_STARTER_MARKER, ALLIANCES_PENDING_MARKER)
     for message in stale:
         try:
