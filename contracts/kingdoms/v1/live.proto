@@ -37,6 +37,7 @@ message PlayerState {
   string state = 3;         // offline | in_lobby | in_game
   string match_ref = 4;    // opaque provider match id, empty when offline
   int64 since = 5;          // epoch ms of the last state change
+  string match_json = 6;   // the full live match payload (map, civs, settings, players) — JSON
 }
 
 message WatchPlayerEventsRequest {

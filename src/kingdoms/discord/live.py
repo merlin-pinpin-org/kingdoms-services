@@ -794,8 +794,10 @@ async def start_live_dashboard_refresh(
 
 
 PLATFORM = "discord"
-DASHBOARD_REFRESH_INTERVAL_S = 15
-DASHBOARD_MIN_EDIT_INTERVAL_S = 60
+# The dashboard cadence (owner direction: 15 s), configurable through
+# the bot's environment without a code change.
+DASHBOARD_REFRESH_INTERVAL_S = float(os.environ.get("DASHBOARD_REFRESH_INTERVAL_S", "15"))
+DASHBOARD_MIN_EDIT_INTERVAL_S = float(os.environ.get("DASHBOARD_MIN_EDIT_INTERVAL_S", "15"))
 _LAST_PUSH: dict[str, tuple[float, str]] = {}
 LIVE_STATE_SCOPE = "live-dashboard"
 
@@ -844,10 +846,28 @@ def _snapshot_fingerprint(snapshot: dict[str, Any]) -> str:
     so an unchanged roster never triggers an edit (#251).
     """
     players = snapshot.get("players") or []
-    return (
-        "|".join(str(p.get("profile_id", "")) + ":" + str(p.get("state", "")) for p in players)
-        + f"|degraded={snapshot.get('degraded', False)}"
-    )
+    parts = [
+        str(p.get("profile_id", ""))
+        + ":"
+        + str(p.get("state", ""))
+        + ":"
+        + _match_fingerprint(p.get("match") or {})
+        for p in players
+    ]
+    return "|".join(parts) + f"|degraded={snapshot.get('degraded', False)}"
+
+
+def _match_fingerprint(match: dict[str, Any]) -> str:
+    """Hash a player's live match payload (short + stable)."""
+    import hashlib
+    import json as _json
+
+    try:
+        return hashlib.sha256(
+            _json.dumps(match, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+        ).hexdigest()[:12]
+    except (TypeError, ValueError):
+        return ""
 
 
 async def _watch_stream(

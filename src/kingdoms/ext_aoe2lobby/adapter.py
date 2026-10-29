@@ -32,6 +32,7 @@ frames can exceed 1 MB (max_size raised); ``*_all`` payloads can be
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import time
@@ -64,6 +65,9 @@ EVENT_LOBBY_OPENED = "lobby_opened"
 EVENT_LOBBY_CLOSED = "lobby_closed"
 EVENT_GAME_STARTED = "game_started"
 EVENT_GAME_ENDED = "game_ended"
+# a live match's setup changed (civ pick, map, settings, slots) without
+# any state transition — the dashboards re-render the lobby's details
+EVENT_MATCH_UPDATED = "match_updated"
 
 PLAYER_STATUS_FIELD = "player_status"
 STATUS_FIELD = "status"
@@ -92,6 +96,7 @@ class Aoe2LobbyAdapter:
         self._max_size = max_size
         self._refresh_s = refresh_s
         self._matches: dict[str, dict[str, dict[str, Any]]] = {c: {} for c in _CONTEXTS}
+        self._match_payload_fp: dict[str, dict[str, str]] = {c: {} for c in _CONTEXTS}
         self._player_status: dict[str, tuple[str, str]] = {}
         self._close_refs: dict[str, str] = {}
         self._grace = LobbyClosedGrace(grace_s=int(grace_s))
@@ -357,16 +362,9 @@ class Aoe2LobbyAdapter:
     ) -> None:
         """Fold one context's deltas into the state, touching the changed matches."""
         if f"{context}_match_all" in frame:
-            snapshot = _as_match_dict(frame.get(f"{context}_match_all"))
-            for stale_id in self._matches[context]:
-                if stale_id not in snapshot:
-                    touched.setdefault(stale_id, self._matches[context][stale_id])
-            self._matches[context] = snapshot
-            touched.update(snapshot)
+            self._apply_match_all(context, frame.get(f"{context}_match_all"), touched)
         if f"{context}_match_update" in frame:
-            updates = _as_match_dict(frame.get(f"{context}_match_update"))
-            self._matches[context].update(updates)
-            touched.update(updates)
+            self._apply_match_updates(context, frame.get(f"{context}_match_update"), touched)
         removes = frame.get(f"{context}_match_remove")
         if isinstance(removes, list):
             for match_id in removes:
@@ -377,6 +375,35 @@ class Aoe2LobbyAdapter:
         if isinstance(player_removes, list):
             for profile_id in player_removes:
                 self._schedule_close(str(profile_id), "", _now_ms())
+
+    def _apply_match_all(
+        self, context: str, payload: object, touched: dict[str, dict[str, Any]]
+    ) -> None:
+        """Fold a full snapshot: replace the context's matches, re-fingerprint."""
+        snapshot = _as_match_dict(payload)
+        for stale_id in self._matches[context]:
+            if stale_id not in snapshot:
+                touched.setdefault(stale_id, self._matches[context][stale_id])
+                self._match_payload_fp[context].pop(stale_id, None)
+        self._matches[context] = snapshot
+        self._match_payload_fp[context] = {
+            mid: _payload_fingerprint(m) for mid, m in snapshot.items()
+        }
+        touched.update(snapshot)
+
+    def _apply_match_updates(
+        self, context: str, payload: object, touched: dict[str, dict[str, Any]]
+    ) -> None:
+        """Fold one delta batch: touch only the payloads that changed."""
+        updates = _as_match_dict(payload)
+        self._matches[context].update(updates)
+        for mid, match in updates.items():
+            fp = _payload_fingerprint(match)
+            if self._match_payload_fp[context].get(mid) != fp:
+                # a live change (setup, civs, slots): re-emit even
+                # without a state transition
+                touched.setdefault(mid, match)
+                self._match_payload_fp[context][mid] = fp
 
     def _reduce_touched(self, touched: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
         """Derive per-profile transitions from the matches touched by a frame."""
@@ -392,6 +419,13 @@ class Aoe2LobbyAdapter:
                 continue
             if (status, match_ref) == previous:
                 self._cancel_close(profile_id)
+                # same state, same match: a touched entry means the RAW
+                # payload changed (civ pick, map, settings, slots) —
+                # re-emit the match so the dashboards re-render details
+                if match_ref in touched and profile_id in _profiles_of(
+                    {match_ref: touched[match_ref]}
+                ):
+                    events.append(self._match_updated_event(profile_id, status, match_ref))
                 continue
             events.append(
                 self._transition_event(
@@ -440,6 +474,31 @@ class Aoe2LobbyAdapter:
         return {
             "match_ref": match_ref,
             "type": event_type,
+            "occurred_at": _now_ms(),
+            "profile_ids": [profile_id],
+            "metadata": metadata,
+        }
+
+    def _match_updated_event(
+        self, profile_id: str, status: str, match_ref: str
+    ) -> dict[str, Any]:
+        """Build one match_updated event (state unchanged, setup changed).
+
+        The metadata carries the fresh summary so the dashboards
+        re-render the lobby's details.
+        """
+        metadata: dict[str, str] = {}
+        if match_ref:
+            metadata["match_url"] = (
+                "https://www.aoe2lobby.com/w/" if status == STATUS_GAME else "https://www.aoe2lobby.com/j/"
+            ) + match_ref
+            summary = self.match_summary(match_ref, status)
+            for key, value in summary.items():
+                if value not in ("", None):
+                    metadata[str(key)] = str(value)
+        return {
+            "match_ref": match_ref,
+            "type": EVENT_MATCH_UPDATED,
             "occurred_at": _now_ms(),
             "profile_ids": [profile_id],
             "metadata": metadata,
@@ -586,6 +645,16 @@ class Aoe2LobbyAdapter:
             )
             self._player_status.pop(profile_id, None)
         return events
+
+
+def _payload_fingerprint(match: dict[str, Any]) -> str:
+    """Fingerprint one raw match payload (stable, setup-change sensitive)."""
+    try:
+        return hashlib.sha256(
+            json.dumps(match, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+    except (TypeError, ValueError):
+        return str(_now_ms())
 
 
 def _as_match_dict(payload: object) -> dict[str, dict[str, Any]]:

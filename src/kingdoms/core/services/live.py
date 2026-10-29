@@ -28,6 +28,7 @@ EVENT_LOBBY_OPENED = "lobby_opened"
 EVENT_LOBBY_CLOSED = "lobby_closed"
 EVENT_GAME_STARTED = "game_started"
 EVENT_GAME_ENDED = "game_ended"
+EVENT_MATCH_UPDATED = "match_updated"
 
 GRACE_MS = 15_000
 
@@ -97,9 +98,9 @@ class LiveAggregator:
         for binding in sorted(bindings, key=lambda b: str(b.get("user_id", ""))):
             user_id = str(binding.get("user_id", ""))
             profile_id = str(binding.get("profile_id", ""))
-            state = self._players.get(profile_id, {"state": STATE_OFFLINE, "match_ref": "", "since": 0})
+            state = self._players.get(profile_id, {"state": STATE_OFFLINE, "match_ref": "", "since": 0, "match": {}})
             if self._degraded:
-                state = {"state": STATE_OFFLINE, "match_ref": "", "since": 0}
+                state = {"state": STATE_OFFLINE, "match_ref": "", "since": 0, "match": {}}
             players.append(
                 {
                     "user_id": user_id,
@@ -107,6 +108,7 @@ class LiveAggregator:
                     "state": state["state"],
                     "match_ref": state["match_ref"],
                     "since": state["since"],
+                    "match": dict(state.get("match") or {}),
                 }
             )
         return {"players": players, "generated_at": now, "degraded": self._degraded}
@@ -120,6 +122,15 @@ class LiveAggregator:
         normalized ``PlayerStatusEvent`` for the Live event stream.
         """
         self._degraded = False
+        if event.type == EVENT_MATCH_UPDATED:
+            # a setup change (civ, map, settings): refresh the stored
+            # match payload, no state transition, no player-event noise
+            metadata = dict(getattr(event, "metadata", ()) or {})
+            for profile_id in event.profile_ids:
+                current = self._players.get(profile_id)
+                if current is not None and current.get("match_ref") == event.match_ref:
+                    current["match"] = _match_from_metadata(metadata)
+            return
         profile_state = _EVENT_STATE.get(event.type)
         if profile_state is None:
             return
@@ -128,10 +139,12 @@ class LiveAggregator:
             if profile_state == STATE_OFFLINE and current is not None and current["state"] == STATE_IN_GAME:
                 if event.type == EVENT_LOBBY_CLOSED and event.occurred_at - current["since"] < GRACE_MS:
                     continue
+            metadata = dict(getattr(event, "metadata", ()) or {})
             new_state = {
                 "state": profile_state,
                 "match_ref": event.match_ref if profile_state != STATE_OFFLINE else "",
                 "since": event.occurred_at,
+                "match": _match_from_metadata(metadata) if profile_state != STATE_OFFLINE else {},
             }
             self._players[profile_id] = new_state
             old_state = current["state"] if current else STATE_OFFLINE
@@ -171,6 +184,20 @@ class LiveAggregator:
     def mark_healthy(self) -> None:
         """Clear the degraded flag once a provider stream is live."""
         self._degraded = False
+
+
+def _match_from_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild the renderable match payload from an event's metadata."""
+    match = {k: v for k, v in metadata.items() if k not in ("old_status", "match_url")}
+    players_raw = match.pop("players", None)
+    if isinstance(players_raw, str):
+        try:
+            import json
+
+            match["players"] = json.loads(players_raw)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            match["players"] = []
+    return match
 
 
 def _now_ms() -> int:

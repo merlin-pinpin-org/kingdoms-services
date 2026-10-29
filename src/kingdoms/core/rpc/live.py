@@ -9,6 +9,7 @@ the wire contract and the aggregator's snapshots.
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -26,6 +27,7 @@ def state_to_wire(snapshot: dict[str, Any]) -> live_pb2.DashboardState:
             state=p["state"],
             match_ref=p["match_ref"],
             since=p["since"],
+            match_json=json.dumps(p.get("match") or {}, separators=(",", ":"), default=str),
         )
         for p in snapshot["players"]
     ]
@@ -34,6 +36,17 @@ def state_to_wire(snapshot: dict[str, Any]) -> live_pb2.DashboardState:
         generated_at=snapshot["generated_at"],
         degraded=snapshot["degraded"],
     )
+
+
+def _decode_match_json(raw: str) -> dict[str, Any]:
+    """Decode a player's match payload (map, civs, settings, players)."""
+    if not raw:
+        return {}
+    try:
+        decoded = json.loads(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+    return decoded if isinstance(decoded, dict) else {}
 
 
 def transition_to_wire(transition: dict[str, Any]) -> live_pb2.PlayerStatusWireEvent:
@@ -146,6 +159,7 @@ class LiveClient:
                             "state": p.state,
                             "match_ref": p.match_ref,
                             "since": p.since,
+                            "match": _decode_match_json(p.match_json),
                         }
                         for p in frame.players
                     ],
@@ -170,6 +184,7 @@ class LiveClient:
                             "state": p.state,
                             "match_ref": p.match_ref,
                             "since": p.since,
+                            "match": _decode_match_json(p.match_json),
                         }
                         for p in frame.players
                     ],

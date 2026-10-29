@@ -54,9 +54,12 @@ async def test_match_update_join_emits_transition_snapshot_idempotent() -> None:
     await adapter.set_subscribed_profiles(["123", "456"])
     _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
     join = _frame(adapter, {"lobby_match_update": {"111": _lobby("111", [123, 456])}})
-    assert [e["profile_ids"] for e in join] == [["456"]]
+    assert [(e["type"], e["profile_ids"]) for e in join] == [
+        ("match_updated", ["123"]),  # already in: the payload changed (a co-player joined)
+        ("lobby_opened", ["456"]),  # the joiner's transition
+    ]
     again = _frame(adapter, {"lobby_match_update": {"111": _lobby("111", [123, 456])}})
-    assert again == []
+    assert again == []  # identical payload: nothing (snapshot-idempotent)
 
 
 async def test_launch_lobby_remove_then_spectate_grace() -> None:
@@ -158,7 +161,7 @@ async def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
     assert adapter._matches == {"lobby": {}, "spectate": {}}
     assert adapter._player_status == {"123": ("lobby", "111")}
     reseen = _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
-    assert reseen == []
+    assert [(e["type"], e["profile_ids"]) for e in reseen] == [("match_updated", ["123"])]
     gone = _frame(adapter, {"lobby_match_all": {}})
     assert gone == []
     assert "123" in adapter._close_refs
