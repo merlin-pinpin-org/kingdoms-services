@@ -19,10 +19,11 @@ def test_all_market_items_are_shelved_exactly_once() -> None:
     assert len(keys) == len(set(keys)) == 10
 
 
-def test_section_and_crier_strings_exist_in_both_locales() -> None:
+def test_section_strings_exist_in_both_locales() -> None:
+    # marche-crier-off-v1 (Drasah 29/10): the crier line is gone.
     for locale in ("fr", "en"):
         strings = kingdom_panels._strings(locale)
-        assert strings["market_crier"]
+        assert "market_crier" not in strings
         for header, _ in MARKET_SECTIONS:
             assert strings[header], (locale, header)
 

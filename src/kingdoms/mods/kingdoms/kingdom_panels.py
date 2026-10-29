@@ -411,12 +411,9 @@ STRINGS: dict[str, dict[str, Any]] = {
             "patrouille": "🛡️",
             "mariage_arrange": "💒",
         },
-        # marche-visuel-v2 (Drasah 28/10): one merchant stall, four
-        # shelves (his taxonomy + order), all buttons same colour.
-        "market_crier": (
-            "⚙️ Traps, poisons and favours — everything has a price,"
-            " and the King pays!"
-        ),
+        # marche-crier-off-v1 (Drasah 29/10): one merchant stall, four
+        # shelves (his taxonomy + order), all buttons same colour. The
+        # crier line is gone (Drasah asked for its removal live).
         "market_section_ia": "🤖 AI defense / attack management",
         "market_section_defense": "🛡️ Kingdom defense",
         "market_section_attaque": "⚔️ Attack improvements",
@@ -846,12 +843,9 @@ STRINGS: dict[str, dict[str, Any]] = {
             "patrouille": "🛡️",
             "mariage_arrange": "💒",
         },
-        # marche-visuel-v2 (Drasah 28/10): une seule table de marchand,
+        # marche-crier-off-v1 (Drasah 29/10): une seule table de marchand,
         # quatre rayons (sa taxonomie + son ordre), boutons uniformes.
-        "market_crier": (
-            "⚙️ Pièges, poisons et faveurs — tout se monnaye,"
-            " et c'est le Roi qui paie !"
-        ),
+        # La phrase du crieur est retirée (demande live de Drasah).
         "market_section_ia": "🤖 Gestion de la défense / attaque IA",
         "market_section_defense": "🛡️ Défense du royaume",
         "market_section_attaque": "⚔️ Amélioration de l'attaque",
@@ -1777,8 +1771,7 @@ async def build_market_panel(
         discord.ui.Container(
             discord.ui.TextDisplay(f"# {strings['market_title']}"),
             discord.ui.Separator(),
-            discord.ui.TextDisplay(strings["market_crier"]),
-            discord.ui.Separator(),
+            # marche-crier-off-v1 (Drasah 29/10): no crier line anymore.
             # marche-v2: the King-only rule is finally visible on the
             # pinned panel (Drasah's decision, 2026-10-13).
             discord.ui.TextDisplay(strings["market_hint_panel"]),
