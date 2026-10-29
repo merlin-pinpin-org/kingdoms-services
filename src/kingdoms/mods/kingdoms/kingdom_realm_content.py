@@ -690,6 +690,17 @@ async def deploy_realm_content(
                 from kingdoms.mods.kingdoms.civ_crests import civ_crest_mosaic_file
 
                 await _sweep_legacy_mercenary_rubric(channel)
+                # alliances-single-message-v1 (Drasah 29/10): ONE message
+                # in Alliances — the panel is the single source; sweep the
+                # retired standalone draft starter (always) and the setup
+                # placeholder (once the season is launched).
+                from kingdoms.mods.kingdoms.kingdom_realms import (
+                    sweep_standalone_alliances_messages,
+                )
+
+                await sweep_standalone_alliances_messages(
+                    channel, include_pending=phase != "setup"
+                )
                 ledger = dict(getattr(kingdom, "civilization_acquisitions", None) or {})
                 hand = [str(civ) for civ in getattr(kingdom, "civilizations", []) or []]
                 mosaic = await civ_crest_mosaic_file(

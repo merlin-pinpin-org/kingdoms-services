@@ -133,23 +133,22 @@ async def test_realms_panel_redeploy_removes_the_old_marker_message() -> None:
     assert len(live) == 1  # the old one (Components V2 marker) was found and deleted
 
 
-async def test_draft_starter_pinned_in_alliances_idempotently() -> None:
+async def test_alliances_single_message_after_launch_seam() -> None:
+    """alliances-single-message-v1 (Drasah 29/10): the started-phase announce
+    seam no longer writes a standalone draft starter — it sweeps any
+    surviving one; the unified panel is the single source."""
     from kingdoms.mods.kingdoms.kingdom_realms import (
         DRAFT_STARTER_MARKER,
-        announce_draft_starter,
+        _announce_realm_alliances,
         ensure_realm_structure,
     )
 
-    class _Civ:
-        def __init__(self, key: str, display_name: str) -> None:
-            self.key = key
-            self.display_name = display_name
-
-    class _Config:
-        civilizations = (_Civ("azteques", "Aztèques"), _Civ("berberes", "Berbères"))
-
     class _Service:
-        config = _Config()
+        async def current_season(self):  # type: ignore[no-untyped-def]
+            class _Season:
+                phase = "started"
+
+            return _Season()
 
     class _Kingdom:
         id = "k-1"
@@ -160,18 +159,18 @@ async def test_draft_starter_pinned_in_alliances_idempotently() -> None:
 
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
-    assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
     category = guild.categories[0]
     alliances = next(c for c in category.channels if c.name == "🤝 alliances")
-    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1
-    assert "Draft starter" in live[0].content and "Aztèques" in live[0].content
-    assert DRAFT_STARTER_MARKER in live[0].content
+    await alliances.send(f"# 🎲 Draft starter — Avalon\n-# {DRAFT_STARTER_MARKER}")
 
-    # a second announce edits the marked message, never a duplicate
-    assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
+    assert await _announce_realm_alliances(guild, _Kingdom(), _Service()) is True
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1
+    assert live == []  # no new standalone message, the legacy one is gone
+
+    # idempotent on a clean salon
+    assert await _announce_realm_alliances(guild, _Kingdom(), _Service()) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert live == []
 
 
 async def test_validation_seam_writes_the_alliances_message_in_both_phases() -> None:

@@ -308,7 +308,10 @@ async def test_setup_phase_pins_the_alliances_placeholder_not_the_draft() -> Non
     assert DRAFT_STARTER_MARKER not in text  # the draft stays secret
 
 
-async def test_started_phase_announces_the_draft_and_kills_the_placeholder() -> None:
+async def test_started_phase_sweeps_the_placeholder_no_standalone_draft() -> None:
+    """alliances-single-message-v1 (Drasah 29/10): once launched, the setup
+    placeholder is swept and NO standalone draft starter is written — the
+    unified alliances-panel view is the single source of the hand."""
     from kingdoms.mods.kingdoms.kingdom_realms import (
         ALLIANCES_PENDING_MARKER,
         DRAFT_STARTER_MARKER,
@@ -319,18 +322,18 @@ async def test_started_phase_announces_the_draft_and_kills_the_placeholder() -> 
     guild = MockGuild()
     setup_service = _PhaseKingdomsService("setup")
     await ensure_all_realm_structures(guild, setup_service)
-    # the game starts: the draft replaces the placeholder
+    # the game starts: the placeholder dies, nothing replaces it
     _PhaseKingdom.civilizations = ["azteques"]
     started_service = _PhaseKingdomsService("started")
     await ensure_all_realm_structures(guild, started_service)
     category = guild.categories[0]
     alliances = next(c for c in category.channels if c.name == "🤝 alliances")
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1  # the placeholder was deleted, the draft pinned
-    text = message_text(live[0])
-    assert DRAFT_STARTER_MARKER in text
-    assert ALLIANCES_PENDING_MARKER not in text
-    assert "Aztèques" not in text  # display names need the config catalog
+    assert live == []  # the placeholder was deleted, no draft message sent
+    for message in alliances.messages:
+        text = message_text(message)
+        assert DRAFT_STARTER_MARKER not in text or getattr(message, "deleted", False)
+        assert ALLIANCES_PENDING_MARKER not in text or getattr(message, "deleted", False)
     _PhaseKingdom.civilizations = []
 
 
@@ -417,54 +420,43 @@ async def test_ensure_member_realm_access_grants_the_missing_king_overwrite() ->
     assert await ensure_member_realm_access(guild, kingdom, 999999) is False
 
 
-async def test_draft_starter_identity_guard_costs_zero_api_calls() -> None:
-    """vues-silencieuses-v1: an unchanged draft starter is left untouched."""
+async def test_started_phase_announce_seam_is_idempotent() -> None:
+    """alliances-single-message-v1: the started-phase seam writes nothing and
+    never raises — a clean salon stays clean across repeated provisioning."""
     from kingdoms.mods.kingdoms.kingdom_realms import ensure_all_realm_structures
 
     guild = MockGuild()
-    _PhaseKingdom.civilizations = ["azteques"]
     await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
     alliances = next(
         c for c in guild.categories[0].channels if c.name == "🤝 alliances"
     )
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1
-    first = live[0]
-    first._edited = False  # reset the spy before the idempotent re-run
+    assert live == []  # nothing written in started phase
 
     await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
-
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1
-    assert live[0] is first
-    assert first.edited is False  # identical content → zero API call
-    _PhaseKingdom.civilizations = []
+    assert live == []
 
 
-async def test_draft_starter_edited_in_place_and_duplicates_purged() -> None:
-    """vues-silencieuses-v1: a changed draft EDITS the pinned message, and
-    legacy duplicates (double send from an older incident) are swept."""
+async def test_standalone_draft_messages_are_swept_on_every_seam() -> None:
+    """alliances-single-message-v1: legacy standalone draft messages (an
+    older layout, a double send from a past incident) are all swept by the
+    provisioning seam — the salon converges to the single panel message."""
     from kingdoms.mods.kingdoms.kingdom_realms import (
         DRAFT_STARTER_MARKER,
         ensure_all_realm_structures,
     )
 
     guild = MockGuild()
-    _PhaseKingdom.civilizations = ["azteques"]
     await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
     alliances = next(
         c for c in guild.categories[0].channels if c.name == "🤝 alliances"
     )
-    first = next(m for m in alliances.messages if not getattr(m, "deleted", False))
-    first._edited = False
-    # simulate an older duplicate of the same announcement
+    # simulate two legacy standalone messages from the retired layout
+    await alliances.send(f"# 🎲 Draft starter — Avalon\n-# {DRAFT_STARTER_MARKER}")
     await alliances.send(f"-# {DRAFT_STARTER_MARKER}")
 
-    _PhaseKingdom.civilizations = ["azteques", "britons"]
     await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
 
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1  # the duplicate was purged
-    assert live[0] is first  # the ORIGINAL message keeps its slot
-    assert first.edited is True  # the changed draft landed via edit
-    _PhaseKingdom.civilizations = []
+    assert live == []  # every standalone draft message is swept

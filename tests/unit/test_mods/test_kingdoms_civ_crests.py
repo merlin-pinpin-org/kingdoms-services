@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -105,89 +104,21 @@ async def test_crest_files_cap_at_ten(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # ----------------------------------------------------------------------
-# The 📜 Alliances draft starter wears the hand's crests
+# The 🤝 Alliances salon carries ONE message (alliances-single-message-v1)
 # ----------------------------------------------------------------------
-async def test_draft_starter_attaches_the_hand_crests(monkeypatch: pytest.MonkeyPatch) -> None:
-    from kingdoms.mods.kingdoms import civ_crests
+async def test_alliances_sweep_deletes_the_standalone_draft_starter() -> None:
+    """alliances-single-message-v1 (Drasah 29/10): the unified panel is the
+    single source of the hand — the retired standalone « 🎲 Draft starter »
+    message is swept, the unrelated messages survive, the sweep is idempotent."""
     from kingdoms.mods.kingdoms.kingdom_realms import (
         DRAFT_STARTER_MARKER,
-        announce_draft_starter,
         ensure_realm_structure,
+        sweep_kingdom_alliances_messages,
     )
-
-    async def fake_crest_bytes(url: str) -> bytes:
-        return b"png"
-
-    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
-
-    class _Civ:
-        def __init__(self, key: str, display_name: str) -> None:
-            self.key = key
-            self.display_name = display_name
-
-    class _Config:
-        civilizations = (_Civ("azteques", "Aztèques"), _Civ("berberes", "Berbères"))
-
-    class _Service:
-        config = _Config()
 
     class _Kingdom:
         id = "k-1"
         name = "Avalon"
-        validation = "approved"
-        is_gaia = False
-        civilizations = ["azteques", "berberes"]  # noqa: RUF012
-
-    guild = MockGuild()
-    await ensure_realm_structure(guild, _Kingdom(), [])
-    assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
-    alliances = next(c for c in guild.categories[0].channels if c.name == "🤝 alliances")
-    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1
-    assert "Draft starter" in live[0].content and DRAFT_STARTER_MARKER in live[0].content
-    # alliances-lisibilite-v1 T3: ONE composite mosaic, not N full-size PNGs
-    assert [f.filename for f in (live[0].files or [])] == ["draft-starter.png"]
-
-    # a refresh edits the marked message — still one message, crests re-attached
-    assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
-    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
-    assert len(live) == 1
-
-
-async def test_draft_starter_passes_a_list_to_channel_send(monkeypatch: pytest.MonkeyPatch) -> None:
-    """realms-midseason-v1 (Drasah 29/10): the mosaic is ONE discord.File.
-
-    The draft starter used to hand that single File straight to
-    ``channel.send(files=...)`` — discord.py iterates ``files``, so the
-    mid-season Valider flow died with TypeError: 'File' object is not
-    iterable right after provisioning the salons (empty salons, Valider
-    button left open). The kwarg must be a LIST (possibly empty).
-    """
-    from kingdoms.mods.kingdoms import civ_crests
-    from kingdoms.mods.kingdoms.kingdom_realms import (
-        announce_draft_starter,
-        ensure_realm_structure,
-    )
-
-    async def fake_crest_bytes(url: str) -> bytes:
-        return b"png"
-
-    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
-
-    class _Civ:
-        def __init__(self, key: str, display_name: str) -> None:
-            self.key = key
-            self.display_name = display_name
-
-    class _Config:
-        civilizations = (_Civ("azteques", "Aztèques"),)
-
-    class _Service:
-        config = _Config()
-
-    class _Kingdom:
-        id = "k-1"
-        name = "Midland"
         validation = "approved"
         is_gaia = False
         civilizations = ["azteques"]  # noqa: RUF012
@@ -195,19 +126,57 @@ async def test_draft_starter_passes_a_list_to_channel_send(monkeypatch: pytest.M
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
     alliances = next(c for c in guild.categories[0].channels if c.name == "🤝 alliances")
-    seen: list[Any] = []
+    await alliances.send(f"# 🎲 Draft starter — Avalon\n-# {DRAFT_STARTER_MARKER}")
+    await alliances.send("un message quelconque du salon")
 
-    real_send = alliances.send
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 2
 
-    async def spy_send(content: str | None = None, **kwargs: Any) -> Any:
-        seen.append(kwargs.get("files"))
-        return await real_send(content, **kwargs)
+    assert await sweep_kingdom_alliances_messages(guild, _Kingdom()) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    assert DRAFT_STARTER_MARKER not in live[0].content
 
-    alliances.send = spy_send  # type: ignore[method-assign]
-    assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
-    assert seen, "the draft starter must send at least once"
-    for files in seen:
-        assert isinstance(files, list), "files= must be a list, never a bare File"
+    # idempotent — a second sweep changes nothing
+    assert await sweep_kingdom_alliances_messages(guild, _Kingdom()) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+
+
+async def test_alliances_sweep_keeps_the_pending_placeholder_until_reveal() -> None:
+    """The setup placeholder guards the secret rule — the sweep only takes
+    it once the season is launched (include_pending=True)."""
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        ALLIANCES_PENDING_MARKER,
+        DRAFT_STARTER_MARKER,
+        ensure_realm_structure,
+        sweep_kingdom_alliances_messages,
+    )
+
+    class _Kingdom:
+        id = "k-1"
+        name = "Avalon"
+        validation = "approved"
+        is_gaia = False
+        civilizations = []  # noqa: RUF012
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+    alliances = next(c for c in guild.categories[0].channels if c.name == "🤝 alliances")
+    await alliances.send(f"Les alliances seront révélées…\n-# {ALLIANCES_PENDING_MARKER}")
+
+    # setup phase: the placeholder survives an excluded sweep
+    assert await sweep_kingdom_alliances_messages(guild, _Kingdom(), include_pending=False) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    assert DRAFT_STARTER_MARKER not in live[0].content
+    assert ALLIANCES_PENDING_MARKER in live[0].content
+
+    # launched season: the placeholder is swept too
+    assert await sweep_kingdom_alliances_messages(guild, _Kingdom()) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert live == []
+
 
 
 def test_realms_failed_placeholder_is_named_in_both_locales() -> None:

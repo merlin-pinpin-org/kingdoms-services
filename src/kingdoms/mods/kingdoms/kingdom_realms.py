@@ -26,7 +26,9 @@ from typing import Any
 
 import discord
 
-from kingdoms.mods.kingdoms.civ_crests import civ_crest_mosaic_file
+# alliances-single-message-v1 (Drasah 29/10): the standalone draft
+# starter is retired — the unified alliances-panel view is the single
+# source of the hand, its mosaic is built by kingdom_realm_content.
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
 from kingdoms.mods.kingdoms.panel_messages import NO_MENTIONS, channel_messages, message_text
 
@@ -666,7 +668,9 @@ async def _announce_realm_alliances(
     (free mode → pending) that the admin VALIDATES via the Royaumes
     panel got its salons provisioned but its Alliances message was
     NEVER written — the launch path alone wrote it. Every provisioning
-    seam must call this: placeholder during setup, draft once started.
+    seam must call this: placeholder during setup, and — since
+    alliances-single-message-v1 (Drasah 29/10) — a sweep once started
+    (the unified alliances-panel view is the ONE message of the salon).
     """
     phase = "started"
     if kingdoms_service is not None:
@@ -682,7 +686,11 @@ async def _announce_realm_alliances(
         )
     if phase == "setup":
         return await announce_alliances_placeholder(guild, kingdom)
-    return await announce_draft_starter(guild, kingdom, kingdoms_service)
+    # alliances-single-message-v1 (Drasah 29/10): once launched, ONE
+    # message lives in Alliances (the panel) — the retired standalone
+    # draft starter and the setup placeholder are swept, nothing new
+    # is sent: the panel content deploy is the source of truth.
+    return await sweep_kingdom_alliances_messages(guild, kingdom)
 
 
 DRAFT_STARTER_MARKER = "kingdoms:realm:draft-starter"
@@ -723,14 +731,46 @@ async def _purge_marked_duplicates(marked: list[Any], label: str) -> None:
             logger.warning("KINGDOM REALMS: %s duplicate purge failed", label, exc_info=True)
 
 
-async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_service: Any) -> bool:
-    """Pin the kingdom's starter draft in its Alliances salon (idempotent).
+async def sweep_standalone_alliances_messages(
+    channel: Any, *, include_pending: bool = True
+) -> bool:
+    """Sweep the retired standalone Alliances messages (idempotent).
 
-    The 8 starting civilizations drawn at the kingdom's creation are the
-    season's opening hand: they belong in ``Alliances`` (D51 — alliances
-    equal civilizations), titled « 🎲 Draft starter ». The message is
-    marked and edited in place, never duplicated.
+    alliances-single-message-v1 (Drasah 29/10): the unified
+    alliances-panel view is the ONE live source of the hand (mosaic,
+    legend, married holders, mercenary contracts) — the standalone
+    « 🎲 Draft starter » message was visually redundant next to it and
+    is retired. This sweep deletes any surviving draft-starter message,
+    plus the setup-phase pending placeholder when ``include_pending``
+    (the season is launched and the panel shows the real hand). Safe on
+    every provisioning seam: no message to sweep is the normal case.
     """
+    if channel is None:
+        return False
+    removed = 0
+    for message in await channel_messages(channel):
+        text = message_text(message)
+        if DRAFT_STARTER_MARKER in text or (
+            include_pending and ALLIANCES_PENDING_MARKER in text
+        ):
+            try:
+                await message.delete()
+                removed += 1
+            except Exception:
+                logger.warning(
+                    "KINGDOM REALMS: standalone alliances sweep failed", exc_info=True
+                )
+    if removed:
+        logger.info(
+            "KINGDOM REALMS: swept %s standalone alliances message(s)", removed
+        )
+    return True
+
+
+async def sweep_kingdom_alliances_messages(
+    guild: discord.Guild, kingdom: Any, *, include_pending: bool = True
+) -> bool:
+    """Resolve a kingdom's 🤝 salon then sweep its retired messages."""
     category = _find_realm_category(guild, kingdom.name)
     if category is None:
         return False
@@ -738,50 +778,7 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
         (c for c in getattr(category, "channels", []) if _slug(getattr(c, "name", "")) == _slug("Alliances")),
         None,
     )
-    if channel is None:
-        return False
-    catalog = getattr(getattr(kingdoms_service, "config", None), "civilizations", ()) or ()
-    names = {str(civ.key): str(getattr(civ, "display_name", civ.key)) for civ in catalog}
-    lines = [f"# 🎲 Draft starter — {kingdom.name}", ""]
-    for civ_key in kingdom.civilizations:
-        lines.append(f"• **{names.get(str(civ_key), str(civ_key))}**")
-    lines += ["", "-# Noms affichés sur chaque blason", f"-# {DRAFT_STARTER_MARKER}"]
-    content = "\n".join(lines)
-    # alliances-lisibilite-v1 T3 (Drasah 25/10): the draft starter
-    # wears ONE composite mosaic (starter-badge tile per civ) — the
-    # page fits again, the civ-crests-v1 full-size attachments are
-    # gone.
-    # realms-midseason-v1 (Drasah 29/10): civ_crest_mosaic_file returns
-    # ONE discord.File (or None) — passing it straight into ``files=``
-    # made discord.py choke with TypeError: 'File' object is not
-    # iterable, killing the mid-season Valider flow right after the
-    # salons were provisioned (empty salons, button left open).
-    mosaic = await civ_crest_mosaic_file(
-        [
-            (str(civ_key), "starter", names.get(str(civ_key), str(civ_key)))
-            for civ_key in kingdom.civilizations
-        ],
-        filename="draft-starter.png",
-    )
-    files = [mosaic] if mosaic is not None else []
-    marked, stale = await _split_marked_and_stale(channel, DRAFT_STARTER_MARKER, ALLIANCES_PENDING_MARKER)
-    for message in stale:
-        try:
-            await message.delete()
-        except Exception:
-            logger.warning("KINGDOM REALMS: placeholder removal failed", exc_info=True)
-    if marked:
-        await _purge_marked_duplicates(marked, "draft starter")
-        existing = marked[0]
-        if (getattr(existing, "content", "") or "") == content and getattr(existing, "attachments", None):
-            return True
-        try:
-            await existing.edit(content=content, attachments=files or [])
-            return True
-        except Exception:
-            logger.warning("KINGDOM REALMS: draft refresh failed, resending", exc_info=True)
-    await channel.send(content, files=files or [], allowed_mentions=NO_MENTIONS)
-    return True
+    return await sweep_standalone_alliances_messages(channel, include_pending=include_pending)
 
 
 async def announce_alliances_placeholder(guild: discord.Guild, kingdom: Any) -> bool:
@@ -790,8 +787,8 @@ async def announce_alliances_placeholder(guild: discord.Guild, kingdom: Any) -> 
     Drasah's phase rule: while the season is in ``setup``, the
     civilization draft must stay secret — the Alliances salon says so
     instead of showing the opening hand. The message is marked and
-    edited in place; :func:`announce_draft_starter` deletes it at the
-    reveal.
+    edited in place; :func:`sweep_standalone_alliances_messages` deletes
+    it at the reveal.
     """
     category = _find_realm_category(guild, kingdom.name)
     if category is None:

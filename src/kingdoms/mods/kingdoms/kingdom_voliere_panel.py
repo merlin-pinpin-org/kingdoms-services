@@ -486,18 +486,20 @@ async def _draw_action(
         return
     await interaction.response.edit_message(content=note, view=None)
     if action in ("corbeau_civ", "pigeon_civ"):
-        # v2 anti-stale rule: a drawn civ lands in the Alliances salon
-        # too (the draft-starter message edits itself in place).
+        # alliances-single-message-v1 (Drasah 29/10): a drawn civ lands in
+        # the unified alliances-panel — refreshed below by
+        # _refresh_realm_safe; any surviving standalone draft message of
+        # the retired layout is swept here.
         try:
-            from kingdoms.mods.kingdoms.kingdom_realms import announce_draft_starter
+            from kingdoms.mods.kingdoms.kingdom_realms import (
+                sweep_kingdom_alliances_messages,
+            )
 
             guild = interaction.guild
             if guild is not None:
-                await announce_draft_starter(
-                    guild, kingdom, wiring.kingdoms_service
-                )
+                await sweep_kingdom_alliances_messages(guild, kingdom)
         except Exception:
-            logger.info("VOLIERE: alliances refresh skipped", exc_info=True)
+            logger.info("VOLIERE: alliances sweep skipped", exc_info=True)
     await _refresh_realm_safe(interaction.guild, str(kingdom.id))
 
 
