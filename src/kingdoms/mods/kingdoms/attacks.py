@@ -1950,6 +1950,27 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
+    async def record_attack_reveal_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
+        """Append one T-15 reveal message ref (salon-nettoyage-v1).
+
+        Drasah 29/10 live report (18:13 → 18:21): once the battle
+        room's scoreboard is up, the declaration announce and the
+        reveal notes (« ⚔️ Bataille en vue … ») are noise — the ids are
+        collected so the room's opening sweeps them out of the attack
+        salon (the scoreboard reads in one glance). Restart-safe:
+        ``reveal_due`` is idempotent, the refs never duplicate.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score or {})
+        refs = [dict(ref) for ref in (score.get("reveal_message_refs") or [])]
+        refs.append({"channel_id": int(channel_id), "message_id": int(message_id)})
+        score["reveal_message_refs"] = refs
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
     async def mark_attack_salon_cleaned(self, attack_id: str) -> None:
         """Flag the per-attack salon as cleaned up (deleted after the resolution)."""
         attack = await self._find_attack(attack_id)

@@ -375,6 +375,17 @@ class MockTextChannel(discord.TextChannel):
 
         return _gen()
 
+    async def fetch_message(self, message_id: int) -> MockMessage:
+        """In-memory mirror of :meth:`discord.TextChannel.fetch_message`.
+
+        salon-nettoyage-v1 (Drasah 29/10): the battle room's opening
+        sweeps the pre-room announces by their stored ids — raises
+        like Discord when the id is unknown."""
+        for message in self.messages:
+            if message.id == message_id:
+                return message
+        raise LookupError(f"Unknown Message {message_id}")
+
     async def create_thread(
         self, name: str, *, message: Any = None, **kwargs: Any
     ) -> MockThread:

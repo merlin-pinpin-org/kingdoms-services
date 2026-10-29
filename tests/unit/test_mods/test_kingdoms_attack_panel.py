@@ -2730,6 +2730,57 @@ async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
         if task is not asyncio.current_task():
             task.cancel()
     await asyncio.sleep(0)
+
+
+async def test_meeting_room_sweeps_the_pre_room_announces() -> None:
+    """salon-nettoyage-v1: opening the battle room deletes the declare + reveal notes."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack = await bundle.fresh_attack()
+    await bundle.attacks.respond_defense(attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC))
+
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    base = await salon.send("⚔️ a lancé une attaque…")
+    await bundle.attacks.record_attack_base_message(attack.id, base.id)
+
+    # The reveal note lands and gets recorded as a sweepable ref.
+    played = await panel._run_reveals_safe(guild, bundle.attacks, bundle.kingdoms, panel._strings("fr"))
+    assert played == 1
+    notes = [m for m in salon.messages if "Bataille en vue" in str(m.content or "")]
+    assert len(notes) == 1
+    fresh = await bundle.attacks.get_attack(attack.id)
+    assert fresh.score["reveal_message_refs"] == [{"channel_id": salon.id, "message_id": notes[0].id}]
+
+    # Opening the room sweeps the declare announce and the reveal note.
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]
+    await panel._open_battle_room(bot, guild, fresh, bundle.kingdoms, "fr")
+    opened = await bundle.attacks.get_attack(attack.id)
+    assert opened.score["room_channel_id"]
+    assert base.deleted is True
+    assert notes[0].deleted is True
+    meeting = next(m for m in salon.messages if m.id == opened.score["meeting_message_id"])
+    assert getattr(meeting, "deleted", None) is None
+    pings = [m for m in salon.messages if "à vos armes" in str(m.content or "")]
+    assert len(pings) == 1
+    assert getattr(pings[0], "deleted", None) is None
+
+    # Re-opening never replays the sweep (early return on room_channel_id).
+    await panel._open_battle_room(bot, guild, opened, bundle.kingdoms, "fr")
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
 async def test_declare_flow_zero_embuscade_opens_the_kingdom_step() -> None:
     """embuscade-v1: zero bought Embuscade — NO mode view, the kingdom step first."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (

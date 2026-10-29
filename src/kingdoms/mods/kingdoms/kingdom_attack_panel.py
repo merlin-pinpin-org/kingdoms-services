@@ -1039,15 +1039,21 @@ def _attack_salon(guild: Any, attack: Any) -> Any:
     return getattr(guild, "get_channel", lambda _id: None)(channel_id)
 
 
-async def _attack_salon_send_safe(guild: Any, attack: Any, content: str) -> None:
-    """Best-effort announcement in the attack's own salon."""
+async def _attack_salon_send_safe(guild: Any, attack: Any, content: str) -> Any:
+    """Best-effort announcement in the attack's own salon.
+
+    salon-nettoyage-v1 (Drasah 29/10): returns the SENT message (None
+    on any hiccup) so the caller can record its ref — the reveal notes
+    are swept when the battle room's scoreboard replaces them.
+    """
     channel = _attack_salon(guild, attack)
     if channel is None:
-        return
+        return None
     try:
-        await channel.send(content)
+        return await channel.send(content)
     except Exception:
         logger.warning("KINGDOM ATTACK: attack salon announcement failed", exc_info=True)
+        return None
 
 
 def _geopolitics_channel(guild: Any) -> Any:
@@ -4286,7 +4292,7 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
             # bluff-externe-v1 (Drasah 29/10): the reveal puts
             # EVERYTHING clear — the real attacker AND his kingdom,
             # under the cover of whom and of which kingdom.
-            await _attack_salon_send_safe(
+            cover_note = await _attack_salon_send_safe(
                 guild,
                 attack,
                 strings["reveal_cover"].format(
@@ -4302,14 +4308,33 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
                     or "—",
                 ),
             )
+            await _record_reveal_message_safe(attacks_service, attack, cover_note)
         if attack.ai_defender:
             note = strings["reveal_no_defense"]
         elif getattr(attack, "state", None) is AttackState.DEFENDED:
             note = strings["reveal_battle"].format(defender=await _lord_name(kingdoms_service, attack.defender_lord_id))
         else:
             note = strings["reveal_no_defense"]
-        await _attack_salon_send_safe(guild, attack, note)
+        sent = await _attack_salon_send_safe(guild, attack, note)
+        await _record_reveal_message_safe(attacks_service, attack, sent)
     return played
+
+
+async def _record_reveal_message_safe(attacks_service: Any, attack: Any, message: Any) -> None:
+    """Record one reveal note ref (salon-nettoyage-v1, best effort).
+
+    Drasah 29/10: the T-15 reveal notes (« ⚔️ Bataille en vue … ») are
+    swept when the battle room opens its scoreboard — the refs live in
+    ``score["reveal_message_refs"]`` (restart-safe)."""
+    if message is None:
+        return
+    try:
+        channel = getattr(message, "channel", None)
+        await attacks_service.record_attack_reveal_message(
+            str(attack.id), int(getattr(channel, "id", 0)), int(message.id)
+        )
+    except Exception:
+        logger.warning("KINGDOM ATTACK: reveal message ref not stored", exc_info=True)
 
 
 async def _run_forfeits_safe(guild: Any, attacks_service: Any, kingdoms_service: Any, strings: dict[str, str]) -> int:
@@ -4842,6 +4867,11 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 await _record_ping_message_safe(attack, int(salon.id), int(ping.id))
             except Exception:
                 logger.warning("KINGDOM ATTACK: meeting message post failed", exc_info=True)
+            # salon-nettoyage-v1 (Drasah 29/10, live report 18:13 →
+            # 18:21): the scoreboard just replaced the pre-room
+            # messages — the declaration announce and the T-15 reveal
+            # notes are swept so the salon reads in ONE glance.
+            await _sweep_pre_room_announces_safe(guild, attack)
         for player_id in _score_players(attack):
             await _grant_battle_room_role_safe(guild, role, player_id)
         # room-dm-v2 (Drasah 28/10, sa maquette) : « Tiens-toi prêt » —
@@ -4862,6 +4892,39 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
             await _dm_user_safe(bot, player_id, dm)
     except Exception:
         logger.warning("KINGDOM ATTACK: battle room opening failed", exc_info=True)
+
+
+async def _sweep_pre_room_announces_safe(guild: Any, attack: Any) -> None:
+    """Delete the pre-room messages of the attack salon (best effort).
+
+    salon-nettoyage-v1 (Drasah 29/10): once the battle room's
+    scoreboard is up, the declaration announce (the salon's base
+    message — its 🛡️/❌ buttons are dead at the meeting anyway) and the
+    T-15 reveal notes (« ⚔️ Bataille en vue … ») are noise. The refs
+    come from the score (``attack_base_message_id`` +
+    ``reveal_message_refs``) — restart-safe, replay-proof (the room
+    opening is idempotent). A lost ref or a missing permission never
+    breaks the room opening.
+    """
+    salon = _attack_salon(guild, attack)
+    if salon is None:
+        return
+    score = dict(getattr(attack, "score", None) or {})
+    message_ids: list[int] = []
+    base_id = int(score.get("attack_base_message_id") or 0)
+    if base_id:
+        message_ids.append(base_id)
+    for ref in score.get("reveal_message_refs") or []:
+        try:
+            message_ids.append(int(ref["message_id"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    for message_id in message_ids:
+        try:
+            message = await salon.fetch_message(message_id)
+            await message.delete()
+        except Exception:
+            logger.debug("kingdoms: pre-room announce sweep skipped", exc_info=True)
 
 
 async def record_battle_room_safe(attack: Any, channel_id: int, role_id: int) -> None:
