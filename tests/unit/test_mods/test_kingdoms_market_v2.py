@@ -212,31 +212,16 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
     assert "**Sabotage** — ×2" in sheet
     assert "**Embuscade** — ×1" in sheet
     assert "Traquenard" not in sheet  # 0 stock → not listed
-    # v4: the held cards ride as ONE small-tile mosaic attachment
-    # (v3's giant per-card posters drowned the sheet, Drasah 29/10) —
-    # a 0-stock card ships no tile.
+    # v6: the window shows the card BACK at ORIGINAL size by default —
+    # ONE attachment, no mosaic, no per-card poster (Drasah 29/10).
     files = list(window.files or [])
     filenames = [f.filename for f in files]
-    assert filenames == ["cartes_en_main.png"]
-    png = files[0].fp.read()
-    assert png[:8] == b"\x89PNG\r\n\x1a\n"
-    from kingdoms.mods.kingdoms.civ_crests import _decode_png_rgba
-    from kingdoms.mods.kingdoms.marche_art import (
-        HELD_CARD_H,
-        HELD_CARD_W,
-        HELD_COLS,
-        HELD_TILE_H,
-    )
+    assert filenames == ["Dos_de_carte.png"]
+    from kingdoms.mods.kingdoms.marche_art import resolve_card_back
 
-    # v5: tiles x2 (256x360), TWO columns — Discord scales wider images
-    # down, so the canvas stays at 512px and the cards read at full size.
-    width, height, _pixels = _decode_png_rgba(png) or (0, 0, b"")
-    assert (width, height) == (
-        HELD_COLS * HELD_CARD_W,
-        ((2 + HELD_COLS - 1) // HELD_COLS) * HELD_TILE_H,
-    )
-    # v5: one « en savoir plus » button per held card under the mosaic,
-    # two per row, none for the 0-stock card.
+    assert resolve_card_back() is not None  # the shipped art backs it
+    # v6: one button per held card, labelled with the CARD NAME alone
+    # (no emoji prefix), none for the 0-stock card.
     info_custom_ids = [
         item.custom_id for item in window.view.children  # type: ignore[union-attr]
     ]
@@ -244,9 +229,8 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
         "kingdoms:market:cardinfo:sabotage",
         "kingdoms:market:cardinfo:embuscade",
     ]
-    # two buttons fit ONE row (they both sit under the 2-column grid).
-    rows = [getattr(item, "row", None) for item in window.view.children]  # type: ignore[union-attr]
-    assert all(row == rows[0] for row in rows)
+    labels = [item.label for item in window.view.children]  # type: ignore[union-attr]
+    assert labels == ["Sabotage", "Embuscade"]
     # no service wired for the modal anymore — the window is THE answer
     assert interaction.response.modal is None
 
@@ -285,12 +269,14 @@ async def test_ledger_second_click_closes_the_previous_window() -> None:
     assert entry[0] is second  # the registry holds the LAST window
 
 
-async def test_ledger_card_info_button_opens_the_card_sheet() -> None:
-    """chambre-des-comptes-v5: « en savoir plus » per held card — the
-    button rebuilds from the wire and opens the card's own ephemeral
-    sheet (full TCG art + effect + remaining stock), replacing the
-    player's window (single-window rule)."""
+async def test_ledger_card_info_button_edits_the_window_in_place() -> None:
+    """chambre-des-comptes-v6: one button per held card (card name as
+    label) — clicking it EDITS the ledger window IN PLACE: the card
+    back becomes the card's TCG art and the sheet gains the EFFET +
+    USAGE lines. Zero new ephemeral (anti-pollution by construction)."""
     import re as _re
+
+    from tests.mocks.discord_mock import MockMessage
 
     kingdom = FakeKingdom(id="k1", name="Merlinia")
     _wire(kingdoms=[kingdom], attacks=FakeAttacksService({"sabotage": 2}))
@@ -304,16 +290,24 @@ async def test_ledger_card_info_button_opens_the_card_sheet() -> None:
         match,  # type: ignore[arg-type]
     )
     assert button.item.custom_id == "kingdoms:market:cardinfo:sabotage"
-    assert "Sabotage" in (button.item.label or "")
+    # v6: the label is the card NAME alone (« un bouton "nomdelatech" »).
+    assert (button.item.label or "") == "Sabotage"
+    # Simulate the button sitting ON the ledger window (type-7 context).
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    window = MockMessage(content="ledger sheet", files=[])
+    interaction.response.message = window
     await button.callback(interaction)
     assert interaction.response.deferred is True
-    assert interaction.followup.messages, "the card sheet must reach the player"
-    sheet = str(interaction.followup.messages[-1].content or "")
+    # zero NEW ephemeral — the ledger window itself is edited in place.
+    assert not interaction.followup.messages
+    assert window.edited is True
+    sheet = str(window.content or "")
     assert "Sabotage" in sheet
-    assert sheet.index("EFFECT") < sheet.index("×2")
-    # the card's full TCG art rides as the sheet's attachment.
-    filenames = [f.filename for f in (interaction.followup.messages[-1].files or [])]
+    assert "Effect:" in sheet
+    assert "Usage:" in sheet
+    assert sheet.index("Effect:") < sheet.index("Usage:")
+    # the card back became the chosen card's TCG art.
+    filenames = [f.filename for f in (window.files or [])]
     assert filenames == ["Sabotage.png"]
 
 

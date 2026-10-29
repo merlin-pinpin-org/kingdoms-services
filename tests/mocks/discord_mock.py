@@ -862,9 +862,13 @@ class MockMessage(discord.Message):
         if "files" in kwargs:
             self.files = kwargs["files"]
             self.attachments = list(kwargs["files"] or [])
-        if "attachments" in kwargs:
+        elif "attachments" in kwargs:
             # Message.edit parity (T3b): live discord.py replaces
             # attachments via the ``attachments`` kwarg, never ``files``.
+            # chambre-des-comptes-v6: when ``files`` ride the edit, the
+            # ``attachments`` kwarg only means "drop the OLD ones" —
+            # the new files stay the message's attachments (discord.py
+            # parity: files win over the attachments list).
             self.attachments = list(kwargs["attachments"] or [])
             self.files = list(kwargs["attachments"] or [])
         return self
@@ -923,9 +927,17 @@ class MockResponse:
     ) -> MockMessage:
         self.sent = True
         if self.message is None:
-            self.message = MockMessage(content=content, embed=embed, view=view)
+            # chambre-des-comptes-v6: forward files/attachments too — an
+            # edit that lands on a not-yet-materialised message keeps
+            # its attachments instead of silently dropping them.
+            self.message = MockMessage(
+                content=content, embed=embed, view=view, files=kwargs.get("files")
+            )
+            self.message.attachments = list(kwargs.get("attachments") or [])
             return self.message
-        return await self.message.edit(content=content, embed=embed, view=view)
+        return await self.message.edit(
+            content=content, embed=embed, view=view, **kwargs
+        )
 
     async def send_modal(self, modal: discord.ui.Modal) -> None:
         """Record a modal response (drasah king-name flow D70)."""
@@ -958,7 +970,17 @@ class MockInteractionWebhook:
         response = self._response
         if response.message is None:
             response.sent = True
-            response.message = MockMessage(**{k: v for k, v in kwargs.items() if k in ("content", "embed", "view")})
+            # chambre-des-comptes-v6 (Drasah 29/10): the ledger window's
+            # card buttons defer then edit the ORIGINAL response — files
+            # and attachments must survive the materialisation.
+            response.message = MockMessage(
+                **{
+                    k: v
+                    for k, v in kwargs.items()
+                    if k in ("content", "embed", "view", "files")
+                }
+            )
+            response.message.attachments = list(kwargs.get("attachments") or [])
             self._message = response.message
             return response.message
         self._message = await response.message.edit(**kwargs)

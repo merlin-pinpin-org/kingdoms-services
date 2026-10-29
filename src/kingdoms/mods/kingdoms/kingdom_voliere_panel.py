@@ -379,8 +379,16 @@ async def _slot_flow(interaction: discord.Interaction, wiring: Any, *, fresh: bo
     view = discord.ui.View(timeout=600)
     view.add_item(select)
     if fresh:
-        await interaction.response.send_message(
-            content=strings["slot_choose"], view=view, ephemeral=True
+        # anti-pollution-v1 (Drasah 29/10): this note bypassed the mod's
+        # single-window registry — his live report showed it STACK below
+        # the Chambre des comptes sheet. Route it through the shared
+        # single ephemeral window like every other reveal.
+        from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _open_unique_ephemeral,
+        )
+
+        await _open_unique_ephemeral(
+            interaction, content=strings["slot_choose"], view=view, ephemeral=True
         )
     else:
         await interaction.response.edit_message(content=strings["slot_choose"], view=view)

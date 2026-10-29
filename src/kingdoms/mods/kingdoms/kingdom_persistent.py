@@ -15,7 +15,6 @@ ride an ephemeral message that expires with the process anyway.
 
 from __future__ import annotations
 
-import io
 import logging
 import re
 import time
@@ -1362,6 +1361,17 @@ def _market_card_file(item: str) -> discord.File | None:
     return discord.File(path, filename=card_filename(item))
 
 
+def _market_card_back_file() -> discord.File | None:
+    """The TCG card BACK, when uploaded (chambre-des-comptes-v6)."""
+    from kingdoms.mods.kingdoms.marche_art import resolve_card_back
+
+    path = resolve_card_back()
+    if path is None:
+        logger.info("KINGDOMS MARKET: card back missing (assets/marche)")
+        return None
+    return discord.File(path, filename="Dos_de_carte.png")
+
+
 _EPHEMERAL_WINDOW_TTL = 15 * 60
 """fenetre-unique-v1 (Drasah 26/10): a card's interaction webhook token
 lives ~15 minutes — past that, the old ephemeral can no longer be
@@ -2358,22 +2368,17 @@ async def _market_ledger_cards(
 
 
 def _market_ledger_card_files(held: list[tuple[str, str, int]]) -> list[discord.File]:
-    """The held cards' TCG art — ONE mosaic attachment (v4, Drasah 29/10).
+    """The card BACK at original size — ONE attachment (v6, Drasah 29/10).
 
-    Drasah's live report killed v3 (one 728x1024 card per attachment):
-    the posters rendered ENORMOUS and drowned the sheet. v4 composes
-    the cards into a single small-tile mosaic, each tile stamped with
-    its X<stock> counter, CACHED per hand so an unchanged hand replays
-    the previous bytes (« toujours en cache pour soulager »). An empty
-    hand or a compositing failure stays cosmetic: no attachment, the
-    text lines alone.
+    v5's mosaic still was not welcome: Drasah wants the window to show
+    the card BACK by default (taille d'origine), with one button per
+    held card; clicking a button EDITS the window in place to reveal
+    that card's art + effect + usage. Empty hand = no attachment.
     """
-    from kingdoms.mods.kingdoms.marche_art import held_cards_mosaic_png
-
-    png = held_cards_mosaic_png([(key, stock) for key, _line, stock in held])
-    if png is None:
+    if not held:
         return []
-    return [discord.File(io.BytesIO(png), filename="cartes_en_main.png")]
+    back = _market_card_back_file()
+    return [back] if back is not None else []
 
 
 async def _market_ledger_content(
@@ -2403,17 +2408,16 @@ async def _market_ledger_content(
     else:
         lines.append(str(strings["market_ledger_cards_empty"]))
     card_files = _market_ledger_card_files(held)
-    # chambre-des-comptes-v5 (Drasah 29/10): « sous ces cartes il
-    # faudrait un bouton sous chaque carte pour en savoir plus » — one
-    # secondary button per held card type, packed two per row under the
-    # 2-column mosaic so each button sits under its card.
+    # chambre-des-comptes-v6 (Drasah 29/10): the window shows the card
+    # BACK (original size) by default and one secondary button per
+    # held card type, labelled with the CARD NAME alone — clicking a
+    # button EDITS the window in place (art + Effet + Usage), zero new
+    # ephemeral, zero pollution.
     card_info_view: discord.ui.View | None = None
     if held:
         card_info_view = discord.ui.View(timeout=None)
-        for index, (key, _line, _stock) in enumerate(held):
-            card_info_view.add_item(
-                KingdomMarketCardInfoButton(key, strings, row=index // 2)
-            )
+        for key, _line, _stock in held:
+            card_info_view.add_item(KingdomMarketCardInfoButton(key, strings))
     return "\n".join(lines), card_files, card_info_view
 
 
@@ -2436,17 +2440,19 @@ class KingdomMarketCardInfoButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:market:cardinfo:(?P<card>[a-z_]+)",
 ):
-    """chambre-des-comptes-v5 (Drasah 29/10): « en savoir plus » per held
-    card — one secondary button under the mosaic, opening the card's own
-    sheet: its full TCG art, its EFFECT text and how many remain in hand.
-    Restart-proof (DynamicItem), and it opens through the shared
-    single-window registry like every other sheet."""
+    """chambre-des-comptes-v6 (Drasah 29/10): one secondary button per
+    held card, labelled with the card's name. Clicking it EDITS the
+    ledger window IN PLACE (type 7 semantics — the button sits ON the
+    window, so the edit lands on the window itself, never the panel):
+    the card-back default image becomes that card's TCG art, and the
+    sheet gains the card's EFFET + USAGE lines. Zero new ephemeral =
+    anti-pollution by construction. Restart-proof (DynamicItem)."""
 
     def __init__(
         self, card: str, strings: dict[str, Any], row: int | None = None
     ) -> None:
-        emojis = strings.get("market_ledger_emoji") or {}
-        label = f"{emojis.get(card, '•')} {_market_label(card, strings)}"
+        # v6: the label is the CARD NAME alone (« un bouton "nomdelatech" »).
+        label = _market_label(card, strings)
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
@@ -2470,36 +2476,52 @@ class KingdomMarketCardInfoButton(
         return cls(match["card"], _strings(locale))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the held card's own sheet, ephemeral, single window."""
+        """Reveal the card INSIDE the ledger window (edit in place)."""
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
-        user_id = str(getattr(interaction.user, "id", ""))
-        await interaction.response.defer(ephemeral=True)
-        lord = await _lord_of(wiring.kingdoms_service, user_id)
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
         kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord else ""
-        stock = await _market_card_stock(wiring, kingdom_id, self.card)
+        kingdom = (
+            await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
+            if kingdom_id
+            else None
+        )
+        if kingdom is None:
+            await interaction.response.send_message(
+                strings["church_marry_kingdom_none"], ephemeral=True
+            )
+            return
+        # Type-6 defer on the window's own component: the interaction's
+        # original response IS the ledger window (never the panel —
+        # the panel carries no cardinfo button), so the rebuild may take
+        # its time and the edit below lands on the window itself.
+        await interaction.response.defer()
+        content, _card_files, card_info_view = await _market_ledger_content(
+            wiring, kingdom, strings
+        )
         emojis = strings.get("market_ledger_emoji") or {}
-        label = _market_label(self.card, strings)
-        lines = [
-            f"# {emojis.get(self.card, '•')} {label}",
+        fiche = [
             "",
-            str(strings["market_fiche_effect"]).format(
-                strings["market_effect"].get(self.card, "")
+            f"## {emojis.get(self.card, '•')} "
+            f"{_market_label(self.card, strings)}",
+            str(strings["market_card_effect"]).format(
+                (strings.get("market_effect") or {}).get(self.card, "")
             ),
-            "",
-            str(strings["market_ledger_card_line"]).format(
-                emojis.get(self.card, "•"), label, stock
+            str(strings["market_card_usage"]).format(
+                (strings.get("market_usage") or {}).get(self.card, "")
             ),
         ]
-        file = _market_card_file(self.card)
-        await _close_previous_ephemeral(user_id)
-        window = await interaction.followup.send(
-            "\n".join(lines),
-            files=[file] if file is not None else [],
-            ephemeral=True,
+        # The chosen card's art, or the back when the art is missing
+        # (cosmetic — the text lines still ride the edit).
+        file = _market_card_file(self.card) or _market_card_back_file()
+        files = [file] if file is not None else []
+        await interaction.edit_original_response(
+            content="\n".join([content, *fiche]),
+            files=files,
+            attachments=[],
+            view=card_info_view,
         )
-        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic(), window)
 
 
 class KingdomMarketLedgerButton(

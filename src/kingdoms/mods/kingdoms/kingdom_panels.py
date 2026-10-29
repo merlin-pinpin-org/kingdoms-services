@@ -343,21 +343,21 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_effect": {
             "embuscade": (
                 "Declare an exceptional attack without spending an attack "
-                "point (the matching defence is exceptional too). Every "
-                "protection applies."
+                "point. Defending an ambush also uses an exceptional defence."
             ),
             "traquenard": (
                 "On use: the AI you face becomes Easy, and the target kingdom's "
                 "active marriages gain a +2h lock."
             ),
             "contre_espionnage": (
-                "On use: declare an attack under cover — another lord is "
-                "displayed instead of you. The real attacker is revealed "
-                "15 minutes before the game."
+                "When attacking, you may declare the attack in the name of "
+                "any other lord, except a lord from the kingdom you attack. "
+                "Your identity is revealed 15 minutes before the game."
             ),
             "sabotage": (
-                "A charge to engage in the meeting DM: disables up to 2 enemy "
-                "civilizations for the encounter (the counter resets afterwards)."
+                "Removes one civilization choice from your opponent during a "
+                "confrontation. You may sabotage at most two civilizations "
+                "per encounter."
             ),
             "jeu_d_armes": (
                 "+1 permanent AI level (until the season ends) on your defence "
@@ -403,6 +403,27 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_ledger_cards_empty": "No card in hand right now.",
         "market_ledger_card_line": "{0} **{1}** — ×{2}",
         "market_ledger_line": "{0} {1} — {2} · {3} ⚙️ · {4}",
+        "market_card_effect": "Effect: {0}",
+        "market_card_usage": "Usage: {0}",
+        "market_usage": {
+            "embuscade": (
+                "In « Declare an attack », you choose between a classic "
+                "attack or an ambush."
+            ),
+            "traquenard": (
+                "Used in an attack against an AI — the AI you face becomes "
+                "Easy and the target kingdom's active marriages gain a +2h "
+                "lock."
+            ),
+            "contre_espionnage": (
+                "When declaring the attack, you can use the "
+                "Counter-espionage."
+            ),
+            "sabotage": (
+                "Used after ordering your 3 civilizations against an "
+                "opponent — the « Sabotage » button becomes available."
+            ),
+        },
         "market_ledger_emoji": {
             "embuscade": "🥷",
             "traquenard": "🪤",
@@ -774,23 +795,24 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_fiche_king_only": "👑 Réservé au Roi — débité immédiatement du trésor.",
         "market_effect": {
             "embuscade": (
-                "Déclare une attaque exceptionnelle, sans consommer de point "
-                "d'attaque (la défense correspondante est aussi exceptionnelle). "
-                "Toutes les protections s'appliquent."
+                "Déclare une attaque exceptionnelle sans point d'attaque. "
+                "Défendre une embuscade utilise aussi une défense "
+                "exceptionnelle."
             ),
             "traquenard": (
                 "À l'usage : l'IA affrontée devient Facile, et les mariages "
                 "actifs du royaume ciblé prennent +2h de verrou."
             ),
             "contre_espionnage": (
-                "À l'usage : déclare une attaque sous couverture — un autre "
-                "seigneur est affiché à ta place. Le vrai attaquant est révélé "
+                "Lorsque vous attaquez, vous pouvez la déclarer au nom de "
+                "n'importe quel autre seigneur, excepté un seigneur provenant "
+                "du royaume que vous attaquez. Ton identité est révélée "
                 "15 min avant la partie."
             ),
             "sabotage": (
-                "Charge à engager dans le MP de rencontre : neutralise jusqu'à "
-                "2 civilisations adverses pour la rencontre (compteur remis à "
-                "zéro ensuite)."
+                "Permet de retirer un choix de civilisation à votre adversaire "
+                "lors d'une confrontation. Vous ne pouvez saboter que deux "
+                "civilisations maximum par rencontre."
             ),
             "jeu_d_armes": (
                 "+1 niveau d'IA permanent (jusqu'à la fin de saison) sur ton "
@@ -839,6 +861,28 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_ledger_cards_empty": "Aucune carte en main pour le moment.",
         "market_ledger_card_line": "{0} **{1}** — ×{2}",
         "market_ledger_line": "{0} {1} — {2} · {3} ⚙️ · {4}",
+        "market_card_effect": "Effet : {0}",
+        "market_card_usage": "Usage : {0}",
+        "market_usage": {
+            "embuscade": (
+                "Dans « Déclarer une attaque », vous avez le choix entre une "
+                "attaque classique ou une embuscade."
+            ),
+            "traquenard": (
+                "S'utilise lors d'une attaque contre une IA — l'IA affrontée "
+                "devient Facile et les mariages actifs du royaume ciblé "
+                "prennent +2h de verrou."
+            ),
+            "contre_espionnage": (
+                "À la déclaration de l'attaque, vous pouvez utiliser le "
+                "Contre-espionnage."
+            ),
+            "sabotage": (
+                "S'utilise après avoir choisi l'ordre de vos 3 civilisations "
+                "contre un adversaire — le bouton « Saboter » devient "
+                "disponible."
+            ),
+        },
         "market_ledger_emoji": {
             "embuscade": "🥷",
             "traquenard": "🪤",

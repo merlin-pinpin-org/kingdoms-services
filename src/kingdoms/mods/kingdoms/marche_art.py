@@ -45,6 +45,17 @@ def card_filename(item: str) -> str:
     return _CARDS.get(item, f"{item}.png")
 
 
+def resolve_card_back() -> Path | None:
+    """Return the TCG card back path (chambre-des-comptes-v6).
+
+    The back (`Dos_de_carte.png`) stays out of `_CARDS` on purpose
+    (future booster flow) — this dedicated resolver is the only door
+    to it. None = missing art, cosmetic only.
+    """
+    candidate = _ASSET_DIR / "Dos_de_carte.png"
+    return candidate if candidate.is_file() else None
+
+
 # marche-visuel-v2 (Drasah 28/10): the market banner (the generated
 # crier scene, uploaded by Drasah) — cosmetic, the panel works without
 # it (pattern assets/taverne).
