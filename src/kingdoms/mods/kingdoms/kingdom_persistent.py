@@ -2381,7 +2381,7 @@ async def _market_ledger_content(
     lines.append(f"## {strings['market_ledger_cards_title']}")
     held = await _market_ledger_cards(wiring, str(getattr(kingdom, "id", "")), strings)
     if held:
-        lines.extend(line for _key, line in held)
+        lines.extend(line for _key, line, _stock in held)
     else:
         lines.append(str(strings["market_ledger_cards_empty"]))
     return "\n".join(lines), _market_ledger_card_files(held)
