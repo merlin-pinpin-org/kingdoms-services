@@ -21,6 +21,7 @@ import asyncio
 import hashlib
 import logging
 import re
+import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -160,6 +161,28 @@ async def _delete_sabotage_panel(key: tuple[str, str]) -> None:
         await panel["interaction"].delete_original_response()
     except Exception:
         logger.debug("kingdoms: sabotage panel delete skipped", exc_info=True)
+
+
+async def _unique_notice(interaction: discord.Interaction, content: str) -> None:
+    """Answer through the mod's fenêtre unique registry (PATCH 1.0 item 1).
+
+    Drasah 29/10 live report: the draft's doublon warning stayed
+    stacked under the DM after a corrected validation, and the
+    sabotage refusal bubbles pile up next to the panel. Every
+    REFUSAL/notice of the draft and sabotage flows now routes through
+    the shared registry — a new refusal replaces the previous one, and
+    the next successful step (validate, panel open) closes the stale
+    window instead of letting bubbles stack."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _open_unique_ephemeral
+
+    await _open_unique_ephemeral(interaction, content)
+
+
+async def _close_stale_notice(user_id: str) -> None:
+    """Close the player's stale refusal window (best effort)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _close_previous_ephemeral
+
+    await _close_previous_ephemeral(user_id)
 
 
 def _room_channel_name(guild: Any, prefix: str, *parts: str) -> str:
@@ -3514,7 +3537,7 @@ class KingdomPickBanView(discord.ui.View):
         strings = self.strings
         wiring = _wiring()
         if wiring.attacks_service is None:
-            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            await _unique_notice(interaction, strings["no_service"])
             return
         picks: list[str] = []
         for select in self.rank_selects:
@@ -3522,12 +3545,16 @@ class KingdomPickBanView(discord.ui.View):
         # pickban-doublon-v1 (Drasah 28/10): the old single message
         # answered « classe tes civs » to BOTH a missing pick and a
         # DUPLICATE — the duplicate case now has its own wording.
+        # PATCH 1.0 item 1 (Drasah 29/10): the refusals ride the fenêtre
+        # unique registry — a new refusal replaces the previous one,
+        # and the corrected validation (below) closes the stale
+        # warning instead of leaving it stacked under the DM.
         if len(set(picks)) != len(picks):
-            await interaction.response.send_message(strings["pickban_duplicate"], ephemeral=True)
+            await _unique_notice(interaction, strings["pickban_duplicate"])
             return
         if len(picks) != len(self.rank_selects):
-            await interaction.response.send_message(
-                strings["pickban_missing"].format(count=len(self.rank_selects)), ephemeral=True
+            await _unique_notice(
+                interaction, strings["pickban_missing"].format(count=len(self.rank_selects))
             )
             return
         try:
@@ -3535,10 +3562,14 @@ class KingdomPickBanView(discord.ui.View):
             attack = await wiring.attacks_service.validate_pickban(self.attack_id, self.player_id)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            await _unique_notice(interaction, strings["failed"].format(message=message))
             return
         # Symmetry (Drasah 18/10 v2): the SAME answer for the first
         # and the second validator — nobody sees the adversary civs.
+        # PATCH 1.0 item 1: the validated picks clear the stale
+        # refusal window (doublon / classe d'abord) — the DM edit is
+        # the only surviving surface.
+        await _close_stale_notice(str(interaction.user.id))
         content = strings["pickban_waiting"]
         try:
             await interaction.response.edit_message(content=content, view=None)
@@ -3842,32 +3873,41 @@ class KingdomSabotageOpenButton(
         strings = _strings(_locale(interaction))
         wiring = _wiring()
         if wiring.attacks_service is None or not self.attack_id:
-            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            await _unique_notice(interaction, strings["no_service"])
             return
         try:
             attack = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == self.attack_id)
         except Exception:
-            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            await _unique_notice(interaction, strings["no_service"])
             return
         if attack.is_over or (attack.pickban or {}).get("sabotage_resolved"):
-            await interaction.response.send_message(strings["sab_over"], ephemeral=True)
+            await _unique_notice(interaction, strings["sab_over"])
             return
         user_id = str(interaction.user.id)
         side = _room_side_of(attack, user_id)
         if side == "":
-            await interaction.response.send_message(strings["sab_not_player"], ephemeral=True)
+            await _unique_notice(interaction, strings["sab_not_player"])
             return
         view = await _sabotage_menu_view(wiring, attack, side, strings)
         if view is None or not list(view.children):
             # Drasah 18/10 v4: no techno bought and no usable Faucon.
-            await interaction.response.send_message(strings["sab_no_resources"], ephemeral=True)
+            await _unique_notice(interaction, strings["sab_no_resources"])
             return
         # sabotage-ux-v1 (Drasah 22/10): ONE ephemeral panel per player,
         # edited in place at every action — the panel carries the X/2
         # récap, the removed civs and the stock line, and self-destructs
         # at the 15-minute webhook token limit.
-        content, _ = await _sabotage_panel_content(wiring, attack, side, strings)
-        await interaction.response.send_message(content, view=view, ephemeral=True)
+        # sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): the panel
+        # rides the enemy-picks MOSAIC (❌ crossed sabotages) and its
+        # opening closes the stale refusal window of the fenêtre unique
+        # registry — the panel itself keeps its own lifecycle
+        # (_SABOTAGE_PANELS) and is never registered.
+        await _close_stale_notice(user_id)
+        content, _menu, file = await _sabotage_panel_content(wiring, attack, side, strings)
+        panel_kwargs: dict[str, Any] = {"view": view}
+        if file is not None:
+            panel_kwargs["files"] = [file]
+        await interaction.response.send_message(content, ephemeral=True, **panel_kwargs)
         key = (str(attack.id), user_id)
         _SABOTAGE_PANELS.pop(key, None)
         _SABOTAGE_PANELS[key] = {"interaction": interaction}
@@ -3920,13 +3960,13 @@ class KingdomSabotagePassButton(
         strings = _strings(_locale(interaction))
         wiring = _wiring()
         if wiring.attacks_service is None or not self.attack_id:
-            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            await _unique_notice(interaction, strings["no_service"])
             return
         try:
             fresh = await wiring.attacks_service.sabotage_settle(self.attack_id, self.player_id)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            await _unique_notice(interaction, strings["failed"].format(message=message))
             return
         # sabotage-ux-v1 (Drasah 22/10): the Passer click closes the
         # sabotage panel — the player is done with the phase, the panel
@@ -3934,12 +3974,14 @@ class KingdomSabotagePassButton(
         await _delete_sabotage_panel((self.attack_id, self.player_id))
         if (fresh.pickban or {}).get("sabotage_resolved"):
             await _edit_pickban_dms_phase_done(interaction.client, fresh, strings)
-            await interaction.response.send_message(strings["sab_phase_done"].format(map=fresh.map_key), ephemeral=True)
+            await _unique_notice(
+                interaction, strings["sab_phase_done"].format(map=fresh.map_key)
+            )
             # Drasah 18/10 v4: both camps answered — the vocal opens
             # at once, BEFORE T (the room carries URL/Prêt/result).
             await _open_meeting_and_room_safe(interaction.client, fresh, wiring, strings, _locale(interaction))
             return
-        await interaction.response.send_message(strings["sab_settled"], ephemeral=True)
+        await _unique_notice(interaction, strings["sab_settled"])
 
 
 async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
@@ -5786,12 +5828,18 @@ async def _sabotage_stock_line(wiring: Any, attack: Any, side: str, strings: dic
 
 async def _sabotage_panel_content(
     wiring: Any, attack: Any, side: str, strings: dict[str, str]
-) -> tuple[str, discord.ui.View | None]:
+) -> tuple[str, discord.ui.View | None, discord.File | None]:
     """Build the sabotage PANEL content + its rebuilt menu (sabotage-ux-v1).
 
     One panel, edited in place: the title carries the X/2 récap, the
     removed-civs line, the stock line. The menu view is None when no
     action is available anymore (the caller sweeps the panel).
+
+    sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): the panel
+    also carries the ENEMY picks as ONE crest mosaic, every sabotaged
+    civilization wearing the ❌ cross — the mosaic is recomposed at
+    every action so a fresh snipe crosses its blason at once. Best
+    effort: a failing composition leaves the text panel standing.
     """
     pickban = dict(attack.pickban or {})
     used = [str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])]
@@ -5803,7 +5851,20 @@ async def _sabotage_panel_content(
     lines.append("")
     lines.append(await _sabotage_stock_line(wiring, attack, side, strings))
     view = await _sabotage_menu_view(wiring, attack, side, strings)
-    return "\n".join(lines), view
+    enemy = "defender" if side == "attacker" else "attacker"
+    enemy_picks = [str(civ) for civ in (pickban.get(f"{enemy}_picks") or [])]
+    file: discord.File | None = None
+    if enemy_picks:
+        try:
+            file = await civ_crest_mosaic_file(
+                [(civ, "", civ) for civ in enemy_picks],
+                filename="sabotage.png",
+                with_origin_badges=False,
+                crossed=set(used),
+            )
+        except Exception:
+            logger.warning("KINGDOM ATTACK: sabotage mosaic failed", exc_info=True)
+    return "\n".join(lines), view, file
 
 
 async def _sabotage_menu_view(wiring: Any, attack: Any, side: str, strings: dict[str, str]) -> discord.ui.View | None:
@@ -5880,13 +5941,21 @@ async def _sabotage_action_button(
             fresh = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == str(attack.id))
         except Exception:
             fresh = attack
-        content, menu = await _sabotage_panel_content(wiring, fresh, side, strings)
+        content, menu, file = await _sabotage_panel_content(wiring, fresh, side, strings)
         civ_view = await _sabotage_civ_select_view(wiring, str(attack.id), side, action, strings)
         if civ_view is None:
             await target.response.edit_message(content=f"{content}\n\n{strings['sab_empty']}", view=menu)
             _arm_sabotage_panel_timer(key)
             return
-        await target.response.edit_message(content=f"{content}\n\n{strings['sab_choose']}", view=civ_view)
+        # sabotage-visuel-v1 (Drasah 29/10): the re-rendered MOSAIC rides
+        # the edit as an ``attachments`` list — the ONLY way a live
+        # interaction edit carries new files (never ``files=``).
+        edit_kwargs: dict[str, Any] = {
+            "content": f"{content}\n\n{strings['sab_choose']}",
+            "view": civ_view,
+            "attachments": [file] if file is not None else [],
+        }
+        await target.response.edit_message(**edit_kwargs)
         _arm_sabotage_panel_timer(key)
 
     button.callback = _on_action  # type: ignore[method-assign,assignment]
@@ -5932,23 +6001,42 @@ async def _sabotage_civ_select_view(
                 await wiring.attacks_service.sabotage_techno(attack_id, user_id, civ)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await target.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            await _unique_notice(target, strings["failed"].format(message=message))
             return
         # sabotage-ux-v1 (Drasah 22/10): the pick edits the SAME panel —
         # récap X/2 + the removed civ + the stock line, no new bubble.
+        # sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): the
+        # panel re-renders its MOSAIC — the freshly sabotaged blason
+        # wears the ❌ at once — and the edit carries the file through
+        # ``attachments`` (the only live-edit path for new files).
         try:
             fresh = next(item for item in await wiring.attacks_service.attacks() if str(item.id) == attack_id)
         except Exception:
             fresh = attack
-        content, menu = await _sabotage_panel_content(wiring, fresh, side, strings)
-        used = len([str(civ) for civ in ((fresh.pickban or {}).get(f"{side}_sabotages") or [])])
+        content, menu, file = await _sabotage_panel_content(wiring, fresh, side, strings)
+        used = len([str(civ2) for civ2 in ((fresh.pickban or {}).get(f"{side}_sabotages") or [])])
         note = strings["sab_panel_done"].format(civ=civ, used=used)
         key = (attack_id, user_id)
         try:
-            await target.response.edit_message(content=f"{content}\n\n{note}", view=menu)
+            await target.response.edit_message(
+                content=f"{content}\n\n{note}",
+                view=menu,
+                attachments=[file] if file is not None else [],
+            )
         except Exception:
+            # The edit died (token gap, restarted panel) — the fallback
+            # re-sends the WHOLE panel (récap + note + mosaic), NEVER a
+            # lone note bubble, and rides the fenêtre unique registry so
+            # the flow's next answer closes it (PATCH 1.0 item 2).
             logger.warning("KINGDOM ATTACK: sabotage panel edit failed", exc_info=True)
-            await target.response.send_message(note, ephemeral=True)
+            from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
+
+            await _close_stale_notice(user_id)
+            fallback_kwargs: dict[str, Any] = {"view": menu, "ephemeral": True}
+            if file is not None:
+                fallback_kwargs["files"] = [file]
+            window = await target.followup.send(f"{content}\n\n{note}", **fallback_kwargs)
+            _EPHEMERAL_WINDOWS[user_id] = (target, time.monotonic(), window)
         if menu is None or not list(menu.children):
             # No action left — sweep the closed panel quickly.
             _arm_sabotage_panel_timer(key, seconds=_SABOTAGE_PANEL_SWEEP_SECONDS)

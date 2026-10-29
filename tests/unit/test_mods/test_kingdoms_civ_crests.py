@@ -557,3 +557,111 @@ async def test_mosaic_file_returns_none_for_an_empty_hand() -> None:
 
     assert await civ_crest_mosaic_file([]) is None
     assert await civ_crest_mosaic_file([("", "starter")]) is None
+
+
+async def test_mosaic_crosses_the_sabotaged_civs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): ``crossed=``
+    stamps the ❌ on the listed tiles ONLY — the Twemoji glyph when
+    reachable, the pure-python red strokes offline (zero download) —
+    and the cache key separates two crossed hands of the same civs."""
+    from kingdoms.mods.kingdoms import civ_crests
+    from kingdoms.mods.kingdoms.civ_crests import (
+        CROSS_EMOJI_CODE,
+        MOSAIC_BADGE,
+        MOSAIC_BADGE_INSET,
+        MOSAIC_COLS,
+        MOSAIC_TILE,
+        _decode_png_rgba,
+        civ_crest_mosaic_file,
+    )
+
+    downloads: list[str] = []
+
+    async def fake_crest_bytes(url: str) -> bytes:
+        downloads.append(url)
+        return _tiny_red_png()
+
+    async def offline_emoji(code: str) -> bytes | None:
+        return None
+
+    monkeypatch.setattr(civ_crests, "_crest_bytes", fake_crest_bytes)
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", offline_emoji)
+
+    entries = [("francs", "", "Francs"), ("huns", "", "Huns"), ("goths", "", "Goths")]
+
+    def cross_center(width: int, index: int) -> tuple[int, int]:
+        col = index % MOSAIC_COLS
+        return (
+            col * MOSAIC_TILE + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2,
+            MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET + MOSAIC_BADGE // 2,
+        )
+
+    # Offline: the crossed tile wears the pure-python red cross, the
+    # others stay clean (no origin badge, no cross).
+    file = await civ_crest_mosaic_file(
+        entries, filename="sabotage.png", with_origin_badges=False, crossed={"huns"}
+    )
+    assert file is not None and file.filename == "sabotage.png"
+    decoded = _decode_png_rgba(_file_bytes(file))
+    assert decoded is not None
+    width, _height, pixels = decoded
+
+    def pixel(x: int, y: int) -> tuple[int, int, int, int]:
+        dest = (y * width + x) * 4
+        return (pixels[dest], pixels[dest + 1], pixels[dest + 2], pixels[dest + 3])
+
+    assert pixel(*cross_center(width, 1)) == (220, 38, 38, 255)
+    assert pixel(*cross_center(width, 0)) == (0, 0, 0, 0)
+    assert pixel(*cross_center(width, 2)) == (0, 0, 0, 0)
+
+    # Cache: the SAME crossed hand costs zero downloads…
+    downloads.clear()
+    again = await civ_crest_mosaic_file(
+        entries, filename="sabotage.png", with_origin_badges=False, crossed={"huns"}
+    )
+    assert again is not None
+    assert downloads == []
+
+    # …a DIFFERENT crossed set is a cold build with its own ❌ layout.
+    downloads.clear()
+    changed = await civ_crest_mosaic_file(
+        entries, filename="sabotage.png", with_origin_badges=False, crossed={"francs"}
+    )
+    assert changed is not None
+    assert downloads
+    decoded2 = _decode_png_rgba(_file_bytes(changed))
+    assert decoded2 is not None
+    width2 = decoded2[0]
+    pixels2 = decoded2[2]
+
+    def pixel2(x: int, y: int) -> tuple[int, int, int, int]:
+        dest = (y * width2 + x) * 4
+        return (pixels2[dest], pixels2[dest + 1], pixels2[dest + 2], pixels2[dest + 3])
+
+    assert pixel2(*cross_center(width2, 0)) == (220, 38, 38, 255)
+    assert pixel2(*cross_center(width2, 1)) == (0, 0, 0, 0)
+
+    # Online: the ❌ rides the Twemoji glyph — fetched once, crossed tile.
+    codes: list[str] = []
+
+    async def online_emoji(code: str) -> bytes:
+        codes.append(code)
+        return _tiny_colored_png(0, 0, 255)
+
+    monkeypatch.setattr(civ_crests, "_emoji_bytes", online_emoji)
+    online = await civ_crest_mosaic_file(
+        entries, filename="sabotage2.png", with_origin_badges=False, crossed={"goths"}
+    )
+    assert online is not None
+    assert codes == [CROSS_EMOJI_CODE]
+    decoded3 = _decode_png_rgba(_file_bytes(online))
+    assert decoded3 is not None
+    width3 = decoded3[0]
+    pixels3 = decoded3[2]
+
+    def pixel3(x: int, y: int) -> tuple[int, int, int, int]:
+        dest = (y * width3 + x) * 4
+        return (pixels3[dest], pixels3[dest + 1], pixels3[dest + 2], pixels3[dest + 3])
+
+    assert pixel3(*cross_center(width3, 2)) == (0, 0, 255, 255)
+    assert pixel3(*cross_center(width3, 1)) == (0, 0, 0, 0)

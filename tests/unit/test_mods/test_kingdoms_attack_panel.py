@@ -2284,19 +2284,44 @@ async def test_sabotage_stock_line_counts_and_faucon_state() -> None:
     await asyncio.sleep(0)
 
 
-async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
+async def test_sabotage_panel_edits_in_place_and_dies_at_passer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """sabotage-ux-v1: the sabotage phase lives on ONE ephemeral panel
     per player — the menu click and the civ pick EDIT it in place (no
     stacking bubbles), the panel carries the X/2 récap + stock line,
-    and the ⚔️ Passer click deletes it at once."""
+    and the ⚔️ Passer click deletes it at once.
+
+    sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): the panel
+    carries the enemy-picks MOSAIC, re-rendered at EVERY action with
+    the sabotaged civs crossed — the pick attaches the recomposed file
+    through the edit's ``attachments``."""
     import asyncio
 
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         _SABOTAGE_PANELS,
         KingdomSabotageOpenButton,
         KingdomSabotagePassButton,
         _strings,
     )
+
+    mosaic_calls: list[set[str]] = []
+
+    class _FakeMosaicFile:
+        pass
+
+    async def fake_mosaic(
+        entries: object,
+        filename: str = "alliances.png",
+        *,
+        with_origin_badges: bool = True,
+        crossed: object = None,
+    ) -> object:
+        mosaic_calls.append({str(civ) for civ in (crossed or ())})
+        return _FakeMosaicFile()
+
+    monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
 
     bundle = ScoreBundle()
     await bundle.launch_season()
@@ -2318,6 +2343,9 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
     key = (str(attack.id), "king-a")
     assert key in _SABOTAGE_PANELS
     assert _SABOTAGE_PANELS[key]["interaction"] is click
+    # sabotage-visuel-v1: the opening panel already wears the mosaic.
+    assert mosaic_calls == [set()]
+    assert click.response.message.attachments and click.response.message.attachments[0].__class__ is _FakeMosaicFile
 
     # The techno click EDITS the panel — no new bubble, no followup.
     menu = click.response.message.view
@@ -2330,6 +2358,7 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
     assert "sab_title" not in step_content
     assert "0/2" in step_content  # the panel header survives the edit
     assert "Choisis la civilisation" in step_content
+    assert step.response.message.attachments and step.response.message.attachments[0].__class__ is _FakeMosaicFile
 
     # The civ pick edits the SAME panel again — récap 1/2 + done note.
     civ_view = step.response.message.view if step.response.message else None
@@ -2347,6 +2376,9 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
     # sabotage-consommable-v1: the stock line decrements after the snipe
     # (2 bought charges - 1 used = 1 left, the panel is edited in place).
     assert "🗡️ Sabotage : 1" in pick_content
+    # sabotage-visuel-v1: the pick re-rendered the mosaic with huns ❌.
+    assert mosaic_calls[-1] == {"huns"}
+    assert pick.response.message.attachments and pick.response.message.attachments[0].__class__ is _FakeMosaicFile
 
     # The ⚔️ Passer click deletes the panel at once.
     passer = KingdomSabotagePassButton(attack.id, "king-a", strings["sab_pass_button"])
@@ -2358,6 +2390,144 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer() -> None:
         if task is not asyncio.current_task():
             task.cancel()
     await asyncio.sleep(0)
+
+
+async def test_sabotage_panel_fallback_resends_the_whole_panel_through_the_unique_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): when the
+    in-place edit DIES (expired token, restarted panel), the fallback
+    re-sends the WHOLE panel — récap + note + mosaic, NEVER a lone
+    note bubble — and the window rides the fenêtre unique registry so
+    the next fallback closes the previous one (no stacking)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _SABOTAGE_PANELS,
+        KingdomSabotageOpenButton,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
+
+    class _FakeMosaicFile:
+        pass
+
+    async def fake_mosaic(
+        entries: object,
+        filename: str = "alliances.png",
+        *,
+        with_origin_badges: bool = True,
+        crossed: object = None,
+    ) -> object:
+        return _FakeMosaicFile()
+
+    monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
+    _EPHEMERAL_WINDOWS.pop("king-a", None)
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=2)
+    _wiring(bundle)
+    guild = MockGuild()
+    strings = _strings("fr")
+
+    open_btn = KingdomSabotageOpenButton(attack.id, "king-a", strings["sab_open_button"])
+    click = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    await open_btn.callback(click)  # type: ignore[arg-type]
+    menu = click.response.message.view
+    techno = next(c for c in menu.children if str(getattr(c, "label", "")) == strings["sab_techno"])
+    step = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    await techno.callback(step)  # type: ignore[arg-type]
+    civ_view = step.response.message.view
+    select = next(c for c in civ_view.children if hasattr(c, "callback"))
+
+    async def _raising_edit(**kwargs: object) -> None:
+        raise RuntimeError("the token died")
+
+    # The pick's in-place edit dies — the fallback carries récap + note
+    # + mosaic in ONE followup, registered as the player's unique window.
+    select._values = ["huns"]  # type: ignore[attr-defined]
+    pick = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    monkeypatch.setattr(pick.response, "edit_message", _raising_edit)
+    await select.callback(pick)  # type: ignore[arg-type]
+    assert len(pick.followup.messages) == 1
+    window = pick.followup.messages[0]
+    fallback_content = str(window.content or "")
+    assert "1/2" in fallback_content  # the récap rides the fallback
+    assert "huns" in fallback_content
+    assert "retirée du camp adverse" in fallback_content  # …and the note
+    assert window.files and window.files[0].__class__ is _FakeMosaicFile
+    stored = _EPHEMERAL_WINDOWS.get("king-a")
+    assert stored is not None and stored[0] is pick and stored[2] is window
+
+    # A SECOND dying pick replaces the first fallback — the stale
+    # window is deleted (fenêtre unique), never stacked.
+    select._values = ["perses"]  # type: ignore[attr-defined]
+    pick2 = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
+    monkeypatch.setattr(pick2.response, "edit_message", _raising_edit)
+    await select.callback(pick2)  # type: ignore[arg-type]
+    assert window.deleted is True
+    assert len(pick2.followup.messages) == 1
+    stored2 = _EPHEMERAL_WINDOWS.get("king-a")
+    assert stored2 is not None and stored2[2] is pick2.followup.messages[0]
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert sorted((fresh.pickban or {}).get("attacker_sabotages") or []) == ["huns", "perses"]
+
+    _EPHEMERAL_WINDOWS.pop("king-a", None)
+    _SABOTAGE_PANELS.pop((str(attack.id), "king-a"), None)
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_pickban_validate_closes_the_stale_refusal_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """PATCH 1.0 item 1 (Drasah 29/10): the draft refusals ride the
+    fenêtre unique registry — the doublon warning is DELETED when the
+    player fixes his picks and validates (his 18h19 live report: the
+    stale warning stayed stacked under the validated DM)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomPickBanView
+    from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
+
+    _EPHEMERAL_WINDOWS.pop("king-a", None)
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack = await bundle.fresh_attack()
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 55, tzinfo=UTC))
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    _wiring(bundle)
+
+    view = KingdomPickBanView(str(attack.id), "king-a", "attacker", ["francs", "bretons", "goths"], "fr")
+
+    # A duplicate → the refusal IS the player's unique window.
+    for select, vals in zip(view.rank_selects, [["francs"], ["francs"], []]):
+        select.values = vals  # type: ignore[misc]
+    refused = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await view._on_validate(refused)  # type: ignore[arg-type]
+    assert refused.response.ephemeral is True
+    assert "doublons" in str(refused.response.message.content or "")
+    stored = _EPHEMERAL_WINDOWS.get("king-a")
+    assert stored is not None and stored[0] is refused
+
+    # The corrected validation succeeds — and DELETES the stale warning.
+    for select, vals in zip(view.rank_selects, [["francs"], ["bretons"], ["goths"]]):
+        select.values = vals  # type: ignore[misc]
+    validated = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await view._on_validate(validated)  # type: ignore[arg-type]
+    assert refused.original_deleted is True  # the doublon warning is gone
+    assert "king-a" not in _EPHEMERAL_WINDOWS
+    assert "en attente de l'adversaire" in str(validated.response.message.content or "")
+
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert (fresh.pickban or {}).get("attacker_picks") == ["francs", "bretons", "goths"]
 
 
 async def test_sabotage_panel_timer_sweeps_the_closed_panel() -> None:
@@ -2403,10 +2573,12 @@ async def test_sabotage_open_button_without_any_resource_answers_no_resources() 
         _strings,
     )
     from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _EPHEMERAL_WINDOWS,
         KingdomsPanelWiring,
         register_kingdoms_panel_wiring,
     )
 
+    _EPHEMERAL_WINDOWS.pop("king-a", None)
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(26)
@@ -2439,13 +2611,26 @@ async def test_sabotage_open_button_without_any_resource_answers_no_resources() 
     content2 = str(click2.response.message.content or "") if click2.response.message else ""
     assert click2.response.ephemeral is True
     assert "ne disposez pas de sabotage ni de Faucon" in content2
-    # With a landed faucon the menu DOES open (the guard passes).
+    # PATCH 1.0 item 1: the notice rides the fenêtre unique registry —
+    # a repeated refusal REPLACES the previous one instead of stacking.
+    stored = _EPHEMERAL_WINDOWS.get("king-a")
+    assert stored is not None and stored[0] is click2
+    click2b = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await open_btn.callback(click2b)  # type: ignore[arg-type]
+    assert click2.original_deleted is True
+    stored2 = _EPHEMERAL_WINDOWS.get("king-a")
+    assert stored2 is not None and stored2[0] is click2b
+    # With a landed faucon the menu DOES open (the guard passes) — and
+    # the panel's opening closes the stale refusal window.
     kingdom.voliere_cooldowns = {"faucon": 0}
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
     click3 = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
     await open_btn.callback(click3)  # type: ignore[arg-type]
     panel3 = str(click3.response.message.content or "") if click3.response.message else ""
     assert "0/2" in panel3
+    assert click2b.original_deleted is True  # the stale notice is closed
+    assert "king-a" not in _EPHEMERAL_WINDOWS  # the panel is never registered
+    _EPHEMERAL_WINDOWS.pop("king-a", None)
     for task in asyncio.all_tasks():
         if task is not asyncio.current_task():
             task.cancel()

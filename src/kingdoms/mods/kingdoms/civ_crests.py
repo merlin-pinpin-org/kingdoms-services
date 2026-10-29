@@ -232,6 +232,8 @@ ORIGIN_EMOJI_CODES: dict[str, str] = {
     "mercenary": "1f4dc",
 }
 DEFAULT_EMOJI_CODE = "1f91d"  # 🤝 default / earlier season
+# sabotage-visuel-v1 (Drasah 29/10): the ❌ stamped on a sabotaged civ.
+CROSS_EMOJI_CODE = "274c"
 TWEMOJI_URL = (
     "https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0"
     "/assets/72x72/{0}.png"
@@ -620,8 +622,54 @@ def _draw_emoji_badge(
     return True
 
 
+def _draw_cross_badge(
+    canvas: bytearray, canvas_w: int, tile_x: int, tile_y: int, glyph: bytes | None
+) -> None:
+    """sabotage-visuel-v1 (Drasah 29/10): stamp the ❌ on a sabotaged
+    civ's tile, in the same bottom-right corner as the origin badge.
+
+    The Twemoji glyph when reachable; a PURE-PYTHON red cross otherwise
+    (two thick diagonal strokes) — the offline fallback keeps the ❌
+    readable with zero download, so the sabotage panel renders in the
+    test sandbox and behind a dead network alike."""
+    if glyph is not None:
+        decoded = _decode_png_rgba(glyph)
+        if decoded is not None:
+            glyph_w, glyph_h, glyph_pixels = decoded
+            badge = _resample_rgba(glyph_w, glyph_h, glyph_pixels, MOSAIC_BADGE, MOSAIC_BADGE)
+            _paste_alpha(
+                canvas,
+                canvas_w,
+                tile_x + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET,
+                tile_y + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET,
+                MOSAIC_BADGE,
+                MOSAIC_BADGE,
+                badge,
+            )
+            return
+    badge_x = tile_x + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET
+    badge_y = tile_y + MOSAIC_TILE - MOSAIC_BADGE - MOSAIC_BADGE_INSET
+    red = (220, 38, 38, 255)
+    thickness = max(3, MOSAIC_BADGE // 7)
+    for i in range(MOSAIC_BADGE):
+        for t in range(thickness):
+            for x, y in (
+                (i + t, i),
+                (i, i + t),
+                (MOSAIC_BADGE - 1 - i - t, i),
+                (MOSAIC_BADGE - 1 - i, i + t),
+            ):
+                dest = ((badge_y + y) * canvas_w + badge_x + x) * 4
+                canvas[dest : dest + 3] = red[:3]
+                canvas[dest + 3] = red[3]
+
+
 async def civ_crest_mosaic_file(
-    entries: Any, filename: str = "alliances.png", *, with_origin_badges: bool = True
+    entries: Any,
+    filename: str = "alliances.png",
+    *,
+    with_origin_badges: bool = True,
+    crossed: Any = None,
 ) -> discord.File | None:
     """Compose the hand's crests into ONE mosaic attachment (None = empty hand).
 
@@ -633,10 +681,17 @@ async def civ_crest_mosaic_file(
     badge (blasons-affichage-v1, Drasah 28/10: the pick-ban REVEAL
     mosaics wear plain crests, the origin star is useless there), in
     hand order, five tiles per row. An undecodable or missing crest falls back to the
-    default crest — the mosaic always goes out complete. The encoded
-    PNG is CACHED per (tiles, filename) — an unchanged hand reuses the
-    previous bytes and costs zero downloads and zero compositing.
+    default crest — the mosaic always goes out complete.
+
+    sabotage-visuel-v1 (Drasah 29/10): ``crossed`` is an iterable of civ
+    keys — every listed tile wears the ❌ cross stamped on its
+    bottom-right corner (the sabotaged civilizations of a pick & ban),
+    even when the origin badges are stripped. The encoded
+    PNG is CACHED per (tiles, filename, crossed) — an unchanged hand
+    reuses the previous bytes and costs zero downloads and zero
+    compositing.
     """
+    crossed_keys: set[str] = {str(civ).strip() for civ in (crossed or ()) if str(civ).strip()}
     tiles: list[tuple[str, str, str]] = []
     seen: set[str] = set()
     for entry in entries or ():
@@ -650,7 +705,10 @@ async def civ_crest_mosaic_file(
     if not tiles:
         return None
     fingerprint = _mosaic_fingerprint(
-        tiles, filename + ("" if with_origin_badges else "|nobadges")
+        tiles,
+        filename
+        + ("" if with_origin_badges else "|nobadges")
+        + ("|x:" + ",".join(sorted(crossed_keys)) if crossed_keys else ""),
     )
     cached = _MOSAIC_CACHE.get(fingerprint)
     if cached is not None:
@@ -689,6 +747,10 @@ async def civ_crest_mosaic_file(
                 canvas, canvas_w, tile_x, tile_y, await _emoji_bytes(code)
             ):
                 _draw_badge(canvas, canvas_w, tile_x, tile_y, origin)
+        if civ_key in crossed_keys:
+            _draw_cross_badge(
+                canvas, canvas_w, tile_x, tile_y, await _emoji_bytes(CROSS_EMOJI_CODE)
+            )
     png = _encode_png_rgba(canvas_w, canvas_h, bytes(canvas))
     if len(_MOSAIC_CACHE) >= MOSAIC_CACHE_MAX:
         _MOSAIC_CACHE.pop(next(iter(_MOSAIC_CACHE)))
