@@ -205,6 +205,12 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
     assert "**Sabotage** — ×2" in sheet
     assert "**Embuscade** — ×1" in sheet
     assert "Traquenard" not in sheet  # 0 stock → not listed
+    # v3: the held cards ride as their TCG art in attachments, one per
+    # type, in the section's order — a 0-stock card ships no art.
+    filenames = [f.filename for f in (interaction.response.message.files or [])]
+    assert "Sabotage.png" in filenames
+    assert "Embuscade.png" in filenames
+    assert "Traquenard.png" not in filenames
     # no service wired for the modal anymore — the window is THE answer
     assert interaction.response.modal is None
 
@@ -216,6 +222,7 @@ async def test_ledger_window_lists_both_empty_states() -> None:
     sheet = str(interaction.response.message.content or "")
     assert "No purchase yet." in sheet
     assert "No card in hand right now." in sheet
+    assert not (interaction.response.message.files or [])  # no art to carry
 
 
 async def test_ledger_second_click_closes_the_previous_window() -> None:

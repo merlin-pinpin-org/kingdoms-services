@@ -894,11 +894,12 @@ class MockResponse:
         embed: discord.Embed | None = None,
         view: discord.ui.View | None = None,
         ephemeral: bool = False,
+        files: list[Any] | None = None,
         **kwargs: Any,
     ) -> MockMessage:
         self.sent = True
         self.ephemeral = ephemeral
-        self.message = MockMessage(content=content, embed=embed, view=view)
+        self.message = MockMessage(content=content, embed=embed, view=view, files=files)
         return self.message
 
     async def edit_message(

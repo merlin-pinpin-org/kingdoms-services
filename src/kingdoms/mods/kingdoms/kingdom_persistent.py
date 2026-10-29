@@ -2304,8 +2304,13 @@ _LEDGER_CARD_KEYS = ("sabotage", "contre_espionnage", "embuscade", "traquenard")
 
 async def _market_ledger_cards(
     wiring: KingdomsPanelWiring, kingdom_id: str, strings: dict[str, Any]
-) -> list[str]:
-    """One line per card type still held, carrying the remaining stock."""
+) -> list[tuple[str, str]]:
+    """One entry per card type still held: (card key, text line).
+
+    chambre-des-comptes-v3 (Drasah 29/10): the key rides along so the
+    ledger can attach the card's TCG art next to its line — he wants
+    the cards VISIBLE (« l'image concrète plutôt que textuel »).
+    """
     purchases: dict[str, Any] = {}
     if wiring.attacks_service is not None and kingdom_id:
         try:
@@ -2314,30 +2319,49 @@ async def _market_ledger_cards(
         except Exception:
             logger.info("KINGDOMS MARKET: card stock read failed")
     emojis = strings.get("market_ledger_emoji") or {}
-    lines: list[str] = []
+    entries: list[tuple[str, str]] = []
     for key in _LEDGER_CARD_KEYS:
         stock = int(purchases.get(key, 0) or 0)
         if stock <= 0:
             continue
-        lines.append(
-            str(strings["market_ledger_card_line"]).format(
-                emojis.get(key, "•"), _market_label(key, strings), stock
+        entries.append(
+            (
+                key,
+                str(strings["market_ledger_card_line"]).format(
+                    emojis.get(key, "•"), _market_label(key, strings), stock
+                ),
             )
         )
-    return lines
+    return entries
+
+
+def _market_ledger_card_files(held: list[tuple[str, str]]) -> list[discord.File]:
+    """The held cards' TCG art — one attachment per type (v3, ≤10).
+
+    Deduplicated like the text lines: two Sabotage in hand attach ONE
+    Sabotage card (the quantity lives on the text line). A missing
+    art stays cosmetic — the sheet works with or without the PNG.
+    """
+    files: list[discord.File] = []
+    for key, _line in held[:10]:  # Discord attachment cap, defensive
+        file = _market_card_file(key)
+        if file is not None:
+            files.append(file)
+    return files
 
 
 async def _market_ledger_content(
     wiring: KingdomsPanelWiring, kingdom: Any, strings: dict[str, Any]
-) -> str:
-    """Build the chambre-des-comptes ephemeral sheet (v2, Drasah 29/10).
+) -> tuple[str, list[discord.File]]:
+    """Build the chambre-des-comptes ephemeral sheet (v2→v3, Drasah 29/10).
 
     Top to bottom: the season balance (spent / treasury / limits), the
     purchases in reverse chronology, then the CARDS IN HAND — one line
     per card type with the remaining stock, deduplicated (multiple
-    buys of the same card read ONE line + its counter). Replaces the
-    read-only modal of marche-v2 (raw text) with the rich ephemeral
-    rendering of the shared single-window registry.
+    buys of the same card read ONE line + its counter). v3: the held
+    cards also travel as their TCG art in attachments under the view
+    (Discord cannot inline them in the text), the lines keep carrying
+    the quantity. Returns (content, card files).
     """
     name = str(getattr(kingdom, "name", "") or "")
     lines = [
@@ -2347,9 +2371,12 @@ async def _market_ledger_content(
     ]
     lines.append("")
     lines.append(f"## {strings['market_ledger_cards_title']}")
-    cards = await _market_ledger_cards(wiring, str(getattr(kingdom, "id", "")), strings)
-    lines.extend(cards or [str(strings["market_ledger_cards_empty"])])
-    return "\n".join(lines)
+    held = await _market_ledger_cards(wiring, str(getattr(kingdom, "id", "")), strings)
+    if held:
+        lines.extend(line for _key, line in held)
+    else:
+        lines.append(str(strings["market_ledger_cards_empty"]))
+    return "\n".join(lines), _market_ledger_card_files(held)
 
 
 class KingdomMarketLedgerButton(
@@ -2396,14 +2423,13 @@ class KingdomMarketLedgerButton(
                 strings["church_marry_kingdom_none"], ephemeral=True
             )
             return
-        # chambre-des-comptes-v2 (Drasah 29/10): the read-only modal
+        # chambre-des-comptes-v2/v3 (Drasah 29/10): the read-only modal
         # becomes a rich ephemeral through the shared single-window
-        # registry — balance, purchases and cards in hand, and the
+        # registry — balance, purchases and cards in hand (the held
+        # cards' TCG art rides as attachments under the view), and the
         # previous window of the player closes instead of stacking.
-        await _open_unique_ephemeral(
-            interaction,
-            await _market_ledger_content(wiring, kingdom, strings),
-        )
+        content, card_files = await _market_ledger_content(wiring, kingdom, strings)
+        await _open_unique_ephemeral(interaction, content, files=card_files)
 
 
 async def _lord_of(kingdoms_service: Any, user_id: str) -> Any | None:
