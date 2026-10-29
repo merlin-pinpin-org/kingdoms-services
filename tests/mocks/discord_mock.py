@@ -979,7 +979,9 @@ class MockFollowup:
         ephemeral: bool = False,
         **kwargs: Any,
     ) -> MockMessage:
-        message = MockMessage(content=content, embed=embed, view=view)
+        message = MockMessage(
+            content=content, embed=embed, view=view, files=kwargs.get("files")
+        )
         self.messages.append(message)
         return message
 

@@ -104,6 +104,12 @@ HELD_TILE_H = MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H + 2 + HELD_CARD_H
 _HELD_CACHE: dict[str, bytes] = {}
 _HELD_CACHE_MAX = 32
 
+_HELD_ART_CACHE: dict[str, bytes] = {}
+"""chambre-des-comptes-fix-v1: each card's DOWNSCALED art (128x180),
+decoded and resampled ONCE per process — a stock change repaints the
+mosaic without re-decoding the 728x1024 posters. Ten cards max in
+_CARDS, the cap is pure defence."""
+
 
 def held_cards_mosaic_png(held: list[tuple[str, int]]) -> bytes | None:
     """Compose the held cards into ONE mosaic PNG (None = empty hand).
@@ -136,16 +142,22 @@ def held_cards_mosaic_png(held: list[tuple[str, int]]) -> bytes | None:
         tile_x = (index % MOSAIC_COLS) * HELD_CARD_W
         tile_y = (index // MOSAIC_COLS) * HELD_TILE_H
         art_y = tile_y + MOSAIC_CAPTION_Y + MOSAIC_CAPTION_H + 2
-        decoded = None
-        path = resolve_card(key)
-        if path is not None:
-            try:
-                decoded = _decode_png_rgba(path.read_bytes())
-            except Exception:
-                decoded = None
-        if decoded is not None:
-            art_w, art_h, art_pixels = decoded
-            art = _resample_rgba(art_w, art_h, art_pixels, HELD_CARD_W, HELD_CARD_H)
+        art = _HELD_ART_CACHE.get(key)
+        if art is None:
+            decoded = None
+            path = resolve_card(key)
+            if path is not None:
+                try:
+                    decoded = _decode_png_rgba(path.read_bytes())
+                except Exception:
+                    decoded = None
+            if decoded is not None:
+                art_w, art_h, art_pixels = decoded
+                art = _resample_rgba(art_w, art_h, art_pixels, HELD_CARD_W, HELD_CARD_H)
+                if len(_HELD_ART_CACHE) >= _HELD_CACHE_MAX:
+                    _HELD_ART_CACHE.pop(next(iter(_HELD_ART_CACHE)))
+                _HELD_ART_CACHE[key] = art
+        if art is not None:
             _paste(canvas, canvas_w, tile_x, art_y, HELD_CARD_W, HELD_CARD_H, art)
         _draw_caption(canvas, canvas_w, tile_x, tile_y, f"X{stock}")
     png = _encode_png_rgba(canvas_w, canvas_h, bytes(canvas))

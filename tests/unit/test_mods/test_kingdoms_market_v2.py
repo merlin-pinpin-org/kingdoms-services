@@ -190,8 +190,14 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
     )
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await KingdomMarketLedgerButton("🏛️ Chambre des comptes").callback(interaction)
+    # chambre-des-comptes-fix-v1: the heavy mosaic paint must not race
+    # Discord's 3s window — the callback DEFERS first, the sheet rides
+    # a followup.
+    assert interaction.response.deferred is True
     assert interaction.response.ephemeral is True
-    sheet = str(interaction.response.message.content or "")
+    assert interaction.followup.messages, "the sheet must reach the player"
+    window = interaction.followup.messages[-1]
+    sheet = str(window.content or "")
     assert "Merlinia" in sheet
     assert "spent: 6 ⚙️" in sheet
     assert "treasury: 7 ⚙️" in sheet
@@ -208,7 +214,7 @@ async def test_ledger_window_shows_balance_purchases_and_cards() -> None:
     # v4: the held cards ride as ONE small-tile mosaic attachment
     # (v3's giant per-card posters drowned the sheet, Drasah 29/10) —
     # a 0-stock card ships no tile.
-    files = list(interaction.response.message.files or [])
+    files = list(window.files or [])
     filenames = [f.filename for f in files]
     assert filenames == ["cartes_en_main.png"]
     png = files[0].fp.read()
@@ -226,10 +232,12 @@ async def test_ledger_window_lists_both_empty_states() -> None:
     _wire(kingdoms=[FakeKingdom(id="k1", market_registry=[])])
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await KingdomMarketLedgerButton("Ledger").callback(interaction)
-    sheet = str(interaction.response.message.content or "")
+    assert interaction.followup.messages, "the sheet must reach the player"
+    sheet = str(interaction.followup.messages[-1].content or "")
     assert "No purchase yet." in sheet
     assert "No card in hand right now." in sheet
-    assert not (interaction.response.message.files or [])  # no art to carry
+    # the followup window exists but carries NO art — empty hand.
+    assert not (interaction.followup.messages[-1].files or [])
 
 
 async def test_ledger_second_click_closes_the_previous_window() -> None:
