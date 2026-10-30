@@ -538,16 +538,15 @@ class LiveRefreshButton(
     async def callback(self, interaction: discord.Interaction) -> None:
         """Refresh the message carrying the button — never a sibling.
 
-        ACK first (the SDK's 3-second rule), then rebuild with a fresh
-        snapshot; the SDK updates the clicked message in place.
+        No defer: the rebuild is fast (one gRPC read) and an edit-in-
+        place through the component's own response is flicker-free
+        (the defer-delete dance deleted the view — the 2026-10-30
+        lesson). Slow work would defer first; this is not slow work.
         """
-        from kingdoms.discord.ui.responsive import ack_view_interaction, respond_with_view
-
-        await ack_view_interaction(interaction)
         from kingdoms.discord.home import _build_live_view
 
         view = await _build_live_view(interaction, self.game_key)
-        await respond_with_view(interaction, view, f"panel:game:{self.game_key}:live")
+        await interaction.response.edit_message(view=view)
 
 
 def build_dashboard_view(

@@ -128,11 +128,17 @@ class Aoe2LobbyAdapter:
                 len(removes),
             )
             return False
+        # BOTH channels reconcile (the 2026-10-30 lesson): the matches
+        # channel is subscribed EMPTY at the boot (the enrollments land
+        # seconds later) — a players-only reconciliation leaves it empty
+        # forever and the lobbies never arrive. The deltas ride the same
+        # subscribe call for both types.
         for profile_id in removes:
             await self._send_subscription("unsubscribe", "players", [profile_id])
         if adds:
+            await self._send_subscription("subscribe", "matches", adds)
             await self._send_subscription("subscribe", "players", adds)
-        logger.info("aoe2lobby players subscription updated: +%d/-%d", len(adds), len(removes))
+        logger.info("aoe2lobby subscription updated (matches+players): +%d/-%d", len(adds), len(removes))
         return True
 
     async def _send_subscription(self, action: str, sub_type: str, ids: list[str]) -> None:

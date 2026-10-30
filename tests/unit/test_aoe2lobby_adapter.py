@@ -191,8 +191,12 @@ async def test_set_subscribed_profiles_reconciles_in_place() -> None:
 
     adapter._ws = _FakeWs()
     await adapter.set_subscribed_profiles(["10", "20"])
+    # BOTH channels reconcile (the 2026-10-30 lesson: a players-only
+    # reconciliation left the matches channel empty — the lobbies
+    # never arrived)
     assert sent == [
-        {"action": "subscribe", "type": "players", "context": c, "ids": ["10", "20"]}
+        {"action": "subscribe", "type": kind, "context": c, "ids": ["10", "20"]}
+        for kind in ("matches", "players")
         for c in ("lobby", "spectate")
     ]
     await adapter.set_subscribed_profiles(["20", "30"])
