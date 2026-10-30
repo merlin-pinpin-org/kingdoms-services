@@ -16,6 +16,7 @@ from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
     MatchEvent,
+    MatchResult,
     PlayerStats,
     ProviderCapabilities,
     Slot,
@@ -139,6 +140,22 @@ def match_event_from_wire(wire: game_pb2.MatchEvent) -> MatchEvent:
     )
 
 
+def match_result_to_wire(result: MatchResult) -> game_pb2.MatchResult:
+    """Translate a finished match's outcome into the wire message."""
+    return game_pb2.MatchResult(
+        winner_profile_id=result.winner_profile_id,
+        loser_profile_ids=list(result.loser_profile_ids),
+        map_name=result.map_name,
+        duration_ms=result.duration_ms,
+        ended_at=result.ended_at,
+        factions=dict(result.factions),
+        found=result.found,
+        teams=dict(result.teams),
+        old_rating={pid: old for pid, (old, _new) in result.ratings.items()},
+        new_rating={pid: new for pid, (_old, new) in result.ratings.items()},
+    )
+
+
 def player_stats_to_wire(stats: PlayerStats) -> game_pb2.PlayerStats:
     """Translate a core player-stats model into the wire message."""
     return game_pb2.PlayerStats(
@@ -183,6 +200,7 @@ class GameServicer(game_pb2_grpc.GameServicer):
         match_events: Callable[[], AsyncIterator[MatchEvent]] | None = None,
         player_stats: Callable[[str], Awaitable[PlayerStats | None]] | None = None,
         update_subscriptions: Callable[[list[str]], Awaitable[bool]] | None = None,
+        match_result: Callable[[list[str], int], Awaitable[MatchResult | None]] | None = None,
     ) -> None:
         self._capabilities = capabilities
         self._match_details = match_details
@@ -190,6 +208,7 @@ class GameServicer(game_pb2_grpc.GameServicer):
         self._match_events = match_events
         self._player_stats = player_stats
         self._update_subscriptions = update_subscriptions
+        self._match_result = match_result
 
     async def GetCapabilities(
         self,
@@ -235,6 +254,26 @@ class GameServicer(game_pb2_grpc.GameServicer):
         if stats is None:
             await context.abort(grpc.StatusCode.NOT_FOUND, "unknown profile_id")
         return player_stats_to_wire(stats)
+
+    async def GetMatchResult(
+        self,
+        request: game_pb2.GetMatchResultRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> game_pb2.MatchResult:
+        """Serve a finished match's outcome when the provider has it.
+
+        The correlation rides the profile ids and the time window
+        (the upstream's match id is not the aoe2lobby ref). The
+        provider answers None while the upstream has not recorded
+        the match yet — ``found=False`` on the wire, the caller
+        retries with a backoff.
+        """
+        if self._match_result is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "match result not available")
+        result = await self._match_result(list(request.profile_ids), int(request.started_after))
+        if result is None:
+            return game_pb2.MatchResult(found=False)
+        return match_result_to_wire(result)
 
     async def UpdateSubscriptions(
         self,

@@ -91,6 +91,8 @@ message MatchEvent {
 
 message GetMatchResultRequest {
   string match_ref = 1;
+  repeated string profile_ids = 2; // the match's linked profiles (the correlation keys)
+  int64 started_after = 3;        // epoch s — only matches started after this
 }
 
 message MatchResult {
@@ -101,6 +103,9 @@ message MatchResult {
   int64 ended_at = 5;
   map<string, string> factions = 6; // profile_id -> faction_key
   bool found = 7;          // false: result not available (yet)
+  map<string, int32> teams = 8;      // profile_id -> team id
+  map<string, int64> old_rating = 9; // profile_id -> rating before the match
+  map<string, int64> new_rating = 10; // profile_id -> rating after the match
 }
 
 message GetPlayerStatsRequest {

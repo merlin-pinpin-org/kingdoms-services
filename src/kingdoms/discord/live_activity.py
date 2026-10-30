@@ -46,6 +46,10 @@ _CARDS: dict[tuple[str, str], Any] = {}
 _LAST_NAME: dict[str, str] = {}
 # the first-seen time per (guild, match) — the duration line at the end
 _MATCH_STARTED_AT: dict[tuple[str, str], float] = {}
+# the match's profiles + started-at epoch s — the result correlation keys
+_MATCH_PLAYERS: dict[str, tuple[list[str], int]] = {}
+# the fire-and-forget tasks (kept alive until they finish)
+_BG_TASKS: set[asyncio.Task[Any]] = set()
 # the last known summary per match — the end card keeps the context
 _LAST_SUMMARY: dict[str, dict[str, Any]] = {}
 
@@ -132,12 +136,19 @@ async def _upsert_card(bot: discord.Client, guild_id: str, event: dict[str, Any]
         # time then drop it from the live set
         card = _CARDS.get(key)
         if card is not None and old_status == "in_game":
-            # the match ended: the closed card keeps the results link
+            # the match ended: the card closes NOW (duration, results
+            # link), then a backoff task fetches the real outcome
+            # (winner, duration, map — the upstream records it a few
+            # seconds after the end) and updates the card in place
             await _send_card(bot, guild_id, event, match_ref, ended=True)
-            _CARDS.pop(key, None)
+            profiles, started_at = _MATCH_PLAYERS.get(match_ref, ([], 0))
+            # the card's message stays in _CARDS until the result lands —
+            # the backoff task edits the KNOWN message directly
+            _spawn(_fetch_result_then_update(bot, guild_id, match_ref, profiles, started_at))
             _MATCH_STARTED_AT.pop(key, None)
             _LAST_SUMMARY.pop(match_ref, None)
             _forget_player_ref(profile_id)
+            _schedule_card_gc(key)
             return
         if card is not None:
             await _send_card(bot, guild_id, event, match_ref, ended=False)
@@ -146,6 +157,7 @@ async def _upsert_card(bot: discord.Client, guild_id: str, event: dict[str, Any]
         return
 
     _remember_player_ref(profile_id, match_ref)
+    _remember_match_profiles(match, match_ref)
     await _send_card(bot, guild_id, event, match_ref, ended=False)
 
 
@@ -299,6 +311,126 @@ def _forget_player_ref(profile_id: str) -> None:
 
 def _player_live_ref(profile_id: str) -> str:
     return _PLAYER_REF.get(profile_id, "")
+
+
+def _remember_match_profiles(match: dict[str, Any], match_ref: str) -> None:
+    """Keep the match's profile ids + the started-at epoch (the result keys)."""
+    profiles = [str(p.get("profile_id")) for p in _players(match) if p.get("profile_id")]
+    if profiles:
+        started = int(time.time())
+        previous = _MATCH_PLAYERS.get(match_ref)
+        if previous:
+            profiles = sorted(set(previous[0]) | set(profiles))
+            started = min(previous[1], started) if previous[1] else started
+        _MATCH_PLAYERS[match_ref] = (profiles, started)
+
+
+_RESULT_BACKOFF_S = (2.0, 5.0, 10.0, 20.0)
+
+
+def _spawn(coro: Any) -> None:
+    """Run a fire-and-forget coroutine, kept alive until it finishes."""
+    task = asyncio.create_task(coro)
+    _BG_TASKS.add(task)
+    task.add_done_callback(_BG_TASKS.discard)
+
+
+def _schedule_card_gc(key: tuple[str, str]) -> None:
+    """Drop the card's message ref once the result window closes."""
+
+    async def _gc() -> None:
+        await asyncio.sleep(sum(_RESULT_BACKOFF_S) + 5)
+        _CARDS.pop(key, None)
+
+    _spawn(_gc())
+
+
+async def _fetch_result_then_update(
+    bot: discord.Client,
+    guild_id: str,
+    match_ref: str,
+    profile_ids: list[str],
+    started_after: int,
+) -> None:
+    """Fetch the real match outcome with a backoff, then update the card.
+
+    The upstream records the result a few seconds after the end
+    notification; each retry re-reads the card's message (the end
+    state rendered first), and the winner/duration/map land on the
+    card's final edit.
+    """
+    if not profile_ids:
+        return
+    import os
+
+    uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+    if not uri:
+        return
+    from kingdoms.core.rpc.game_client import GameProviderClient
+
+    client = GameProviderClient(uri, "ext-librematch", "aoe2")
+    result = None
+    for delay in _RESULT_BACKOFF_S:
+        await asyncio.sleep(delay)
+        try:
+            result = await client.get_match_result(profile_ids, started_after)
+        except Exception:
+            logger.debug("match result fetch failed (match %s) — retrying", match_ref, exc_info=True)
+            continue
+        if result is not None:
+            break
+    if result is None:
+        logger.info("match result never appeared (match %s) — the card stays as-is", match_ref)
+        return
+    await _apply_result_to_card(bot, guild_id, match_ref, result)
+
+
+async def _apply_result_to_card(
+    bot: discord.Client, guild_id: str, match_ref: str, result: Any
+) -> None:
+    """Edit the ended card with the real outcome (winner, duration, map)."""
+    card = _CARDS.get((guild_id, match_ref))
+    if card is None:
+        return
+    try:
+        view = _result_card(match_ref, result)
+        await card.edit(view=view)
+        _CARDS.pop((guild_id, match_ref), None)
+    except Exception:
+        logger.debug("result card update failed (match %s) — best-effort", match_ref, exc_info=True)
+
+
+def _result_card(match_ref: str, result: Any) -> Any:
+    """Build the final card: the real winner, duration, map, elo deltas."""
+    winner_raw = str(result.winner_profile_id or "")
+    winner_ids = [w for w in winner_raw.split(",") if w]
+    winner_names = [_LAST_NAME.get(w, w) for w in winner_ids]
+    winner_label = " · ".join(winner_names) if winner_names else ""
+    duration_ms = int(result.duration_ms or 0)
+    minutes, seconds = divmod(duration_ms // 1000, 60)
+    lines = [f"⚪ **Partie #{match_ref} — terminé**"]
+    if result.map_name:
+        lines.append(f"— {result.map_name!s}")
+    if winner_label:
+        lines.append(f"> 🏆 Vainqueur : **{winner_label}**")
+    lines.append(f"> ⏱️ Durée : {minutes} min {seconds:02d}s")
+    deltas: list[str] = []
+    for pid, (old, new) in (result.ratings or {}).items():
+        name = _LAST_NAME.get(pid, pid)
+        delta = new - old
+        sign = "+" if delta >= 0 else ""
+        deltas.append(f"{name} {old}→{new} ({sign}{delta})")
+    if deltas:
+        lines.append("> " + " · ".join(deltas))
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("\n".join(lines)),
+            accent_colour=discord.Colour(0x9B59B6),
+        )
+    )
+    _MATCH_PLAYERS.pop(match_ref, None)
+    return view
 
 
 async def _resolve_logs_channel(bot: discord.Client, guild_id: str) -> str | None:

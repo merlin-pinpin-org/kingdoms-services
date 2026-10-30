@@ -8,7 +8,7 @@ declared, never assumed: the ladder degrades cleanly on anything absent
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +46,27 @@ class Slot:
     team: int = 0
     filled: bool = False
     slot_kind: str = "open"
+
+
+@dataclass(frozen=True, slots=True)
+class MatchResult:
+    """A finished match's outcome: winners, duration, map, elo deltas.
+
+    ``found`` is False while the upstream has not recorded the result
+    yet (a few seconds after the end notification) — the caller
+    retries with a backoff.
+    """
+
+    match_ref: str
+    winner_profile_id: str = ""
+    loser_profile_ids: tuple[str, ...] = ()
+    map_name: str = ""
+    duration_ms: int = 0
+    ended_at: int = 0
+    factions: dict[str, str] = field(default_factory=dict)
+    found: bool = True
+    ratings: dict[str, tuple[int, int]] = field(default_factory=dict)
+    teams: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

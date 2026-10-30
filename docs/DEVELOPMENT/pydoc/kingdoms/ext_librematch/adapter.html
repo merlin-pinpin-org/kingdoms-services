@@ -82,6 +82,19 @@ leaderboard&nbsp;(``leaderboardStats[]``).&nbsp;Transport&nbsp;failures&nbsp;deg
 to&nbsp;None&nbsp;—&nbsp;the&nbsp;provider&nbsp;never&nbsp;fails&nbsp;the&nbsp;serving&nbsp;process;&nbsp;the<br>
 Redis-backed&nbsp;rate&nbsp;budget&nbsp;is&nbsp;the&nbsp;only&nbsp;throttle.</span></dd></dl>
 
+<dl><dt>async <a name="LibrematchAdapter-recent_match_result"><strong>recent_match_result</strong></a>(self, profile_ids: 'list[str]', since_epoch_s: 'int') -&gt; 'MatchResult | None'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;latest&nbsp;finished&nbsp;match&nbsp;of&nbsp;the&nbsp;profiles&nbsp;(WorldsEdge).<br>
+&nbsp;<br>
+``GetRecentMatchHistory``&nbsp;lists&nbsp;a&nbsp;profile's&nbsp;recent&nbsp;finished<br>
+matches&nbsp;with&nbsp;the&nbsp;full&nbsp;outcome&nbsp;(winner,&nbsp;duration,&nbsp;map,&nbsp;elo<br>
+deltas).&nbsp;The&nbsp;WorldsEdge&nbsp;match&nbsp;id&nbsp;is&nbsp;NOT&nbsp;the&nbsp;aoe2lobby&nbsp;ref:<br>
+the&nbsp;correlation&nbsp;rides&nbsp;the&nbsp;profiles&nbsp;and&nbsp;the&nbsp;time&nbsp;window&nbsp;—<br>
+the&nbsp;most&nbsp;recent&nbsp;match&nbsp;whose&nbsp;start&nbsp;follows&nbsp;``since``&nbsp;and&nbsp;whose<br>
+members&nbsp;include&nbsp;one&nbsp;of&nbsp;the&nbsp;``profile_ids``.<br>
+&nbsp;<br>
+Returns&nbsp;None&nbsp;on&nbsp;transport&nbsp;failure&nbsp;or&nbsp;when&nbsp;nothing&nbsp;matches<br>
+(the&nbsp;upstream&nbsp;has&nbsp;not&nbsp;recorded&nbsp;the&nbsp;match&nbsp;yet&nbsp;—&nbsp;the&nbsp;caller<br>
+retries&nbsp;with&nbsp;a&nbsp;backoff).</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
@@ -102,5 +115,6 @@ Data descriptors defined here:<br>
 <strong>LOBBIES_PATH</strong> = '/community/advertisement/findAdvertisements'<br>
 <strong>LOBBIES_QUERY_PARAMS</strong> = {'title': 'age2'}<br>
 <strong>PERSONAL_STAT_PATH</strong> = '/community/leaderboard/GetPersonalStat'<br>
+<strong>RECENT_MATCH_PATH</strong> = '/community/leaderboard/GetRecentMatchHistory'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.ext_librematch.adapter (WARNING)&gt;</td></tr></table>
 </body></html>
