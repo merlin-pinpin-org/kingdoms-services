@@ -10,7 +10,7 @@ special-action selects resolve real territories.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import discord
@@ -23,12 +23,15 @@ from kingdoms.mods.kingdoms.kingdom_panels import (
 )
 from kingdoms.mods.kingdoms.kingdom_persistent import (
     KingdomMarketActionButton,
+    KingdomMarketCardInfoButton,
     KingdomMarketTechButton,
+    KingdomMarketUseButton,
     KingdomRempartsGuardButton,
     KingdomRempartsPatrouilleButton,
     KingdomsPanelWiring,
     register_kingdoms_panel_wiring,
 )
+from kingdoms.mods.kingdoms.kingdom_persistent import _strings as _kp_strings
 from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
@@ -53,6 +56,14 @@ TECH_KEYS = (
 )
 # remparts-v2: the market sells the guard TOKEN and the patrol slot UNLOCK.
 ACTION_KEYS = ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange")
+
+
+@dataclass
+class FakeKingdom:
+    id: str
+    name: str = "Merlinia"
+    tech_points_bank: int = 5
+    market_registry: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -103,8 +114,10 @@ class FakeKingdomsService:
         lords: list[FakeLord] | None = None,
         maps: tuple[str, ...] = (),
         civilizations: tuple[str, ...] = ("celtes", "shu"),
+        kingdoms: list[FakeKingdom] | None = None,
     ) -> None:
         self._lords = lords or []
+        self._kingdoms = kingdoms or []
         self.config = type(
             "FakeSeasonConfig",
             (),
@@ -118,12 +131,26 @@ class FakeKingdomsService:
     async def lords(self) -> list[FakeLord]:
         return list(self._lords)
 
+    async def kingdoms(self) -> list[FakeKingdom]:
+        return list(self._kingdoms)
+
 
 class FakeEconomyService:
     """EconomyService stand-in recording every purchase."""
 
-    def __init__(self, wallet: int = 5, attacks: FakeAttacksService | None = None) -> None:
+    def __init__(
+        self,
+        wallet: int = 5,
+        attacks: FakeAttacksService | None = None,
+        corruption_tokens: int = 0,
+        jeu_d_armes_tokens: int = 0,
+        explorateur_tokens: int = 0,
+    ) -> None:
         self.wallet_balance = wallet
+        self.corruption_tokens = corruption_tokens
+        self.jeu_d_armes_tokens = jeu_d_armes_tokens
+        self.jeu_d_armes_levels = 0
+        self.explorateur_tokens = explorateur_tokens
         self.tech_bought: list[tuple[str, str]] = []
         self.explorateur_bought: list[str] = []
         self.corrupted: list[tuple[str, str]] = []
@@ -166,6 +193,36 @@ class FakeEconomyService:
     async def buy_corruption(self, kingdom_id: str, territory_id: str) -> FakeTerritory:
         self.corrupted.append((kingdom_id, territory_id))
         return FakeTerritory(id=territory_id, map_key="corrupted", owner_kingdom_id=kingdom_id)
+
+    async def buy_corruption_token(self, kingdom_id: str) -> int:
+        self.spent.append((kingdom_id, 4))
+        self.corruption_tokens += 1
+        return self.corruption_tokens
+
+    async def use_corruption(self, kingdom_id: str, territory_id: str) -> FakeTerritory:
+        self.corrupted.append((kingdom_id, territory_id))
+        self.corruption_tokens -= 1
+        return FakeTerritory(id=territory_id, map_key="corrupted", owner_kingdom_id=kingdom_id)
+
+    async def buy_jeu_d_armes_token(self, kingdom_id: str) -> int:
+        self.spent.append((kingdom_id, 1))
+        self.jeu_d_armes_tokens += 1
+        return self.jeu_d_armes_tokens
+
+    async def use_jeu_d_armes(self, kingdom_id: str) -> int:
+        self.jeu_d_armes_tokens -= 1
+        self.jeu_d_armes_levels += 1
+        return self.jeu_d_armes_levels
+
+    async def buy_explorateur_token(self, kingdom_id: str) -> int:
+        self.spent.append((kingdom_id, 2))
+        self.explorateur_tokens += 1
+        return self.explorateur_tokens
+
+    async def use_explorateur(self, kingdom_id: str, lord_id: str) -> FakeLord:
+        self.explorateur_bought.append((kingdom_id, lord_id))
+        self.explorateur_tokens -= 1
+        return FakeLord(id=lord_id, role="lord", kingdom_id=kingdom_id)
 
     async def buy_royal_guard(self, kingdom_id: str) -> int:
         self.guard_tokens += 1
@@ -226,15 +283,18 @@ def _wiring(
     economy: FakeEconomyService | None = None,
     territories: FakeTerritoryService | None = None,
     diplomacy: FakeDiplomacyService | None = None,
+    attacks: FakeAttacksService | None = None,
+    kingdoms: list[FakeKingdom] | None = None,
     maps: tuple[str, ...] = ("arabia", "islands"),
     civilizations: tuple[str, ...] = ("celtes", "shu"),
 ) -> None:
     register_kingdoms_panel_wiring(
         KingdomsPanelWiring(
-            kingdoms_service=FakeKingdomsService(lords, maps, civilizations),
+            kingdoms_service=FakeKingdomsService(lords, maps, civilizations, kingdoms),
             territories_service=territories,
             economy_service=economy,
             diplomacy_service=diplomacy,
+            attacks_service=attacks,
         )
     )
 
@@ -361,13 +421,13 @@ async def test_tech_button_refuses_non_kings() -> None:
     assert "Only Kings" in (interaction.response.message.content or "")
 
 
-async def test_action_button_opens_the_territory_select_and_buys() -> None:
+async def test_corruption_confirm_buys_a_token_not_the_steal() -> None:
+    """chambre-utiliser-v1 (Drasah 30/10): the Marché sells the TOKEN —
+    no territory select at the market anymore; the steal happens at
+    the 🚀 Utiliser of the Chambre des comptes."""
     economy = FakeEconomyService()
     territories = FakeTerritoryService(
-        territories=[
-            FakeTerritory(id="t1", map_key="arabia", owner_kingdom_id="k2"),
-            FakeTerritory(id="t2", map_key="islands", owner_kingdom_id="k1"),
-        ]
+        territories=[FakeTerritory(id="t1", map_key="arabia", owner_kingdom_id="k2")]
     )
     _wiring(
         lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
@@ -381,25 +441,16 @@ async def test_action_button_opens_the_territory_select_and_buys() -> None:
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await confirm.callback(submit)
-    message = submit.response.message
-    assert message is not None and message.view is not None
-    select = next(iter(message.view.children))
-    assert [opt.value for opt in select.options] == ["t1"]  # own territory filtered out
-
-    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["t1"]}, locale="en-US")
-    choice.message = message
-    await select.callback(choice)
-    assert economy.corrupted == [("k1", "t1")]
-    # Single-bubble echo: the select bubble is edited, no followup stack —
-    # achat-recu-v1: the purchase ALSO lands its line in the receipt.
-    assert len(choice.followup.messages) == 1
-    receipt = str(choice.followup.messages[-1].content or "")
-    assert "Receipt" in receipt and "Purchased" in receipt
-    assert "Purchased" in (choice.response.message.content if choice.response.message else "")
+    assert economy.corruption_tokens == 1
+    assert economy.corrupted == []  # no steal at the market
+    receipt = str(submit.followup.messages[-1].content or "")
+    assert "in reserve: 1" in receipt
+    assert "Chambre des comptes" in receipt
 
 
-async def test_explorateur_button_locks_the_chosen_lord() -> None:
-    """marche-v2 art. 6: the Explorateur opens a lord select (48h lock)."""
+async def test_explorateur_confirm_buys_a_token_not_the_lock() -> None:
+    """chambre-utiliser-v1: the Explorateur is a TOKEN too — no lord is
+    locked at the market; the lord is picked at the USE."""
     economy = FakeEconomyService()
     _wiring(
         lords=[
@@ -415,21 +466,10 @@ async def test_explorateur_button_locks_the_chosen_lord() -> None:
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await confirm.callback(submit)
-    # The sheet opens the lord select instead of buying instantly.
-    message = submit.response.message
-    assert message is not None and message.view is not None
-    select = next(iter(message.view.children))
-    assert [opt.value for opt in select.options] == ["111", "222"]
-
-    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["222"]}, locale="en-US")
-    choice.message = message
-    await select.callback(choice)
-    assert economy.explorateur_bought == [("k1", "222")]
-    # achat-recu-v1: one receipt followup, never a stack of ✅ bubbles.
-    assert len(choice.followup.messages) == 1
-    receipt = str(choice.followup.messages[-1].content or "")
-    assert "Receipt" in receipt and "Purchased" in receipt
-    assert "Purchased" in (choice.response.message.content if choice.response.message else "")
+    assert economy.explorateur_tokens == 1
+    assert economy.explorateur_bought == []  # no lord locked at the market
+    receipt = str(submit.followup.messages[-1].content or "")
+    assert "in reserve: 1" in receipt
 
 
 async def test_patrouille_button_buys_the_next_slot_unlock() -> None:
@@ -565,21 +605,22 @@ async def test_remparts_patrouille_button_places_the_window() -> None:
     assert economy.placed_patrols == [("k1", 1, 2)]
 
 
-async def test_action_button_answers_no_options_when_empty() -> None:
-    economy = FakeEconomyService()
+async def test_use_button_corruption_answers_no_options_when_empty() -> None:
+    """chambre-utiliser-v1: the Use flow of the corruption keeps the
+    empty-cadastre guard (no corruptible territory → no options)."""
+    economy = FakeEconomyService(corruption_tokens=1)
     _wiring(
         lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
         economy=economy,
         territories=FakeTerritoryService(territories=[]),
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
     )
+    strings = _kp_strings("en")
+    button = KingdomMarketUseButton("corruption", strings)
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    button = KingdomMarketActionButton("corruption", "Corruption", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    confirm = _card_confirm(interaction)
-    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    await confirm.callback(submit)
-    assert submit.response.sent
-    message = submit.response.message
+    assert interaction.response.sent
+    message = interaction.response.message
     assert message is not None
     assert "No option" in (message.content or "")
 
@@ -692,3 +733,156 @@ async def test_deploy_panels_edits_the_market_panel_in_place_idempotently() -> N
     assert len(live) == 1
     assert live[0] is first  # edited in place, never deleted and resent
     assert first.edited is False  # unchanged panel → zero API call
+
+async def test_jeu_d_armes_confirm_buys_a_token() -> None:
+    """chambre-utiliser-v1: the +1 AI level applies at the USE — the
+    market only stocks the card (never the generic tech path)."""
+    economy = FakeEconomyService()
+    _wiring(lords=[FakeLord(id="111", role="king", kingdom_id="k1")], economy=economy)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketTechButton("jeu_d_armes", "Jeu d'armes — 1 🔬", discord.ButtonStyle.primary)
+    await button.callback(interaction)
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit)
+    assert economy.jeu_d_armes_tokens == 1
+    assert economy.tech_bought == []  # the generic tech path is bypassed
+    receipt = str(submit.followup.messages[-1].content or "")
+    assert "in reserve: 1" in receipt
+
+
+async def test_use_button_corruption_opens_the_select_and_steals() -> None:
+    """chambre-utiliser-v1: the 🚀 Utiliser of the revealed Corruption
+    card opens the territory select — the pick CONSUMES the token."""
+    economy = FakeEconomyService(corruption_tokens=1)
+    territories = FakeTerritoryService(
+        territories=[
+            FakeTerritory(id="t1", map_key="arabia", owner_kingdom_id="k2"),
+            FakeTerritory(id="t2", map_key="islands", owner_kingdom_id="k1"),
+        ]
+    )
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+        territories=territories,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    strings = _kp_strings("en")
+    button = KingdomMarketUseButton("corruption", strings)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await button.callback(interaction)
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    select = next(iter(message.view.children))
+    assert [opt.value for opt in select.options] == ["t1"]  # own territory filtered out
+
+    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["t1"]}, locale="en-US")
+    choice.message = message
+    await select.callback(choice)
+    assert economy.corrupted == [("k1", "t1")]
+    assert economy.corruption_tokens == 0  # the token is consumed
+
+
+async def test_use_button_explorateur_locks_the_chosen_lord() -> None:
+    """chambre-utiliser-v1: the Explorateur's Use opens the lord select
+    (48h lock) — the existing flow, now consuming a token."""
+    economy = FakeEconomyService(explorateur_tokens=1)
+    _wiring(
+        lords=[
+            FakeLord(id="111", role="king", kingdom_id="k1"),
+            FakeLord(id="222", role="lord", kingdom_id="k1"),
+        ],
+        economy=economy,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    strings = _kp_strings("en")
+    button = KingdomMarketUseButton("explorateur", strings)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await button.callback(interaction)
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    select = next(iter(message.view.children))
+    assert [opt.value for opt in select.options] == ["111", "222"]
+
+    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["222"]}, locale="en-US")
+    choice.message = message
+    await select.callback(choice)
+    assert economy.explorateur_bought == [("k1", "222")]
+    assert economy.explorateur_tokens == 0  # the token is consumed
+
+
+async def test_use_button_jeu_d_armes_applies_the_level_and_refreshes() -> None:
+    """chambre-utiliser-v1: the Arms-mastery's Use applies the +1 AI
+    level immediately, refreshes the ledger window in place and echoes
+    the reached level."""
+    economy = FakeEconomyService(jeu_d_armes_tokens=1)
+    attacks = FakeAttacksService()
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+        attacks=attacks,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    strings = _kp_strings("en")
+    button = KingdomMarketUseButton("jeu_d_armes", strings)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await button.callback(interaction)
+    assert interaction.response.deferred is True
+    assert economy.jeu_d_armes_levels == 1
+    assert economy.jeu_d_armes_tokens == 0
+    assert interaction.followup.messages  # the result bubble
+    assert "level 1/5" in str(interaction.followup.messages[-1].content or "")
+    # the ledger window refreshed in place (the stock moved)
+    assert interaction.response.message is not None
+
+
+async def test_use_button_refuses_non_kings() -> None:
+    """chambre-utiliser-v1: the token cards are kingdom-level actions
+    bought by the King — their USE is King-only."""
+    economy = FakeEconomyService(corruption_tokens=1)
+    _wiring(
+        lords=[FakeLord(id="111", role="lord", kingdom_id="k1")],
+        economy=economy,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    strings = _kp_strings("en")
+    button = KingdomMarketUseButton("corruption", strings)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await button.callback(interaction)
+    assert economy.corrupted == []
+    assert "Only Kings" in (interaction.response.message.content or "")
+
+
+async def test_card_reveal_of_a_usable_card_adds_the_use_button() -> None:
+    """chambre-utiliser-v1: revealing a USABLE card adds the 🚀
+    Utiliser button; the sabotage (consumed in the battles) keeps
+    none."""
+    attacks = FakeAttacksService()
+    state = await attacks.technology_state("k1")
+    state.purchases["corruption_stock"] = 2
+    state.purchases["sabotage"] = 2
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=FakeEconomyService(),
+        attacks=attacks,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    strings = _kp_strings("en")
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketCardInfoButton("corruption", strings)
+    await button.callback(interaction)
+    assert interaction.response.deferred is True
+    window = interaction.response.message
+    assert window is not None and window.view is not None
+    ids = [item.custom_id for item in window.view.children]
+    assert "kingdoms:market:use:corruption" in ids
+    assert "kingdoms:market:cardinfo:corruption" in ids
+
+    sabotage: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketCardInfoButton("sabotage", strings)
+    await button.callback(sabotage)
+    sab_ids = [
+        item.custom_id
+        for item in (sabotage.response.message.view.children or [])
+        if item.custom_id
+    ]
+    assert not [cid for cid in sab_ids if cid.startswith("kingdoms:market:use:")]

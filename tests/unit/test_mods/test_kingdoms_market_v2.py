@@ -82,6 +82,13 @@ class FakeEconomyService:
         self.tech_bought.append((kingdom_id, technology))
         return object()
 
+    async def buy_jeu_d_armes_token(self, kingdom_id: str) -> int:
+        # chambre-utiliser-v1: the market sells the jeu d'armes TOKEN.
+        if self.error is not None:
+            raise self.error
+        self.tech_bought.append((kingdom_id, "jeu_d_armes"))
+        return 1
+
 
 class FakeAttacksService:
     """AttacksService stand-in: the card stock counters (``purchases``)."""
