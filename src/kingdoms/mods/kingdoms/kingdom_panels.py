@@ -360,16 +360,22 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "per encounter."
             ),
             "jeu_d_armes": (
-                "+1 permanent AI level (until the season ends) on your defence "
-                "bot — cap 5, reached: your Patrols become Reinforced (3h)."
+                "Buys ONE Arms-mastery token. Use it from the Chambre des "
+                "comptes: +1 permanent AI level (until the season ends) on "
+                "your defence bot — cap 5, reached: your Patrols become "
+                "Reinforced (3h)."
             ),
             "explorateur": (
-                "The chosen lord is locked for 48h (🔒 no attack, no defence) "
-                "then the kingdom receives a brand-new map. Once per season."
+                "Buys ONE Explorateur token. Use it from the Chambre des "
+                "comptes: the chosen lord is locked for 48h (🔒 no attack, no "
+                "defence) then the kingdom receives a brand-new map. Once per "
+                "season."
             ),
             "corruption": (
-                "Instantly transfers an enemy territory to your kingdom, no "
-                "combat. Blocked if the map is under Royal Guard. 2 per season."
+                "Buys ONE Corruption token. Use it from the Chambre des "
+                "comptes: instantly transfers an enemy territory to your "
+                "kingdom, no combat. Blocked if the map is under Royal Guard. "
+                "2 per season."
             ),
             "garde_royale": (
                 "Buys ONE Royal Guard token (several may be held at once, "
@@ -412,9 +418,9 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "attack or an ambush."
             ),
             "traquenard": (
-                "Used in an attack against an AI — the AI you face becomes "
-                "Easy and the target kingdom's active marriages gain a +2h "
-                "lock."
+                "Use it from the Chambre des comptes (or the salon button): "
+                "the AI faced becomes Easy and the target kingdom's active "
+                "marriages gain a +2h lock."
             ),
             "contre_espionnage": (
                 "When declaring the attack, you can use the "
@@ -423,6 +429,19 @@ STRINGS: dict[str, dict[str, Any]] = {
             "sabotage": (
                 "Used after ordering your 3 civilizations against an "
                 "opponent — the « Sabotage » button becomes available."
+            ),
+            "jeu_d_armes": (
+                "Use it from the Chambre des comptes: your defence bot gains "
+                "+1 permanent AI level on the spot (cap 5)."
+            ),
+            "explorateur": (
+                "Use it from the Chambre des comptes: choose the lord to send "
+                "exploring (48h lock) — the map comes at the end."
+            ),
+            "corruption": (
+                "Use it from the Chambre des comptes: choose the enemy "
+                "territory to corrupt — the token is only consumed once the "
+                "steal lands."
             ),
         },
         "market_ledger_emoji": {
@@ -481,6 +500,22 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "market_patrouille_slot_ok": (
             "🛡️ Patrol slot {} unlocked — place the window from the 🧱 Remparts salon."
+        ),
+        "market_use_button": "🚀 Use",
+        "market_corruption_token_ok": (
+            "🧨 Corruption token bought — in reserve: {}. Use it from the "
+            "🏛️ Chambre des comptes."
+        ),
+        "market_jeu_d_armes_token_ok": (
+            "🧪 Arms mastery bought — in reserve: {}. Use it from the "
+            "🏛️ Chambre des comptes (+1 AI level)."
+        ),
+        "market_explorateur_token_ok": (
+            "🛡️ Explorer bought — in reserve: {}. Use it from the "
+            "🏛️ Chambre des comptes."
+        ),
+        "market_use_jeu_d_armes_ok": (
+            "🧪 Arms mastery used — your defence bot reaches level {}/5."
         ),
         "ffa_join_button": "🗺️ Aller explorer",
         "ffa_join_note": (
@@ -816,16 +851,20 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "civilisations maximum par rencontre."
             ),
             "jeu_d_armes": (
-                "+1 niveau d'IA permanent (jusqu'à la fin de saison) sur ton "
-                "bot de défense — plafond 5, atteint : les Patrouilles "
-                "deviennent Renforcées (3h)."
+                "Achète UN jeton Jeu d'armes. Utilise-le depuis la Chambre "
+                "des comptes : +1 niveau d'IA permanent (jusqu'à la fin de "
+                "saison) sur ton bot de défense — plafond 5, atteint : les "
+                "Patrouilles deviennent Renforcées (3h)."
             ),
             "explorateur": (
-                "Le seigneur choisi est verrouillé 48h (🔒 ni attaque ni "
-                "défense) puis le royaume reçoit une map inédite. 1 par saison."
+                "Achète UN jeton Explorateur. Utilise-le depuis la Chambre "
+                "des comptes : le seigneur choisi est verrouillé 48h (🔒 ni "
+                "attaque ni défense) puis le royaume reçoit une map inédite. "
+                "1 par saison."
             ),
             "corruption": (
-                "Transfert immédiat d'un territoire adverse vers ton royaume, "
+                "Achète UN jeton Corruption. Utilise-le depuis la Chambre des "
+                "comptes : transfert d'un territoire adverse vers ton royaume, "
                 "sans combat. Bloquée si la map est sous Garde Royale. "
                 "2 par saison."
             ),
@@ -871,9 +910,9 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "attaque classique ou une embuscade."
             ),
             "traquenard": (
-                "S'utilise lors d'une attaque contre une IA — l'IA affrontée "
-                "devient Facile et les mariages actifs du royaume ciblé "
-                "prennent +2h de verrou."
+                "S'utilise depuis la Chambre des comptes (ou le bouton du "
+                "salon) : l'IA affrontée devient Facile et les mariages actifs "
+                "du royaume ciblé prennent +2h de verrou."
             ),
             "contre_espionnage": (
                 "À la déclaration de l'attaque, vous pouvez utiliser le "
@@ -883,6 +922,19 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "S'utilise après avoir choisi l'ordre de vos 3 civilisations "
                 "contre un adversaire — le bouton « Saboter » devient "
                 "disponible."
+            ),
+            "jeu_d_armes": (
+                "S'utilise depuis la Chambre des comptes : ton bot de défense "
+                "gagne immédiatement +1 niveau d'IA permanent (plafond 5)."
+            ),
+            "explorateur": (
+                "S'utilise depuis la Chambre des comptes : choisis le seigneur "
+                "à envoyer explorer (verrou 48h) — la map arrive au terme."
+            ),
+            "corruption": (
+                "S'utilise depuis la Chambre des comptes : choisis le "
+                "territoire adverse à corrompre — le jeton n'est consommé "
+                "qu'une fois le vol réussi."
             ),
         },
         "market_ledger_emoji": {
@@ -941,6 +993,22 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "market_patrouille_slot_ok": (
             "🛡️ Emplacement de patrouille {} débloqué — pose le créneau depuis le salon 🧱 Remparts."
+        ),
+        "market_use_button": "🚀 Utiliser",
+        "market_corruption_token_ok": (
+            "🧨 Jeton Corruption acheté — en réserve : {}. Utilise-le depuis "
+            "la 🏛️ Chambre des comptes."
+        ),
+        "market_jeu_d_armes_token_ok": (
+            "🧪 Jeu d'armes acheté — en réserve : {}. Utilise-le depuis la "
+            "🏛️ Chambre des comptes (+1 niveau d'IA)."
+        ),
+        "market_explorateur_token_ok": (
+            "🛡️ Explorateur acheté — en réserve : {}. Utilise-le depuis la "
+            "🏛️ Chambre des comptes."
+        ),
+        "market_use_jeu_d_armes_ok": (
+            "🧪 Jeu d'armes utilisé — ton bot de défense monte au niveau {}/5."
         ),
         "ffa_join_button": "🗺️ Aller explorer",
         "ffa_join_note": (

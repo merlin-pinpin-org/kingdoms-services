@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 
 from kingdoms.mods.kingdoms.admin_debug import bypass_guard
 from kingdoms.mods.kingdoms.attacks import (
+    AI_LEVEL_CAP,
     PATROUILLE_SLOT_KEYS,
     patrouille_active_at,
 )
@@ -65,6 +66,16 @@ GUARD_TERRITORY_PREFIX = "garde_royale_until:"
 """remparts-v2: per-territory guard marker — ``garde_royale_until:<tid>``."""
 PATROUILLE_UNLOCK_PREFIX = "patrouille_unlock_"
 """remparts-v2: slot-unlock markers — slot 1 first, then slot 2."""
+CORRUPTION_STOCK = "corruption_stock"
+"""chambre-utiliser-v1: bought-but-unused Corruption tokens."""
+JEU_D_ARMES = "jeu_d_armes"
+JEU_D_ARMES_STOCK = "jeu_d_armes_stock"
+JEU_D_ARMES_BOUGHT = "jeu_d_armes_bought"
+"""chambre-utiliser-v1: the Arms-mastery counters — stock = held
+tokens, bought = the per-season purchase counter. The APPLIED AI
+levels stay under ``jeu_d_armes`` (the defence bot reads it)."""
+EXPLORATEUR_STOCK = "explorateur_stock"
+"""chambre-utiliser-v1: bought-but-unused Explorateur tokens."""
 
 
 class EconomyError(KingdomsModError):
@@ -246,6 +257,74 @@ class EconomyService:
         )
         return lord
 
+    async def buy_explorateur_token(self, kingdom_id: str) -> int:
+        """Buy ONE Explorateur token at the market (chambre-utiliser-v1).
+
+        The Marché stocks the card; the 48h exploration starts when
+        the King picks the lord from the Chambre des comptes. The
+        per-season limit counts the BUYS, never the uses.
+        """
+        await self._check_consumable(kingdom_id, EXPLORATEUR)
+        await self.spend_points(kingdom_id, self._cost(EXPLORATEUR))
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(EXPLORATEUR_STOCK, 0) or 0) + 1
+        state.purchases[EXPLORATEUR_STOCK] = stock
+        await self._store.upsert_technology(state.to_mongo())
+        await self._count_purchase(kingdom_id, EXPLORATEUR)
+        logger.info(
+            "kingdoms: %s stocks an explorateur token (%d in reserve)", kingdom_id, stock
+        )
+        await self._record_purchase(
+            kingdom_id, EXPLORATEUR, "jeton en réserve", self._cost(EXPLORATEUR)
+        )
+        return stock
+
+    async def use_explorateur(
+        self,
+        kingdom_id: str,
+        lord_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> LordModel:
+        """Spend ONE Explorateur token: send the lord exploring (chambre-utiliser-v1).
+
+        The guards of the Marché purchase stay (active lord of the
+        kingdom, no running exploration); a refused use never consumes
+        the token.
+        """
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(EXPLORATEUR_STOCK, 0) or 0)
+        if stock <= 0:
+            raise EconomyError(
+                "no explorateur token in stock — buy one at the market first"
+            )
+        timestamp = now or game_now()
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == lord_id),
+            None,
+        )
+        if lord is None or lord.left or lord.kingdom_id != kingdom_id:
+            raise EconomyError("the lord is no active lord of this kingdom")
+        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise EconomyError("the lord is already exploring")
+        state.purchases[EXPLORATEUR_STOCK] = stock - 1
+        await self._store.upsert_technology(state.to_mongo())
+        lord.exploration_locked_until = int(timestamp.timestamp()) + int(
+            EXPLORATION_LOCK_HOURS * 3600
+        )
+        await self._store.upsert_lord(lord.to_mongo())
+        logger.info(
+            "kingdoms: %s of %s explores until %s (token used, %d left)",
+            lord.id,
+            kingdom_id,
+            lord.exploration_locked_until,
+            stock - 1,
+        )
+        await self._record_purchase(kingdom_id, EXPLORATEUR, f"lord {lord.id}", 0)
+        return lord
+
     async def resolve_due_explorations(
         self, *, now: datetime | None = None
     ) -> list[tuple[LordModel, TerritoryModel | None]]:
@@ -373,6 +452,168 @@ class EconomyService:
             kingdom_id, CORRUPTION, f"map {fresh.map_key}", self._cost(CORRUPTION)
         )
         return fresh
+
+    async def buy_corruption_token(self, kingdom_id: str) -> int:
+        """Buy ONE Corruption token at the market (chambre-utiliser-v1).
+
+        Drasah 30/10 face-check: the Marché never fires the effect —
+        the purchase stocks a token, the steal happens when the King
+        uses the card from the 🏛️ Chambre des comptes. Payment first,
+        token second; the per-season limit counts the BUYS, never the
+        uses.
+        """
+        await self._check_consumable(kingdom_id, CORRUPTION)
+        await self.spend_points(kingdom_id, self._cost(CORRUPTION))
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(CORRUPTION_STOCK, 0) or 0) + 1
+        state.purchases[CORRUPTION_STOCK] = stock
+        await self._store.upsert_technology(state.to_mongo())
+        await self._count_purchase(kingdom_id, CORRUPTION)
+        logger.info(
+            "kingdoms: %s stocks a corruption token (%d in reserve)", kingdom_id, stock
+        )
+        await self._record_purchase(
+            kingdom_id, CORRUPTION, "jeton en réserve", self._cost(CORRUPTION)
+        )
+        return stock
+
+    async def use_corruption(
+        self,
+        kingdom_id: str,
+        territory_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> TerritoryModel:
+        """Spend ONE Corruption token: steal the territory (chambre-utiliser-v1).
+
+        Every guard of the Marché purchase stays (protected, Lieu
+        Sacrée, patrol, faucon); a REFUSED use never consumes the
+        token — the King keeps his card until the steal lands.
+        """
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(CORRUPTION_STOCK, 0) or 0)
+        if stock <= 0:
+            raise EconomyError(
+                "no corruption token in stock — buy one at the market first"
+            )
+        timestamp = now or game_now()
+        territories = await self._territories.territories()
+        territory = next(
+            (item for item in territories if item.id == territory_id), None
+        )
+        if territory is None:
+            raise TerritoryNotFoundError("no territory with this id")
+        if territory.owner_kingdom_id == kingdom_id:
+            raise EconomyError("a kingdom cannot corrupt its own territory")
+        if territory.is_protected_at(timestamp):
+            raise TerritoryProtectedError("the territory is protected against corruption")
+        if territory.sacred or territory.is_tech_protected_at(timestamp):
+            raise TerritoryProtectedError(
+                "the territory resists the corruption (Lieu Sacrée, lieu-sacree-v1)"
+            )
+        if patrouille_active_at(
+            await self._attacks.technology_state(territory.owner_kingdom_id),
+            timestamp,
+            base_level=await self._attacks.base_ai_level(),
+        ):
+            raise TerritoryProtectedError(
+                "the target kingdom's patrol protects its territories (D68)"
+            )
+        victim = next(
+            (k for k in await self._kingdoms.kingdoms() if k.id == territory.owner_kingdom_id),
+            None,
+        )
+        if victim is not None and int(
+            getattr(victim, "faucon_release_until", 0) or 0
+        ) > int(timestamp.timestamp()):
+            raise TerritoryProtectedError(
+                "the victim released the faucon — immune to technologies (voliere-v1)"
+            )
+        state.purchases[CORRUPTION_STOCK] = stock - 1
+        await self._store.upsert_technology(state.to_mongo())
+        former_owner = territory.owner_kingdom_id
+        await self._territories.transfer(territory_id, kingdom_id)
+        fresh = next(
+            (item for item in await self._territories.territories() if item.id == territory_id),
+            None,
+        )
+        if fresh is None:
+            raise TerritoryNotFoundError("the territory vanished mid-corruption")
+        fresh.protected_until = timestamp + timedelta(hours=CORRUPTION_PROTECTION_HOURS)
+        await self._store.upsert_territory(fresh.to_mongo())
+        if former_owner != kingdom_id:
+            await self.grant_tech_points(former_owner, CORRUPTION_COMPENSATION_TECH)
+        logger.info(
+            "kingdoms: %s used a corruption token on %s (protected until %s, %d left)",
+            kingdom_id,
+            territory_id,
+            fresh.protected_until.isoformat(),
+            stock - 1,
+        )
+        await self._record_purchase(kingdom_id, CORRUPTION, f"map {fresh.map_key}", 0)
+        return fresh
+
+    # ------------------------------------------------------------------
+    # Jeu d'armes (chambre-utiliser-v1, Drasah 30/10: token, then use)
+    # ------------------------------------------------------------------
+    async def buy_jeu_d_armes_token(self, kingdom_id: str) -> int:
+        """Buy ONE Arms-mastery token at the market (chambre-utiliser-v1).
+
+        The Marché sells the CARD; the +1 defence-AI level applies when
+        the King uses it from the Chambre des comptes. The per-season
+        limit counts the BUYS (``jeu_d_armes_bought``) — the applied
+        levels stay under ``jeu_d_armes`` (the defence bot's counter).
+        """
+        state = await self._attacks.technology_state(kingdom_id)
+        bought = int(state.purchases.get(JEU_D_ARMES_BOUGHT, 0) or 0)
+        limit = self._limit(JEU_D_ARMES)
+        if limit > 0 and bought >= limit and not bypass_guard(
+            f"economy limit jeu_d_armes of {kingdom_id} ({bought}/{limit})"
+        ):
+            raise EconomyLimitReachedError("the per-season purchase limit is reached")
+        await self.spend_points(kingdom_id, self._cost(JEU_D_ARMES))
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(JEU_D_ARMES_STOCK, 0) or 0) + 1
+        state.purchases[JEU_D_ARMES_STOCK] = stock
+        state.purchases[JEU_D_ARMES_BOUGHT] = bought + 1
+        await self._store.upsert_technology(state.to_mongo())
+        logger.info(
+            "kingdoms: %s stocks an arms-mastery token (%d in reserve)", kingdom_id, stock
+        )
+        await self._record_purchase(
+            kingdom_id, JEU_D_ARMES, "jeton en réserve", self._cost(JEU_D_ARMES)
+        )
+        return stock
+
+    async def use_jeu_d_armes(self, kingdom_id: str) -> int:
+        """Spend ONE Arms-mastery token: +1 defence-AI level (chambre-utiliser-v1).
+
+        The token is consumed ONLY on a successful use — a kingdom
+        already at the AI cap keeps its card.
+        """
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(JEU_D_ARMES_STOCK, 0) or 0)
+        if stock <= 0:
+            raise EconomyError(
+                "no arms-mastery token in stock — buy one at the market first"
+            )
+        level = int(state.purchases.get(JEU_D_ARMES, 0) or 0)
+        if level >= AI_LEVEL_CAP:
+            raise EconomyError("the defence bot already sits at the AI level cap")
+        state.purchases[JEU_D_ARMES_STOCK] = stock - 1
+        state.purchases[JEU_D_ARMES] = level + 1
+        await self._store.upsert_technology(state.to_mongo())
+        logger.info(
+            "kingdoms: %s uses an arms-mastery token (AI level %d/%d, %d left)",
+            kingdom_id,
+            level + 1,
+            AI_LEVEL_CAP,
+            stock - 1,
+        )
+        await self._record_purchase(
+            kingdom_id, JEU_D_ARMES, f"IA {level + 1}/{AI_LEVEL_CAP}", 0
+        )
+        return level + 1
 
     # ------------------------------------------------------------------
     # Garde Royale (remparts-v2, Drasah 14/10: guards in stock)

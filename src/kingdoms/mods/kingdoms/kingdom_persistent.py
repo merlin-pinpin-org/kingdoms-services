@@ -37,6 +37,7 @@ __all__ = [
     "KingdomKingNameModal",
     "KingdomMarketActionButton",
     "KingdomMarketCancelButton",
+    "KingdomMarketUseButton",
     "KingdomMarketConfirmButton",
     "KingdomMarketCardInfoButton",
     "KingdomMarketLedgerButton",
@@ -217,6 +218,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketCardInfoButton,
         KingdomMarketConfirmButton,
         KingdomMarketCancelButton,
+        KingdomMarketUseButton,
         KingdomRempartsGuardButton,
         KingdomRempartsPatrouilleButton,
         KingdomFFAJoinButton,
@@ -872,6 +874,10 @@ async def _market_bought(wiring: KingdomsPanelWiring, kingdom_id: str, item: str
     try:
         state = await wiring.attacks_service.technology_state(kingdom_id)
         purchases = getattr(state, "purchases", None) or {}
+        if item == "jeu_d_armes":
+            # chambre-utiliser-v1: the buys ride the bought counter —
+            # the APPLIED AI levels stay under "jeu_d_armes".
+            return int(purchases.get("jeu_d_armes_bought", 0) or 0)
         return int(purchases.get(item, 0) or 0)
     except Exception:
         logger.info("KINGDOMS MARKET: purchase counter read failed")
@@ -1033,7 +1039,7 @@ async def _market_lord_select_view(
             )
             return
         try:
-            lord = await economy.buy_explorateur(kingdom_id, chosen[0])
+            lord = await economy.use_explorateur(kingdom_id, chosen[0])
         except Exception as exc:
             note = await _market_failure_note(
                 exc, wiring, king, "explorateur",
@@ -1075,6 +1081,9 @@ async def _market_action_select_view(
 
     remparts-v2: only the Corruption still walks this flow — the Garde
     Royale is a TOKEN bought here and PLACED from the Remparts salon.
+    chambre-utiliser-v1 (Drasah 30/10): the view is now the USE flow of
+    the 🏛️ Chambre des comptes — the pick consumes a TOKEN (the payment
+    happened at the Marché).
     """
     if wiring.territories_service is None:
         return None
@@ -1108,7 +1117,7 @@ async def _market_action_select_view(
             )
             return
         try:
-            territory = await economy.buy_corruption(kingdom_id, chosen[0])
+            territory = await economy.use_corruption(kingdom_id, chosen[0])
         except Exception as exc:
             cost = int(getattr(_market_costs(wiring), action, 0) or 0)
             note = await _market_failure_note(exc, wiring, king, action, cost, strings)
@@ -1432,38 +1441,30 @@ async def _market_purchase_flow(
     strings: dict[str, Any],
 ) -> None:
     """cartes-tcg-v2: the shared purchase path of the article card
-    ✅ button and the legacy modal sheet (marche-v2) — corruption and
-    explorateur open their lord/target select views first."""
+    ✅ button and the legacy modal sheet (marche-v2). chambre-utiliser-v1
+    (Drasah 30/10): the corruption / jeu d'armes / explorateur are
+    TOKEN buys — the effect fires at the 🚀 Utiliser of the Chambre
+    des comptes, never here."""
     economy = wiring.economy_service
     if economy is None:
         await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
         return
     kingdom_id = king.kingdom_id or ""
-    if item == "corruption":
-        view = await _market_action_select_view(wiring, king, item, strings, anchor=interaction)
-        if view is None:
-            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
-            return
-        await interaction.response.send_message(
-            strings["market_choose_corrupt"], view=view, ephemeral=True
-        )
-        return
-    if item == "explorateur":
-        # marche-v2 art. 6: the exploring lord is chosen AFTER the
-        # sheet — 48h lock, the map comes at the end.
-        view = await _market_lord_select_view(wiring, king, strings, anchor=interaction)
-        if view is None:
-            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
-            return
-        await interaction.response.send_message(
-            str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
-            view=view,
-            ephemeral=True,
-        )
-        return
     await interaction.response.defer(ephemeral=True)
     try:
-        if kind == "tech":
+        # chambre-utiliser-v1 (Drasah 30/10): the Marché SELLS TOKENS for
+        # the corruption / jeu d'armes / explorateur — the EFFECT fires
+        # at the 🚀 Utiliser of the 🏛️ Chambre des comptes, never here.
+        if item == "corruption":
+            stock = await economy.buy_corruption_token(kingdom_id)
+            note = str(strings["market_corruption_token_ok"]).format(stock)
+        elif item == "explorateur":
+            stock = await economy.buy_explorateur_token(kingdom_id)
+            note = str(strings["market_explorateur_token_ok"]).format(stock)
+        elif item == "jeu_d_armes":
+            stock = await economy.buy_jeu_d_armes_token(kingdom_id)
+            note = str(strings["market_jeu_d_armes_token_ok"]).format(stock)
+        elif kind == "tech":
             await economy.buy_combat_technology(kingdom_id, item)
             note = await _market_success_note(wiring, kingdom_id, item, strings)
         elif item == "garde_royale":
@@ -2325,6 +2326,81 @@ class KingdomFFAJoinButton(
         await interaction.response.send_message(note, ephemeral=True)
 
 
+async def _traquenard_open_flow(
+    interaction: discord.Interaction,
+    wiring: KingdomsPanelWiring,
+    strings: dict[str, Any],
+    lord: Any,
+) -> None:
+    """Open the ephemeral adversary select of the Traquenard.
+
+    chambre-utiliser-v1 (Drasah 30/10): extracted from the salon
+    button — the 🚀 Utiliser shortcut of the Chambre des comptes
+    rides the SAME flow (the bought charge is consumed at the
+    activation, never by opening the window).
+    """
+    if wiring.attacks_service is None or wiring.kingdoms_service is None:
+        await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+        return
+    kingdom_id = lord.kingdom_id or ""
+    kingdoms = await wiring.kingdoms_service.kingdoms()
+    options = [
+        discord.SelectOption(label=str(getattr(k, "name", "") or k.kingdom_id)[:100], value=k.kingdom_id[:100])
+        for k in kingdoms
+        if not getattr(k, "is_gaia", False) and k.kingdom_id != kingdom_id
+    ][:25]
+    if not options:
+        await interaction.response.send_message(strings["traquenard_no_target"], ephemeral=True)
+        return
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:traquenard:choose",
+        placeholder=str(strings["traquenard_choose"])[:100],
+        options=options,
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        attacks = wiring.attacks_service
+        if attacks is None:
+            await target.response.edit_message(
+                content=strings["market_no_service"], view=None
+            )
+            return
+        try:
+            victim = await attacks.activate_traquenard(
+                str(target.user.id), chosen[0]
+            )
+        except Exception as exc:
+            await target.response.edit_message(
+                content=str(strings["traquenard_failed"]).format(
+                    message=getattr(exc, "message", str(exc))
+                ),
+                view=None,
+            )
+            return
+        until = datetime.fromtimestamp(
+            int(getattr(victim, "traquenard_until", 0) or 0),
+            tz=ZoneInfo("Europe/Paris"),
+        )
+        note = str(strings["traquenard_done"]).format(
+            kingdom=str(getattr(victim, "name", "") or chosen[0]),
+            time=until.strftime("%d/%m %H:%M"),
+        )
+        await target.response.edit_message(content=note, view=None)
+        _market_ttl(interaction, getattr(target, "message", None))
+        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    await interaction.response.send_message(
+        strings["traquenard_choose"], view=view, ephemeral=True
+    )
+
+
 class KingdomTraquenardButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:traquenard:activate",
@@ -2366,70 +2442,12 @@ class KingdomTraquenardButton(
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
-        if wiring.attacks_service is None or wiring.kingdoms_service is None:
-            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
-            return
         lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
         if lord is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
-        kingdom_id = lord.kingdom_id or ""
-        kingdoms = await wiring.kingdoms_service.kingdoms()
-        options = [
-            discord.SelectOption(label=str(getattr(k, "name", "") or k.kingdom_id)[:100], value=k.kingdom_id[:100])
-            for k in kingdoms
-            if not getattr(k, "is_gaia", False) and k.kingdom_id != kingdom_id
-        ][:25]
-        if not options:
-            await interaction.response.send_message(strings["traquenard_no_target"], ephemeral=True)
-            return
-        select: discord.ui.Select[Any] = discord.ui.Select(
-            custom_id="kingdoms:traquenard:choose",
-            placeholder=str(strings["traquenard_choose"])[:100],
-            options=options,
-        )
+        await _traquenard_open_flow(interaction, wiring, strings, lord)
 
-        async def on_choose(target: discord.Interaction[Any]) -> None:
-            values = getattr(target, "data", None) or {}
-            chosen = [str(v) for v in values.get("values", [])]
-            if not chosen:
-                return
-            attacks = wiring.attacks_service
-            if attacks is None:
-                await target.response.edit_message(
-                    content=strings["market_no_service"], view=None
-                )
-                return
-            try:
-                victim = await attacks.activate_traquenard(
-                    str(target.user.id), chosen[0]
-                )
-            except Exception as exc:
-                await target.response.edit_message(
-                    content=str(strings["traquenard_failed"]).format(
-                        message=getattr(exc, "message", str(exc))
-                    ),
-                    view=None,
-                )
-                return
-            until = datetime.fromtimestamp(
-                int(getattr(victim, "traquenard_until", 0) or 0),
-                tz=ZoneInfo("Europe/Paris"),
-            )
-            note = str(strings["traquenard_done"]).format(
-                kingdom=str(getattr(victim, "name", "") or chosen[0]),
-                time=until.strftime("%d/%m %H:%M"),
-            )
-            await target.response.edit_message(content=note, view=None)
-            _market_ttl(interaction, getattr(target, "message", None))
-            await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
-
-        select.callback = on_choose  # type: ignore[method-assign, assignment]
-        view = discord.ui.View(timeout=600)
-        view.add_item(select)
-        await interaction.response.send_message(
-            strings["traquenard_choose"], view=view, ephemeral=True
-        )
 
 
 def _market_ledger_text(wiring: KingdomsPanelWiring, kingdom: Any, strings: dict[str, Any]) -> str:
@@ -2478,7 +2496,23 @@ def _market_ledger_text(wiring: KingdomsPanelWiring, kingdom: Any, strings: dict
 # shown « in hand », in the market's shelf order — the counter is the
 # REMAINING stock (``purchases``), never the season total (Drasah:
 # « le nombre restant »).
-_LEDGER_CARD_KEYS = ("sabotage", "contre_espionnage", "embuscade", "traquenard")
+# chambre-utiliser-v1 (Drasah 30/10): the hand also lists the TOKEN
+# cards (corruption / jeu d'armes / explorateur) — their stock lives
+# under a dedicated counter, the buys under the article counter.
+_LEDGER_CARD_KEYS = (
+    "sabotage",
+    "contre_espionnage",
+    "embuscade",
+    "traquenard",
+    "corruption",
+    "jeu_d_armes",
+    "explorateur",
+)
+_LEDGER_CARD_STOCK_KEYS = {
+    "corruption": "corruption_stock",
+    "jeu_d_armes": "jeu_d_armes_stock",
+    "explorateur": "explorateur_stock",
+}
 
 
 async def _market_ledger_cards(
@@ -2502,7 +2536,7 @@ async def _market_ledger_cards(
     emojis = strings.get("market_ledger_emoji") or {}
     entries: list[tuple[str, str, int]] = []
     for key in _LEDGER_CARD_KEYS:
-        stock = int(purchases.get(key, 0) or 0)
+        stock = int(purchases.get(_LEDGER_CARD_STOCK_KEYS.get(key, key), 0) or 0)
         if stock <= 0:
             continue
         entries.append(
@@ -2662,6 +2696,11 @@ class KingdomMarketCardInfoButton(
                 (strings.get("market_usage") or {}).get(self.card, "")
             ),
         ]
+        # chambre-utiliser-v1 (Drasah 30/10): revealing a USABLE card
+        # adds the 🚀 Utiliser button — the effect fires HERE, from the
+        # Chambre des comptes, never at the Marché.
+        if card_info_view is not None and self.card in _MARKET_USABLE_CARDS:
+            card_info_view.add_item(KingdomMarketUseButton(self.card, strings))
         # The chosen card's art, or the back when the art is missing
         # (cosmetic — the text lines still ride the edit).
         file = _market_card_file(self.card) or _market_card_back_file()
@@ -2675,6 +2714,176 @@ class KingdomMarketCardInfoButton(
             attachments=files,
             view=card_info_view,
         )
+
+
+_MARKET_USABLE_CARDS = (
+    "corruption",
+    "jeu_d_armes",
+    "explorateur",
+    "traquenard",
+    "embuscade",
+)
+"""chambre-utiliser-v1: the cards carrying the 🚀 Utiliser button."""
+
+
+class KingdomMarketUseButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=(
+        r"kingdoms:market:use:(?P<card>corruption|jeu_d_armes"
+        r"|explorateur|traquenard|embuscade)"
+    ),
+):
+    """chambre-utiliser-v1 (Drasah 30/10): the 🚀 Utiliser button of a
+    revealed card — the EFFECT never fires at the Marché, it fires
+    here, from the Chambre des comptes window. The corruption and the
+    explorateur open their target/lord selects (the existing flows,
+    now consuming a token), the arms-mastery applies immediately, the
+    traquenard opens its adversary select and the embuscade jumps to
+    the attack-declaration wizard. Restart-proof (DynamicItem)."""
+
+    def __init__(self, card: str, strings: dict[str, Any], row: int | None = None) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["market_use_button"])[:80],
+                custom_id=f"kingdoms:market:use:{card}",
+                style=discord.ButtonStyle.success,
+                row=row,
+            )
+        )
+        self.card = card
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMarketUseButton:
+        """Rebuild the use button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(match["card"], _strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Fire the card's effect from the ledger window."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None:
+            await interaction.response.send_message(
+                strings["church_marry_kingdom_none"], ephemeral=True
+            )
+            return
+        # The token cards are KINGDOM-level strategic actions bought by
+        # the King — their USE is King-only (the traquenard keeps its
+        # any-lord rule, the embuscade its declaration-flow rules).
+        if self.card in ("corruption", "explorateur", "jeu_d_armes") and str(
+            getattr(lord, "role", "") or ""
+        ) != "king":
+            await interaction.response.send_message(
+                strings["market_not_king"], ephemeral=True
+            )
+            return
+        if self.card == "corruption":
+            view = await _market_action_select_view(
+                wiring, lord, "corruption", strings, anchor=interaction
+            )
+            if view is None:
+                await interaction.response.send_message(
+                    strings["market_no_options"], ephemeral=True
+                )
+                return
+            await interaction.response.send_message(
+                strings["market_choose_corrupt"], view=view, ephemeral=True
+            )
+            return
+        if self.card == "explorateur":
+            view = await _market_lord_select_view(
+                wiring, lord, strings, anchor=interaction
+            )
+            if view is None:
+                await interaction.response.send_message(
+                    strings["market_no_options"], ephemeral=True
+                )
+                return
+            await interaction.response.send_message(
+                str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
+                view=view,
+                ephemeral=True,
+            )
+            return
+        if self.card == "jeu_d_armes":
+            economy = wiring.economy_service
+            if economy is None:
+                await interaction.response.send_message(
+                    strings["market_no_service"], ephemeral=True
+                )
+                return
+            await interaction.response.defer()
+            kingdom_id = str(getattr(lord, "kingdom_id", "") or "")
+            try:
+                level = await economy.use_jeu_d_armes(kingdom_id)
+            except Exception as exc:
+                note = await _market_failure_note(
+                    exc,
+                    wiring,
+                    lord,
+                    "jeu_d_armes",
+                    int(getattr(_market_costs(wiring), "jeu_d_armes", 0) or 0),
+                    strings,
+                )
+                await interaction.followup.send(note, ephemeral=True)
+                return
+            # The ledger window refreshes in place (the stock moved) and
+            # the result rides a small followup bubble.
+            kingdom = await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
+            if kingdom is not None:
+                content, files, ledger_view = await _market_ledger_content(
+                    wiring, kingdom, strings
+                )
+                try:
+                    await interaction.edit_original_response(
+                        content=content, attachments=files, view=ledger_view
+                    )
+                except Exception:
+                    logger.warning(
+                        "KINGDOMS MARKET: ledger refresh after use failed",
+                        exc_info=True,
+                    )
+            note = str(strings["market_use_jeu_d_armes_ok"]).format(level)
+            await interaction.followup.send(note, ephemeral=True)
+            return
+        if self.card == "traquenard":
+            await _traquenard_open_flow(interaction, wiring, strings, lord)
+            return
+        if self.card == "embuscade":
+            # A pure SHORTCUT: the declare wizard opens here, exactly as
+            # the « Déclarer une attaque » button does (the card is
+            # consumed by the declaration itself, never by this click).
+            from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+                _attack_mode_select_view,
+                _strings as attack_strings,
+            )
+
+            if wiring.attacks_service is None:
+                await interaction.response.send_message(
+                    strings["market_no_service"], ephemeral=True
+                )
+                return
+            own_kingdom_id = str(getattr(lord, "kingdom_id", "") or "")
+            mode_content, mode_view = await _attack_mode_select_view(
+                wiring, own_kingdom_id, attack_strings(locale), interaction
+            )
+            if mode_view is None:
+                await interaction.response.send_message(
+                    strings["market_no_options"], ephemeral=True
+                )
+                return
+            await interaction.response.send_message(
+                mode_content, view=mode_view, ephemeral=True
+            )
+            return
 
 
 class KingdomMarketLedgerButton(
