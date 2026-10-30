@@ -397,6 +397,14 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_bought_detail": "✅ Purchased: **{0}** — {1}\nThe treasury holds {2} ⚙️ left.",
         "market_bought_left": "\nLeft this season: {0}/{1}.",
         "market_receipt_title": "🧾 Receipt — this session's purchases",
+        "market_receipt_ledger_help_named": (
+            "🏛️ Find every one of your purchases in the Chamber of Accounts — "
+            "**Le-Royaume** panel: {mention}"
+        ),
+        "market_receipt_ledger_help": (
+            "🏛️ Find every one of your purchases in the Chamber of Accounts — "
+            "the **Le-Royaume** panel of your kingdom."
+        ),
         "market_err_missing": "❌ Insufficient treasury — you are {0} ⚙️ short.",
         "market_err_limit_reached": "❌ Season limit reached ({0}/{1}).",
         "market_ledger_button": "🏛️ Chambre des comptes",
@@ -889,6 +897,14 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_bought_detail": "✅ Acheté : **{0}** — {1}\nIl reste {2} ⚙️ au trésor.",
         "market_bought_left": "\nReste cette saison : {0}/{1}.",
         "market_receipt_title": "🧾 Reçu — achats de la session",
+        "market_receipt_ledger_help_named": (
+            "🏛️ Retrouve l'ensemble de tes achats dans la Chambre des comptes "
+            "— panneau **Le-Royaume** : {mention}"
+        ),
+        "market_receipt_ledger_help": (
+            "🏛️ Retrouve l'ensemble de tes achats dans la Chambre des comptes "
+            "— panneau **Le-Royaume** de ton royaume."
+        ),
         "market_err_missing": "❌ Trésorerie insuffisante — il te manque {0} ⚙️.",
         "market_err_limit_reached": "❌ Limite de saison atteinte ({0}/{1}).",
         "market_ledger_button": "🏛️ Chambre des comptes",
