@@ -3936,3 +3936,44 @@ async def test_dispute_handover_due_flags_the_deadline(monkeypatch) -> None:
     assert [a.id for a in due] == [attack.id]
     await bundle.attacks.mark_dispute_admin_sent(str(attack.id))
     assert await bundle.attacks.dispute_handover_due(now=late) == []
+
+
+async def test_reveal_note_stays_above_the_room_and_dies_at_resolution() -> None:
+    """reveal-survie-v1 (Drasah 30/10): the T-15 reveal note stays
+    ABOVE the meeting window (scoreboard) for the whole game — it is
+    swept ONLY when the winner is declared, so the cover's trace stays
+    readable while the game is played."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _open_attack_salon_safe,
+        _strings,
+        _sweep_pre_room_announces_safe,
+        _sweep_reveal_notes_safe,
+    )
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(24)
+    attack = await bundle.fresh_attack()
+    _wiring(bundle)
+    guild = MockGuild()
+    await _open_attack_salon_safe(guild, _panel_wiring(), _strings("fr"), attack)
+    salon = next(c for c in guild.text_channels if c.name != "Déclarer une attaque")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert int(fresh.score.get("attack_base_message_id") or 0) == salon.messages[0].id
+    # A T-15 reveal note lands in the salon (the cover reveal).
+    reveal = await salon.send("🕶️ Reveal — la couverture tombe.")
+    score = dict(fresh.score)
+    score["reveal_message_refs"] = [{"channel_id": salon.id, "message_id": reveal.id}]
+    fresh.score = score
+    await bundle.store.upsert_attack(fresh.to_mongo())
+
+    # The room opens: the base announce is swept, the reveal SURVIVES.
+    await _sweep_pre_room_announces_safe(guild, fresh)
+    assert salon.messages[0].deleted is True
+    assert reveal.deleted is False
+
+    # The winner is declared: the reveal note goes with the meeting.
+    bot = type("Bot", (), {"guilds": [guild]})()  # type: ignore[arg-type]
+    await _sweep_reveal_notes_safe(bot, fresh)  # type: ignore[arg-type]
+    assert reveal.deleted is True

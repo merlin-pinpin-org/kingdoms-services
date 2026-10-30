@@ -4556,6 +4556,9 @@ async def _run_phases_announce_safe(
             # winner too — the players see the outcome at a glance.
             await _stamp_room_ping_winner_safe(bot, attack, winner, strings)
             await _announce_conquest_safe(bot, kingdoms_service, attack, locale)
+            # reveal-survie-v1 (Drasah 30/10): resolution — the reveal
+            # note above the scoreboard dies with the meeting.
+            await _sweep_reveal_notes_safe(bot, attack)
         dirty += len(confirmed)
         # litige-mp-v1 (Drasah 30/10): the dispute DM rounds that
         # failed (30-min deadline past, or both players still contrary)
@@ -4653,9 +4656,10 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
 async def _record_reveal_message_safe(attacks_service: Any, attack: Any, message: Any) -> None:
     """Record one reveal note ref (salon-nettoyage-v1, best effort).
 
-    Drasah 29/10: the T-15 reveal notes (« ⚔️ Bataille en vue … ») are
-    swept when the battle room opens its scoreboard — the refs live in
-    ``score["reveal_message_refs"]`` (restart-safe)."""
+    Drasah 29/10 → reveal-survie-v1 30/10: the T-15 reveal notes (« ⚔️
+    Bataille en vue … », « 🕶️ Reveal — la couverture tombe ») stay ABOVE
+    the room's scoreboard and are swept when the WINNER is declared —
+    the refs live in ``score["reveal_message_refs"]`` (restart-safe)."""
     if message is None:
         return
     try:
@@ -5241,8 +5245,11 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
                 logger.warning("KINGDOM ATTACK: meeting message post failed", exc_info=True)
             # salon-nettoyage-v1 (Drasah 29/10, live report 18:13 →
             # 18:21): the scoreboard just replaced the pre-room
-            # messages — the declaration announce and the T-15 reveal
-            # notes are swept so the salon reads in ONE glance.
+            # messages — the declaration announce is swept so the
+            # salon reads in ONE glance. reveal-survie-v1 (Drasah
+            # 30/10): the T-15 reveal note STAYS above the scoreboard
+            # (the cover's trace stays readable) — it dies only when
+            # the winner is declared.
             await _sweep_pre_room_announces_safe(guild, attack)
         for player_id in _score_players(attack):
             await _grant_battle_room_role_safe(guild, role, player_id)
@@ -5267,36 +5274,64 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
 
 
 async def _sweep_pre_room_announces_safe(guild: Any, attack: Any) -> None:
-    """Delete the pre-room messages of the attack salon (best effort).
+    """Delete the declaration announce of the attack salon (best effort).
 
     salon-nettoyage-v1 (Drasah 29/10): once the battle room's
     scoreboard is up, the declaration announce (the salon's base
-    message — its 🛡️/❌ buttons are dead at the meeting anyway) and the
-    T-15 reveal notes (« ⚔️ Bataille en vue … ») are noise. The refs
-    come from the score (``attack_base_message_id`` +
-    ``reveal_message_refs``) — restart-safe, replay-proof (the room
-    opening is idempotent). A lost ref or a missing permission never
-    breaks the room opening.
+    message — its 🛡️/❌ buttons are dead at the meeting anyway) is
+    noise. reveal-survie-v1 (Drasah 30/10): the T-15 reveal notes are
+    NO LONGER swept here — the 🕶️ cover reveal stays ABOVE the meeting
+    window so the trace of the cover stays readable while the game is
+    played; it dies at the resolution (`_sweep_reveal_notes_safe`).
+    The ref comes from the score (``attack_base_message_id``) —
+    restart-safe, replay-proof (the room opening is idempotent). A
+    lost ref or a missing permission never breaks the room opening.
     """
     salon = _attack_salon(guild, attack)
     if salon is None:
         return
     score = dict(getattr(attack, "score", None) or {})
-    message_ids: list[int] = []
     base_id = int(score.get("attack_base_message_id") or 0)
-    if base_id:
-        message_ids.append(base_id)
+    if not base_id:
+        return
+    try:
+        message = await salon.fetch_message(base_id)
+        await message.delete()
+    except Exception:
+        logger.debug("kingdoms: pre-room announce sweep skipped", exc_info=True)
+
+
+async def _sweep_reveal_notes_safe(bot: Any, attack: Any) -> None:
+    """Delete the reveal notes of the attack salon at the resolution.
+
+    reveal-survie-v1 (Drasah 30/10): the T-15 reveal notes (« 🕶️
+    Reveal — la couverture tombe », « ⚔️ Bataille en vue … ») stay
+    above the battle room's scoreboard for the whole game — they are
+    swept ONLY when the winner is declared (every resolution path:
+    immediate declaration, dispute confirmation, no-show). The refs
+    live in ``score["reveal_message_refs"]`` (restart-safe, replay-
+    proof). Best effort — a lost ref or a missing permission never
+    breaks the resolution.
+    """
+    score = dict(getattr(attack, "score", None) or {})
+    message_ids: list[int] = []
     for ref in score.get("reveal_message_refs") or []:
         try:
             message_ids.append(int(ref["message_id"]))
         except (KeyError, TypeError, ValueError):
             continue
-    for message_id in message_ids:
-        try:
-            message = await salon.fetch_message(message_id)
-            await message.delete()
-        except Exception:
-            logger.debug("kingdoms: pre-room announce sweep skipped", exc_info=True)
+    if not message_ids:
+        return
+    for guild in list(getattr(bot, "guilds", [])):
+        salon = _attack_salon(guild, attack)
+        if salon is None:
+            continue
+        for message_id in message_ids:
+            try:
+                message = await salon.fetch_message(message_id)
+                await message.delete()
+            except Exception:
+                logger.debug("kingdoms: reveal note sweep skipped", exc_info=True)
 
 
 async def record_battle_room_safe(attack: Any, channel_id: int, role_id: int) -> None:
@@ -6109,6 +6144,9 @@ async def _on_score_resolved_safe(
     await _stamp_room_ping_winner_safe(bot, attack, winner, strings)
     await _announce_conquest_safe(bot, wiring.kingdoms_service, attack, locale)
     await _refresh_room_message_safe(bot, attack, locale)
+    # reveal-survie-v1 (Drasah 30/10): the winner is declared — the
+    # 🕶️ reveal note above the scoreboard has told its story, it goes.
+    await _sweep_reveal_notes_safe(bot, attack)
 
 
 async def _declare_room_score(
@@ -7147,4 +7185,7 @@ async def _run_noshows_safe(
         )
         # sabotage-ux-v1 (Drasah 22/10): the room ping wears the winner.
         await _stamp_room_ping_winner_safe(bot, attack, kingdom, strings)
+        # reveal-survie-v1 (Drasah 30/10): resolution — the reveal note
+        # above the scoreboard dies with the meeting.
+        await _sweep_reveal_notes_safe(bot, attack)
     return played
