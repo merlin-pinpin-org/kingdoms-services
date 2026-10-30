@@ -226,6 +226,18 @@ Des limites de l'API Discord — hors de notre contrôle.
   never recreates the message (the next tick retries the edit); the
   full lobby state (civs, map, settings, slots) travels the whole
   chain (match_updated + match_json).
+- **View answers (the SDK rule)** (`ui/responsive.py`): every view
+  callback answers through `respond_with_view` — a component click
+  UPDATES the message it rode (an ephemeral through its webhook, a
+  menu message in place; a pinned message answers with an ephemeral,
+  its content updates through its ensure cycle), a message-less
+  interaction (a slash command) always sends an ephemeral. Slow
+  callbacks ack first through `ack_view_interaction` (the 3-second
+  rule). The rule lives in ONE module — no view hand-rolls its
+  transport.
+- **Profile names** (`home._resolve_profile_names`): a link's label
+  is the binding's stored `profile_name`, else the stored alias,
+  else the provider-resolved alias (librematch) — never a bare '?'.
 - **Select** : 25 options max → pagination des catalogues ; une
   option `default=True` pré-remplit le sélecteur.
 - **Custom id** : 100 caractères max → les ids longs sont tronqués

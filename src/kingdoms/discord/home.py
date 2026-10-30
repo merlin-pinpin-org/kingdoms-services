@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
 import re
 from typing import Any
 
@@ -144,6 +145,60 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     await _profile_followup(interaction)
 
 
+async def _resolve_profile_names(
+    interaction: discord.Interaction, bindings: list[dict[str, Any]]
+) -> dict[str, str]:
+    """Resolve each binding's display name: stored first, provider next.
+
+    The binding's stored profile payload (profile_name, aliases) wins —
+    a missing one (the pre-merge seed wiped some) resolves through the
+    librematch provider's stats (its alias entries), cached for the
+    render; the profile id is the last resort, never a bare '?'.
+    """
+    names: dict[str, str] = {}
+    missing: list[str] = []
+    for binding in bindings:
+        profile = binding.get("profile") or {}
+        pid = str(binding.get("profile_id", ""))
+        stored = str(profile.get("profile_name") or "")
+        aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
+        if stored:
+            names[pid] = stored
+        elif aliases:
+            names[pid] = aliases[0]
+        elif pid:
+            missing.append(pid)
+    if missing:
+        # resolve the missing names through the profile seam's provider
+        game = str(bindings[0].get("game_key", "aoe2")) if bindings else "aoe2"
+        await _resolve_missing_names_from_provider(game, missing, names)
+    return names
+
+
+async def _resolve_missing_names_from_provider(
+    game: str, missing: list[str], names: dict[str, str]
+) -> None:
+    """Fill the missing profile names through the librematch provider."""
+    try:
+        from kingdoms.core.rpc.game_client import GameProviderClient
+
+        provider_uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+        if not provider_uri:
+            return
+        client = GameProviderClient(provider_uri, "ext-librematch", game)
+        for pid in missing:
+            stats = await client.get_player_stats(pid)
+            if stats is None:
+                continue
+            entries = [e for b in stats.blocks for e in b.entries if e.key == "alias"]
+            if not entries:
+                entries = [e for b in stats.blocks for e in b.entries][:1]
+            if entries:
+                names[pid] = str(entries[0].value)
+    except Exception:
+        logger.warning("HOME: provider name resolve failed — best-effort", exc_info=True)
+
+
 async def _profile_game_blocks(
     interaction: discord.Interaction, bindings: list[dict[str, Any]], user_id: str
 ) -> list[discord.ui.TextDisplay[discord.ui.LayoutView]]:
@@ -159,17 +214,12 @@ async def _profile_game_blocks(
         except Exception:
             logger.warning("HOME: profile enricher failed", exc_info=True)
     blocks: list[discord.ui.TextDisplay[discord.ui.LayoutView]] = []
+    resolved = await _resolve_profile_names(interaction, bindings)
     for game, entries in sorted(by_game.items()):
         lines = [f"## {_game_label(game)}"]
         for entry in entries:
-            profile = entry.get("profile") or {}
-            aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
-            name = (
-                str(profile.get("profile_name") or "")
-                or (aliases[0] if aliases else "")
-                or "?"
-            )
-            pid = entry.get("profile_id", "?")
+            pid = str(entry.get("profile_id", "?"))
+            name = resolved.get(pid) or pid
             player = players_by_id.get(user_id)
             elo = f" — {player.get('rating')} elo" if player else ""
             url = _game_account_url(game, str(pid))
@@ -1236,15 +1286,13 @@ async def _roster_lines(
         mention = f"<@{user_id}>"
         profiles: list[str] = []
         for binding in user_bindings:
-            # the link label is the STORED profile name (owner direction)
-            profile = binding.get("profile") or {}
+            # the link label: the stored name, else the provider-resolved
+            # alias (passed through ``names``), never the raw profile id
             pid = str(binding.get("profile_id", "?"))
-            aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
-            name = (
-                str(profile.get("profile_name") or "")
-                or (aliases[0] if aliases else "")
-                or pid
-            )
+            profile = binding.get("profile") or {}
+            stored = str(profile.get("profile_name") or "")
+            alias = str((names.get(pid) or {}).get("display_name") or "")
+            name = stored or alias or pid
             url = _game_account_url(game_key, pid)
             profiles.append(f"[{name}]({url})" if url else name)
         entries.append((pseudo or mention, mention, ", ".join(profiles)))

@@ -717,48 +717,43 @@ class LiveRefreshButton(
         game_key = self.game_key
         message = interaction.message
         ephemeral = bool(message is not None and int(getattr(message.flags, "value", 0) or 0) & (1 << 6))
-        # ACK FIRST (merlin 10062: the work below takes seconds; an
-        # unacked interaction dies in 3 s and every later response 404s)
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        # ACK FIRST (the view SDK's 3-second rule): the work below
+        # takes seconds; an unacked interaction dies and 404s everywhere
+        from kingdoms.discord.ui.responsive import ack_view_interaction
 
-        # 1. the auto-update loop: revive it when dead (owner direction)
+        await ack_view_interaction(interaction)
+
+        # the auto-update loop: revive it when dead (owner direction)
         from kingdoms.discord.live import restart_live_dashboard_refresh
 
         await restart_live_dashboard_refresh(bot)
-        if ephemeral:
-            # the ephemeral dashboard refreshes ITSELF: the webhook edits
-            # the message carrying the button in place (the project's
-            # ephemeral-edit pattern — never a new message)
-            from kingdoms.discord.home import _build_live_view
-
-            view = await _build_live_view(interaction, game_key)
-            try:
-                await interaction.followup.edit_message(interaction.message.id, view=view)  # type: ignore[union-attr]
-                await interaction.followup.send("✅", ephemeral=True)
-            except Exception:
-                # the ephemeral token may have expired (old message):
-                # answer with a fresh ephemeral view instead of nothing
-                await interaction.followup.send(view=view, ephemeral=True)
+        if not ephemeral:
+            # a pinned/persistent message: force the pin's edit now (the
+            # registry-resolved message, in place, never resent)
+            registry = getattr(bot, "_live_registry", None)
+            client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
+            if registry is not None and client is not None and interaction.guild_id:
+                try:
+                    await ensure_live_dashboard(bot, str(interaction.guild_id), client, registry, game_key)
+                except Exception:
+                    logger.warning(
+                        "live refresh button: forced refresh failed (guild %s) — best-effort",
+                        interaction.guild_id,
+                        exc_info=True,
+                    )
+            # the pin's content is refreshed; the click acks with one line
+            await interaction.followup.send(
+                _t(bot, _interaction_locale(interaction), "refreshed", "Dashboard refreshed."),
+                ephemeral=True,
+            )
             return
-        # a pinned/persistent message: force the pin's edit now (the
-        # registry-resolved message, in place, never resent)
-        registry = getattr(bot, "_live_registry", None)
-        client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
-        if registry is not None and client is not None and interaction.guild_id:
-            try:
-                await ensure_live_dashboard(bot, str(interaction.guild_id), client, registry, game_key)
-            except Exception:
-                logger.warning(
-                    "live refresh button: forced refresh failed (guild %s) — best-effort",
-                    interaction.guild_id,
-                    exc_info=True,
-                )
-        # a short text ack (a pin interaction never answers a copy of
-        # the dashboard — the pin above already carries the fresh view)
-        await interaction.followup.send(
-            _t(bot, _interaction_locale(interaction), "refreshed", "Dashboard refreshed."),
-            ephemeral=True,
-        )
+        # an ephemeral dashboard: the view SDK updates the clicked
+        # message (same id → update, never a sibling)
+        from kingdoms.discord.home import _build_live_view
+        from kingdoms.discord.ui.responsive import respond_with_view
+
+        view = await _build_live_view(interaction, game_key)
+        await respond_with_view(interaction, view, f"panel:game:{game_key}:live")
 
 
 def build_dashboard_view(
