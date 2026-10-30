@@ -782,6 +782,42 @@ async def test_use_button_corruption_opens_the_select_and_steals() -> None:
     assert economy.corruption_tokens == 0  # the token is consumed
 
 
+async def test_use_selects_share_the_single_window() -> None:
+    """fenetre-unique-globale-v1: opening a second Utiliser select closes
+    the player's previous ephemeral window — the Chambre des comptes and
+    the Use selects never stack."""
+    import kingdoms.mods.kingdoms.kingdom_persistent as persistent_mod
+
+    persistent_mod._EPHEMERAL_WINDOWS.pop("111", None)
+    economy = FakeEconomyService(corruption_tokens=1, explorateur_tokens=1)
+    territories = FakeTerritoryService(
+        territories=[
+            FakeTerritory(id="t1", map_key="arabia", owner_kingdom_id="k2"),
+        ]
+    )
+    _wiring(
+        lords=[
+            FakeLord(id="111", role="king", kingdom_id="k1"),
+            FakeLord(id="222", role="lord", kingdom_id="k1"),
+        ],
+        economy=economy,
+        territories=territories,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    strings = _kp_strings("en")
+    first: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await KingdomMarketUseButton("corruption", strings).callback(first)
+    assert first.response.ephemeral is True
+    assert not first.original_deleted
+
+    second: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await KingdomMarketUseButton("explorateur", strings).callback(second)
+    assert second.response.ephemeral is True
+    # the corruption select closed instead of stacking
+    assert first.original_deleted is True
+    persistent_mod._EPHEMERAL_WINDOWS.pop("111", None)
+
+
 async def test_use_button_explorateur_locks_the_chosen_lord() -> None:
     """chambre-utiliser-v1: the Explorateur's Use opens the lord select
     (48h lock) — the existing flow, now consuming a token."""

@@ -339,7 +339,11 @@ class KingdomApplyButton(
             anchor=interaction,
         )
         strings = _strings(context.locale)
-        await interaction.response.send_message(
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+        await _open_unique_ephemeral(
+            interaction,
             f"**{strings['choose_role']}**",
             view=_role_select_view(context),
             ephemeral=True,
@@ -2145,8 +2149,14 @@ class KingdomRempartsGuardButton(
         select.callback = on_choose  # type: ignore[method-assign, assignment]
         view = discord.ui.View(timeout=600)
         view.add_item(select)
-        await interaction.response.send_message(
-            strings["remparts_place_guard_choose"], view=view, ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+        await _open_unique_ephemeral(
+            interaction,
+            str(strings["remparts_place_guard_choose"]),
+            view=view,
+            ephemeral=True,
         )
 
 
@@ -2241,8 +2251,14 @@ class KingdomRempartsPatrouilleButton(
         select.callback = on_choose  # type: ignore[method-assign, assignment]
         view = discord.ui.View(timeout=600)
         view.add_item(select)
-        await interaction.response.send_message(
-            strings["market_choose_slot"], view=view, ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+        await _open_unique_ephemeral(
+            interaction,
+            str(strings["market_choose_slot"]),
+            view=view,
+            ephemeral=True,
         )
 
 
@@ -2802,8 +2818,14 @@ class KingdomMarketUseButton(
                     strings["market_no_options"], ephemeral=True
                 )
                 return
-            await interaction.response.send_message(
-                strings["market_choose_corrupt"], view=view, ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+            await _open_unique_ephemeral(
+                interaction,
+                str(strings["market_choose_corrupt"]),
+                view=view,
+                ephemeral=True,
             )
             return
         if self.card == "explorateur":
@@ -2815,7 +2837,11 @@ class KingdomMarketUseButton(
                     strings["market_no_options"], ephemeral=True
                 )
                 return
-            await interaction.response.send_message(
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+            await _open_unique_ephemeral(
+                interaction,
                 str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
                 view=view,
                 ephemeral=True,
@@ -2888,8 +2914,11 @@ class KingdomMarketUseButton(
                     strings["market_no_options"], ephemeral=True
                 )
                 return
-            await interaction.response.send_message(
-                mode_content, view=mode_view, ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+            await _open_unique_ephemeral(
+                interaction, mode_content, view=mode_view, ephemeral=True
             )
             return
 
@@ -3209,8 +3238,14 @@ class KingdomChurchMarryButton(
             )
             await interaction.response.send_message(note, ephemeral=True)
             return
-        await interaction.response.send_message(
-            strings["church_marry_intro"], view=view, ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+        await _open_unique_ephemeral(
+            interaction,
+            str(strings["church_marry_intro"]),
+            view=view,
+            ephemeral=True,
         )
 
 
@@ -3275,8 +3310,14 @@ class KingdomChurchArrangeButton(
         if marry_view is None:
             await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
             return
-        await interaction.response.send_message(
-            strings["market_choose_lord"], view=marry_view, ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
+        # single-window registry — no stacking with the player's
+        # previous ephemeral view.
+        await _open_unique_ephemeral(
+            interaction,
+            str(strings["market_choose_lord"]),
+            view=marry_view,
+            ephemeral=True,
         )
 
 
@@ -3553,9 +3594,15 @@ class KingdomChurchConsecrateButton(
                 ],
             )
         )
-        await interaction.followup.send(
+        # fenetre-unique-globale-v1 (Drasah 30/10): the defer+followup
+        # variant of the shared registry (3-tuple — close via the
+        # followup message, never delete_original_response).
+        user_id = str(getattr(interaction.user, "id", ""))
+        await _close_previous_ephemeral(user_id)
+        window = await interaction.followup.send(
             strings["cathedral_consecrate_choose"], view=view, ephemeral=True
         )
+        _EPHEMERAL_WINDOWS[user_id] = (interaction, time.monotonic(), window)
 
 
 async def _revoke_kingdoms_roles(guild: discord.Guild | None, user_id: str) -> None:

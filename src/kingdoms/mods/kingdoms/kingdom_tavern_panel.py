@@ -314,12 +314,16 @@ class KingdomTavernMenuButton(
         return cls(_strings(locale)["menu_button"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+        from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _open_unique_ephemeral,
+            _wiring,
+        )
 
         locale = str(interaction.locale) if interaction.locale else "fr"
         wiring = _wiring()
         try:
-            await interaction.response.send_message(
+            await _open_unique_ephemeral(
+                interaction,
                 build_tavern_content(locale),
                 view=build_tavern_view(wiring, locale),
                 ephemeral=True,

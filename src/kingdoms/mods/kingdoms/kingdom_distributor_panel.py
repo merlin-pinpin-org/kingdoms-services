@@ -311,7 +311,21 @@ class KingdomDistributorButton(
             return
         view = _KingdomChooseView(_locale(interaction))
         await view.load_options(distributor)
-        await interaction.followup.send(strings["choose_kingdom"], view=view, ephemeral=True)
+        # fenetre-unique-globale-v1 (Drasah 30/10): the picker rides the
+        # shared single-window registry (defer+followup → 3-tuple).
+        from time import monotonic
+
+        from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _EPHEMERAL_WINDOWS,
+            _close_previous_ephemeral,
+        )
+
+        user_id = str(getattr(interaction.user, "id", ""))
+        await _close_previous_ephemeral(user_id)
+        window = await interaction.followup.send(
+            strings["choose_kingdom"], view=view, ephemeral=True
+        )
+        _EPHEMERAL_WINDOWS[user_id] = (interaction, monotonic(), window)
 
 
 class _KingdomChooseView(discord.ui.View):

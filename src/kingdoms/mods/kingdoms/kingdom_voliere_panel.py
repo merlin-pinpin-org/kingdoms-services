@@ -1245,7 +1245,10 @@ class KingdomVoliereButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the ephemeral Volière view (any lord, from the Âge Féodal)."""
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+        from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _open_unique_ephemeral,
+            _wiring,
+        )
 
         strings = _strings(_locale(interaction))
         wiring = _wiring()
@@ -1261,8 +1264,10 @@ class KingdomVoliereButton(
             await _slot_flow(interaction, wiring, fresh=True)
             return
         content = await _voliere_content(wiring, kingdom, strings, state)
-        await interaction.response.send_message(
-            content=content, view=_voliere_view(strings, state), ephemeral=True
+        # fenetre-unique-globale-v1 (Drasah 30/10): the main volière view
+        # rides the shared registry — one live ephemeral per player.
+        await _open_unique_ephemeral(
+            interaction, content, view=_voliere_view(strings, state), ephemeral=True
         )
 
 
