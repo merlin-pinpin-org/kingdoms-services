@@ -83,23 +83,26 @@ Un panel épinglé par salon d'admin. Règles projet :
   demandent la guilde via `GuildContextPicker` — helper unique
   `require_guild_context`, jamais de duplication par vue.
 
-### Fil d'activité AoE2 (`live_activity.py`)
+### Fil d'activité AoE2 (`live_activity.py`) — les cartes de match
 
-Chaque transition d'un joueur lié (entrée en lobby, lancement de
-partie, fin) atterrit en UN message dans le channel **logs** de
-chaque guild concernée (le joueur y est membre), dans l'ordre
-d'arrivée — lire le channel dit qui joue / a joué et quand :
+Chaque match impliquant un joueur lié devient UNE carte dans le
+channel **logs** de chaque guild concernée (le joueur y est membre),
+mise à jour en place tant que le match vit — le channel lit comme
+l'historique AoE2 de la guild, un bloc par match dans l'ordre
+d'arrivée :
 
-- `🟡 **Pseudo** entre dans le [lobby #123](lien join)` ;
-- `🟢 **Pseudo** lance la [partie #123](lien watch) : **mode** — map`
-  suivi du roster (`nom (civ) — équipe n`) ;
-- `⚪ Le match de **Pseudo** est terminé` (le nom persiste via le
-  dernier match connu).
+- **lobby** : `🟡 Partie #N — en lobby` + mode/map/slots, le roster
+  (nom (civ) — équipe), le bouton **🚪 Rejoindre** ;
+- **partie** : `🟢 Partie #N — en partie` + les boutons **👀 Regarder**
+  et **⬇️ Télécharger** (deep link aoe2de) ;
+- **terminé** : `⚪ Partie #N — terminé` + le contexte conservé, la
+  durée, le bouton **📊 Résultats**.
 
-La source : le flux `WatchPlayerEvents` du service gamedata (les
-enrollments souscrivent déjà le provider aux profile_ids des guilds)
-; le transport : `logs_service.log_event` ; la boucle est résiliente
-(stream cassé → reconnexion, un envoi raté ne tue rien).
+La carte vit par (guild, match_ref) : éditée à chaque transition,
+jamais renvoyée ; le dernier summary connu sert l'état final (l'event
+offline ne porte pas de match). La source : le flux `WatchPlayerEvents`
+du service gamedata ; le transport : le channel logs résolu par le
+logs service ; la boucle est résiliente (stream cassé → reconnexion).
 
 ### Menus d'admin
 
