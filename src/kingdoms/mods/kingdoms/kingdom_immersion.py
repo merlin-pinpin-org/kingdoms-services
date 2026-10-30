@@ -266,8 +266,13 @@ class KingdomUserSettingsButton(
             await interaction.response.send_message(strings["not_a_member"], ephemeral=True)
             return
         visible = outgame_visible(guild, member)
-        await interaction.response.send_message(
-            view=_settings_view(strings, visible), ephemeral=True
+        # fenetre-unique-royaume-v1 (Drasah 30/10): the settings view
+        # rides the shared single-window registry (lazy import — the
+        # persistent module only imports this one lazily, no cycle).
+        from kingdoms.mods.kingdoms.kingdom_persistent import _open_unique_ephemeral
+
+        await _open_unique_ephemeral(
+            interaction, view=_settings_view(strings, visible), ephemeral=True
         )
 
 

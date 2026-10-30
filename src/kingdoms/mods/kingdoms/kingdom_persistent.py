@@ -1974,8 +1974,12 @@ class KingdomRempartsOpenButton(
             await interaction.response.send_message(strings["not_lord"], ephemeral=True)
             return
         state = await _gather_state(kingdom, wiring)
-        await interaction.response.send_message(
-            view=_build_patrol(strings, kingdom, state), ephemeral=True
+        # fenetre-unique-royaume-v1 (Drasah 30/10): the Le-Royaume open
+        # buttons join the shared single-window registry — opening one
+        # closes the player's previous ephemeral (his live report: the
+        # Chambre des comptes stacked with Remparts/Seigneurie).
+        await _open_unique_ephemeral(
+            interaction, view=_build_patrol(strings, kingdom, state), ephemeral=True
         )
 
 
@@ -2035,8 +2039,10 @@ class KingdomSeigneurieOpenButton(
             await interaction.response.send_message(strings["not_lord"], ephemeral=True)
             return
         state = await _gather_state(kingdom, wiring)
-        await interaction.response.send_message(
-            view=_build_roster(strings, kingdom, state), ephemeral=True
+        # fenetre-unique-royaume-v1 (Drasah 30/10): same registry — one
+        # live ephemeral window per player across the Le-Royaume panel.
+        await _open_unique_ephemeral(
+            interaction, view=_build_roster(strings, kingdom, state), ephemeral=True
         )
 
 
@@ -2396,8 +2402,10 @@ async def _traquenard_open_flow(
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
     view.add_item(select)
-    await interaction.response.send_message(
-        strings["traquenard_choose"], view=view, ephemeral=True
+    # fenetre-unique-royaume-v1 (Drasah 30/10): the select rides the
+    # shared single-window registry — no stacking under a stale window.
+    await _open_unique_ephemeral(
+        interaction, str(strings["traquenard_choose"]), view=view, ephemeral=True
     )
 
 
