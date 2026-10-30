@@ -331,9 +331,14 @@ async def _apply_realm_overwrites(guild: discord.Guild, category: Any, member_id
             # a mock without the overwrites kwarg: fall back per-target
             for target, overwrite in overwrites.items():
                 await category.set_permissions(target, overwrite=overwrite)
-        return
-    for target, overwrite in overwrites.items():
-        await category.set_permissions(target, overwrite=overwrite)
+    else:
+        for target, overwrite in overwrites.items():
+            await category.set_permissions(target, overwrite=overwrite)
+    # taverne-resync-v1 (Drasah 30/10): the replace-edit just wiped the
+    # member denies of every tavern insider — re-pose them right away.
+    from kingdoms.mods.kingdoms.tavern_immersion import reapply_tavern_member_denies_safe
+
+    await reapply_tavern_member_denies_safe(guild, [category])
 
 
 async def grant_bot_access_to_category(guild: discord.Guild, category: Any) -> None:
@@ -532,6 +537,11 @@ async def ensure_member_realm_access(
             "KINGDOM REALMS: targeted access grant failed for %s", member_id, exc_info=True
         )
         return False
+    # taverne-resync-v1 (Drasah 30/10): the targeted grant can restore a
+    # member ALLOW over a tavern insider's deny — re-pose the denies.
+    from kingdoms.mods.kingdoms.tavern_immersion import reapply_tavern_member_denies_safe
+
+    await reapply_tavern_member_denies_safe(guild, [category])
     return True
 
 

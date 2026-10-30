@@ -9,6 +9,7 @@ AT THE SAME TIME as the game, and the toggle is reversible.
 
 from __future__ import annotations
 
+import discord
 import pytest
 
 from kingdoms.mods.kingdoms.kingdom_immersion import (
@@ -209,3 +210,29 @@ async def test_immersion_gating_strips_stale_outgame_allows_of_kingdom_members()
     for category in (beta, conscription):
         assert category.permission_overwrite_for(member) is None
         assert category.permission_overwrite_for(outsider) is not None
+
+
+async def test_immersion_gating_mirrors_denies_on_unsynced_children() -> None:
+    """immersion-enfants-v1 (Drasah 30/10, live report): « postuler »
+    carries its own overwrites (the taverne pass deny) — Discord then
+    ignores the category deny on it, and the Conscription zone leaked
+    to validated players. The immersion mirrors its denies on every
+    unsynced child; a synced child stays untouched."""
+    guild = MockGuild()
+    beta, conscription, lord, admin = await _guild_with_zones(guild)
+    king = await guild.create_role(name="Kingdoms King")
+    tavern = await guild.create_role(name="🍺 Dans la Taverne")
+    postuler = await guild.create_text_channel("📝 postuler", category=conscription)
+    synced = await guild.create_text_channel(" général", category=conscription)
+    await postuler.set_permissions(
+        tavern, overwrite=discord.PermissionOverwrite(view_channel=False)
+    )
+
+    await apply_immersion_gating(guild)
+    await apply_immersion_gating(guild)  # idempotent
+
+    for role in (lord, admin, king):
+        overwrite = postuler.permission_overwrite_for(role)
+        assert overwrite is not None and overwrite.view_channel is False
+    # the synced child inherits from the category — no own overwrites.
+    assert synced.permission_overwrite_for(lord) is None

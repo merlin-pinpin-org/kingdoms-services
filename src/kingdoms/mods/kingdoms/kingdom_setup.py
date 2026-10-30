@@ -291,6 +291,42 @@ async def _apply_structure_charte(guild: discord.Guild) -> None:
                 logger.warning("KINGDOM SETUP: salon charte rename failed", exc_info=True)
 
 
+async def _mirror_role_denies_on_unsynced_children(category: Any, roles: list[Any]) -> None:
+    """Mirror the role denies on the category's UNSYNCED children (idempotent).
+
+    immersion-enfants-v1 (Drasah 30/10, live report): a channel that
+    carries its own overwrites (postuler — the taverne pass denied the
+    Taverne role on it) is DESYNCED from its category — Discord then
+    ignores the category's role denies on it, so « Postuler » leaked
+    to every validated player and surfaced the Conscription header. The
+    invariant: an out-of-game category's children that carry overwrites
+    MUST carry the immersion denies themselves. Converged-skip per
+    target; best effort — a failed mirror never breaks the pass.
+    """
+    for channel in list(getattr(category, "channels", []) or []):
+        carried = bool(getattr(channel, "overwrites", None) or {})
+        if not carried:
+            carried = any(
+                overwrite is not None
+                for overwrite in (getattr(channel, "_permissions", None) or {}).values()
+            )
+        if not carried:
+            continue  # synced — the category deny is inherited
+        for role in roles:
+            lookup = getattr(channel, "permission_overwrite_for", None)
+            recorded = lookup(role) if lookup is not None else None
+            if recorded is not None and recorded.view_channel is False:
+                continue
+            try:
+                await channel.set_permissions(
+                    role, overwrite=discord.PermissionOverwrite(view_channel=False)
+                )
+            except Exception:
+                logger.warning(
+                    "KINGDOM SETUP: unsynced child deny mirror failed", exc_info=True
+                )
+
+
 async def _hide_conscription_from_players(guild: discord.Guild) -> None:
     """Deny the Conscription category to validated players (idempotent).
 
@@ -298,19 +334,27 @@ async def _hide_conscription_from_players(guild: discord.Guild) -> None:
     (Kingdoms Lord / Kingdoms King), Conscription is dead weight for
     him — the category is hidden from both player roles. The deny is
     additive on the roles, so it survives every re-provisioning.
+
+    immersion-enfants-v1 (Drasah 30/10): the Conscription children that
+    carry their own overwrites (postuler and its Taverne-role deny, the
+    divider) bypass the category — they carry the denies themselves.
     """
     category = _find_category(guild, "Conscription")
     if category is None:
         return
     roles = list(getattr(guild, "roles", []) or [])
+    denied: list[Any] = []
     for candidates in _CONSCRIPTION_ROLE_CANDIDATES:
         role = next((r for r in roles if str(getattr(r, "name", "")) in candidates), None)
         if role is None:
             continue
         try:
             await category.set_permissions(role, overwrite=discord.PermissionOverwrite(view_channel=False))
+            denied.append(role)
         except Exception:
             logger.warning("KINGDOM SETUP: conscription hide failed", exc_info=True)
+    if denied:
+        await _mirror_role_denies_on_unsynced_children(category, denied)
 
 
 async def _ensure_charte_dividers(guild: discord.Guild) -> None:

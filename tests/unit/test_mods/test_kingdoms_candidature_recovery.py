@@ -15,6 +15,7 @@ DM and the King kingdom-request DM silently no-opped. Guards:
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -25,6 +26,8 @@ from kingdoms.mods.kingdoms.kingdom_panels import _enrolled_blocker, _strings
 from kingdoms.mods.kingdoms.kingdom_persistent import (
     KingdomsPanelWiring,
     _apply_candidature_approval,
+    _candidature_kingdom_approved,
+    _grant_game_roles_at_kingdom_approval_safe,
 )
 from kingdoms.mods.kingdoms.service import LORD_ROLE, KingdomsService
 from tests.mocks.discord_mock import MockGuild, MockInteraction
@@ -109,7 +112,8 @@ async def test_unwired_approval_is_loud(monkeypatch: pytest.MonkeyPatch) -> None
         kingdom_name=None,
     )
     assert strings["enroll_service_down"] in extra
-    assert roles.assignments == [("777", "42", "kingdoms", "king")]
+    # vision-gating-v1 (Drasah 30/10): no APPROVED kingdom -> no role.
+    assert roles.assignments == []
 
 
 def test_ensure_kingdoms_services_rebuilds(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,3 +183,66 @@ def test_every_service_import_resolves() -> None:
                 if name and name not in defined:
                     bad.append(f"{path}:{name}")
     assert not bad, f"unknown imports from kingdoms service: {bad}"
+
+
+async def test_candidature_kingdom_approved_requires_an_accepted_kingdom() -> None:
+    """vision-gating-v1 (Drasah 30/10): the gate reads the kingdom's
+    validation — PENDING (a freshly founded kingdom) stays out."""
+    service = _service()
+    await service.launch([])
+    await service.enroll_king_awaiting_kingdom("k1", "Arthur")
+    kingdom = await service.found_kingdom("k1", "Pytoland")
+    assert await _candidature_kingdom_approved(service, "Pytoland") is False
+    await service.approve_kingdom(kingdom.id)
+    assert await _candidature_kingdom_approved(service, "Pytoland") is True
+    # no service, no name, no such kingdom: never approved.
+    assert await _candidature_kingdom_approved(None, "Pytoland") is False
+    assert await _candidature_kingdom_approved(service, None) is False
+    assert await _candidature_kingdom_approved(service, "Avalon") is False
+
+
+async def test_approval_grants_the_role_only_in_an_accepted_kingdom(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A lord seated in an APPROVED kingdom gets his role at approval."""
+    strings = _strings("fr")
+    monkeypatch.setattr(
+        "kingdoms.mods.kingdoms.kingdom_persistent._send_welcome",
+        _noop_welcome,
+    )
+    monkeypatch.setattr(
+        "kingdoms.mods.kingdoms.kingdom_persistent._refresh_season_status_safe",
+        _noop_refresh,
+    )
+    service = _service()
+    await service.launch(["Avalon"])
+    roles = _ModRolesStub()
+    wiring = KingdomsPanelWiring(kingdoms_service=service, mod_roles_service=roles)
+    interaction = MockInteraction(guild=MockGuild(id=777))
+    extra = await _apply_candidature_approval(
+        interaction,
+        wiring,
+        strings,
+        "fr",
+        applicant_id="42",
+        is_king=False,
+        kingdom_name="Avalon",
+    )
+    assert strings["enroll_service_down"] not in extra
+    assert roles.assignments == [("777", "42", "kingdoms", "lord")]
+
+
+async def test_grant_game_roles_at_kingdom_approval_filters_and_grants() -> None:
+    """The kingdom-acceptance seam grants king/lord roles to the members,
+    skipping the non-digit ids (best effort, never a crash)."""
+    roles = _ModRolesStub()
+    wiring = KingdomsPanelWiring(mod_roles_service=roles)
+    guild = MockGuild(id=777)
+    king = SimpleNamespace(id=1, role="king")
+    lord = SimpleNamespace(id=2, role="lord")
+    ghost = SimpleNamespace(id="bad", role="lord")
+    await _grant_game_roles_at_kingdom_approval_safe(guild, wiring, [king, lord, ghost])
+    assert roles.assignments == [
+        ("777", "1", "kingdoms", "king"),
+        ("777", "2", "kingdoms", "lord"),
+    ]

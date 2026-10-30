@@ -298,6 +298,36 @@ async def _clear_member_view_deny(target: Any, member: Any) -> None:
         )
 
 
+def tavern_insiders(guild: discord.Guild) -> list[Any]:
+    """Every member currently holding the taverne immersion role."""
+    role = find_tavern_role(guild)
+    if role is None:
+        return []
+    insiders: list[Any] = []
+    for member in list(getattr(guild, "members", []) or []):
+        if role in list(getattr(member, "roles", []) or []):
+            insiders.append(member)
+    return insiders
+
+
+async def reapply_tavern_member_denies_safe(guild: discord.Guild, targets: list[Any]) -> None:
+    """Re-pose the member denies of every tavern insider on ``targets`` (idempotent).
+
+    taverne-resync-v1 (Drasah 30/10, live report Shirar): a realm
+    re-provisioning REPLACES a category's whole overwrite map — a tavern
+    insider of that kingdom got his member ALLOW back mid-stay and saw
+    the game salons again without leaving. Every realm overwrite write
+    now re-poses the insiders' denies right after itself. Best effort:
+    a failed deny never breaks the caller's pass.
+    """
+    insiders = tavern_insiders(guild)
+    if not insiders:
+        return
+    for target in targets:
+        for member in insiders:
+            await _deny_member_view(target, member)
+
+
 async def enter_tavern(guild: discord.Guild, member: Any, role: Any, taverne_category_id: int | None) -> None:
     """Give the door role, then hide the rest of the server (member level)."""
     try:

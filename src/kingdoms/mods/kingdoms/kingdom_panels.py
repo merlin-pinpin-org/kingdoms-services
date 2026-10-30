@@ -1571,12 +1571,23 @@ def _candidature_view(
             is_king = strings["role_king"] in content
             role_key = ROLE_KING if is_king else ROLE_LORD
             if mod_roles_service is not None and applicant is not None:
-                try:
-                    await mod_roles_service.assign_mod_role(guild_id, applicant.group(1), KINGDOM_MOD, role_key)
-                    note += " " + strings["role_assigned"].format(role_key)
-                except Exception:
-                    logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
-                    note += " " + strings["no_service"]
+                # vision-gating-v1 (Drasah 30/10): the game role rides an
+                # APPROVED kingdom — a founding King or a queued player
+                # stays out-of-game until the kingdom is accepted.
+                from kingdoms.mods.kingdoms.kingdom_persistent import (
+                    _candidature_kingdom_approved,
+                    _candidature_kingdom_name,
+                    _wiring,
+                )
+
+                kingdom_name = _candidature_kingdom_name(content, strings)
+                if await _candidature_kingdom_approved(_wiring().kingdoms_service, kingdom_name):
+                    try:
+                        await mod_roles_service.assign_mod_role(guild_id, applicant.group(1), KINGDOM_MOD, role_key)
+                        note += " " + strings["role_assigned"].format(role_key)
+                    except Exception:
+                        logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
+                        note += " " + strings["no_service"]
             # validation-immersion-v1 (Drasah 28/10): the approved
             # candidate's out-of-game opt-in (member allow over Beta/
             # Conscription) is cleared — « Postuler » hides.

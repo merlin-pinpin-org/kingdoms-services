@@ -72,10 +72,13 @@ async def apply_immersion_gating(guild: discord.Guild) -> None:
         for role in roles
         if str(getattr(role, "name", "")) in candidates
     ]
+    from kingdoms.mods.kingdoms.kingdom_setup import _mirror_role_denies_on_unsynced_children
+
     for slug in IMMERSION_CATEGORY_SLUGS:
         category = _find_category_by_slug(guild, slug)
         if category is None:
             continue
+        denied: list[Any] = []
         for candidates in _IMMERSION_ROLE_CANDIDATES:
             role = next((r for r in roles if str(getattr(r, "name", "")) in candidates), None)
             if role is None:
@@ -84,8 +87,14 @@ async def apply_immersion_gating(guild: discord.Guild) -> None:
                 await category.set_permissions(
                     role, overwrite=discord.PermissionOverwrite(view_channel=False)
                 )
+                denied.append(role)
             except Exception:
                 logger.warning("KINGDOM IMMERSION: %s deny failed for %s", slug, candidates, exc_info=True)
+        # immersion-enfants-v1 (Drasah 30/10): the zone's children that
+        # carry their own overwrites bypass the category deny — postuler
+        # leaked to validated players through exactly that hole.
+        if denied:
+            await _mirror_role_denies_on_unsynced_children(category, denied)
     if kingdom_roles:
         for member in list(getattr(guild, "members", []) or []):
             member_roles = list(getattr(member, "roles", []) or [])

@@ -456,6 +456,46 @@ class KingdomCandidatureButton(
         await interaction.followup.send(note, ephemeral=True)
 
 
+async def _candidature_kingdom_approved(kingdoms_service: Any, kingdom_name: str | None) -> bool:
+    """vision-gating-v1 (Drasah 30/10): the game roles ride an APPROVED kingdom.
+
+    Live report: a King validated mid-flow saw the game salons the
+    moment he CREATED his kingdom — before any admin accepted it (and
+    a queued player has no kingdom at all). The Discord role is now
+    granted ONLY when the player's kingdom is approved; the kingdom
+    validation, the throne claim and the admin assignment are the
+    surfaces that grant it.
+    """
+    if kingdoms_service is None or not kingdom_name:
+        return False
+    try:
+        kingdoms = await kingdoms_service.kingdoms()
+    except Exception:
+        logger.warning("CANDIDATURES: kingdom approval lookup failed", exc_info=True)
+        return False
+    wanted = str(kingdom_name).strip().casefold()
+    for kingdom in kingdoms:
+        if str(getattr(kingdom, "name", "")).strip().casefold() == wanted:
+            return str(getattr(kingdom, "validation", "")) == "approved"
+    return False
+
+
+async def _grant_player_mod_role_safe(
+    wiring: KingdomsPanelWiring, guild: discord.Guild | None, member_id: str, role_key: str
+) -> bool:
+    """Grant one kingdoms player role through the ModRolesService (best effort)."""
+    if wiring.mod_roles_service is None or guild is None or not str(member_id).isdigit():
+        return False
+    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD
+
+    try:
+        await wiring.mod_roles_service.assign_mod_role(str(guild.id), str(member_id), KINGDOM_MOD, role_key)
+        return True
+    except Exception:
+        logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
+        return False
+
+
 async def _apply_candidature_approval(
     interaction: discord.Interaction,
     wiring: KingdomsPanelWiring,
@@ -472,7 +512,7 @@ async def _apply_candidature_approval(
     ``<@id>`` mention used to leak into every select label (Drasah's
     2026-10-11 report).
     """
-    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
+    from kingdoms.mods.kingdoms.kingdom_panels import ROLE_KING, ROLE_LORD
 
     guild = interaction.guild
     role_key = ROLE_KING if is_king else ROLE_LORD
@@ -501,14 +541,14 @@ async def _apply_candidature_approval(
             applicant_id,
         )
         extra += " " + strings["enroll_service_down"]
-    if wiring.mod_roles_service is not None and applicant_id and guild is not None:
-        try:
-            await wiring.mod_roles_service.assign_mod_role(
-                str(guild.id), applicant_id, KINGDOM_MOD, role_key
-            )
+    # vision-gating-v1 (Drasah 30/10): the game role is granted ONLY
+    # when the player's kingdom is ACCEPTED — a King founding his
+    # kingdom (or a queued player) stays out-of-game until the kingdom
+    # is validated, claimed or assigned.
+    if applicant_id and await _candidature_kingdom_approved(wiring.kingdoms_service, kingdom_name):
+        if await _grant_player_mod_role_safe(wiring, guild, applicant_id, role_key):
             extra += " " + strings["role_assigned"].format(role_key)
-        except Exception:
-            logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
+        else:
             extra += " " + strings["no_service"]
     # validation-immersion-v1 (Drasah 28/10, live report Rakussy): an
     # approved candidate's out-of-game opt-in (a MEMBER allow over
@@ -5796,6 +5836,31 @@ class KingdomKingClaimSelect(
             await _after_claim_refresh(guild, locale, kingdom, player_id)
 
 
+async def _grant_game_roles_at_kingdom_approval_safe(
+    guild: discord.Guild | None, wiring: KingdomsPanelWiring, members: list[Any]
+) -> None:
+    """Grant the game roles to a kingdom's members at its ACCEPTANCE (vision-gating-v1).
+
+    The candidature approval deliberately withholds the Discord role
+    until the kingdom is accepted — this seam (the 👑 royaumes panel
+    validation) is where a founding King and the lords seated meanwhile
+    finally enter the game.
+    """
+    from kingdoms.mods.kingdoms.kingdom_panels import ROLE_KING, ROLE_LORD
+    from kingdoms.mods.kingdoms.kingdom_immersion import clear_outgame_allow_safe
+
+    for lord in members:
+        role_key = ROLE_KING if str(getattr(lord, "role", "")) == "king" else ROLE_LORD
+        if await _grant_player_mod_role_safe(wiring, guild, str(lord.id), role_key):
+            logger.info(
+                "CANDIDATURES: game role granted at kingdom approval for %s", lord.id
+            )
+        try:
+            await clear_outgame_allow_safe(guild, str(lord.id))
+        except Exception:
+            logger.warning("CANDIDATURES: outgame allow clear failed", exc_info=True)
+
+
 async def _after_claim_refresh(guild: discord.Guild, locale: str, kingdom: Any, player_id: str) -> None:
     """Refresh everything the claim touched (Drasah's stale-view bug).
 
@@ -5819,6 +5884,18 @@ async def _after_claim_refresh(guild: discord.Guild, locale: str, kingdom: Any, 
             await ensure_member_realm_access(guild, kingdom, int(player_id))
     except Exception:
         logger.warning("CANDIDATURES: king access guarantee failed after claim", exc_info=True)
+    # vision-gating-v1 (Drasah 30/10): the claimed throne is an ACCEPTED
+    # kingdom — the claiming King enters the game right here (his
+    # candidature approval deliberately withheld the role until then).
+    from kingdoms.mods.kingdoms.kingdom_panels import ROLE_KING
+
+    await _grant_player_mod_role_safe(_wiring(), guild, player_id, ROLE_KING)
+    try:
+        from kingdoms.mods.kingdoms.kingdom_immersion import clear_outgame_allow_safe
+
+        await clear_outgame_allow_safe(guild, player_id)
+    except Exception:
+        logger.warning("CANDIDATURES: outgame allow clear failed", exc_info=True)
     await _refresh_realm_views_for_kingdom_safe(guild, str(kingdom.id))
     await _refresh_season_status_safe(guild, locale)
     await _refresh_realms_panel_safe(guild, locale)
@@ -5991,6 +6068,11 @@ class KingdomRealmButton(
                 )
                 await _draw_territories_for_kingdom_safe(kingdom.id)
                 await _deploy_realm_content_safe(interaction.guild, kingdom)
+                # vision-gating-v1 (Drasah 30/10): the kingdom is now
+                # ACCEPTED — its members finally receive their game roles.
+                await _grant_game_roles_at_kingdom_approval_safe(
+                    interaction.guild, wiring, members
+                )
             elif self.action == "delete-confirm":
                 kingdom = await wiring.kingdoms_service.delete_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)

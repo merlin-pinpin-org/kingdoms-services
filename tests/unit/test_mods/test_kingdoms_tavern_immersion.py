@@ -504,3 +504,49 @@ async def test_exit_hard_failure_leaves_the_player_coherently_inside() -> None:
     # Coherent inside state: role kept AND court deny kept.
     assert role in member.roles
     assert court.permission_overwrite_for(member) is not None
+
+
+class _TavernKingdom:
+    """A minimal kingdom stand-in for the realm provisioning seam."""
+
+    id = "k-1"
+    name = "Avalon"
+    validation = "approved"
+    is_gaia = False
+    civilizations: list[str] = []
+
+
+async def test_realm_provisioning_keeps_the_tavern_member_deny() -> None:
+    """vision-gating-v1 (Drasah 30/10, Shirar live report): re-provisioning
+    a realm category replaces the whole overwrite map — a tavern insider
+    of that kingdom got his member ALLOW back mid-stay and saw the game
+    salons again without leaving. The member deny is re-posed after every
+    realm overwrite write (create, resync edit, member grant)."""
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        ensure_member_realm_access,
+        ensure_realm_structure,
+    )
+
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    role = find_tavern_role(guild)
+    tavern_id = next(c.id for c in guild.categories if c.name == TAVERN_CATEGORY_NAME)
+    inside = MockMember(id=78, name="Shirar", roles=[role])
+    guild.add_member(inside)
+    await enter_tavern(guild, inside, role, tavern_id)
+
+    category = await ensure_realm_structure(guild, _TavernKingdom(), [inside.id])
+    overwrite = category.permission_overwrite_for(inside)
+    assert overwrite is not None and overwrite.view_channel is False
+
+    # the resync pass (an existing category re-edited in one call) too.
+    category._overwrites = {}
+    category = await ensure_realm_structure(guild, _TavernKingdom(), [inside.id])
+    overwrite = category.permission_overwrite_for(inside)
+    assert overwrite is not None and overwrite.view_channel is False
+
+    # the targeted member-grant seam (a new King) keeps the deny as well.
+    await ensure_member_realm_access(guild, _TavernKingdom(), inside.id)
+    overwrite = category.permission_overwrite_for(inside)
+    assert overwrite is not None and overwrite.view_channel is False
