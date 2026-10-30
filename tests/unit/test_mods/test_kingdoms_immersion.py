@@ -236,3 +236,65 @@ async def test_immersion_gating_mirrors_denies_on_unsynced_children() -> None:
         assert overwrite is not None and overwrite.view_channel is False
     # the synced child inherits from the category — no own overwrites.
     assert synced.permission_overwrite_for(lord) is None
+
+
+async def test_outgame_toggle_flips_both_ways_in_place() -> None:
+    """reglages-interrupteur-v1 (Drasah 30/10): ONE switch — each click
+    flips to the other state (interrupteur), re-editing the settings
+    view in place; the legacy Show/Hide pair stays registered."""
+    from kingdoms.mods.kingdoms.kingdom_immersion import (
+        KingdomOutgameToggle,
+        _strings as _immersion_strings,
+    )
+
+    guild = MockGuild()
+    beta, conscription, _lord, _admin = await _guild_with_zones(guild)
+    await apply_immersion_gating(guild)
+    member = MockMember(id=11)
+    strings = _immersion_strings("fr")
+
+    # hidden -> visible: the switch answers « maintenant visible »
+    interaction: MockInteraction = MockInteraction(user=member, guild=guild, locale="fr")
+    await KingdomOutgameToggle(strings, False).callback(interaction)
+    assert outgame_visible(guild, member) is True
+    for category in (beta, conscription):
+        overwrite = category.permission_overwrite_for(member)
+        assert overwrite is not None and overwrite.view_channel is True
+    message = interaction.response.message
+    assert message is not None
+    assert message.content == strings["now_visible"]
+    # the re-edited view still carries the ONE switch (primed to hide)
+    view = message.view
+    assert view is not None
+    assert any(
+        getattr(node, "custom_id", None) == "kingdoms:user:outgame:toggle"
+        for node in _walk(view)
+    )
+
+    # visible -> hidden: the SAME switch flips back (interrupteur)
+    interaction_back: MockInteraction = MockInteraction(user=member, guild=guild, locale="fr")
+    await KingdomOutgameToggle(strings, True).callback(interaction_back)
+    assert outgame_visible(guild, member) is False
+    for category in (beta, conscription):
+        assert category.permission_overwrite_for(member) is None
+    message_back = interaction_back.response.message
+    assert message_back is not None
+    assert message_back.content == strings["now_hidden"]
+
+
+def test_outgame_toggle_wears_the_state_driven_label_and_style() -> None:
+    """reglages-interrupteur-v1: the button SHOWS the action to come —
+    « Afficher » (secondary) when hidden, « masquer » (primary) when
+    visible, so a single click is never confusing."""
+    from kingdoms.mods.kingdoms.kingdom_immersion import (
+        KingdomOutgameToggle,
+        _strings as _immersion_strings,
+    )
+
+    strings = _immersion_strings("fr")
+    show = KingdomOutgameToggle(strings, False)
+    assert show.item.label == strings["toggle_show_label"][:80]
+    assert show.item.style is discord.ButtonStyle.secondary
+    hide = KingdomOutgameToggle(strings, True)
+    assert hide.item.label == strings["toggle_hide_label"][:80]
+    assert hide.item.style is discord.ButtonStyle.primary
