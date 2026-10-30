@@ -150,6 +150,8 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomRoomUrlButton,
         KingdomSabotageOpenButton,
         KingdomSabotagePassButton,
+        KingdomDisputeChoiceSelect,
+        KingdomDisputeConfirmButton,
     )
     from kingdoms.mods.kingdoms.kingdom_distributor_panel import KingdomDistributorButton
     from kingdoms.mods.kingdoms.kingdom_scriptorium import (
@@ -179,6 +181,12 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomAlliancesNamesButton,
         KingdomAlliancesNextButton,
     )
+    from kingdoms.mods.kingdoms.kingdom_immersion import (
+        KingdomOutgameHideButton,
+        KingdomOutgameShowButton,
+        KingdomOutgameToggle,
+        KingdomUserSettingsButton,
+    )
     from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
     from kingdoms.mods.kingdoms.kingdom_voliere_panel import (
         KingdomTheftButton,
@@ -207,6 +215,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomRoomUrlButton,
         KingdomSabotageOpenButton,
         KingdomSabotagePassButton,
+        # litige-mp-v1 (Drasah 30/10): the dispute DM round's two-kingdom
+        # select + confirm button (restart-safe, player DMs).
+        KingdomDisputeChoiceSelect,
+        KingdomDisputeConfirmButton,
         KingdomApplyButton,
         KingdomCandidatureButton,
         KingdomProfileButton,
@@ -261,6 +273,13 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomAlliancesHistoryButton,
         KingdomAlliancesDurationsButton,
         KingdomAlliancesNamesButton,
+        # reglages-interrupteur-v1 (Drasah 30/10): the settings switch,
+        # its opener, plus the OLD show/hide pair kept registered for
+        # the ≤15-minute living ephemerals (compat, never rebuilt later).
+        KingdomOutgameToggle,
+        KingdomUserSettingsButton,
+        KingdomOutgameShowButton,
+        KingdomOutgameHideButton,
     )
 
 
@@ -1061,7 +1080,7 @@ async def _market_lord_select_view(
             cost=str(int(getattr(_market_costs(wiring), "explorateur", 0) or 0)),
         )
         await target.response.edit_message(content=note, view=None)
-        await _append_purchase_receipt(target, note, strings)
+        await _append_purchase_receipt(target, note, strings, wiring, king)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
         # achat-fermeture-v1 (Drasah 30/10): same rule after the select
@@ -1137,7 +1156,7 @@ async def _market_action_select_view(
             cost=str(int(getattr(_market_costs(wiring), action, 0) or 0)),
         )
         await target.response.edit_message(content=note, view=None)
-        await _append_purchase_receipt(target, note, strings)
+        await _append_purchase_receipt(target, note, strings, wiring, king)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
         # achat-fermeture-v1 (Drasah 30/10): same rule after the select
@@ -1382,19 +1401,65 @@ cards (the fenêtre unique) NEVER closes it. Bounded: one entry max per
 player, replaced when its window expires (the dead one dies alone)."""
 
 
-def _receipt_body(title: str, lines: list[str]) -> str:
-    """Render the receipt (title + lines), keeping the LATEST under 4000
-    chars — an expired-window receipt is naturally short anyway (no cap
-    decided: the 15-minute edit window bounds the growth on its own)."""
-    body = f"{title}\n" + "\n".join(lines)
-    while len(body) > 3900 and len(lines) > 1:
+def _receipt_body(title: str, lines: list[str], footer: str = "") -> str:
+    """Render the receipt (title + lines + the once-only ledger footer),
+    keeping the LATEST under 4000 chars — an expired-window receipt is
+    naturally short anyway (no cap decided: the 15-minute edit window
+    bounds the growth on its own). marche-retour-achats-v1 (Drasah
+    30/10): the footer lives at the BOTTOM of the body, appended ONCE
+    per receipt — never duplicated per purchase line."""
+    while sum(len(x) for x in lines) > 3400 and len(lines) > 1:
         lines = lines[1:]
-        body = f"{title}\n" + "\n".join(lines)
+    body = f"{title}\n" + "\n".join(lines)
+    if footer:
+        body = f"{body}\n\n{footer}"
     return body
 
 
+async def _realm_ledger_footer(
+    guild: Any, wiring: KingdomsPanelWiring | None, king: Any, strings: dict[str, Any]
+) -> str:
+    """The receipt's « where are my purchases » footer.
+
+    marche-retour-achats-v1 (Drasah 30/10): points the player to the 🏛️
+    Chambre des comptes — the CLICKABLE mention of HIS kingdom's
+    « le-royaume » salon. Best effort: no kingdom / no salon / no
+    permission → the static fallback text; a crash → empty (the receipt
+    itself never breaks)."""
+    named = str(strings.get("market_receipt_ledger_help_named") or "")
+    fallback = str(strings.get("market_receipt_ledger_help") or "")
+    if not named and not fallback:
+        return ""
+    try:
+        kingdom_id = str(getattr(king, "kingdom_id", "") or "")
+        service = getattr(wiring, "kingdoms_service", None) if wiring else None
+        kingdom = await _kingdom_by_id_safe(service, kingdom_id)
+        if kingdom is not None and guild is not None:
+            from kingdoms.mods.kingdoms.kingdom_realms import _find_realm_category
+            from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+            category = _find_realm_category(guild, str(getattr(kingdom, "name", "")))
+            channel = next(
+                (
+                    c
+                    for c in getattr(category, "channels", [])
+                    if _slug(getattr(c, "name", "")) == "le-royaume"
+                ),
+                None,
+            )
+            if channel is not None:
+                return named.format(mention=f"<#{channel.id}>")
+    except Exception:
+        logger.warning("KINGDOMS MARKET: receipt ledger lookup failed", exc_info=True)
+    return fallback
+
+
 async def _append_purchase_receipt(
-    interaction: discord.Interaction, line: str, strings: dict[str, Any]
+    interaction: discord.Interaction,
+    line: str,
+    strings: dict[str, Any],
+    wiring: KingdomsPanelWiring | None = None,
+    king: Any = None,
 ) -> None:
     """Add one ✅ purchase line to the player's cumulative receipt.
 
@@ -1411,7 +1476,9 @@ async def _append_purchase_receipt(
     if receipt is not None and time.monotonic() - receipt["opened_at"] <= _RECEIPT_TTL:
         receipt["lines"].append(line)
         try:
-            await receipt["message"].edit(content=_receipt_body(title, receipt["lines"]))
+            await receipt["message"].edit(
+                content=_receipt_body(title, receipt["lines"], receipt.get("footer", ""))
+            )
             return
         except Exception:
             logger.warning(
@@ -1419,9 +1486,12 @@ async def _append_purchase_receipt(
             )
             _RECEIPT_WINDOWS.pop(user_id, None)
     lines = [line]
+    # marche-retour-achats-v1: the footer is resolved ONCE per receipt
+    # window (the mention cannot change during a 15-minute session).
+    footer = await _realm_ledger_footer(interaction.guild, wiring, king, strings)
     try:
         message = await interaction.followup.send(
-            _receipt_body(title, lines), ephemeral=True
+            _receipt_body(title, lines, footer), ephemeral=True
         )
     except Exception:
         logger.warning(
@@ -1432,6 +1502,7 @@ async def _append_purchase_receipt(
         "opened_at": time.monotonic(),
         "message": message,
         "lines": lines,
+        "footer": footer,
     }
 
 
@@ -1497,7 +1568,7 @@ async def _market_purchase_flow(
         item=_market_label(item, strings),
         cost=str(int(cost or 0)),
     )
-    await _append_purchase_receipt(interaction, note, strings)
+    await _append_purchase_receipt(interaction, note, strings, wiring, king)
     await _refresh_realm_views_for_kingdom_safe(interaction.guild, kingdom_id)
     # achat-fermeture-v1 (Drasah 30/10): the purchase is DONE — the card
     # window closes by itself (the receipt stays as the living trace).
