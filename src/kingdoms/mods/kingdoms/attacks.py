@@ -398,6 +398,11 @@ def expected_score_players(attack: AttackModel) -> list[str]:
     return players
 
 
+DISPUTE_DM_ROUND_SECONDS = 30 * 60
+"""litige-mp-v1 (Drasah 30/10): the two players get 30 minutes to
+modify or confirm their declaration in DM before an admin takes over."""
+
+
 def phase_label(attack: AttackModel) -> str:
     """Return the player-facing phase of an attack (attaques-phases-v2).
 
@@ -2627,6 +2632,14 @@ class AttackService:
             )
             return attack, "disputed"
         if len(declarations) >= 2:
+            # litige-mp-v1 (Drasah 30/10): the players converged — the
+            # dispute flags must not survive the resolution (a stale
+            # « disputed » would freeze the room's 🏆 for nothing).
+            for flag in ("disputed", "dispute_dm_sent", "dispute_admin_sent"):
+                score.pop(flag, None)
+            score.pop("dispute_replies", None)
+            score.pop("dispute_deadline", None)
+            attack.score = score
             await self._resolve_score(attack, winner_kingdom_id, timestamp)
             logger.info(
                 "kingdoms: consensus result on %s (game %s) — %s wins",
@@ -2680,6 +2693,107 @@ class AttackService:
                 attack.map_key,
                 winner,
             )
+        return due
+
+    async def open_dispute_dm_round(
+        self, attack_id: str, *, now: datetime | None = None
+    ) -> AttackModel:
+        """Flag the DM round of a disputed meeting (litige-mp-v1, idempotent).
+
+        Drasah 30/10: a contrary declaration no longer jumps straight
+        to the admins — BOTH players first receive a private DM asking
+        them to modify or confirm their choice. The round is bounded by
+        ``dispute_deadline`` (30 minutes); past it (or when both
+        replied with different winners) the tick hands the dispute
+        over to the admins (``dispute_handover_due``).
+        """
+        timestamp = now or _now()
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score)
+        if score.get("dispute_dm_sent"):
+            return attack
+        score["dispute_dm_sent"] = True
+        score["dispute_replies"] = {}
+        score["dispute_deadline"] = int(timestamp.timestamp()) + DISPUTE_DM_ROUND_SECONDS
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: dispute DM round opened on %s (deadline 30 min)", attack.map_key
+        )
+        return attack
+
+    async def record_dispute_reply(
+        self,
+        attack_id: str,
+        player_id: str,
+        winner_kingdom_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> tuple[AttackModel, bool]:
+        """Record one player's DM-round reply — (attack, both_replied).
+
+        litige-mp-v1: the reply only TRACKS the round (the declaration
+        itself rides ``declare_score``); ``both_replied`` tells the
+        caller the round can close (converged → resolved, still
+        contrary → admin handover).
+        """
+        timestamp = now or _now()
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score)
+        replies = dict(score.get("dispute_replies") or {})
+        replies[player_id] = {
+            "winner": winner_kingdom_id,
+            "at": int(timestamp.timestamp()),
+        }
+        score["dispute_replies"] = replies
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        both = all(str(player) in replies for player in expected_score_players(attack))
+        return attack, both
+
+    async def mark_dispute_admin_sent(self, attack_id: str) -> AttackModel:
+        """Mark the dispute as handed to the admins (idempotent)."""
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score)
+        if score.get("dispute_admin_sent"):
+            return attack
+        score["dispute_admin_sent"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def dispute_handover_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """The disputed meetings to hand over to the admins (litige-mp-v1).
+
+        A DM round closes on the admin side when BOTH players replied
+        with DIFFERENT winners, or when the 30-minute deadline passed
+        with no convergence. A converged meeting resolves itself
+        through ``declare_score`` (the state leaves MEETING and never
+        appears here). Idempotent through ``dispute_admin_sent``.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score or {})
+            if not score.get("disputed") or not score.get("dispute_dm_sent"):
+                continue
+            if score.get("dispute_admin_sent"):
+                continue
+            replies = dict(score.get("dispute_replies") or {})
+            players = expected_score_players(attack)
+            deadline = int(score.get("dispute_deadline") or 0)
+            if all(str(player) in replies for player in players):
+                winners = {str(reply.get("winner")) for reply in replies.values()}
+                if len(winners) <= 1:
+                    continue  # convergence — declare_score already resolved it
+                due.append(attack)
+            elif deadline and timestamp.timestamp() >= deadline:
+                due.append(attack)
         return due
 
     async def _resolve_score(self, attack: AttackModel, winner_kingdom_id: str, timestamp: datetime) -> None:
