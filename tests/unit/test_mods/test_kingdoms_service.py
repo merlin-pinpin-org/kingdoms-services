@@ -351,6 +351,30 @@ async def test_approve_kingdom_is_idempotent() -> None:
     assert again.validation is KingdomValidation.APPROVED
 
 
+async def test_reassign_king_hands_the_crown_to_an_active_lord() -> None:
+    """admin-tools-v1 (Drasah 30/10): the throne passes from the founding
+    King to an active lord of the SAME kingdom — the former falls back to
+    Lord; an outsider or the sitting king himself is refused."""
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    await service.enroll("p2", "Lancelot", LordRole.LORD, kingdom_name="Avalon")
+    await service.enroll("p3", "Tristan", LordRole.LORD)
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    returned, former, new = await service.reassign_king(kingdom.id, "p2")
+    assert returned.id == kingdom.id
+    assert (former.id, str(former.role)) == ("p1", "lord")
+    assert (new.id, str(new.role)) == ("p2", "king")
+    lords = {lord.id: lord for lord in await service.lords()}
+    assert str(lords["p1"].role) == "lord" and lords["p1"].kingdom_id == kingdom.id
+    assert str(lords["p2"].role) == "king" and lords["p2"].kingdom_id == kingdom.id
+    # the sitting king cannot be re-crowned, an outsider never qualifies.
+    with pytest.raises(KingdomFullError):
+        await service.reassign_king(kingdom.id, "p2")
+    with pytest.raises(KingdomNotFoundError):
+        await service.reassign_king(kingdom.id, "p3")
+
+
 async def test_refuse_kingdom_keeps_doc_and_queues_members() -> None:
     service, _ = _service()
     await service.launch()

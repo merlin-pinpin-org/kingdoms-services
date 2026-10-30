@@ -4393,6 +4393,23 @@ async def _run_reveals_safe(guild: Any, attacks_service: Any, kingdoms_service: 
                 ),
             )
             await _record_reveal_message_safe(attacks_service, attack, cover_note)
+            # admin-tools-v1 (Drasah 30/10): the salon wore the COVER
+            # name since the declaration — at the reveal the name says
+            # the truth: the REAL attacker vs the defender. Best effort
+            # and idempotent: a failed rename never blocks the reveal.
+            salon = _attack_salon(guild, attack)
+            if salon is not None:
+                true_name = _room_channel_name(
+                    guild,
+                    "🗡️",
+                    await _lord_name(kingdoms_service, attack.attacker_lord_id),
+                    await _kingdom_name(kingdoms_service, attack.defender_kingdom_id),
+                )
+                if str(getattr(salon, "name", "")) != true_name:
+                    try:
+                        await salon.edit(name=true_name)
+                    except Exception:
+                        logger.warning("ATTACKS: reveal rename failed", exc_info=True)
         if attack.ai_defender:
             note = strings["reveal_no_defense"]
         elif getattr(attack, "state", None) is AttackState.DEFENDED:

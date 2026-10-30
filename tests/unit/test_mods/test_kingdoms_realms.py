@@ -73,13 +73,27 @@ def test_panel_buttons_validation_and_delete() -> None:
         "kingdoms:realm:refuse:k-1",
         "kingdoms:realm:rename:k-1",
         "kingdoms:realm:delete:k-1",
+        "kingdoms:realm:reking:k-1",
         # an approved kingdom has nothing to validate but stays deletable
+        # — and re-kingable: the 👑 reking button rides every realm.
         "kingdoms:realm:delete:k-2",
+        "kingdoms:realm:reking:k-2",
         "kingdoms:realm:approve:k-3",
         "kingdoms:realm:refuse:k-3",
         "kingdoms:realm:rename:k-3",
         "kingdoms:realm:delete:k-3",
+        "kingdoms:realm:reking:k-3",
     ]
+
+
+def test_panel_offers_the_reking_button_on_every_realm() -> None:
+    """admin-tools-v1 (Drasah 30/10): an APPROVED kingdom carries the 👑
+    reking button too — the throne may change hands at any point."""
+    kingdoms = [_Kingdom("k-9", "Avalon", "approved")]
+    view = build_realms_panel("fr", kingdoms, [])
+    buttons = _buttons(view)
+    reking = next(b for b in buttons if b.custom_id == "kingdoms:realm:reking:k-9")
+    assert reking.label == "👑 Changer le roi"
 
 
 def test_panel_never_serializes_an_empty_action_row() -> None:

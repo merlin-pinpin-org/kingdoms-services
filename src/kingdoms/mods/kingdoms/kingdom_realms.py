@@ -77,6 +77,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "realms_refuse_button": "❌ Refuse",
         "realms_rename_button": "✏️ Rename",
         "realms_rename_title": "Rename the kingdom",
+        "realms_reking_button": "👑 Change the King",
+        "realms_reking_title": "👑 Who takes the throne of this kingdom?",
+        "realms_reking_empty": "No active lord to crown in this kingdom.",
+        "realms_reking_done": "👑 The throne of **{kingdom}** passes to **{lord}**.",
         "realms_rename_field": "New name",
         "realms_done": "Done.",
         "realms_failed": "Action failed: {error}",
@@ -102,6 +106,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "realms_refuse_button": "❌ Refuser",
         "realms_rename_button": "✏️ Renommer",
         "realms_rename_title": "Renommer le royaume",
+        "realms_reking_button": "👑 Changer le roi",
+        "realms_reking_title": "👑 Qui prend le trône de ce royaume ?",
+        "realms_reking_empty": "Aucun seigneur actif à couronner dans ce royaume.",
+        "realms_reking_done": "👑 Le trône de **{kingdom}** passe à **{lord}**.",
         "realms_rename_field": "Nouveau nom",
         "realms_done": "C'est fait.",
         "realms_failed": "L'action a échoué : {error}",
@@ -191,6 +199,16 @@ def _validation_rows(
                 label=strings["realms_delete_button"][:80],
                 style=discord.ButtonStyle.danger,
                 custom_id=f"kingdoms:realm:delete:{kid}",
+            )
+        )
+        # admin-tools-v1 (Drasah 30/10): the 👑 reking button rides every
+        # non-Gaïa kingdom — approved included: the throne may change
+        # hands at ANY point of the season, not only at the validation.
+        row.add_item(
+            discord.ui.Button(
+                label=strings["realms_reking_button"][:80],
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"kingdoms:realm:reking:{kid}",
             )
         )
         rows.append(row)

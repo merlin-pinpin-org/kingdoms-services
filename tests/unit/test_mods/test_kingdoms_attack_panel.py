@@ -2732,6 +2732,45 @@ async def test_room_ping_gets_the_winner_stamped_at_the_resolution() -> None:
     await asyncio.sleep(0)
 
 
+async def test_reveal_renames_the_salon_to_the_true_attacker() -> None:
+    """admin-tools-v1 (Drasah 30/10): the attack salon wears the COVER
+    name until the T-15 reveal — then it is renamed in place to the REAL
+    attacker vs the defender (best effort, never blocking the notes)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.models import LordRole
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.kingdoms.enroll("king-c", "King C", LordRole.KING, proposed_name="Provence")
+    await bundle.draw(28)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    attack = await bundle.attacks.declare_attack(
+        "king-a",
+        (await bundle.owner_maps(bourgogne))[0],
+        "",
+        cover_lord_id="king-c",
+        now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC),
+    )
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
+    guild = MockGuild()
+    salon = await guild.create_text_channel("🗡️-king-c-vs-bourgogne")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    played = await panel._run_reveals_safe(guild, bundle.attacks, bundle.kingdoms, panel._strings("fr"))
+    assert played == 1
+    # the cover name is GONE — the salon says the real attacker.
+    assert salon.name == "🗡️-king-a-vs-bourgogne"
+    reveal = [m for m in salon.messages if "La couverture tombe" in str(m.content or "")]
+    assert reveal
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
 async def test_meeting_room_sweeps_the_pre_room_announces() -> None:
     """salon-nettoyage-v1: opening the battle room deletes the declare + reveal notes."""
     import asyncio

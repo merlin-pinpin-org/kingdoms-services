@@ -496,6 +496,33 @@ async def _grant_player_mod_role_safe(
         return False
 
 
+async def _log_admin_action_safe(guild: discord.Guild | None, content: str) -> None:
+    """admin-logs-v1 (Drasah 30/10): the destructive admin actions land in
+    the 📜 journal-admin salon, stamped in Paris time. Best effort: a
+    missing salon (or a failed send) NEVER breaks the action itself."""
+    if guild is None:
+        return
+    try:
+        from kingdoms.mods.kingdoms.kingdom_panels import NO_MENTIONS
+        from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+        target = _slug("journal-admin")
+        channel = next(
+            (
+                channel
+                for channel in getattr(guild, "text_channels", [])
+                if _slug(str(getattr(channel, "name", ""))) == target
+            ),
+            None,
+        )
+        if channel is None:
+            return
+        stamp = datetime.now(ZoneInfo("Europe/Paris")).strftime("%H:%M %d/%m")
+        await channel.send(f"[{stamp} Paris] {content}", allowed_mentions=NO_MENTIONS)
+    except Exception:
+        logger.warning("KINGDOMS: admin log write failed", exc_info=True)
+
+
 async def _apply_candidature_approval(
     interaction: discord.Interaction,
     wiring: KingdomsPanelWiring,
@@ -3797,6 +3824,10 @@ class KingdomRemovePlayerView(discord.ui.View):
                 await target_yes.response.defer(ephemeral=True)
                 await _revoke_kingdoms_roles(target_yes.guild, user_id)
                 await _apply_player_leave_safe(target_yes.guild, user_id, "admin eject", "fr")
+                await _log_admin_action_safe(
+                    target_yes.guild,
+                    f"⚔️ <@{target_yes.user.id}> a éjecté <@{user_id}> de son royaume",
+                )
                 await target_yes.followup.send(
                     strings["remove_player_done"].format(f"<@{user_id}>"), ephemeral=True
                 )
@@ -3842,6 +3873,10 @@ class KingdomRemovePlayerModal(discord.ui.Modal):
         user_id = match.group(1)
         await _revoke_kingdoms_roles(interaction.guild, user_id)
         await _apply_player_leave_safe(interaction.guild, user_id, "admin eject", self.locale)
+        await _log_admin_action_safe(
+            interaction.guild,
+            f"⚔️ <@{interaction.user.id}> a éjecté <@{user_id}> de son royaume",
+        )
         note = strings["remove_player_done"].format(f"<@{user_id}>")
         await interaction.response.send_message(note, ephemeral=True)
 
@@ -6064,7 +6099,7 @@ class KingdomKingNameModal(discord.ui.Modal):
 class KingdomRealmButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
-        r"kingdoms:realm:(?P<action>approve|refuse|rename|delete"
+        r"kingdoms:realm:(?P<action>approve|refuse|rename|reking|delete"
         r"|delete-confirm|delete-cancel):(?P<kid>[a-zA-Z0-9_-]+)"
     ),
 ):
@@ -6098,6 +6133,7 @@ class KingdomRealmButton(
             "approve": strings["realms_approve_button"],
             "refuse": strings["realms_refuse_button"],
             "rename": strings["realms_rename_button"],
+            "reking": strings["realms_reking_button"],
             "delete": strings["realms_delete_button"],
             "delete-confirm": strings["realms_delete_confirm_button"],
             "delete-cancel": strings["realms_delete_cancel_button"],
@@ -6106,6 +6142,7 @@ class KingdomRealmButton(
             "approve": discord.ButtonStyle.success,
             "refuse": discord.ButtonStyle.danger,
             "rename": discord.ButtonStyle.secondary,
+            "reking": discord.ButtonStyle.secondary,
             "delete": discord.ButtonStyle.danger,
             "delete-confirm": discord.ButtonStyle.danger,
             "delete-cancel": discord.ButtonStyle.secondary,
@@ -6133,6 +6170,69 @@ class KingdomRealmButton(
             return
         if self.action == "rename":
             await interaction.response.send_modal(KingdomRealmRenameModal(locale, self.kingdom_id))
+            return
+        if self.action == "reking":
+            await interaction.response.defer(ephemeral=True)
+            from kingdoms.mods.kingdoms.kingdom_panels import ROLE_KING, ROLE_LORD
+
+            # admin-tools-v1 (Drasah 30/10): only the ACTIVE lords of THIS
+            # kingdom qualify — the sitting king and the departed never.
+            candidates = [
+                lord
+                for lord in await wiring.kingdoms_service.lords()
+                if lord.kingdom_id == self.kingdom_id
+                and not lord.left
+                and str(lord.role) != "king"
+            ]
+            if not candidates:
+                await interaction.followup.send(strings["realms_reking_empty"], ephemeral=True)
+                return
+            select = discord.ui.Select(
+                placeholder=strings["realms_reking_title"][:100],
+                options=[
+                    discord.SelectOption(label=lord.display_name[:100], value=str(lord.id))
+                    for lord in candidates[:25]
+                ],
+                min_values=1,
+                max_values=1,
+            )
+            admin_id = interaction.user.id
+
+            async def _crown(pick: discord.Interaction) -> None:
+                await pick.response.defer(ephemeral=True)
+                lord_id = select.values[0]
+                try:
+                    kingdom, former, new = await wiring.kingdoms_service.reassign_king(
+                        self.kingdom_id, lord_id
+                    )
+                except Exception as exc:
+                    await pick.followup.send(
+                        strings["realms_failed"].format(error=type(exc).__name__), ephemeral=True
+                    )
+                    return
+                # Discord-side swap: the former king falls back to Lord,
+                # the new one takes the crown (game roles, never Admin).
+                if former is not None:
+                    await _remove_player_mod_roles_safe(pick.guild, str(former.id))
+                    await _grant_player_mod_role_safe(wiring, pick.guild, str(former.id), ROLE_LORD)
+                await _remove_player_mod_roles_safe(pick.guild, str(new.id))
+                await _grant_player_mod_role_safe(wiring, pick.guild, str(new.id), ROLE_KING)
+                await pick.followup.send(
+                    strings["realms_reking_done"].format(
+                        kingdom=kingdom.name, lord=new.display_name
+                    ),
+                    ephemeral=True,
+                )
+                await _log_admin_action_safe(
+                    pick.guild,
+                    f"👑 <@{admin_id}> a réattribué le trône de **{kingdom.name}** à <@{new.id}>",
+                )
+                await _refresh_realms_panel_safe(pick.guild, locale)
+
+            select.callback = _crown  # type: ignore[method-assign]
+            view = discord.ui.View(timeout=120)
+            view.add_item(select)
+            await interaction.followup.send(strings["realms_reking_title"], view=view, ephemeral=True)
             return
         if self.action == "delete":
             view = discord.ui.View(timeout=120)
@@ -6189,12 +6289,24 @@ class KingdomRealmButton(
                 await _grant_game_roles_at_kingdom_approval_safe(
                     interaction.guild, wiring, members
                 )
+                await _log_admin_action_safe(
+                    interaction.guild,
+                    f"✅ <@{interaction.user.id}> a validé le royaume **{kingdom.name}**",
+                )
             elif self.action == "delete-confirm":
                 kingdom = await wiring.kingdoms_service.delete_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)
+                await _log_admin_action_safe(
+                    interaction.guild,
+                    f"🗑️ <@{interaction.user.id}> a supprimé le royaume **{kingdom.name}**",
+                )
             else:
                 kingdom = await wiring.kingdoms_service.refuse_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)
+                await _log_admin_action_safe(
+                    interaction.guild,
+                    f"❌ <@{interaction.user.id}> a refusé le royaume **{kingdom.name}**",
+                )
         except Exception as exc:
             # realms-midseason-v1 (Drasah 29/10): {error} is a NAMED
             # placeholder — the positional .format() raised KeyError

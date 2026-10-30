@@ -561,6 +561,39 @@ class KingdomsService:
         logger.info("kingdoms: kingdom %s refused by an admin", kingdom.id)
         return kingdom
 
+    async def reassign_king(
+        self, kingdom_id: str, new_king_id: str
+    ) -> tuple[KingdomModel, LordModel | None, LordModel]:
+        """admin-tools-v1 (Drasah 30/10): hand a kingdom's throne to one
+        of its OWN active lords. Returns (kingdom, former_king, new_king)
+        — the former king (when still active) falls back to Lord."""
+        await self._require_season()
+        kingdom = await self._require_kingdom(kingdom_id)
+        if kingdom.is_gaia:
+            raise NotEnrollableError("Gaïa is never subject to a king reassignment")
+        new_king = await self._require_lord(new_king_id)
+        if new_king.left or new_king.kingdom_id != kingdom.id:
+            raise KingdomNotFoundError("the new king must be an active lord of this kingdom")
+        if new_king.role is KING_ROLE:
+            raise KingdomFullError("this lord is already the King")
+        former: LordModel | None = None
+        for lord in await self.lords():
+            if lord.kingdom_id == kingdom.id and not lord.left and lord.role is KING_ROLE:
+                former = lord
+                break
+        if former is not None:
+            former.role = LORD_ROLE
+            await self._store.upsert_lord(former.to_mongo())
+        new_king.role = KING_ROLE
+        await self._store.upsert_lord(new_king.to_mongo())
+        logger.info(
+            "kingdoms: throne of %s reassigned from %s to %s",
+            kingdom.name,
+            former.id if former is not None else "-",
+            new_king.id,
+        )
+        return kingdom, former, new_king
+
     async def rename_kingdom(self, kingdom_id: str, new_name: str) -> KingdomModel:
         """Correct a kingdom's proposed name before/while validating (D70)."""
         kingdom = await self._require_kingdom(kingdom_id)

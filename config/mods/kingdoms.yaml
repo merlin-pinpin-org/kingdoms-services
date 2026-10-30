@@ -153,6 +153,16 @@ channels:
     access:
       everyone_view: false
       view: [Kingdoms Admin]
+  # admin-logs-v1 (Drasah 30/10): the destructive admin actions land in
+  # 📜 journal-admin — a timestamped trail (ejection, reking, validation).
+  - key: admin_log
+    display_name: 📜 journal-admin
+    description: Timestamped admin actions log (admin only)
+    group: admin
+    admin_only: true
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   # ordre-salons-v1 (Drasah 19/10): the Support group (question /
   # signaler-un-bug forums) is RETIRED — it read as a duplicate of the
   # admin salons; the anonymous Pigeon already handles a missing
