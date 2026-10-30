@@ -177,9 +177,33 @@ canonique renvoyé par la validation.
 
 **Référence libre:match (endpoints publics, sans auth)** :
 https://librematch.github.io/wiki/rlink/community/leaderboard/index.html —
-`getAvailableLeaderboards`, `getLeaderBoard2`, `getPersonalStat`,
-`getAvatarStatForProfile`, `getMatchHistory`, `getRecentMatchHistory`,
-`getReplayFiles` (base : `aoe-api.worldsedgelink.com/community/leaderboard/`).
+(base : `aoe-api.worldsedgelink.com/community/leaderboard/`).
+
+**The libre:match endpoint map (what serves what, where, when)**:
+
+| Endpoint | Data | Current / planned use |
+|---|---|---|
+| `GetAvailableLeaderboards` | leaderboard mappings (id→name), matchTypes (id→1V1/2V2...), races (id→civ), regions | **Not served** — the aoe2 admin sync should load it to calibrate the mappings; `matchTypes` translate a match's `matchtype_id`; `races` translate the `civilization_id`s |
+| `getLeaderBoard2` | rankings (ranks, elo) | **Not served** — a future guild leaderboard (top elo of the linked members) |
+| `getPersonalStat` (`profile_ids` OR **`profile_names`** `["/steam/<id>"]`) | identity (alias, country, clan, XP/level) + per-leaderboard stats (W/L, streak, rank, elo, lastmatchdate) | **Served** (registration validation + the roster/dashboard elos, `profile_ids`); the `profile_names` param resolves by Steam ID (registration without a relic-id) |
+| `getAvatarStatForProfile` | avatar stats | **Not served** — low future value |
+| `getMatchHistory` (`matchIDs`) | one exact match: `matchhistoryreportresults` (resulttype win/loss, civ, team), `matchhistorymember` (oldrating→newrating, outcome), `startgametime`/`completiontime`, `options`/`slotinfo` (zlib blobs) | **Reserved** — the direct lookup when the WE id is known (detailed results) |
+| `getRecentMatchHistory` (`profile_ids` OR `profile_names`, `count`) | a profile's recent history — the same shape as getMatchHistory | **Served** (the `GetMatchResult` RPC): the end-of-match correlation (profiles + time window → winner, duration, map, elo deltas) |
+| `getReplayFiles` | signed replay download URLs | **Not served** — a future "⬇️ Replay" button on the ended match card |
+
+**The end-of-match correlation**: the WorldsEdge id is NOT the
+aoe2lobby match_ref — the join rides the match's profile ids and the
+time window (the WE match whose `startgametime` follows our lobby's
+start and whose members include our profiles). The result appears a
+few seconds after the end notification — the bot retries (2/5/10/20 s
+backoff) then updates the card.
+
+**⚠️ Leaderboard mappings to fix**: the code (the librematch adapter's
+`LEADERBOARD_KEYS`) maps `0→rm_1v1, 1→rm_team, 2→unranked,
+3→dm_1v1, 4→dm_team` — the real API (GetAvailableLeaderboards) gives
+`1→SOLO_DM, 2→TEAM_DM, 3→SOLO_RM, 4→TEAM_RM, 5→SOLO_BR, 13→SOLO_EW,
+14→TEAM_EW...`: the displayed elos may be mislabelled. The aoe2 admin
+sync must load the real mappings and the adapter must read them.
 
 ### i18n
 
