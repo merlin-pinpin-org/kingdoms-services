@@ -48,7 +48,7 @@ async def open_declared_view(interaction: discord.Interaction, view_id: str) -> 
     if get_view(view_id) is not None:
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         builder = build_declared_menu(interaction.client, view_id)
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         await interaction.followup.send(view=await builder(guild_id), ephemeral=True)
         return
     from kingdoms.discord.commands_i18n import reply

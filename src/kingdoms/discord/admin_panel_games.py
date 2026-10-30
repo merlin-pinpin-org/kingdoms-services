@@ -1160,7 +1160,7 @@ class GamesMapImportModal(discord.ui.Modal):
         # modal window; the ack-less import raised in the popup while
         # the map was still created, leaving "name already taken" on
         # retry.
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
         try:
             seed = await fetch_map_seed(name)
@@ -1322,7 +1322,7 @@ class GamesBulkImportModal(discord.ui.Modal):
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         from kingdoms.mapsdata.bulk_import import parse_import_line
 
         parsed = [parse_import_line(item) for item in str(self.lines.value or "").splitlines()]
@@ -1431,7 +1431,7 @@ class GamesPoolCopyModal(discord.ui.Modal):
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         service = _games_wiring()
         if service is None:
             await interaction.followup.send((await reply(interaction, "ui.flows.wiring_unavailable")), ephemeral=True)

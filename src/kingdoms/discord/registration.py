@@ -67,7 +67,7 @@ class RegistrationConfirmButton(
                 "Aucune inscription en cours — recommence avec /register.", ephemeral=True
             )
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         if self.choice == "decline":
             await engine.cancel(workflow_id)
             await interaction.followup.send("Enrollment cancelled — /register whenever you like.", ephemeral=True)
@@ -105,7 +105,7 @@ class ProfileIdModal(discord.ui.Modal, title="AoE2 profile"):
                 "Aucune inscription en cours — recommence avec /register.", ephemeral=True
             )
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         state = await engine.handle_interaction(
             workflow_id,
             {"action": "profile", "user_id": str(interaction.user.id), "profile_id": str(self.profile_id)},

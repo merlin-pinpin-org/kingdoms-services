@@ -17,7 +17,7 @@ the edit, best-effort. A direct click that answers with
 ``interaction.response.edit_message`` needs none of this — the
 current interaction's own webhook does it. This helper is for the
 two deferred shapes: a modal submit, and a callback that had to
-``defer(thinking=True)`` (whose response is a new ephemeral, not the
+``defer(thinking=False)`` (whose response is a new ephemeral, not the
 menu's).
 """
 

@@ -214,7 +214,7 @@ class TreeOpenButton(
         """Open the section's view (guarded at click time)."""
         if not await _guard(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         if self.section in ("games", "mods"):
             # the declared menus own the navigation: the scope's admin
             # menu renders from the views registry
@@ -272,7 +272,7 @@ class TreeEnsureButton(
         if not await _guard(interaction):
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         answer = await _ensure_scope(interaction.client, guild_id, self.scope)
         await interaction.followup.send(answer, ephemeral=True)
 

@@ -66,7 +66,7 @@ class EntityAdminButton(
         """Guard, then open the entity's contextual management menu."""
         from kingdoms.discord.maps_pool_flow import _guard_admin
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         if not await _guard_admin(interaction):
             return
         view = await build_entity_admin_menu(self.kind, self.entity_id, self.game_key, self.owned)

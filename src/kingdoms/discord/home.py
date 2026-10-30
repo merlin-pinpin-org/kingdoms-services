@@ -141,7 +141,7 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     if registration is None:
         await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
-    await interaction.response.defer(ephemeral=True, thinking=True)
+    await interaction.response.defer(ephemeral=True, thinking=False)
     await _profile_followup(interaction)
 
 
@@ -278,7 +278,7 @@ async def _profile_followup(
             getattr(origin, "message_id", "?"),
         )
         if await edit_ephemeral(origin, view):
-            # a modal submit's defer(thinking=True) leaves a followup
+            # a modal submit's defer(thinking=False) leaves a followup
             # message — the edit above refreshed the ORIGINAL view, the
             # thinking residue is deleted so exactly ONE surface stays
             await _delete_deferred_followup(interaction)
@@ -296,7 +296,7 @@ async def _profile_followup(
 async def _delete_deferred_followup(interaction: discord.Interaction) -> None:
     """Delete the deferred thinking message a modal submit leaves behind.
 
-    A defer(thinking=True) creates an ephemeral followup message; when
+    A defer(thinking=False) creates an ephemeral followup message; when
     the flow ends by editing the ORIGIN in place, that residue must go
     — the user sees exactly one view, not a view + a stale thinking.
     """
@@ -533,7 +533,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = (self.game.values or ["aoe2"])[0]
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         try:
             await registration.bind_profile(
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
@@ -717,7 +717,7 @@ class ProfileRenameModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         user_id = f"discord:{interaction.user.id}"
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         try:
             user = await identity.get_user(user_id)
             if user is None:
@@ -831,7 +831,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = list(self.accounts.values or [])
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         removed: list[str] = []
         failures: list[str] = []
         for entry in chosen:
@@ -911,7 +911,7 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     from kingdoms.discord.bot.factory import KingdomsBot
 
     bot = interaction.client
-    await interaction.response.defer(ephemeral=True, thinking=True)
+    await interaction.response.defer(ephemeral=True, thinking=False)
     games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
     games, counts = await _granted_games_with_counts(guild_id, games)
 
@@ -953,7 +953,7 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
 
 async def _view_live(interaction: discord.Interaction, game_key: str = "aoe2") -> None:
     """Render one game's live dashboard ephemerally (/live, the menu panel)."""
-    await interaction.response.defer(ephemeral=True, thinking=True)
+    await interaction.response.defer(ephemeral=True, thinking=False)
     view = await _build_live_view(interaction, game_key)
     await interaction.followup.send(view=view, ephemeral=True)
 
@@ -1127,7 +1127,7 @@ async def _is_guild_member(guild: Any, user_id: int) -> bool:
 async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
     """Render the guild's roster (DM re-dispatch friendly: ack first)."""
     if not interaction.response.is_done():
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
     bot = interaction.client
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
@@ -1247,7 +1247,7 @@ def _view_users_for_game(game_key: str) -> Any:
     """
 
     async def _open(interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         bot = interaction.client
         roster = getattr(bot, "_registration_database", None)
         if roster is None:

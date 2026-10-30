@@ -136,6 +136,11 @@ class Aoe2LobbyAdapter:
         for profile_id in removes:
             await self._send_subscription("unsubscribe", "players", [profile_id])
         if adds:
+            logger.info(
+                "aoe2lobby RECONCILE payloads: matches+players +%d: %s",
+                len(adds),
+                ",".join(adds) if len(adds) <= 25 else f"{adds[0]}...{adds[-1]}",
+            )
             await self._send_subscription("subscribe", "matches", adds)
             await self._send_subscription("subscribe", "players", adds)
         logger.info("aoe2lobby subscription updated (matches+players): +%d/-%d", len(adds), len(removes))
@@ -309,16 +314,18 @@ class Aoe2LobbyAdapter:
         """
         ids = sorted(self._subscribed_ids)
         logger.info(
-            "aoe2lobby SUBSCRIBE matches+players: %d profile(s): %s",
+            "aoe2lobby SUBSCRIBE: %d profile(s): %s",
             len(ids),
-            ",".join(ids[:20]) + ("..." if len(ids) > 20 else ""),
+            ",".join(ids) if ids else "(EMPTY)",
         )
         for context in _CONTEXTS:
-            await ws.send(
-                json.dumps(
-                    {"action": "subscribe", "type": "matches", "context": context, "ids": ids}
-                )
-            )
+            payload = {"action": "subscribe", "type": "matches", "context": context, "ids": ids}
+            logger.info("aoe2lobby SUBSCRIBE payload: %s", json.dumps(payload))
+            await ws.send(json.dumps(payload))
+        for context in _CONTEXTS:
+            payload = {"action": "subscribe", "type": "players", "context": context, "ids": ids}
+            logger.info("aoe2lobby SUBSCRIBE payload: %s", json.dumps(payload)[:500])
+            await ws.send(json.dumps(payload))
         if ids:
             await self._send_subscription("subscribe", "players", ids)
             logger.info(

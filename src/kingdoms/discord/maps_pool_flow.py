@@ -773,7 +773,7 @@ class PoolAddMapByIdModal(discord.ui.Modal):
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         service = _games_wiring()
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
@@ -841,7 +841,7 @@ class PoolDeleteButton(
         """Guard, then open the type-the-name confirmation modal."""
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         service = _games_wiring()
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
@@ -905,7 +905,7 @@ class MapDeleteConfirmModal(discord.ui.Modal):
         """Refuse unless the typed name matches; delete + delete the post."""
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         typed = str(self.confirm.value or "").strip()
         if typed.casefold() != self.expected_name.casefold():
             await interaction.followup.send(
@@ -981,7 +981,7 @@ class PoolDeleteConfirmModal(discord.ui.Modal):
         """Refuse unless the typed name matches; archive + delete the post."""
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         typed = str(self.confirm.value or "").strip()
         if typed.casefold() != self.expected_name.casefold():
             await interaction.followup.send(
@@ -1060,7 +1060,7 @@ class MapDeleteButton(
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         service = _games_wiring()
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
