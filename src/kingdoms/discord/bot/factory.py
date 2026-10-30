@@ -670,12 +670,28 @@ class KingdomsBot(discord.Client):
         wire_action("menu:game:aoe2:admin", "create-pool", _create_pool)
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
-        """Observe the clicker's Discord client language (best-effort).
+        """Log the triggered action, then observe the clicker's language.
 
-        Discord exposes a user's language only inside interactions;
-        the interaction-free DMs (boot status, crash reports) render
-        in the language the user was last seen using.
+        One INFO line per user action (the pod's observable trail —
+        the owner asked: every triggered action logs): the command
+        name, the component's custom_id, the modal — with who and
+        where. Then the language observation (Discord exposes a
+        user's language only inside interactions; the interaction-free
+        DMs render in the language the user was last seen using).
         """
+        try:
+            logger.info(
+                "ACTION %s by %s: %s",
+                "command" if interaction.type is discord.InteractionType.application_command else
+                "component" if interaction.type is discord.InteractionType.component else
+                "modal-submit" if interaction.type is discord.InteractionType.modal_submit else str(interaction.type),
+                str(getattr(getattr(interaction, "user", None), "id", "?")),
+                interaction.command.qualified_name
+                if interaction.type is discord.InteractionType.application_command and interaction.command
+                else str(getattr(interaction.data, "custom_id", "") or "?"),
+            )
+        except Exception:
+            logger.debug("action log failed — best-effort", exc_info=True)
         if self.logs_service is None:
             return
         from kingdoms.discord.locales import normalize
