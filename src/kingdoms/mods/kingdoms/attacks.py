@@ -1277,6 +1277,23 @@ class AttackService:
             if defender.defense_used > 0:
                 defender.defense_used -= 1
                 await self._store.upsert_lord(defender.to_mongo())
+        # embuscade-claire-v1 (Drasah 30/10): a cancelled attack never
+        # burned its cover — the Contre-espionnage returns to the stock
+        # (the cancel window closes BEFORE the reveal: the cover never
+        # served). The Embuscade token is another story: it stays
+        # consumed for good (Drasah's anti-toxic ruling — a fake
+        # ambush ping must never be free).
+        if attack.cover_lord_id:
+            cover_state = await self.technology_state(str(attacker.kingdom_id or ""))
+            cover_state.purchases["contre_espionnage"] = (
+                int(cover_state.purchases.get("contre_espionnage", 0) or 0) + 1
+            )
+            await self._store.upsert_technology(cover_state.to_mongo())
+            logger.info(
+                "kingdoms: cover of the cancelled attack %s refunded to %s",
+                attack.id,
+                attacker.kingdom_id,
+            )
         attack.state = AttackState.CANCELLED
         attack.resolved_at = timestamp
         await self._store.upsert_attack(attack.to_mongo())

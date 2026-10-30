@@ -459,6 +459,37 @@ async def test_cancel_attack_refuses_after_the_window_and_the_reveal() -> None:
         await bundle.attacks.cancel_attack(attack.id, "king-a", now=datetime(2026, 10, 11, 12, 5, tzinfo=UTC))
 
 
+async def test_cancel_attack_refunds_the_cover_token() -> None:
+    """embuscade-claire-v1 (Drasah 30/10): a cancelled attack never burned
+    its cover — the Contre-espionnage returns to the stock (the Embuscade
+    token stays consumed, anti-toxic ruling)."""
+    from kingdoms.mods.kingdoms.models import LordRole
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.kingdoms.enroll("king-c", "King C", LordRole.KING, proposed_name="Provence")
+    await bundle.draw(24)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.stock(aquitaine, contre_espionnage=1)
+    attack = await bundle.attacks.declare_attack(
+        "king-a",
+        (await bundle.owner_maps(bourgogne))[0],
+        "",
+        cover_lord_id="king-c",
+        now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC),
+    )
+    state = await bundle.attacks.technology_state(aquitaine)
+    assert int(state.purchases.get("contre_espionnage", 0) or 0) == 0  # consumed
+
+    cancelled = await bundle.attacks.cancel_attack(
+        attack.id, "king-a", now=datetime(2026, 10, 11, 12, 5, tzinfo=UTC)
+    )
+    assert str(cancelled.state.value) == "cancelled"
+    fresh = await bundle.attacks.technology_state(aquitaine)
+    assert int(fresh.purchases.get("contre_espionnage", 0) or 0) == 1  # refunded
+
+
 async def test_cancel_defense_withdraws_and_refunds_before_the_draft() -> None:
     """b: the defender withdraws at any moment EXCEPT once the draft
     started (pick_ban_lead_minutes threshold) — budget refunded."""

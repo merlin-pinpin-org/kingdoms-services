@@ -248,6 +248,13 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🏳️ **Attaque annulée** — budget d'attaque remboursé"
             " (défense remboursée aussi si elle était enregistrée). Le salon de l'attaque disparaît."
         ),
+        "cancel_attack_embuscade_done": (
+            "🏳️ **Embuscade annulée** — mais le jeton Embuscade reste **consommé** :"
+            " il n'est jamais remboursé, même en cas d'annulation. Le salon de l'attaque disparaît."
+        ),
+        "cancel_attack_cover_refunded": (
+            "🕵️ La couverture (Contre-espionnage) est rendue au stock du royaume."
+        ),
         "cancel_defense_button": "↩️ Retirer ma défense",
         "cancel_defense_done": "🛡️ Défense retirée — budget de défense remboursé.",
         "defend_wrong_kingdom": "❌ Vous ne pouvez défendre ce territoire.",
@@ -353,6 +360,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "mode_embuscade_button": "🥷 Utiliser une embuscade — {delay} itinéraire",
         "embuscade_armed_line": (
             "🥷 **Embuscade armée** ({count} restant) — attaque exceptionnelle, hors budget hebdo."
+        ),
+        "embuscade_warning_line": (
+            "⚠️ Le jeton Embuscade est consommé à la déclaration — une annulation"
+            " ne le rembourse **jamais**."
         ),
         "embuscade_choose": "🎯 **Embuscade — choisis le territoire cible :** (attaque exceptionnelle, hors budget hebdo)",
         "embuscade_note": (
@@ -627,6 +638,13 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🏳️ **Attack cancelled** — attack budget refunded"
             " (the defense refunded too when one was recorded). The attack salon disappears."
         ),
+        "cancel_attack_embuscade_done": (
+            "🏳️ **Ambush cancelled** — but the Ambush token stays **consumed**:"
+            " it is never refunded, even on a cancellation. The attack salon disappears."
+        ),
+        "cancel_attack_cover_refunded": (
+            "🕵️ The cover (Counter-espionage) returns to the kingdom's stock."
+        ),
         "cancel_defense_button": "↩️ Withdraw my defense",
         "cancel_defense_done": "🛡️ Defense withdrawn — defense budget refunded.",
         "defend_wrong_kingdom": "❌ You cannot defend this territory.",
@@ -732,6 +750,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "mode_embuscade_button": "🥷 Use an ambush — {delay} itinerary",
         "embuscade_armed_line": (
             "🥷 **Ambush armed** ({count} left) — exceptional attack, outside the weekly budget."
+        ),
+        "embuscade_warning_line": (
+            "⚠️ The Ambush token is consumed at the declaration — a cancellation"
+            " never refunds it."
         ),
         "embuscade_choose": "🎯 **Ambush — choose the target territory:** (exceptional attack, outside the weekly budget)",
         "embuscade_note": (
@@ -1516,6 +1538,9 @@ async def _kingdom_select_view(
                 count=await _embuscade_stock(wiring, own_kingdom_id),
             )
         )
+        # embuscade-claire-v1 (Drasah 30/10): the player is warned BEFORE
+        # declaring — the token survives a cancellation, never refunded.
+        lines.append(str(strings["embuscade_warning_line"]))
     if protected:
         lines.append(str(strings["protected_line"]).format(kingdoms=" · ".join(protected)))
     lines.append(str(strings["traquenard_hint"]))
@@ -3237,7 +3262,14 @@ class KingdomAttackCancelButton(
             await wiring.attacks_service.mark_attack_salon_cleaned(str(attack.id))
         except Exception:
             logger.warning("KINGDOM ATTACK: attack salon flag failed", exc_info=True)
-        await interaction.followup.send(strings["cancel_attack_done"], ephemeral=True)
+        note = (
+            strings["cancel_attack_embuscade_done"]
+            if getattr(attack, "embuscade", False)
+            else strings["cancel_attack_done"]
+        )
+        if getattr(attack, "cover_lord_id", None):
+            note = f"{note}\n{strings['cancel_attack_cover_refunded']}"
+        await interaction.followup.send(note, ephemeral=True)
 
 
 class KingdomCancelDefenseButton(
