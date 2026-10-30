@@ -65,6 +65,10 @@ async def respond_with_view(
         if origin is not None and int(getattr(message.flags, "value", 0) or 0) & (1 << 6):
             # an ephemeral message edits through its webhook
             if await edit_ephemeral(origin, view):
+                # the deferred thinking message (ack_view_interaction)
+                # is a residue — the clicked surface carries the fresh
+                # view, exactly one message stays
+                await _delete_deferred_response(interaction)
                 return
             # the token expired (a >15 min old surface): fall through
             # to a fresh ephemeral rather than losing the answer
@@ -82,6 +86,7 @@ async def respond_with_view(
                 return
             try:
                 await interaction.followup.edit_message(message.id, view=view)
+                await _delete_deferred_response(interaction)
                 return
             except Exception:
                 logger.debug("in-place edit failed — answering as an ephemeral", exc_info=True)
@@ -91,6 +96,19 @@ async def respond_with_view(
         return
     # no message (a slash command): always an ephemeral
     await _send_ephemeral(interaction, view)
+
+
+async def _delete_deferred_response(interaction: discord.Interaction) -> None:
+    """Delete the deferred thinking message when the flow ends elsewhere.
+
+    ``ack_view_interaction`` defers with thinking=True — that creates an
+    ephemeral message; when the answer lands on the ORIGIN (edited in
+    place), the thinking residue must go: one surface, the clicked one.
+    """
+    try:
+        await interaction.delete_original_response()
+    except Exception:
+        logger.debug("deferred response cleanup skipped — best-effort", exc_info=True)
 
 
 async def _send_ephemeral(interaction: discord.Interaction, view: Any) -> None:
