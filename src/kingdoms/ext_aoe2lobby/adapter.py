@@ -399,17 +399,29 @@ class Aoe2LobbyAdapter:
     def _apply_match_all(
         self, context: str, payload: object, touched: dict[str, dict[str, Any]]
     ) -> None:
-        """Fold a full snapshot: replace the context's matches, re-fingerprint."""
+        """Fold a full snapshot: replace the matches, touch only the CHANGED.
+
+        The periodic snapshot is the refresh tick (owner direction): the
+        interesting match ids are the ones carrying an enrolled profile;
+        a match re-emits only when its DISPLAYED payload changed since
+        the last tick — an unchanged roster is silent (the boot must not
+        replay the whole world, the spammer's lesson).
+        """
         snapshot = _as_match_dict(payload)
         for stale_id in self._matches[context]:
             if stale_id not in snapshot:
+                # gone from the feed: the close path handles it (the
+                # result fetch rides the offline transition)
                 touched.setdefault(stale_id, self._matches[context][stale_id])
                 self._match_payload_fp[context].pop(stale_id, None)
+        new_fingerprints: dict[str, str] = {}
+        for mid, match in snapshot.items():
+            fp = _payload_fingerprint(match)
+            new_fingerprints[mid] = fp
+            if self._match_payload_fp[context].get(mid) != fp:
+                touched.setdefault(mid, match)
         self._matches[context] = snapshot
-        self._match_payload_fp[context] = {
-            mid: _payload_fingerprint(m) for mid, m in snapshot.items()
-        }
-        touched.update(snapshot)
+        self._match_payload_fp[context] = new_fingerprints
 
     def _apply_match_updates(
         self, context: str, payload: object, touched: dict[str, dict[str, Any]]
@@ -441,9 +453,13 @@ class Aoe2LobbyAdapter:
                 self._cancel_close(profile_id)
                 # same state, same match: a touched entry means the RAW
                 # payload changed (civ pick, map, settings, slots) —
-                # re-emit the match so the dashboards re-render details
-                if match_ref in touched and profile_id in _profiles_of(
-                    {match_ref: touched[match_ref]}
+                # re-emit ONLY while the lobby is open; once the game
+                # launched the settings are frozen (owner direction: no
+                # in-game update noise)
+                if (
+                    status == STATUS_LOBBY
+                    and match_ref in touched
+                    and profile_id in _profiles_of({match_ref: touched[match_ref]})
                 ):
                     events.append(self._match_updated_event(profile_id, status, match_ref))
                 continue

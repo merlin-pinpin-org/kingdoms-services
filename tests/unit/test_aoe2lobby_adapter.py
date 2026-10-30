@@ -161,7 +161,9 @@ async def test_reset_matches_keeps_statuses_for_snapshot_diff() -> None:
     assert adapter._matches == {"lobby": {}, "spectate": {}}
     assert adapter._player_status == {"123": ("lobby", "111")}
     reseen = _frame(adapter, {"lobby_match_all": {"111": _lobby("111", [123])}})
-    assert [(e["type"], e["profile_ids"]) for e in reseen] == [("match_updated", ["123"])]
+    # the reconnect's snapshot diff is SILENT when nothing changed (owner
+    # direction: the view updates only when the displayed info changed)
+    assert reseen == []
     gone = _frame(adapter, {"lobby_match_all": {}})
     assert gone == []
     assert "123" in adapter._close_refs
