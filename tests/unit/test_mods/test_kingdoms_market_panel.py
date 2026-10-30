@@ -922,3 +922,79 @@ async def test_card_reveal_of_a_usable_card_adds_the_use_button() -> None:
         if item.custom_id
     ]
     assert not [cid for cid in sab_ids if cid.startswith("kingdoms:market:use:")]
+
+
+async def test_receipt_footer_resolves_the_realm_channel_mention() -> None:
+    """marche-retour-achats-v1 (Drasah 30/10): the receipt points to the
+    🏛️ Chambre des comptes through the CLICKABLE mention of the buyer's
+    own « le-royaume » salon — resolved from the guild at buy time."""
+    economy = FakeEconomyService()
+    guild = MockGuild()
+    category = await guild.create_category("🏰 Merlinia")
+    channel = await guild.create_text_channel("🏰 le-royaume", category=category)
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    interaction: Any = MockInteraction(
+        user=MockUser(id=111), guild=guild, locale="en-US"
+    )
+    button = KingdomMarketTechButton("embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary)
+    await button.callback(interaction)
+    submit: Any = MockInteraction(user=MockUser(id=111), guild=guild, locale="en-US")
+    await _card_confirm(interaction).callback(submit)
+
+    receipt = str(submit.followup.messages[-1].content or "")
+    assert f"<#{channel.id}>" in receipt  # the clickable salon mention
+    assert "Chamber of Accounts" in receipt
+
+
+async def test_receipt_footer_falls_back_without_a_guild_or_realm() -> None:
+    """marche-retour-achats-v1: no guild / no realm category → the static
+    fallback text, never a broken {mention} placeholder."""
+    economy = FakeEconomyService()
+    _wiring(lords=[FakeLord(id="111", role="king", kingdom_id="k1")], economy=economy)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketTechButton("embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary)
+    await button.callback(interaction)
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit)
+
+    receipt = str(submit.followup.messages[-1].content or "")
+    assert "<#" not in receipt
+    assert "Le-Royaume" in receipt
+
+
+async def test_receipt_footer_is_appended_once_across_two_purchases() -> None:
+    """marche-retour-achats-v1: the ledger footer lives at the BOTTOM of
+    the cumulative receipt — appended ONCE, never duplicated per line."""
+    economy = FakeEconomyService()
+    guild = MockGuild()
+    category = await guild.create_category("🏰 Merlinia")
+    channel = await guild.create_text_channel("🏰 le-royaume", category=category)
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+        kingdoms=[FakeKingdom(id="k1", name="Merlinia")],
+    )
+    # purchase 1: a tech
+    interaction: Any = MockInteraction(user=MockUser(id=111), guild=guild, locale="en-US")
+    await KingdomMarketTechButton(
+        "embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary
+    ).callback(interaction)
+    submit1: Any = MockInteraction(user=MockUser(id=111), guild=guild, locale="en-US")
+    await _card_confirm(interaction).callback(submit1)
+    # purchase 2: an action token, on the same receipt
+    interaction2: Any = MockInteraction(user=MockUser(id=111), guild=guild, locale="en-US")
+    await KingdomMarketActionButton(
+        "corruption", "Corruption — 4 🔬", discord.ButtonStyle.secondary
+    ).callback(interaction2)
+    confirm2 = _card_confirm(interaction2)
+    submit2: Any = MockInteraction(user=MockUser(id=111), guild=guild, locale="en-US")
+    await confirm2.callback(submit2)
+
+    receipts = [str(m.content or "") for m in submit2.followup.messages]
+    latest = receipts[-1]
+    assert "Purchased" in latest or "reserve" in latest  # the buy lines live there
+    assert latest.count("Chamber of Accounts") == 1  # footer ONCE, not per line
