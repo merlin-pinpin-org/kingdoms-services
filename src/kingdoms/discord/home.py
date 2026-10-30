@@ -273,6 +273,10 @@ async def _profile_followup(
         from kingdoms.discord.ephemeral import edit_ephemeral
 
         if await edit_ephemeral(origin, view):
+            # a modal submit's defer(thinking=True) leaves a followup
+            # message — the edit above refreshed the ORIGINAL view, the
+            # thinking residue is deleted so exactly ONE surface stays
+            await _delete_deferred_followup(interaction)
             return
         # the origin is gone (an expired token, a superseded view):
         # NEVER send a copy of the profile view — the ephemeral contract
@@ -281,6 +285,23 @@ async def _profile_followup(
         await interaction.followup.send(note, ephemeral=True)
         return
     await interaction.followup.send(view=view, ephemeral=True)
+
+
+async def _delete_deferred_followup(interaction: discord.Interaction) -> None:
+    """Delete the deferred thinking message a modal submit leaves behind.
+
+    A defer(thinking=True) creates an ephemeral followup message; when
+    the flow ends by editing the ORIGIN in place, that residue must go
+    — the user sees exactly one view, not a view + a stale thinking.
+    """
+    try:
+        # the deferred response IS the latest followup message —
+        # fetch the interaction's own ephemeral response and delete it
+        original = await interaction.original_response()
+        if original is not None and original.flags.ephemeral:
+            await interaction.delete_original_response()
+    except Exception:
+        logger.debug("deferred followup cleanup skipped — best-effort", exc_info=True)
 
 
 
