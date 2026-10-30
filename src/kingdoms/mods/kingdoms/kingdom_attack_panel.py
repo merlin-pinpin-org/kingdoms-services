@@ -437,11 +437,12 @@ _STRINGS: dict[str, dict[str, str]] = {
             "❌ Vous ne pouvez pas avoir de doublons dans vos choix de civilisations."
         ),
         "pickban_waiting": "⏳ Picks enregistrés et validés — en attente de l'adversaire.",
+        "pickban_reveal_adversary": "**Draft de votre adversaire :**",
+        "pickban_own_picks_line": "**Tes picks :** {picks}",
         "pickban_reveal_dm": (
-            "🎭 **Reveal — {map}**\nLes 3 civilisations potentielles de ton"
-            " adversaire (ordre aléatoire) :\n**{civs}**\n\n🕒 **RDV : {deadline}** —"
-            " la fenêtre de sabotage se ferme à cette heure.\n🗡️ Veux-tu saboter"
-            " ou utiliser un Faucon ? — jusqu'à 2 civilisations adverses"
+            "🎭 **Reveal — {map}**\n🕒 **RDV : {deadline}** — la fenêtre de"
+            " sabotage se ferme à cette heure.\n🗡️ Veux-tu saboter ou"
+            " utiliser un Faucon ? — jusqu'à 2 civilisations adverses"
             " retirées par camp.\n⚔️ Sinon, valide avec Passer — un joueur"
             " absent du salon vocal à l'heure du RDV est déclaré forfait !"
         ),
@@ -450,8 +451,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🎭 **Reveal — {map}**\n⏱️ Le draft a été clôturé à l'heure : les"
             " civilisations jamais classées ont été tirées au sort (aucun"
             " sabotage ni Faucon).\n🕒 Le RDV a lieu maintenant — rejoins le"
-            " salon vocal.\nLes 3 civilisations potentielles de ton"
-            " adversaire (ordre aléatoire) :\n**{civs}**"
+            " salon vocal."
         ),
         "sab_pass_button": "⚔️ Passer — je suis prêt",
         "sab_title": (
@@ -511,6 +511,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_id_pending_button": "⏳ Saisie de l'ID en cours…",
         "room_ready_attacker_button": "⚔️ Prêt — {player}",
         "room_ready_defender_button": "Prêt 🛡️ — {player}",
+        "room_ready_done_attacker_button": "⚔️ Je suis prêt ! — {player}",
+        "room_ready_done_defender_button": "Je suis prêt ! 🛡️ — {player}",
         "room_not_your_side": ("⛔ Ce bouton Prêt est réservé à votre adversaire."),
         "room_scoreboard_footer": ("🎮 Les deux joueurs sont prêts — bonne game ! Déclarez le vainqueur avec 🏆."),
         "room_ping_message": ("⚔️ {attacker} {defender} — la salle de bataille est ouverte, à vos armes !"),
@@ -529,8 +531,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "draft_button": "📜 Voir la draft",
         "draft_sheet": "📜 Draft — {map}",
         "draft_sheet_help": (
-            "Ordre des choix des joueurs durant la draft (ordre aléatoire —"
-            " le classement reste secret), les sabotées barrées :"
+            "Ordre des choix des joueurs durant la draft — ordre réel"
+            " une fois la phase de sabotage terminée (aléatoire et"
+            " classement secret pendant la phase), les sabotées barrées :"
         ),
         "result_select_title": "🏆 **Qui remporte la partie ?**",
         "result_select_placeholder": "Le vainqueur de la game",
@@ -596,6 +599,26 @@ _STRINGS: dict[str, dict[str, str]] = {
         "noshow_side": ("🏳️ **{map}** — **{side}** a manqué le RDV : victoire de **{kingdom}**."),
         "noshow_both": ("🏳️ **{map}** — double forfait : aucun joueur au RDV, le territoire reste à son propriétaire."),
         "dispute_admin_dm": ("⚖️ **Litige — {map}**\n{declarations}\nTranche le résultat (game {game})."),
+        "dispute_dm_open": (
+            "⚖️ Il semblerait que vous n'ayez pas choisi le même vainqueur de la "
+            "partie, votre choix était **{winner}**.\n"
+            "Nous vous proposons de modifier ou de confirmer votre choix.\n"
+            "-# En cas de litige, un admin prendra le relais."
+        ),
+        "dispute_dm_confirmed": (
+            "✅ Ton choix (**{winner}**) est enregistré — en attente de ton "
+            "adversaire.\n-# En cas de litige, un admin prendra le relais."
+        ),
+        "dispute_dm_handover": (
+            "⚖️ Le litige persiste — un admin prend le relais et vous contactera ici."
+        ),
+        "dispute_dm_resolved": (
+            "✅ Litige clos — vous avez désigné le même vainqueur : **{winner}**."
+        ),
+        "dispute_confirm_button": "✅ Confirmer mon choix",
+        "result_mine_title": (
+            "⏳ **Ton choix : {winner}** — tu peux le modifier ci-dessous."
+        ),
         "auto_dispute": (
             "⚖️ **Litige auto-ouvert sur {map}** — aucun résultat déclaré 15 h après"
             " l'ouverture de la partie : un admin tranche via la console (`resultat`)."
@@ -821,9 +844,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_missing": "❌ Rank your {count} civilizations first.",
         "pickban_duplicate": "❌ You cannot have duplicates in your civilization choices.",
         "pickban_waiting": "⏳ Picks recorded and validated — waiting for the adversary.",
+        "pickban_reveal_adversary": "**Your adversary's draft:**",
+        "pickban_own_picks_line": "**Your picks:** {picks}",
         "pickban_reveal_dm": (
-            "🎭 **Reveal — {map}**\nYour adversary's 3 potential civilizations"
-            " (random order):\n**{civs}**\n\n🕒 **Meeting: {deadline}** — the sabotage"
+            "🎭 **Reveal — {map}**\n🕒 **Meeting: {deadline}** — the sabotage"
             " window closes at that time.\n🗡️ Do you want to sabotage or use"
             " a Faucon? — up to 2 enemy civilizations removed per side.\n⚔️"
             " Otherwise confirm with Pass — a player missing from the voice"
@@ -833,9 +857,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_default_reveal_dm": (
             "🎭 **Reveal — {map}**\n⏱️ The draft closed on time: the"
             " never-ranked civilizations were drawn at random (no sabotage,"
-            " no Faucon).\n🕒 The meeting is NOW — join the voice salon.\n"
-            "Your adversary's 3 potential civilizations"
-            " (random order):\n**{civs}**"
+            " no Faucon).\n🕒 The meeting is NOW — join the voice salon."
         ),
         "sab_pass_button": "⚔️ Pass — I am ready",
         "sab_title": (
@@ -893,6 +915,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_id_pending_button": "⏳ Game ID being entered…",
         "room_ready_attacker_button": "⚔️ Ready — {player}",
         "room_ready_defender_button": "Ready 🛡️ — {player}",
+        "room_ready_done_attacker_button": "⚔️ I'm ready! — {player}",
+        "room_ready_done_defender_button": "I'm ready! 🛡️ — {player}",
         "room_not_your_side": ("⛔ This Ready button belongs to your adversary."),
         "room_scoreboard_footer": ("🎮 Both players are ready — good luck! Declare the winner with 🏆."),
         "room_ping_message": ("⚔️ {attacker} {defender} — the battle room is open, to arms!"),
@@ -911,8 +935,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "draft_button": "📜 View the draft",
         "draft_sheet": "📜 Draft — {map}",
         "draft_sheet_help": (
-            "The players' pick order during the draft (random order — the"
-            " ranking stays secret), sabotaged picks struck through:"
+            "The players' pick order during the draft — the real order"
+            " once the sabotage phase is over (random, ranking secret"
+            " during the phase), sabotaged picks struck through:"
         ),
         "result_select_title": "🏆 **Who wins the game?**",
         "result_select_placeholder": "The game's winner",
@@ -973,6 +998,26 @@ _STRINGS: dict[str, dict[str, str]] = {
         "noshow_side": ("🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."),
         "noshow_both": ("🏳️ **{map}** — double forfeit: no player at the meeting, the territory stays with its owner."),
         "dispute_admin_dm": ("⚖️ **Dispute — {map}**\n{declarations}\nCut the result (game {game})."),
+        "dispute_dm_open": (
+            "⚖️ It seems you did not choose the same winner of the game, "
+            "your choice was **{winner}**.\n"
+            "We suggest you modify or confirm your choice.\n"
+            "-# In case of a dispute, an admin will take over."
+        ),
+        "dispute_dm_confirmed": (
+            "✅ Your choice (**{winner}**) is recorded — waiting for your "
+            "adversary.\n-# In case of a dispute, an admin will take over."
+        ),
+        "dispute_dm_handover": (
+            "⚖️ The dispute stands — an admin takes over and will reach you here."
+        ),
+        "dispute_dm_resolved": (
+            "✅ Dispute closed — you both named the same winner: **{winner}**."
+        ),
+        "dispute_confirm_button": "✅ Confirm my choice",
+        "result_mine_title": (
+            "⏳ **Your choice: {winner}** — you may change it below."
+        ),
         "auto_dispute": (
             "⚖️ **Dispute auto-opened on {map}** — no result declared 15h after the"
             " game opened: an admin arbitrates through the console (`resultat`)."
@@ -3735,6 +3780,28 @@ async def _edit_dm_message_safe(
         return False
 
 
+async def _delete_dm_message_safe(bot: Any, ref: Any) -> None:
+    """Delete a stored DM message (channel_id + message_id) — best effort.
+
+    reveal-mp-ping-v1 (Drasah 30/10): the reveal is a message of its
+    own — the OLD draft DM (the « waiting for the adversary » one) is
+    deleted so the player's DM lane carries ONE living surface. A
+    failing delete never blocks the flow (the old message simply
+    stays)."""
+    try:
+        channel_id = int(ref.get("channel_id") or 0)
+        message_id = int(ref.get("message_id") or 0)
+        if not channel_id or not message_id:
+            return
+        channel = getattr(bot, "get_channel", lambda _id: None)(channel_id)
+        if channel is None:
+            channel = await bot.fetch_channel(channel_id)
+        message = await channel.fetch_message(message_id)
+        await message.delete()
+    except Exception:
+        logger.warning("KINGDOM ATTACK: old draft DM delete failed", exc_info=True)
+
+
 async def _sabotage_reveal_payload(
     wiring: Any, attack: Any, side: str, strings: dict[str, str]
 ) -> tuple[str, str, discord.ui.View, list[discord.File] | None]:
@@ -3752,8 +3819,21 @@ async def _sabotage_reveal_payload(
     enemy = "defender" if side == "attacker" else "attacker"
     shuffled = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
     civs = ", ".join(shuffled) or "—"
-    content = strings["pickban_reveal_dm"].format(
-        map=attack.map_key, civs=civs, deadline=_fmt_paris(attack.expires_at)
+    # reveal-mp-ping-v1 (Drasah 30/10): the reveal DM PINGS its player
+    # (the head mention) and names its block in bold — the draft DM is
+    # EDITED in place to « waiting for the adversary », so a player who
+    # missed the edit must not miss the reveal. The own picks line
+    # shows the player's REAL stored ranking (his own ranking was never
+    # secret to him).
+    own = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
+    own_line = strings["pickban_own_picks_line"].format(
+        picks=_own_picks_line(own) or "—"
+    )
+    content = (
+        f"<@{player_id}>\n"
+        f"{strings['pickban_reveal_adversary']}\n**{civs}**\n\n"
+        f"{own_line}\n\n"
+        f"{strings['pickban_reveal_dm'].format(map=attack.map_key, deadline=_fmt_paris(attack.expires_at))}"
     )
     # sabotage-ux-v1 (Drasah 22/10): the reveal keeps the stock
     # line visible (the sabotage phase follows right after).
@@ -3775,6 +3855,12 @@ async def _sabotage_reveal_payload(
     )
     files = [mosaic] if mosaic is not None else None
     return player_id, content, view, files
+
+
+def _own_picks_line(own: list[str]) -> str:
+    """The « 1️⃣ X · 2️⃣ Y · 3️⃣ Z » line of one side's REAL stored picks."""
+    marks = ("1️⃣", "2️⃣", "3️⃣")
+    return " · ".join(f"{marks[i]} {civ}" for i, civ in enumerate(own[: len(marks)]))
 
 
 async def _refresh_sabotage_dm_safe(
@@ -3823,11 +3909,19 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
             continue
         _pid, content, view, files = await _sabotage_reveal_payload(wiring, attack, side, strings)
         ref = pickban.get(f"{side}_dm") or {}
-        edited = False
-        if ref.get("channel_id") and ref.get("message_id"):
+        # reveal-mp-ping-v1 (Drasah 30/10): the reveal is a FRESH DM (a
+        # real notification) — the old draft DM is deleted and the ref
+        # re-points to the NEW message so the sabotage refreshes keep
+        # editing it. A failed send falls back to the in-place edit
+        # (never a player without a reveal).
+        sent = await _dm_user_safe(bot, player_id, content, view, files)
+        if sent is not None:
+            await _delete_dm_message_safe(bot, ref)
+            await _record_pickban_dm_safe(str(attack.id), player_id, sent)
+        elif ref.get("channel_id") and ref.get("message_id"):
             edited = await _edit_dm_message_safe(bot, ref, content, view, files)
-        if not edited:
-            await _dm_user_safe(bot, player_id, content, view, files)
+            if not edited:
+                await _dm_user_safe(bot, player_id, content, view, files)
 
 
 async def _edit_pickban_dms_default_reveal(
@@ -3854,7 +3948,15 @@ async def _edit_pickban_dms_default_reveal(
         enemy = "defender" if side == "attacker" else "attacker"
         shuffled = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
         civs = ", ".join(shuffled) or "—"
-        content = strings["pickban_default_reveal_dm"].format(map=attack.map_key, civs=civs)
+        # reveal-mp-ping-v1 (Drasah 30/10): same head as the settled
+        # reveal — ping + bold adversary block + own REAL picks.
+        own = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
+        content = (
+            f"<@{player_id}>\n"
+            f"{strings['pickban_reveal_adversary']}\n**{civs}**\n\n"
+            f"{strings['pickban_own_picks_line'].format(picks=_own_picks_line(own) or '—')}\n\n"
+            f"{strings['pickban_default_reveal_dm'].format(map=attack.map_key)}"
+        )
         # blasons-affichage-v1 (Drasah 28/10): the defaulted reveal
         # wears the SAME one-mosaic look — each name painted above
         # its crest, in the SAME shuffled order as the names, WITHOUT
@@ -3866,11 +3968,15 @@ async def _edit_pickban_dms_default_reveal(
         )
         files = [mosaic] if mosaic is not None else None
         ref = pickban.get(f"{side}_dm") or {}
-        edited = False
-        if ref.get("channel_id") and ref.get("message_id"):
+        # reveal-mp-ping-v1: fresh DM + old one deleted + ref re-pointed.
+        sent = await _dm_user_safe(bot, player_id, content, None, files)
+        if sent is not None:
+            await _delete_dm_message_safe(bot, ref)
+            await _record_pickban_dm_safe(str(attack.id), player_id, sent)
+        elif ref.get("channel_id") and ref.get("message_id"):
             edited = await _edit_dm_message_safe(bot, ref, content, None, files)
-        if not edited:
-            await _dm_user_safe(bot, player_id, content, None, files)
+            if not edited:
+                await _dm_user_safe(bot, player_id, content, None, files)
 
 
 async def _edit_pickban_dms_phase_done(bot: Any, attack: Any, strings: dict[str, str]) -> None:
@@ -4371,6 +4477,17 @@ async def _run_phases_announce_safe(
             await _stamp_room_ping_winner_safe(bot, attack, winner, strings)
             await _announce_conquest_safe(bot, kingdoms_service, attack, locale)
         dirty += len(confirmed)
+        # litige-mp-v1 (Drasah 30/10): the dispute DM rounds that
+        # failed (30-min deadline past, or both players still contrary)
+        # reach the admins here — the last-resort arbitration.
+        handovers = await attacks_service.dispute_handover_due()
+        for attack in handovers:
+            await _dm_admins_dispute_safe(bot, _wiring(), attack, strings)
+            try:
+                await attacks_service.mark_dispute_admin_sent(str(attack.id))
+            except Exception:
+                logger.warning("KINGDOM ATTACK: dispute admin flag failed", exc_info=True)
+        dirty += len(handovers)
         # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
         reminders = await attacks_service.score_reminder_due()
         for attack in reminders:
@@ -4546,12 +4663,16 @@ def _register_voice_listener(bot: Any) -> None:
         logger.warning("KINGDOM ATTACK: voice listener registration failed", exc_info=True)
 
 
-def _shuffled_civs(picks: Any) -> list[str]:
-    """Shuffle one side's 3 picks — the ranking must stay hidden."""
+def _shuffled_civs(picks: Any, seed: str) -> list[str]:
+    """Seeded shuffle of one side's 3 picks — the ranking must stay hidden.
+
+    draft-ordre-reel-v1 (Drasah 30/10): the seed makes the phase-time
+    order STABLE across re-opens (a fresh random would re-roll the
+    sheet at every 📜 click)."""
     import random as _random
 
     pool = [str(civ) for civ in (picks or [])]
-    _random.shuffle(pool)
+    _random.Random(f"sheet:{seed}").shuffle(pool)
     return pool
 
 
@@ -4597,16 +4718,24 @@ async def _draft_sheet_embed(attack: Any, kingdoms_service: Any, strings: dict[s
     else:
         defender = await _lord_name(kingdoms_service, attack.defender_lord_id or "")
 
+    # draft-ordre-reel-v1 (Drasah 30/10): once the sabotage phase is
+    # resolved the sheet shows the REAL stored order (the actual
+    # ranking) with the 1️⃣2️⃣3️⃣ numbering; DURING the phase the
+    # order stays a SEEDED random (no sabotage-influencing leak) with
+    # plain • bullets — the numbering only appears when it means
+    # something.
+    phase_over = bool(pickban.get("sabotage_resolved"))
+
     async def _side_picks(side: str) -> str:
         picks = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
         enemy = "defender" if side == "attacker" else "attacker"
         struck = {str(civ) for civ in (pickban.get(f"{enemy}_sabotages") or [])}
-        shuffled = _shuffled_civs(picks)
-        marks = ("1️⃣", "2️⃣", "3️⃣")
+        shown = picks if phase_over else _shuffled_civs(picks, f"{attack.id}:{side}")
+        marks = ("1️⃣", "2️⃣", "3️⃣") if phase_over else ("•", "•", "•")
         return (
             "\n".join(
                 f"{marks[i]} {f'~~{civ}~~ ❌' if civ in struck else civ}"
-                for i, civ in enumerate(shuffled[: len(marks)])
+                for i, civ in enumerate(shown[: len(marks)])
             )
             or "—"
         )
@@ -4688,16 +4817,29 @@ async def _room_view(
     # blasons-vs-v1 (Drasah 28/10): the 📜 draft button sits on its
     # OWN row above the ID/Prêt controls — the ephemeral sheet
     # (single window) answers each side's 3 civs, snipes barred.
+    # draft-visible-tous-v1: NO side guard — every member may read it.
     view.add_item(KingdomDraftViewButton(str(attack.id), strings["draft_button"]))
+    # resultat-nettoyage-v1 (Drasah 30/10): once the winner is
+    # declared the meeting controls are DEAD WEIGHT — the Prêts are
+    # no longer relevant and the ID has no reader left. The 📜 draft
+    # sheet stays (visible to everyone, including non-players).
+    if getattr(attack, "is_over", False):
+        return view
+    # pret-couleurs-v1 (Drasah 30/10): each Prêt button is built in
+    # its OWN state — grey « Prêt » while waiting, green « Je suis
+    # prêt ! » once the player sits in score["ready"].
+    ready_ids = {str(player) for player in (score.get("ready") or [])}
     url_set = bool(str(attack.lobby_url or "").strip())
     if url_set:
         attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
+        attacker_done = str(attack.attacker_lord_id) in ready_ids
+        label = (
+            strings["room_ready_done_attacker_button"]
+            if attacker_done
+            else strings["room_ready_attacker_button"]
+        ).format(player=attacker)
         view.add_item(
-            KingdomRoomReadyButton(
-                str(attack.id),
-                strings["room_ready_attacker_button"].format(player=attacker),
-                side="attacker",
-            )
+            KingdomRoomReadyButton(str(attack.id), label, side="attacker", done=attacker_done)
         )
     if id_pending:
         view.add_item(KingdomRoomUrlButton(str(attack.id), strings["room_id_pending_button"], disabled=True))
@@ -4709,12 +4851,14 @@ async def _room_view(
         view.add_item(KingdomRoomResultButton(str(attack.id), strings["result_button"]))
     if url_set and attack.defender_lord_id and not attack.ai_defender:
         defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
+        defender_done = str(attack.defender_lord_id) in ready_ids
+        label = (
+            strings["room_ready_done_defender_button"]
+            if defender_done
+            else strings["room_ready_defender_button"]
+        ).format(player=defender)
         view.add_item(
-            KingdomRoomReadyButton(
-                str(attack.id),
-                strings["room_ready_defender_button"].format(player=defender),
-                side="defender",
-            )
+            KingdomRoomReadyButton(str(attack.id), label, side="defender", done=defender_done)
         )
     return view
 
@@ -5625,14 +5769,27 @@ class KingdomRoomResultButton(
             )
             return
         player_id = str(interaction.user.id)
+        declarations = dict(score.get("declarations") or {})
         others = {
             declarer: declaration
-            for declarer, declaration in dict(score.get("declarations") or {}).items()
+            for declarer, declaration in declarations.items()
             if str(declarer) != player_id
         }
         if others:
             declarer, declaration = next(iter(others.items()))
             await _send_room_review(interaction, wiring, strings, attack, str(declarer), str(declaration["winner"]))
+            return
+        # litige-mp-v1 (Drasah 30/10): a player who re-clicks 🏆 after
+        # HIS declaration sees HIS choice back — the view offers a
+        # select to MODIFY it (the anti-misclick confirm loop stays).
+        mine = declarations.get(player_id)
+        if mine:
+            winner_name = await _kingdom_name(
+                wiring.kingdoms_service, str(mine.get("winner") or "")
+            )
+            await _send_room_my_declaration(
+                interaction, wiring, strings, attack, str(mine.get("winner") or ""), winner_name
+            )
             return
         await _send_room_select(interaction, wiring, strings, attack)
 
@@ -5821,6 +5978,55 @@ async def _send_room_review(
     _arm_ephemeral_timer(key, interaction, _ROOM_FLOW_IDLE_SECONDS)
 
 
+async def _send_room_my_declaration(
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    attack: Any,
+    winner_kingdom_id: str,
+    winner_name: str,
+) -> None:
+    """Show the player HIS OWN declaration + the select to modify it (litige-mp-v1)."""
+    attacker_name = await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id)
+    defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
+
+    async def _on_choice(target: discord.Interaction, chosen_id: str) -> None:
+        if str(getattr(target.user, "id", "")) != str(interaction.user.id):
+            await target.response.defer()
+            return
+        chosen_name = (
+            attacker_name
+            if chosen_id == str(attack.attacker_kingdom_id)
+            else defender_name
+        )
+        await _edit_room_confirm(target, wiring, strings, attack, chosen_id, chosen_name)
+
+    view = await _room_select_view(wiring, strings, attack, _on_choice)
+    title = strings["result_mine_title"].format(winner=winner_name)
+    await interaction.response.send_message(title, view=view, ephemeral=True)
+    key = (str(attack.id), str(getattr(interaction.user, "id", "")))
+    _arm_ephemeral_timer(key, interaction, _ROOM_FLOW_IDLE_SECONDS)
+
+
+async def _on_score_resolved_safe(
+    bot: Any,
+    wiring: Any,
+    attack: Any,
+    strings: dict[str, str],
+    winner: str,
+    locale: str,
+) -> None:
+    """The shared post-resolution treatment (litige-mp-v1 factoring).
+
+    sabotage-ux-v1: the room ping wears the winner. The conquest is
+    announced. resultat-nettoyage-v1: the room re-renders in place —
+    the Prêts and the ID button sweep themselves (only the 📜 draft
+    sheet survives on a resolved room)."""
+    await _stamp_room_ping_winner_safe(bot, attack, winner, strings)
+    await _announce_conquest_safe(bot, wiring.kingdoms_service, attack, locale)
+    await _refresh_room_message_safe(bot, attack, locale)
+
+
 async def _declare_room_score(
     interaction: discord.Interaction,
     wiring: Any,
@@ -5862,7 +6068,17 @@ async def _declare_room_score(
         # battle-room-id-v2: the dispute reminder STAYS in the player's
         # ephemeral lane until the admins arbitrate (no auto-delete).
         await _respond(strings["score_disputed"].format(game=game_id or "—"), ephemeral=True)
-        await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
+        # litige-mp-v1 (Drasah 30/10): a contrary declaration opens a
+        # private DM round for BOTH players (modify or confirm) before
+        # any admin wakes up. A POST-resolution contrary declaration
+        # keeps the direct admin handover (the round is pointless once
+        # the meeting is resolved).
+        if getattr(attack, "is_over", False):
+            await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
+        else:
+            await _send_dispute_dm_round_safe(
+                interaction.client, wiring, attack, _locale(interaction)
+            )
         return
     if outcome == "already":
         await _respond(strings["score_already"])
@@ -5871,9 +6087,9 @@ async def _declare_room_score(
     if outcome == "resolved":
         winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
         await _respond(strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id or "—"))
-        # sabotage-ux-v1 (Drasah 22/10): the room ping wears the winner.
-        await _stamp_room_ping_winner_safe(interaction.client, attack, winner, strings)
-        await _announce_conquest_safe(interaction.client, wiring.kingdoms_service, attack, _locale(interaction))
+        await _on_score_resolved_safe(
+            interaction.client, wiring, attack, strings, winner, _locale(interaction)
+        )
         _arm_ephemeral_timer(key, interaction, _ROOM_RECEIPT_SECONDS)
         return
     minutes = 10
@@ -5902,14 +6118,21 @@ class KingdomRoomReadyButton(
     created and the room tells the players to start.
     """
 
-    def __init__(self, attack_id: str, label: str, *, side: str | None = None) -> None:
+    def __init__(
+        self, attack_id: str, label: str, *, side: str | None = None, done: bool = False
+    ) -> None:
+        # pret-couleurs-v1 (Drasah 30/10): the button mirrors its
+        # player's readiness — grey « Prêt » while waiting, GREEN
+        # « Je suis prêt ! » once marked (disabled: clicking again is
+        # pointless, the state already lives in the scoreboard).
         key = _room_key(attack_id)
         custom_id = f"kingdoms:attack:room:ready:{key}" if side is None else f"kingdoms:attack:room:ready:{key}:{side}"
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
                 custom_id=custom_id,
-                style=discord.ButtonStyle.success,
+                style=discord.ButtonStyle.success if done else discord.ButtonStyle.secondary,
+                disabled=done,
             )
         )
         self.attack_id = attack_id
@@ -6522,6 +6745,306 @@ async def _dm_admins_dispute_safe(bot: Any, wiring: Any, attack: Any, strings: d
     view = KingdomDisputeView(str(attack.id), "fr")
     for admin_id in wiring.bot_admins or ():
         await _dm_user_safe(bot, str(admin_id), content, view)
+
+
+_DISPUTE_DMS: dict[str, dict[str, Any]] = {}
+"""litige-mp-v1 (Drasah 30/10): the living dispute DM round of each
+meeting — one message ref per player, so a convergence or an admin
+handover re-edits BOTH DMs in place. Best effort: a restart loses the
+refs (the round's flags survive in the attack score, the tick still
+hands the litige over to the admins)."""
+
+
+async def _dispute_select_options(wiring: Any, attack: Any) -> list[discord.SelectOption]:
+    """The two-kingdom winner options of the dispute DM select."""
+    attacker_name = await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id)
+    defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
+    return [
+        discord.SelectOption(
+            label=str(attacker_name)[:100], value=str(attack.attacker_kingdom_id)
+        ),
+        discord.SelectOption(
+            label=str(defender_name)[:100], value=str(attack.defender_kingdom_id)
+        ),
+    ]
+
+
+async def _edit_dispute_dm_safe(attack_id: str, player_id: str, content: str) -> None:
+    """Edit one player's dispute DM in place (best effort)."""
+    message = (_DISPUTE_DMS.get(str(attack_id)) or {}).get(str(player_id))
+    if message is None:
+        return
+    try:
+        await message.edit(content=content)
+    except Exception:
+        logger.warning(
+            "KINGDOM ATTACK: dispute DM edit failed (%s)", player_id, exc_info=True
+        )
+
+
+async def _send_dispute_dm_round_safe(
+    bot: Any, wiring: Any, attack: Any, locale: str
+) -> None:
+    """Open the DM round of a disputed meeting — BOTH players (litige-mp-v1).
+
+    Each player receives HIS own declaration back (« votre choix était
+    X ») with the two-kingdom select (modify) and the ✅ confirm
+    button. The round is bounded by the service deadline (30 min);
+    ``dispute_handover_due`` hands the litige to the admins on
+    failure. Manche UNIQUE: the ``dispute_dm_sent`` flag makes the
+    send idempotent (a re-click never stacks a second round).
+    """
+    strings = _strings(locale)
+    if wiring.attacks_service is None:
+        return
+    # Manche UNIQUE: a re-contest (or a stale click) never stacks a
+    # second DM round — the service flag makes the send idempotent.
+    if (attack.score or {}).get("dispute_dm_sent"):
+        return
+    try:
+        attack = await wiring.attacks_service.open_dispute_dm_round(str(attack.id))
+    except Exception:
+        logger.warning("KINGDOM ATTACK: dispute DM round open failed", exc_info=True)
+        return
+    declarations = dict((attack.score or {}).get("declarations") or {})
+    options = await _dispute_select_options(wiring, attack)
+    refs: dict[str, Any] = {}
+    for player_id in _score_players(attack):
+        declaration = declarations.get(str(player_id)) or {}
+        winner_name = await _kingdom_name(
+            wiring.kingdoms_service, str(declaration.get("winner") or "")
+        )
+        content = strings["dispute_dm_open"].format(winner=winner_name or "—")
+        view = discord.ui.View(timeout=None)
+        view.add_item(
+            KingdomDisputeChoiceSelect(
+                str(attack.id), options, strings["result_select_placeholder"]
+            )
+        )
+        view.add_item(KingdomDisputeConfirmButton(str(attack.id), strings["dispute_confirm_button"]))
+        message = await _dm_user_safe(bot, str(player_id), content, view)
+        if message is not None:
+            refs[str(player_id)] = message
+    _DISPUTE_DMS[str(attack.id)] = refs
+
+
+async def _handle_dispute_reply_safe(
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    attack_id: str,
+    winner_kingdom_id: str,
+) -> None:
+    """The shared DM-round reply path (select pick or confirm button).
+
+    The reply rides ``declare_score`` — a convergence resolves the
+    meeting (same post-treatment as the room's resolved branch), a
+    contrary reply keeps the dispute and records the round; once BOTH
+    replied without converging the admins take over at once.
+    """
+    bot = interaction.client
+    if wiring.attacks_service is None or not attack_id:
+        await interaction.response.edit_message(content=strings["no_service"], view=None)
+        return
+    try:
+        attack = next(
+            item
+            for item in await wiring.attacks_service.attacks()
+            if str(item.id) == str(attack_id)
+        )
+    except Exception:
+        await interaction.response.edit_message(content=strings["no_service"], view=None)
+        return
+    player_id = str(interaction.user.id)
+    if _room_side_of(attack, player_id) == "":
+        await interaction.response.edit_message(content=strings["room_not_player"], view=None)
+        return
+    game_id = str((attack.score or {}).get("game_id") or attack.lobby_url or "")
+    if getattr(attack, "is_over", False) or str(getattr(attack, "state", "")) != "meeting":
+        # An admin arbitrated (or the round closed) meanwhile — the DM
+        # dies gracefully, the room carries the outcome.
+        winner = await _kingdom_name(wiring.kingdoms_service, str(attack.winner_kingdom_id or ""))
+        await interaction.response.edit_message(
+            content=strings["dispute_dm_resolved"].format(winner=winner), view=None
+        )
+        return
+    try:
+        attack, outcome = await wiring.attacks_service.declare_score(
+            str(attack_id), player_id, winner_kingdom_id, game_id
+        )
+    except Exception as exc:
+        message = getattr(exc, "message", None) or str(exc)
+        await interaction.response.edit_message(
+            content=strings["failed"].format(message=message), view=None
+        )
+        return
+    if outcome == "resolved":
+        winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
+        closed = strings["dispute_dm_resolved"].format(winner=winner)
+        await interaction.response.edit_message(content=closed, view=None)
+        for other in _score_players(attack):
+            if str(other) != player_id:
+                await _edit_dispute_dm_safe(str(attack_id), str(other), closed)
+        _DISPUTE_DMS.pop(str(attack_id), None)
+        await _on_score_resolved_safe(bot, wiring, attack, strings, winner, _locale(interaction))
+        return
+    if outcome == "already":
+        winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
+        await interaction.response.edit_message(
+            content=strings["dispute_dm_resolved"].format(winner=winner), view=None
+        )
+        return
+    # Still disputed — record the round reply.
+    winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
+    try:
+        attack, both_replied = await wiring.attacks_service.record_dispute_reply(
+            str(attack_id), player_id, winner_kingdom_id
+        )
+    except Exception:
+        both_replied = False
+    if both_replied:
+        # Both replied without converging — the admins take over NOW.
+        await _dm_admins_dispute_safe(bot, wiring, attack, strings)
+        try:
+            await wiring.attacks_service.mark_dispute_admin_sent(str(attack_id))
+        except Exception:
+            logger.warning("KINGDOM ATTACK: dispute admin flag failed", exc_info=True)
+        handover = strings["dispute_dm_handover"]
+        await interaction.response.edit_message(content=handover, view=None)
+        for other in _score_players(attack):
+            if str(other) != player_id:
+                await _edit_dispute_dm_safe(str(attack_id), str(other), handover)
+        _DISPUTE_DMS.pop(str(attack_id), None)
+        return
+    confirmed = strings["dispute_dm_confirmed"].format(winner=winner)
+    await interaction.response.edit_message(content=confirmed, view=None)
+
+
+class KingdomDisputeChoiceSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=r"kingdoms:attack:dispute:pick:(?P<key>[0-9a-f]{16})",
+):
+    """The dispute DM's two-kingdom select — modify one's declaration."""
+
+    def __init__(
+        self, attack_id: str, options: list[discord.SelectOption], placeholder: str
+    ) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"kingdoms:attack:dispute:pick:{_room_key(attack_id)}",
+                options=options[:25],
+                placeholder=placeholder[:100],
+                min_values=1,
+                max_values=1,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomDisputeChoiceSelect:
+        """Rebuild the select from the wire — restart-safe."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        attack_id = await _resolve_room_attack_id_async(match["key"])
+        options: list[discord.SelectOption] = []
+        if wiring.attacks_service is not None and attack_id:
+            try:
+                attack = next(
+                    item2
+                    for item2 in await wiring.attacks_service.attacks()
+                    if str(item2.id) == attack_id
+                )
+                options = await _dispute_select_options(wiring, attack)
+            except Exception:
+                options = []
+        if not options:
+            options = [discord.SelectOption(label="—", value="none")]
+        return cls(attack_id, options, strings["result_select_placeholder"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Modify the declaration — the canonical declare_score path."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        # interaction.data is a RAW payload (the scriptorium select
+        # pattern) — dict access, with the rebuilt item as fallback.
+        data = dict(getattr(interaction, "data", None) or {})
+        values = [str(value) for value in (data.get("values") or [])]
+        if not values:
+            values = [str(value) for value in (getattr(self.item, "values", None) or [])]
+        if not values:
+            await interaction.response.defer()
+            return
+        await _handle_dispute_reply_safe(
+            interaction, _wiring(), strings, self.attack_id, values[0]
+        )
+
+
+class KingdomDisputeConfirmButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:dispute:confirm:(?P<key>[0-9a-f]{16})",
+):
+    """The dispute DM's ✅ button — re-confirm one's CURRENT declaration."""
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:dispute:confirm:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.success,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomDisputeConfirmButton:
+        """Rebuild the button from the wire — restart-safe."""
+        label = _strings(_locale(interaction))["dispute_confirm_button"]
+        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Confirm one's own current declaration (the DM round's shortcut)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await interaction.response.edit_message(content=strings["no_service"], view=None)
+            return
+        try:
+            attack = next(
+                item
+                for item in await wiring.attacks_service.attacks()
+                if str(item.id) == self.attack_id
+            )
+        except Exception:
+            await interaction.response.edit_message(content=strings["no_service"], view=None)
+            return
+        player_id = str(interaction.user.id)
+        mine = dict((attack.score or {}).get("declarations") or {}).get(player_id) or {}
+        winner_kingdom_id = str(mine.get("winner") or "")
+        if not winner_kingdom_id:
+            await interaction.response.edit_message(
+                content=strings["room_not_player"], view=None
+            )
+            return
+        await _handle_dispute_reply_safe(
+            interaction, wiring, strings, self.attack_id, winner_kingdom_id
+        )
 
 
 async def _run_noshows_safe(
