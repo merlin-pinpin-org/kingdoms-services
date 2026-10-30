@@ -335,11 +335,11 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_buy_button": "✅ Buy",
         "market_cancel_button": "❌ Cancel",
         "market_cancelled": "Purchase cancelled — the card goes back under the merchant's stall.",
-        "market_fiche_effect": "EFFECT — {0}",
-        "market_fiche_cost": "COST — {0} ⚙️",
-        "market_fiche_wallet": "CURRENT TREASURY — {0} ⚙️",
-        "market_fiche_left": "LEFT THIS SEASON — {0}/{1}",
-        "market_fiche_king_only": "👑 King only — debited from the treasury immediately.",
+        "market_fiche_effect": "**__EFFECT :__**\n> {0}",
+        "market_fiche_cost": "**__COST :__** {0} ⚙️",
+        "market_fiche_wallet": "**__CURRENT TREASURY :__** {0} ⚙️",
+        "market_fiche_left": "**__LEFT THIS SEASON :__** {0}/{1}",
+        "market_fiche_king_only": "*👑 King only — debited from the treasury immediately.*",
         "market_effect": {
             "embuscade": (
                 "Declare an exceptional attack without spending an attack "
@@ -789,11 +789,11 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_buy_button": "✅ Acheter",
         "market_cancel_button": "❌ Annuler",
         "market_cancelled": "Achat annulé — la carte retourne sous l'étal du marchand.",
-        "market_fiche_effect": "EFFET — {0}",
-        "market_fiche_cost": "COÛT — {0} ⚙️",
-        "market_fiche_wallet": "TRÉSORERIE ACTUELLE — {0} ⚙️",
-        "market_fiche_left": "RESTE CETTE SAISON — {0}/{1}",
-        "market_fiche_king_only": "👑 Réservé au Roi — débité immédiatement du trésor.",
+        "market_fiche_effect": "**__EFFET :__**\n> {0}",
+        "market_fiche_cost": "**__COÛT :__** {0} ⚙️",
+        "market_fiche_wallet": "**__TRÉSORERIE ACTUELLE :__** {0} ⚙️",
+        "market_fiche_left": "**__RESTE CETTE SAISON :__** {0}/{1}",
+        "market_fiche_king_only": "*👑 Réservé au Roi — débité immédiatement du trésor.*",
         "market_effect": {
             "embuscade": (
                 "Déclare une attaque exceptionnelle sans point d'attaque. "

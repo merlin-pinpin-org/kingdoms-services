@@ -910,7 +910,10 @@ async def _market_fiche(wiring: KingdomsPanelWiring, king: Any, item: str, strin
         bought = await _market_bought(wiring, kingdom_id, item)
         lines.append(str(strings["market_fiche_left"]).format(max(0, limit - bought), limit))
     lines.append(str(strings["market_fiche_king_only"]))
-    return "\n".join(lines)
+    # marche-fiche-v1 (Drasah 30/10): étiquettes grassoulignées, effet
+    # en citation (la barre grise « surligne »), « : » au lieu du trait
+    # — et une ligne vide entre chaque rubrique pour aérer l'embed.
+    return "\n\n".join(lines)
 
 
 def _market_ttl(interaction: Any, message: Any) -> None:

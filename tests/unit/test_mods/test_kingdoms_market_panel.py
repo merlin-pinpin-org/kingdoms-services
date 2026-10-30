@@ -307,6 +307,25 @@ async def test_tech_button_opens_the_sheet_then_buys_through_the_economy_for_kin
     assert "Purchased" in (submit.followup.messages[-1].content or "")
 
 
+async def test_market_sheet_wears_the_styled_labels() -> None:
+    """marche-fiche-v1 (Drasah 30/10): the sheet keeps the SAME words
+    but wears them — bold-underlined labels, the effect quoted, « : »
+    instead of the dash, one blank line between the rubrics."""
+    economy = FakeEconomyService()
+    _wiring(lords=[FakeLord(id="111", role="king", kingdom_id="k1")], economy=economy)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="fr")
+    button = KingdomMarketTechButton("embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary)
+    await button.callback(interaction)
+    sheet = str(interaction.response.message.embed.description if interaction.response.message.embed else "")
+    assert "**__EFFET :__**" in sheet
+    assert "\n> " in sheet  # l'effet en citation (barre grise)
+    assert "**__COÛT :__**" in sheet
+    assert "**__TRÉSORERIE ACTUELLE :__**" in sheet
+    assert "*👑 Réservé au Roi" in sheet
+    assert "\n\n" in sheet  # une ligne vide entre les rubriques
+    assert " — " not in sheet.split("**__EFFET")[0]  # plus de trait d'étiquette
+
+
 async def test_tech_button_refuses_non_kings() -> None:
     economy = FakeEconomyService()
     _wiring(
