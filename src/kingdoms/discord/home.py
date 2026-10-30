@@ -543,15 +543,15 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 note = await reply(interaction, "profile.add_provider_error", provider=PROFILE_PROVIDER)
             elif "valid" in reason or "inconnu" in reason:
                 note = (
-                    f"Ajout échoué : aucun profil trouvé pour "
-                    f"`{str(self.profile_id.value).strip()}`. Colle l'URL de ta page "
-                    "aoe2insights (ou l'id qu'elle contient) \u2014 le bon id sera "
-                    "récupéré automatiquement."
+                    f"Add failed: no profile found for "
+                    f"`{str(self.profile_id.value).strip()}`. Paste your aoe2insights "
+                    "page URL (or the id it contains) \u2014 the right id resolves "
+                    "automatically."
                 )
             else:
                 note = (
-                    f"Ajout échoué : le provider {PROFILE_PROVIDER} n'a pas répondu "
-                    "— l'erreur précise part aux admins."
+                    f"Add failed: the provider {PROFILE_PROVIDER} did not answer "
+                    "\u2014 the exact error went to the admins."
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
@@ -572,15 +572,15 @@ async def _profile_header(interaction: discord.Interaction, user_id: str) -> str
     """Build the profile header: the user's chosen name when known."""
     identity = getattr(interaction.client, "identity_service", None)
     if identity is None:
-        return "# 👤 Ton profil\nPseudo : *(non défini)*"
+        return "# 👤 Your profile\nName: *(not set)*"
     try:
         user = await identity.get_user(f"discord:{user_id}")
     except Exception:
         logger.warning("HOME: identity lookup failed", exc_info=True)
-        return "# 👤 Ton profil\nPseudo : *(non défini)*"
+        return "# 👤 Your profile\nName: *(not set)*"
     if user is None or not user.display_name:
-        return "# 👤 Ton profil\nPseudo : *(non défini)*"
-    return f"# 👤 Ton profil\nPseudo : **{user.display_name}**"
+        return "# 👤 Your profile\nName: *(not set)*"
+    return f"# 👤 Your profile\nName: **{user.display_name}**"
 
 
 class ProfileRenameButton(
@@ -639,7 +639,7 @@ class ProfileSiteSelect(
     def __init__(self, game_key: str, options: list[discord.SelectOption]) -> None:
         super().__init__(
             discord.ui.Select(
-                placeholder="Site de profil préféré",
+                placeholder="Preferred profile site",
                 options=options,
                 custom_id=f"home:profile:site:{game_key}",
             )
@@ -667,7 +667,7 @@ class ProfileSiteSelect(
         await _set_user_preferred_site(interaction, self.game_key, values[0])
         await _profile_followup(
             interaction,
-            banner=f"Site de profil préféré : **{values[0]}**.",
+            banner=f"Preferred profile site: **{values[0]}**.",
         )
 
 
@@ -696,7 +696,7 @@ class ProfileRenameModal(discord.ui.Modal):
         super().__init__(title="Ton pseudo", timeout=None)
         self.origin = origin
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Pseudo (16 caractères max)",
+            label="Name (16 characters max)",
             max_length=16,
             min_length=1,
             required=True,
@@ -852,7 +852,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             banner_bits.append(await reply(interaction, "profile.accounts_removed", listed=listed))
         if failures:
             banner_bits.append(
-                "Retrait échoué pour : " + ", ".join(failures) + " — le détail part aux admins."
+                "Removal failed for: " + ", ".join(failures) + " — the details went to the admins."
             )
         if removed:
             await _dm_profile_notice(interaction, "accounts_removed", listed=", ".join(removed))

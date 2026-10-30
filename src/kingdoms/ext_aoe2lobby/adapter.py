@@ -301,11 +301,31 @@ class Aoe2LobbyAdapter:
             return []
         events = self._reduce_player_status(frame.get(PLAYER_STATUS_FIELD))
         if events:
+            self._log_events("player_status push", events)
             return events
         touched: dict[str, dict[str, Any]] = {}
         for context in _CONTEXTS:
             self._apply_context_deltas(context, frame, touched)
-        return self._reduce_touched(touched)
+        events = self._reduce_touched(touched)
+        self._log_events("match delta", events)
+        return events
+
+    def _log_events(self, source: str, events: list[dict[str, Any]]) -> None:
+        """Log every emitted transition — the pod's observable trail.
+
+        One INFO line per event: the profile ids, the transition and
+        the match — 'AOE2LOBBY EVENT player=848567 match=123 lobby_opened'
+        reads straight in `docker logs`.
+        """
+        for event in events:
+            logger.info(
+                "aoe2lobby EVENT %s: profiles=%s match=%s type=%s%s",
+                source,
+                ",".join(str(p) for p in event.get("profile_ids", [])),
+                event.get("match_ref", ""),
+                event.get("type", "?"),
+                f" map={event['metadata'].get('map', '')}" if event.get("metadata", {}).get("map") else "",
+            )
 
     def _reduce_player_status(self, statuses: object) -> list[dict[str, Any]]:
         """Fold one ``player_status`` push for the subscribed profiles.

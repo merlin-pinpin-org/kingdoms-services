@@ -14,8 +14,11 @@ state; svc-core and the bot only see what the GameData contract serves.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from typing import Any, Protocol
+
+logger = logging.getLogger("kingdoms.game_aoe2.aggregator")
 
 STATE_OFFLINE = "offline"
 STATE_IN_LOBBY = "in_lobby"
@@ -108,6 +111,12 @@ class GameAoe2Aggregator:
     async def apply_event(self, event: Any) -> None:
         """Fold one provider MatchEvent into the player states."""
         self._degraded = False
+        logger.info(
+            "gamedata EVENT: profiles=%s match=%s type=%s",
+            ",".join(str(p) for p in getattr(event, "profile_ids", ()) or ()),
+            getattr(event, "match_ref", ""),
+            getattr(event, "type", "?"),
+        )
         if event.type == "match_updated":
             # a live setup change (civ, map, settings, slots): refresh
             # the stored match payload, no state transition, no noise

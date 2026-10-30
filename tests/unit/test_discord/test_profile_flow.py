@@ -446,7 +446,7 @@ async def test_remove_failure_names_the_entry() -> None:
     for v in views:
         for item in getattr(v, "children", None) or ():
             walk(item)
-    assert any("Retrait échoué pour" in t and "aoe2" in t for t in texts), (
+    assert any("Removal failed for" in t and "aoe2" in t for t in texts), (
         "the failure rides the refreshed view's banner and names the entry"
     )
 

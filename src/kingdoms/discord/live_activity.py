@@ -96,6 +96,14 @@ async def _deliver_event(bot: discord.Client, event: dict[str, Any]) -> None:
     user_id = str(event.get("user_id", ""))
     if not profile_id or not user_id:
         return
+    logger.info(
+        "live activity EVENT: profile=%s user=%s %s->%s match=%s",
+        profile_id,
+        user_id,
+        event.get("old_status", "?"),
+        event.get("new_status", "?"),
+        (event.get("match") or {}).get("match_ref", ""),
+    )
     match = event.get("match") or {}
     _remember_name(profile_id, match)
     ref = str(match.get("match_ref") or "")
@@ -208,7 +216,7 @@ def _build_card(event: dict[str, Any], match_ref: str, ended: bool, started_at: 
     map_name = str(match.get("map") or "")
     slots = f"{match.get('slots_taken', '?')}/{match.get('slots_total', '?')}"
     icon = "⚪" if ended else _STATE_ICONS.get(str(event.get("new_status", "")), "🟡")
-    status_label = "terminé" if ended else ("en partie" if str(event.get("new_status")) == "in_game" else "en lobby")
+    status_label = "finished" if ended else ("live" if str(event.get("new_status")) == "in_game" else "in lobby")
 
     title = f"{icon} Partie #{match_ref} — {status_label}"
     header_bits = [b for b in (mode, f"— {map_name}" if map_name else "") if b]
@@ -224,7 +232,7 @@ def _build_card(event: dict[str, Any], match_ref: str, ended: bool, started_at: 
         lines.append(f"> {roster}")
     if ended:
         duration_s = max(0, int(time.monotonic() - started_at))
-        lines.append(f"> ⏱️ durée : {duration_s // 60} min {duration_s % 60:02d}s")
+        lines.append(f"> ⏱️ duration: {duration_s // 60}m {duration_s % 60:02d}s")
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
@@ -253,11 +261,11 @@ def _card_buttons(match: dict[str, Any], ended: bool, status: str) -> Any:
             buttons.append(discord.ui.Button(label="👀 Regarder", url=spectate_url, style=discord.ButtonStyle.link))
         if status == "in_game" and deep_link:
             buttons.append(
-                discord.ui.Button(label="⬇️ Télécharger", url=deep_link, style=discord.ButtonStyle.link)
+                discord.ui.Button(label="⬇️ Download", url=deep_link, style=discord.ButtonStyle.link)
             )
     if ended and (spectate_url or lobby_url):
         buttons.append(
-            discord.ui.Button(label="📊 Résultats", url=(spectate_url or lobby_url), style=discord.ButtonStyle.link)
+            discord.ui.Button(label="📊 Results", url=(spectate_url or lobby_url), style=discord.ButtonStyle.link)
         )
     if not buttons:
         return None
@@ -278,7 +286,7 @@ def _roster_line(players: list[dict[str, Any]]) -> str:
         if civ:
             bit += f" ({civ})"
         if team not in (None, "", 0):
-            bit += f" — équipe {team}"
+            bit += f" — team {team}"
         parts.append(bit)
     return " · ".join(parts)
 
@@ -408,12 +416,12 @@ def _result_card(match_ref: str, result: Any) -> Any:
     winner_label = " · ".join(winner_names) if winner_names else ""
     duration_ms = int(result.duration_ms or 0)
     minutes, seconds = divmod(duration_ms // 1000, 60)
-    lines = [f"⚪ **Partie #{match_ref} — terminé**"]
+    lines = [f"⚪ **Match #{match_ref} — finished**"]
     if result.map_name:
         lines.append(f"— {result.map_name!s}")
     if winner_label:
         lines.append(f"> 🏆 Vainqueur : **{winner_label}**")
-    lines.append(f"> ⏱️ Durée : {minutes} min {seconds:02d}s")
+    lines.append(f"> ⏱️ Duration: {minutes}m {seconds:02d}s")
     deltas: list[str] = []
     for pid, (old, new) in (result.ratings or {}).items():
         name = _LAST_NAME.get(pid, pid)
