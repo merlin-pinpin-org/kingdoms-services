@@ -109,10 +109,12 @@ CIV_ACQUISITION_ORIGINS: tuple[str, ...] = (
     "marriage",
     "royal",
     "mercenary",
+    "exploration",
 )
 """The acquisition origins of a civilization (alliances-lisibilite-v1,
 Drasah 25/10): 🎲 starter draft, 🗺️ cadastre condition, 💍 standard
-marriage, 🐝 royal marriage (Reine), 📜 Chef Mercenaire."""
+marriage, 🐝 royal marriage (Reine), 📜 Chef Mercenaire, 🧭 expedition
+(exploration-expedition-v1, Drasah 30/10)."""
 
 class KingdomModel(BaseModel):
     """A kingdom of the current season (player or Gaïa)."""
@@ -191,6 +193,16 @@ class KingdomModel(BaseModel):
     civ leaving the hand — it feeds the Alliances panel's 📖
     Historique. Origins: see ``CIV_ACQUISITION_ORIGINS``. Gaïa records
     nothing (no draft, no marriage)."""
+    expedition: dict[str, Any] = Field(default_factory=dict)
+    """Expédition (exploration-expedition-v1, Drasah 30/10): the
+    kingdom's at-most-one living expedition — ``{}`` when none exists.
+    States: ``boarding`` (the 🧭 salon is open, the crew assembles —
+    the token is NOT consumed yet) → ``sailing`` (Lâcher les amarres
+    consumed the Explorateur token, chef + crew are combat-locked
+    until ``ends_at``). Fields: ``state``, ``chef_lord_id``, ``crew``
+    (lord ids, each −4h of travel), ``salon_id``, ``panel_message_id``,
+    ``ends_at`` (unix, sailing only), ``locked`` (lord ids locked at
+    launch)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

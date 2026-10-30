@@ -192,8 +192,20 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomTheftButton,
         KingdomVoliereButton,
     )
+    # exploration-expedition-v1 (Drasah 30/10): the 🧭 expedition salon
+    # — the realm/chamber open button and the three boarding buttons.
+    from kingdoms.mods.kingdoms.kingdom_expedition_panel import (
+        KingdomExpeditionChefButton,
+        KingdomExpeditionCrewButton,
+        KingdomExpeditionLaunchButton,
+        KingdomExpeditionOpenButton,
+    )
 
     bot.add_dynamic_items(
+        KingdomExpeditionOpenButton,
+        KingdomExpeditionChefButton,
+        KingdomExpeditionCrewButton,
+        KingdomExpeditionLaunchButton,
         KingdomVoliereButton,
         KingdomTheftButton,
         KingdomRempartsOpenButton,
@@ -1009,88 +1021,6 @@ async def _sent_message(interaction: Any) -> Any | None:
         return await interaction.original_response()
     except Exception:
         return getattr(getattr(interaction, "response", None), "message", None)
-
-
-async def _market_lord_select_view(
-    wiring: KingdomsPanelWiring,
-    king: Any,
-    strings: dict[str, Any],
-    anchor: Any = None,
-) -> discord.ui.View | None:
-    """Build the ephemeral lord select of the Explorateur (None if empty).
-
-    marche-v2 art. 6: any ACTIVE lord of the kingdom may explore (not
-    only the King) — the buyer picks the exploring lord here.
-    """
-    if wiring.kingdoms_service is None:
-        return None
-    kingdom_id = king.kingdom_id or ""
-    try:
-        lords = await wiring.kingdoms_service.lords()
-    except Exception:
-        logger.warning("KINGDOMS MARKET: lord list read failed", exc_info=True)
-        return None
-    candidates = [
-        lord
-        for lord in lords
-        if lord.kingdom_id == kingdom_id and not getattr(lord, "left", False)
-    ]
-    options = [
-        discord.SelectOption(
-            label=str(getattr(lord, "display_name", lord.id))[:100],
-            value=str(lord.id)[:100],
-        )
-        for lord in candidates
-    ][:25]
-    if not options:
-        return None
-    select: discord.ui.Select[Any] = discord.ui.Select(
-        custom_id="kingdoms:market:choose:explorateur",
-        placeholder=str(strings.get("market_choose_explorer") or strings["market_choose_lord"])[:100],
-        options=options,
-    )
-
-    async def on_choose(target: discord.Interaction[Any]) -> None:
-        values = getattr(target, "data", None) or {}
-        chosen = [str(v) for v in values.get("values", [])]
-        if not chosen:
-            return
-        economy = wiring.economy_service
-        if economy is None:
-            await target.response.edit_message(
-                content=strings["market_no_service"], view=None
-            )
-            return
-        try:
-            lord = await economy.use_explorateur(kingdom_id, chosen[0])
-        except Exception as exc:
-            note = await _market_failure_note(
-                exc, wiring, king, "explorateur",
-                int(getattr(_market_costs(wiring), "explorateur", 0) or 0), strings,
-            )
-            await target.response.edit_message(content=note, view=None)
-            return
-        note = await _market_success_note(
-            wiring, kingdom_id, "explorateur", strings,
-            str(getattr(lord, "display_name", lord.id)),
-        )
-        await _record_clicked_chronicle(
-            wiring, str(target.user.id), "market_purchase",
-            item=_market_label("explorateur", strings),
-            cost=str(int(getattr(_market_costs(wiring), "explorateur", 0) or 0)),
-        )
-        await target.response.edit_message(content=note, view=None)
-        await _append_purchase_receipt(target, note, strings, wiring, king)
-        _market_ttl(anchor or target, getattr(target, "message", None))
-        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
-        # achat-fermeture-v1 (Drasah 30/10): same rule after the select
-        # flows — the card window that opened the purchase closes.
-        await _close_previous_ephemeral(str(target.user.id))
-
-    select.callback = on_choose  # type: ignore[method-assign, assignment]
-    view = discord.ui.View(timeout=600)
-    view.add_item(select)
-    return view
 
 
 async def _market_action_select_view(
@@ -2830,9 +2760,10 @@ class KingdomMarketUseButton(
 ):
     """chambre-utiliser-v1 (Drasah 30/10): the 🚀 Utiliser button of a
     revealed card — the EFFECT never fires at the Marché, it fires
-    here, from the Chambre des comptes window. The corruption and the
-    explorateur open their target/lord selects (the existing flows,
-    now consuming a token), the arms-mastery applies immediately, the
+    here, from the Chambre des comptes window. The corruption opens its
+    territory select, the explorateur OPENS THE 🧭 EXPEDITION SALON
+    (exploration-expedition-v1 — the token is consumed at the Lâcher
+    les amarres, never here), the arms-mastery applies immediately, the
     traquenard opens its adversary select and the embuscade jumps to
     the attack-declaration wizard. Restart-proof (DynamicItem)."""
 
@@ -2900,23 +2831,15 @@ class KingdomMarketUseButton(
             )
             return
         if self.card == "explorateur":
-            view = await _market_lord_select_view(
-                wiring, lord, strings, anchor=interaction
+            # exploration-expedition-v1 (Drasah 30/10): the explorateur
+            # token now funds a whole EXPEDITION — the Utiliser click
+            # opens the 🧭 salon instead of the old lord select (the
+            # token is consumed at the Lâcher les amarres, never here).
+            from kingdoms.mods.kingdoms.kingdom_expedition_panel import (
+                open_expedition_from_market,
             )
-            if view is None:
-                await interaction.response.send_message(
-                    strings["market_no_options"], ephemeral=True
-                )
-                return
-        # fenetre-unique-globale-v1 (Drasah 30/10): joins the shared
-        # single-window registry — no stacking with the player's
-        # previous ephemeral view.
-            await _open_unique_ephemeral(
-                interaction,
-                str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
-                view=view,
-                ephemeral=True,
-            )
+
+            await open_expedition_from_market(interaction, wiring, strings, lord)
             return
         if self.card == "jeu_d_armes":
             economy = wiring.economy_service

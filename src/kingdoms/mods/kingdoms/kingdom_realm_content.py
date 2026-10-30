@@ -974,6 +974,21 @@ def _build_overview(
     # (same rule as the cover proposal of the declare flow).
     if int(state.get("purchases", {}).get("traquenard", 0) or 0) > 0:
         buttons.append(KingdomTraquenardButton(strings))
+    # exploration-expedition-v1 (Drasah 30/10): the 🧭 Exploration
+    # button exists ONLY while the kingdom holds an unused Explorateur
+    # token (the launch consumes it, the view refresh drops the button).
+    from kingdoms.mods.kingdoms.kingdom_expedition_panel import (
+        KingdomExpeditionOpenButton,
+        _strings as _expedition_strings,
+    )
+
+    if int(state.get("purchases", {}).get("explorateur_stock", 0) or 0) > 0:
+        expe_locale = "fr" if strings.get("yes") == "oui" else "en"
+        buttons.append(
+            KingdomExpeditionOpenButton(
+                _expedition_strings(expe_locale)["open_button"]
+            )
+        )
     # Volière (voliere-v1): always visible — the Féodal gate lives in the
     # service (VoliereLockedError), so the view stays simple.
     voliere_locale = "fr" if strings.get("yes") == "oui" else "en"

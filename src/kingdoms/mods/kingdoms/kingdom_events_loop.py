@@ -313,6 +313,58 @@ async def _resolve_explorations_safe(bot: Any) -> None:
                 )
 
 
+async def _resolve_expeditions_safe(bot: Any) -> None:
+    """Resolve the due sailing expeditions (exploration-expedition-v1).
+
+    The return announces itself in Géopolitique (a new map, or the
+    compensation civ +2 ⚙️ when the pool ran dry), sweeps the 🧭 salon
+    (the journey never outlives its room) and clears every lock. The
+    pass is idempotent — a restart mid-sail never resolves twice.
+    """
+    from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
+    from kingdoms.mods.kingdoms.kingdom_expedition_panel import (
+        expedition_return_text,
+        sweep_expedition_salon_safe,
+    )
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _refresh_realm_views_for_kingdom_safe,
+        _wiring,
+    )
+
+    for guild in list(getattr(bot, "guilds", []) or []):
+        wiring = _wiring()
+        if wiring.economy_service is None:
+            continue
+        try:
+            resolved = await wiring.economy_service.resolve_due_expeditions()
+        except Exception:
+            logger.warning(
+                "KINGDOMS EVENTS: expedition resolution failed", exc_info=True
+            )
+            continue
+        if not resolved:
+            continue
+        locale = await _guild_locale(bot, str(guild.id))
+        for kingdom, kind, value, salon_id in resolved:
+            text = expedition_return_text(locale, str(kingdom.name), kind, value)
+            try:
+                await announce_geopolitics(guild, locale, text)
+            except Exception:
+                logger.warning(
+                    "KINGDOMS EVENTS: expedition return announcement failed",
+                    exc_info=True,
+                )
+            await sweep_expedition_salon_safe(guild, int(salon_id or 0))
+        for kingdom_id in sorted({str(k.id) for k, _, _, _ in resolved}):
+            try:
+                await _refresh_realm_views_for_kingdom_safe(guild, kingdom_id)
+            except Exception:
+                logger.warning(
+                    "KINGDOMS EVENTS: post-expedition view refresh failed",
+                    exc_info=True,
+                )
+
+
 async def _ffa_salon(guild: Any, ffa: Any) -> Any:
     """Return the FFA's ephemeral salon (restructuration-serveur-v1 c).
 
@@ -929,6 +981,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
         except Exception:
             logger.warning("KINGDOMS EVENTS: attack phases failed", exc_info=True)
         await _resolve_explorations_safe(bot)
+        await _resolve_expeditions_safe(bot)
         await _ffa_exploration_tick_safe(bot)
         await _resolve_cathedrals_safe(bot)
         await _resolve_corbeau_thefts_safe(bot)

@@ -17,7 +17,7 @@ import logging
 import random
 import time
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms.admin_debug import bypass_guard
 from kingdoms.mods.kingdoms.attacks import (
@@ -76,6 +76,16 @@ tokens, bought = the per-season purchase counter. The APPLIED AI
 levels stay under ``jeu_d_armes`` (the defence bot reads it)."""
 EXPLORATEUR_STOCK = "explorateur_stock"
 """chambre-utiliser-v1: bought-but-unused Explorateur tokens."""
+EXPEDITION_BASE_HOURS = 48
+"""exploration-expedition-v1 (Drasah 30/10): the base travel time of an
+expedition — every embarked CREW member cuts it by 4h (the chef never
+cuts it), plancher 24h."""
+EXPEDITION_HOURS_PER_LORD = 4
+EXPEDITION_MIN_HOURS = 24
+EXPEDITION_COMPENSATION_TECH = 2
+"""exploration-expedition-v1: when the map pool runs dry at the return,
+the kingdom keeps a compensation lot — one civilization it does not
+hold yet (origin ``exploration``) plus 2 ⚙️."""
 
 
 class EconomyError(KingdomsModError):
@@ -368,6 +378,266 @@ class EconomyService:
                 resolved.append((lord, territory))
             lord.exploration_locked_until = None
             await self._store.upsert_lord(lord.to_mongo())
+        return resolved
+
+    # ------------------------------------------------------------------
+    # Expédition (exploration-expedition-v1, Drasah 30/10)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _expedition_locked(lord: LordModel, ts: int) -> bool:
+        """True when the lord sits in ANY live combat lock (expedition)."""
+        for until in (
+            lord.marriage_locked_until,
+            lord.exploration_locked_until,
+            lord.ffa_locked_until,
+        ):
+            if until is not None and int(until) > ts:
+                return True
+        return False
+
+    async def expedition(self, kingdom_id: str) -> dict[str, Any]:
+        """Read the kingdom's expedition doc (``{}`` when none)."""
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        return dict(getattr(kingdom, "expedition", None) or {})
+
+    async def begin_expedition(self, kingdom_id: str) -> dict[str, Any]:
+        """Open the boarding state (idempotent — the token stays intact).
+
+        The 🧭 button opens the salon: a kingdom without a token cannot
+        start, a boarding expedition returns its doc unchanged, a
+        sailing one refuses. The Explorateur token is consumed at the
+        LAUNCH, never here.
+        """
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        doc = dict(getattr(kingdom, "expedition", None) or {})
+        if str(doc.get("state", "")) == "sailing":
+            raise EconomyError("an expedition is already at sea")
+        if str(doc.get("state", "")) == "boarding":
+            return doc
+        state = await self._attacks.technology_state(kingdom_id)
+        if int(state.purchases.get(EXPLORATEUR_STOCK, 0) or 0) <= 0:
+            raise EconomyError("no explorateur token in stock — buy one at the market first")
+        doc = {
+            "state": "boarding",
+            "chef_lord_id": None,
+            "crew": [],
+            "salon_id": None,
+            "panel_message_id": None,
+            "ends_at": None,
+            "locked": [],
+        }
+        kingdom.expedition = doc
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info("kingdoms: %s opens an expedition boarding", kingdom_id)
+        return doc
+
+    async def record_expedition_salon(
+        self, kingdom_id: str, salon_id: int, panel_message_id: int | None = None
+    ) -> None:
+        """Store the salon (and panel) refs in the boarding doc."""
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        doc = dict(getattr(kingdom, "expedition", None) or {})
+        if str(doc.get("state", "")) != "boarding":
+            return
+        doc["salon_id"] = int(salon_id)
+        if panel_message_id is not None:
+            doc["panel_message_id"] = int(panel_message_id)
+        kingdom.expedition = doc
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+
+    async def toggle_expedition_chef(
+        self,
+        kingdom_id: str,
+        lord_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Toggle the expedition CHEF (a FREE defence point is required).
+
+        The defence point is only a PREREQUISITE — enrolling as chef
+        never consumes it (Drasah: going exploring is a real risk, the
+        lord has not spent his defence).
+        """
+        timestamp = now or game_now()
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        doc = dict(getattr(kingdom, "expedition", None) or {})
+        if str(doc.get("state", "")) != "boarding":
+            raise EconomyError("the expedition is not boarding")
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == lord_id),
+            None,
+        )
+        if lord is None or lord.left or lord.kingdom_id != kingdom_id:
+            raise EconomyError("the lord is no active lord of this kingdom")
+        if str(doc.get("chef_lord_id", "") or "") == lord.id:
+            doc["chef_lord_id"] = None  # the chef steps down — ⛵ disappears
+        else:
+            ts = int(timestamp.timestamp())
+            if self._expedition_locked(lord, ts):
+                raise EconomyError("the lord is locked (marriage, exploration or FFA)")
+            if int(lord.defense_used) >= int(self._config.attacks.defenses_per_week):
+                raise EconomyError("the chef needs one AVAILABLE defence point")
+            doc["chef_lord_id"] = lord.id
+            crew = [item for item in doc.get("crew", []) if item != lord.id]
+            doc["crew"] = crew
+        kingdom.expedition = doc
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        return doc
+
+    async def toggle_expedition_crew(
+        self,
+        kingdom_id: str,
+        lord_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Toggle one CREW member (each lord clicks himself, −4h of travel)."""
+        timestamp = now or game_now()
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        doc = dict(getattr(kingdom, "expedition", None) or {})
+        if str(doc.get("state", "")) != "boarding":
+            raise EconomyError("the expedition is not boarding")
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == lord_id),
+            None,
+        )
+        if lord is None or lord.left or lord.kingdom_id != kingdom_id:
+            raise EconomyError("the lord is no active lord of this kingdom")
+        crew = [item for item in doc.get("crew", []) if item != lord.id]
+        if str(doc.get("chef_lord_id", "") or "") == lord.id:
+            raise EconomyError("the expedition chef does not embark as crew")
+        if str(lord.id) in [str(item) for item in doc.get("crew", [])]:
+            pass  # leaving: already removed above
+        else:
+            if self._expedition_locked(lord, int(timestamp.timestamp())):
+                raise EconomyError("the lord is locked (marriage, exploration or FFA)")
+            crew.append(lord.id)
+        doc["crew"] = crew
+        kingdom.expedition = doc
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        return doc
+
+    async def launch_expedition(
+        self,
+        kingdom_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Lâcher les amarres — the ONLY step that consumes the token.
+
+        Travel = 48h − 4h per CREW member (the chef never cuts it),
+        plancher 24h. The chef and every crew member are combat-locked
+        (``exploration_locked_until``) until the return — the lock is
+        the SAME one the attack/defence guards already respect.
+        """
+        timestamp = now or game_now()
+        ts = int(timestamp.timestamp())
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        doc = dict(getattr(kingdom, "expedition", None) or {})
+        if str(doc.get("state", "")) != "boarding":
+            raise EconomyError("the expedition is not boarding")
+        if not doc.get("chef_lord_id"):
+            raise EconomyError("no expedition chef on board")
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(EXPLORATEUR_STOCK, 0) or 0)
+        if stock <= 0:
+            raise EconomyError("no explorateur token in stock — buy one at the market first")
+        state.purchases[EXPLORATEUR_STOCK] = stock - 1
+        await self._store.upsert_technology(state.to_mongo())
+        crew = [str(item) for item in doc.get("crew", [])]
+        hours = max(
+            EXPEDITION_MIN_HOURS,
+            EXPEDITION_BASE_HOURS - EXPEDITION_HOURS_PER_LORD * len(crew),
+        )
+        ends_at = ts + int(hours * 3600)
+        locked = [str(doc.get("chef_lord_id", "")), *crew]
+        for lord in await self._kingdoms.lords():
+            if str(lord.id) in locked and not lord.left:
+                lord.exploration_locked_until = ends_at
+                await self._store.upsert_lord(lord.to_mongo())
+        doc["state"] = "sailing"
+        doc["ends_at"] = ends_at
+        doc["locked"] = locked
+        kingdom.expedition = doc
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info(
+            "kingdoms: %s launches its expedition (%dh, %d crew, token used)",
+            kingdom_id,
+            hours,
+            len(crew),
+        )
+        await self._record_purchase(kingdom_id, EXPLORATEUR, "expédition lancée", 0)
+        return doc
+
+    async def resolve_due_expeditions(
+        self, *, now: datetime | None = None
+    ) -> list[tuple[KingdomModel, str, str, int]]:
+        """Resolve every due sailing expedition (the tick's engine).
+
+        The return draws a brand-new map for the kingdom; an exhausted
+        pool pays the compensation lot instead — one civilization the
+        kingdom does not hold yet (origin ``exploration``) plus 2 ⚙️.
+        Every lock clears, the doc empties and the salon may be swept.
+        Returns ``(kingdom, kind, value, salon_id)`` — kind is ``map``,
+        ``civ`` or ``tech`` (no civ left either: points only).
+        """
+        timestamp = now or game_now()
+        now_ts = int(timestamp.timestamp())
+        resolved: list[tuple[KingdomModel, str, str, int]] = []
+        drawn = await self._territories.drawn_map_keys()
+        for kingdom in await self._kingdoms.kingdoms():
+            doc = dict(getattr(kingdom, "expedition", None) or {})
+            if str(doc.get("state", "")) != "sailing":
+                continue
+            ends_at = int(doc.get("ends_at", 0) or 0)
+            if ends_at <= 0 or ends_at > now_ts:
+                continue
+            salon_id = int(doc.get("salon_id", 0) or 0)
+            pool = [
+                entry.key for entry in self._config.maps if entry.key not in drawn
+            ]
+            if pool:
+                map_key = random.choice(pool)  # noqa: S311 - game draw, not crypto
+                await self._territories.draw_map_for(kingdom.id, map_key)
+                drawn.add(map_key)
+                kind, value = "map", map_key
+                logger.info(
+                    "kingdoms: the expedition of %s revealed the map %s",
+                    kingdom.id,
+                    map_key,
+                )
+            else:
+                civ_pool = [
+                    civ.key
+                    for civ in self._config.civilizations
+                    if civ.key not in (kingdom.civilizations or [])
+                ]
+                await self.grant_tech_points(kingdom.id, EXPEDITION_COMPENSATION_TECH)
+                if civ_pool:
+                    civ_key = random.choice(civ_pool)  # noqa: S311 - game draw
+                    kingdom = await self._kingdom_by_id(kingdom.id)
+                    kingdom.civilizations = [*(kingdom.civilizations or []), civ_key]
+                    kingdom.record_acquisition(civ_key, "exploration", now_ts)
+                    kind, value = "civ", civ_key
+                    logger.info(
+                        "kingdoms: the expedition of %s recruited the civ %s",
+                        kingdom.id,
+                        civ_key,
+                    )
+                else:
+                    kind, value = "tech", ""
+                    logger.info(
+                        "kingdoms: the expedition of %s paid points only", kingdom.id
+                    )
+            kingdom = await self._kingdom_by_id(kingdom.id)
+            kingdom.expedition = {}
+            await self._store.upsert_kingdom(kingdom.to_mongo())
+            locked = [str(item) for item in doc.get("locked", [])]
+            for lord in await self._kingdoms.lords():
+                if str(lord.id) in locked:
+                    lord.exploration_locked_until = None
+                    await self._store.upsert_lord(lord.to_mongo())
+            resolved.append((kingdom, kind, value, salon_id))
         return resolved
 
     # ------------------------------------------------------------------
