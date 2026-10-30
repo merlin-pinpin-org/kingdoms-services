@@ -3146,6 +3146,9 @@ async def test_draft_view_button_lists_the_sniped_picks() -> None:
         "defender_picks": ["huns", "perses", "bretons"],
         "attacker_sabotages": ["huns"],  # the attacker struck the defender
         "defender_sabotages": ["goths"],  # the defender struck the attacker
+        # draft-ordre-reel-v1 (Drasah 30/10): the phase is OVER — the
+        # sheet shows the REAL stored order (the 1️⃣2️⃣3️⃣ numbering).
+        "sabotage_resolved": True,
     }
     await bundle.store.upsert_attack(attack.to_mongo())
     _wiring(bundle)
@@ -3248,30 +3251,58 @@ async def test_pickban_and_reveal_dms_carry_the_closing_time(monkeypatch) -> Non
         pickban = {  # noqa: RUF012
             "attacker_picks": ["francs", "goths", "huns"],
             "attacker_dm": {"channel_id": 10, "message_id": 11},
+            "defender_picks": ["bretons", "perses", "byzantins"],
             "defender_dm": {"channel_id": 20, "message_id": 21},
         }
 
     contents: list[str] = []
+    deleted: list[dict] = []
+    repointed: list[tuple] = []
+
+    class _Sent:
+        content = "sent"
+        id = 99
+        channel = type("Ch", (), {"id": 98})()
 
     async def fake_edit(bot, ref, content, view, files=None):  # type: ignore[no-untyped-def]
         contents.append(str(content))
         return True
 
-    async def fake_dm(bot, player_id, content, view=None):  # type: ignore[no-untyped-def]
+    async def fake_dm(bot, player_id, content, view=None, files=None):  # type: ignore[no-untyped-def]
         contents.append(str(content))
+        return _Sent()
+
+    async def fake_delete(bot, ref):  # type: ignore[no-untyped-def]
+        deleted.append(dict(ref))
+
+    async def fake_record(attack_id, player_id, message):  # type: ignore[no-untyped-def]
+        repointed.append((attack_id, player_id))
 
     async def fake_mosaic(entries, filename="reveal.png", **kwargs):  # type: ignore[no-untyped-def]
         return None
 
     monkeypatch.setattr(panel, "_edit_dm_message_safe", fake_edit)
     monkeypatch.setattr(panel, "_dm_user_safe", fake_dm)
+    monkeypatch.setattr(panel, "_delete_dm_message_safe", fake_delete)
+    monkeypatch.setattr(panel, "_record_pickban_dm_safe", fake_record)
     monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
 
     await panel._edit_pickban_dms_reveal(None, _Attack(), None, fr)
-    # Both DM edits wear the RDV time in Paris (20:40 UTC → 21:40 Paris).
+    # reveal-mp-ping-v1: BOTH players get a FRESH reveal DM (a real
+    # notification) wearing the RDV time in Paris (20:40 UTC → 21:40).
     assert len(contents) == 2
-    assert all("28/10 21:40" in content for content in contents)
     assert all("RDV : 28/10 21:40" in content for content in contents)
+    # Each DM PINGS its player, names the adversary block in bold and
+    # carries the OWN picks line in the REAL stored order.
+    assert "<@111>" in contents[0] and "<@222>" in contents[1]
+    assert all("Draft de votre adversaire" in content for content in contents)
+    assert "1️⃣ francs" in contents[0] and "2️⃣ goths" in contents[0]
+    assert "1️⃣ bretons" in contents[1]
+    # The OLD draft DMs are deleted and the refs re-point to the new
+    # messages (the sabotage refreshes edit the fresh DMs).
+    assert len(deleted) == 2
+    assert len(repointed) == 2
+    assert {pid for _aid, pid in repointed} == {"111", "222"}
 def test_reveal_civs_order_is_stable_across_refreshes() -> None:
     """sabotage-dm-fresh-v1 (Drasah 30/10): the reveal order is SEEDED
     — the DM mosaic never reorders between the initial reveal and a
@@ -3447,3 +3478,391 @@ async def test_sabotage_dry_pick_closes_the_panel_without_asking(
         if task is not asyncio.current_task():
             task.cancel()
     await asyncio.sleep(0)
+
+
+# =========================================================================
+# PATCH 4.0 (Drasah 30/10) — pret-couleurs + resultat-nettoyage +
+# draft-ordre-reel + litige-mp
+# =========================================================================
+
+
+async def test_room_view_ready_buttons_wear_their_own_state() -> None:
+    """pret-couleurs-v1 (Drasah 30/10): the Prêt button is GREY « Prêt »
+    while its player waits and turns GREEN « Je suis prêt ! » (disabled)
+    once the player sits in score["ready"]."""
+    import discord
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _room_view, _strings
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "aoe2de://lobby/42")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    _wiring(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    strings = _strings("fr")
+    view = await _room_view(attack, bundle.kingdoms, strings)
+    ready = [c for c in view.children if "room:ready:" in str(c.item.custom_id)]
+    assert len(ready) == 2
+    by_side = {
+        ("defender" if str(c.item.custom_id).endswith(":defender") else "attacker"): c
+        for c in ready
+    }
+    attacker_button = by_side["attacker"]
+    defender_button = by_side["defender"]
+    # The marked side is GREEN, disabled, « Je suis prêt ! ».
+    assert attacker_button.item.style is discord.ButtonStyle.success
+    assert attacker_button.item.disabled is True
+    assert "Je suis prêt !" in str(attacker_button.item.label)
+    assert "⚔️" in str(attacker_button.item.label)
+    # The waiting side stays GREY « Prêt », clickable.
+    assert defender_button.item.style is discord.ButtonStyle.secondary
+    assert defender_button.item.disabled is False
+    assert str(defender_button.item.label).startswith("Prêt 🛡️")
+    # Both ready → both GREEN « Je suis prêt ! ».
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    view = await _room_view(attack, bundle.kingdoms, strings)
+    ready = [c for c in view.children if "room:ready:" in str(c.item.custom_id)]
+    assert all(c.item.style is discord.ButtonStyle.success for c in ready)
+    assert all(c.item.disabled for c in ready)
+    assert all("Je suis prêt !" in str(c.item.label) for c in ready)
+
+
+async def test_resolved_room_keeps_only_the_draft_button() -> None:
+    """resultat-nettoyage-v1 (Drasah 30/10): once the winner is declared
+    the room view drops the two Prêts, the 🔗 ID button and the 🏆 — only
+    the 📜 draft sheet (readable by everyone) survives."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _room_view, _strings
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "game-42")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    # litige-mp-v1: a convergence resolves the meeting AND sweeps the
+    # dispute flags (the stale « disputed » would freeze the room's 🏆).
+    await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-42")
+    _attack, outcome = await bundle.attacks.declare_score(
+        attack.id, "lord-b", aquitaine, "game-42"
+    )
+    assert outcome == "resolved"
+    _wiring(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert attack.is_over
+    assert not (attack.score or {}).get("disputed")
+    view = await _room_view(attack, bundle.kingdoms, _strings("fr"))
+    assert len(view.children) == 1
+    assert "room:draft" in str(view.children[0].item.custom_id)
+
+
+async def test_draft_sheet_real_order_after_the_phase_and_seeded_during() -> None:
+    """draft-ordre-reel-v1 (Drasah 30/10): once the sabotage phase is
+    resolved the 📜 sheet shows the REAL stored order numbered 1️⃣2️⃣3️⃣;
+    DURING the phase the order stays a SEEDED random with plain •
+    bullets (no numbering leak, stable across re-opens)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _draft_sheet_embed, _strings
+
+    class _Attack:
+        id = "d-1"
+        attacker_lord_id = "111"
+        defender_lord_id = "222"
+        ai_defender = False
+        map_key = "fortress"
+        pickban = {  # noqa: RUF012
+            "attacker_picks": ["francs", "celtes", "goths"],
+            "defender_picks": ["huns", "perses", "bretons"],
+        }
+
+    strings = _strings("fr")
+    attack = _Attack()
+    # Phase LIVE: bullets only, the three civs present, STABLE order.
+    embed = await _draft_sheet_embed(attack, None, strings)
+    left = embed.fields[0].value
+    assert "•" in left and "1️⃣" not in left
+    assert "francs" in left and "celtes" in left and "goths" in left
+    again = await _draft_sheet_embed(attack, None, strings)
+    assert again.fields[0].value == left
+    # Phase OVER: the REAL stored order with the 1️⃣2️⃣3️⃣ numbering.
+    attack.pickban["sabotage_resolved"] = True
+    embed = await _draft_sheet_embed(attack, None, strings)
+    left = embed.fields[0].value
+    assert "1️⃣ francs" in left
+    assert "2️⃣ celtes" in left
+    assert "3️⃣ goths" in left
+
+
+async def test_sabotage_reveal_payload_pings_and_carries_the_own_picks() -> None:
+    """reveal-mp-ping-v1 (Drasah 30/10): the reveal DM PINGS its player,
+    names the adversary block in bold and carries the OWN picks line in
+    the REAL stored order — the adversary order stays the seeded one."""
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+
+    class _Attack:
+        id = "r-1"
+        attacker_lord_id = "111"
+        defender_lord_id = "222"
+        ai_defender = False
+        map_key = "fortress"
+        expires_at = datetime(2026, 10, 28, 20, 40, tzinfo=UTC)
+        pickban = {  # noqa: RUF012
+            "attacker_picks": ["francs", "goths", "huns"],
+            "defender_picks": ["bretons", "perses", "byzantins"],
+            "attacker_sabotages": ["bretons"],
+        }
+
+    async def fake_mosaic(entries, filename="reveal.png", **kwargs):  # type: ignore[no-untyped-def]
+        return None
+
+    import pytest as _pytest
+
+    mp = _pytest.MonkeyPatch()
+    mp.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
+    try:
+        strings = panel._strings("fr")
+        player_id, content, view, _files = await panel._sabotage_reveal_payload(
+            None, _Attack(), "attacker", strings
+        )
+    finally:
+        mp.undo()
+    assert player_id == "111"
+    assert content.startswith("<@111>")
+    assert "Draft de votre adversaire :" in content
+    assert "**Tes picks :**" in content
+    assert "1️⃣ francs" in content and "2️⃣ goths" in content and "3️⃣ huns" in content
+    # The adversary civs ride the seeded random order (all 3 present).
+    for civ in ("bretons", "perses", "byzantins"):
+        assert civ in content
+    assert view is not None
+
+
+async def test_dispute_opens_one_dm_round_for_both_players() -> None:
+    """litige-mp-v1 (Drasah 30/10): a contrary declaration opens a
+    private DM round for BOTH players — each DM carries HIS own
+    declaration back, the two-kingdom select and the ✅ confirm button.
+    Manche UNIQUE: a second call never stacks a new round."""
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "game-42")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-42")
+    attack, outcome = await bundle.attacks.declare_score(
+        attack.id, "lord-b", bourgogne, "game-42"
+    )
+    assert outcome == "disputed"
+    _wiring(bundle)
+    wiring = _panel_wiring()
+
+    sent: list[tuple] = []
+
+    class _Sent:
+        id = 555
+        channel = type("Ch", (), {"id": 777})()
+
+    async def fake_dm(bot, player_id, content, view=None, files=None):  # type: ignore[no-untyped-def]
+        sent.append((str(player_id), str(content), view))
+        return _Sent()
+
+    original_dm = panel._dm_user_safe
+    panel._dm_user_safe = fake_dm  # type: ignore[method-assign]
+    try:
+        await panel._send_dispute_dm_round_safe(None, wiring, attack, "fr")
+        assert len(sent) == 2
+        by_player = dict((pid, (content, view)) for pid, content, view in sent)
+        assert set(by_player) == {"king-a", "lord-b"}
+        for player_id, (content, view) in by_player.items():
+            assert "Il semblerait que vous n'ayez pas choisi le même vainqueur" in content
+            assert "admin prendra le relais" in content
+            # The DM carries the player's OWN declaration back.
+            winner = "Aquitaine" if player_id == "king-a" else "Bourgogne"
+            assert f"votre choix était **{winner}**" in content
+            # The view: the two-kingdom select + the confirm button.
+            assert view is not None and len(view.children) == 2
+        fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+        score = fresh.score or {}
+        assert score.get("dispute_dm_sent") and score.get("dispute_deadline")
+        assert score.get("dispute_replies") == {}
+        # The DM refs live in the round registry (for the later edits).
+        assert set(panel._DISPUTE_DMS[str(attack.id)]) == {"king-a", "lord-b"}
+        # Manche UNIQUE: a re-send never stacks a second round.
+        await panel._send_dispute_dm_round_safe(None, wiring, fresh, "fr")
+        assert len(sent) == 2
+    finally:
+        panel._dm_user_safe = original_dm  # type: ignore[method-assign]
+        panel._DISPUTE_DMS.pop(str(attack.id), None)
+
+
+async def test_dispute_dm_round_converges_and_resolves(monkeypatch) -> None:
+    """litige-mp-v1: a DM-round reply that CONVERGES resolves the
+    meeting — both DMs die on the convergence note, the dispute flags
+    sweep and the room refreshes (the post-resolution treatment)."""
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "game-42")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-42")
+    attack, outcome = await bundle.attacks.declare_score(
+        attack.id, "lord-b", bourgogne, "game-42"
+    )
+    assert outcome == "disputed"
+    _wiring(bundle)
+    wiring = _panel_wiring()
+
+    sent: list[tuple] = []
+
+    class _Sent:
+        id = 556
+        channel = type("Ch", (), {"id": 778})()
+
+    async def fake_dm(bot, player_id, content, view=None, files=None):  # type: ignore[no-untyped-def]
+        sent.append((str(player_id), str(content), view))
+        return _Sent()
+
+    monkeypatch.setattr(panel, "_dm_user_safe", fake_dm)
+    resolved_calls: list[dict] = []
+
+    async def fake_resolved(*args, **kwargs):  # type: ignore[no-untyped-def]
+        resolved_calls.append({})
+
+    monkeypatch.setattr(panel, "_on_score_resolved_safe", fake_resolved)
+    await panel._send_dispute_dm_round_safe(None, wiring, attack, "fr")
+
+    # The DEFENDER changes his mind in his DM → convergence.
+    strings = panel._strings("fr")
+    options = await panel._dispute_select_options(wiring, attack)
+    select = panel.KingdomDisputeChoiceSelect(str(attack.id), options, "pick")
+    click = MockInteraction(
+        user=MockUser(id="lord-b"),
+        guild=MockGuild(),
+        locale="fr",
+        data={"values": [str(aquitaine)]},
+    )
+    await select.callback(click)  # type: ignore[arg-type]
+    content = str(click.response.message.content or "")
+    assert "Litige clos" in content and "Aquitaine" in content
+    # The convergence resolved the meeting and swept the flags.
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.is_over
+    assert not (fresh.score or {}).get("disputed")
+    assert resolved_calls == [{}]
+    # The round registry closes (both DMs died on the convergence note).
+    assert str(attack.id) not in panel._DISPUTE_DMS
+
+
+async def test_dispute_dm_round_persists_then_hands_over_to_the_admins(
+    monkeypatch,
+) -> None:
+    """litige-mp-v1: when BOTH players replied WITHOUT converging the
+    admins take over at once — the admin dispute DM goes out, the
+    ``dispute_admin_sent`` flag lands and both player DMs wear the
+    handover note."""
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "game-42")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-42")
+    attack, outcome = await bundle.attacks.declare_score(
+        attack.id, "lord-b", bourgogne, "game-42"
+    )
+    assert outcome == "disputed"
+    _wiring(bundle)
+    wiring = _panel_wiring()
+
+    sent: list[tuple] = []
+    admin_dms: list[str] = []
+
+    class _Sent:
+        id = 557
+        channel = type("Ch", (), {"id": 779})()
+
+    async def fake_dm(bot, player_id, content, view=None, files=None):  # type: ignore[no-untyped-def]
+        sent.append((str(player_id), str(content), view))
+        return _Sent()
+
+    async def fake_admin_dm(bot, w, a, s):  # type: ignore[no-untyped-def]
+        admin_dms.append(str(a.id))
+
+    async def fake_record(attack_id, player_id, message):  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr(panel, "_dm_user_safe", fake_dm)
+    monkeypatch.setattr(panel, "_dm_admins_dispute_safe", fake_admin_dm)
+    monkeypatch.setattr(panel, "_record_pickban_dm_safe", fake_record)
+    await panel._send_dispute_dm_round_safe(None, wiring, attack, "fr")
+
+    strings = panel._strings("fr")
+    options = await panel._dispute_select_options(wiring, attack)
+    # Player A CONFIRMS his own choice via the ✅ button.
+    confirm = panel.KingdomDisputeConfirmButton(str(attack.id), strings["dispute_confirm_button"])
+    click_a = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), locale="fr")
+    await confirm.callback(click_a)  # type: ignore[arg-type]
+    content_a = str(click_a.response.message.content or "")
+    assert "en attente de ton adversaire" in content_a and "Aquitaine" in content_a
+    # Player B re-picks his contrary choice via the select.
+    select = panel.KingdomDisputeChoiceSelect(str(attack.id), options, "pick")
+    click_b = MockInteraction(
+        user=MockUser(id="lord-b"),
+        guild=MockGuild(),
+        locale="fr",
+        data={"values": [str(bourgogne)]},
+    )
+    await select.callback(click_b)  # type: ignore[arg-type]
+    content_b = str(click_b.response.message.content or "")
+    assert "admin prend le relais" in content_b
+    assert admin_dms == [str(attack.id)]
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert (fresh.score or {}).get("dispute_admin_sent")
+    # The deadline handover is idempotent: the flagged litige is done.
+    due = await bundle.attacks.dispute_handover_due()
+    assert [a.id for a in due] == []
+    panel._DISPUTE_DMS.pop(str(attack.id), None)
+
+
+async def test_dispute_handover_due_flags_the_deadline(monkeypatch) -> None:
+    """litige-mp-v1: a DM round that nobody answers reaches the admins
+    once the 30-minute deadline passes."""
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "game-42")
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-42")
+    attack, outcome = await bundle.attacks.declare_score(
+        attack.id, "lord-b", bourgogne, "game-42"
+    )
+    assert outcome == "disputed"
+    await bundle.attacks.open_dispute_dm_round(str(attack.id))
+    # Before the deadline: nothing due.
+    assert await bundle.attacks.dispute_handover_due() == []
+    # 31 minutes later: the litige reaches the admins.
+    late = datetime(2026, 10, 11, 18, 21, tzinfo=UTC)
+    due = await bundle.attacks.dispute_handover_due(now=late)
+    assert [a.id for a in due] == [attack.id]
+    await bundle.attacks.mark_dispute_admin_sent(str(attack.id))
+    assert await bundle.attacks.dispute_handover_due(now=late) == []
