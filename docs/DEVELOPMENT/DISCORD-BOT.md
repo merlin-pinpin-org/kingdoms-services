@@ -83,6 +83,24 @@ Un panel épinglé par salon d'admin. Règles projet :
   demandent la guilde via `GuildContextPicker` — helper unique
   `require_guild_context`, jamais de duplication par vue.
 
+### Fil d'activité AoE2 (`live_activity.py`)
+
+Chaque transition d'un joueur lié (entrée en lobby, lancement de
+partie, fin) atterrit en UN message dans le channel **logs** de
+chaque guild concernée (le joueur y est membre), dans l'ordre
+d'arrivée — lire le channel dit qui joue / a joué et quand :
+
+- `🟡 **Pseudo** entre dans le [lobby #123](lien join)` ;
+- `🟢 **Pseudo** lance la [partie #123](lien watch) : **mode** — map`
+  suivi du roster (`nom (civ) — équipe n`) ;
+- `⚪ Le match de **Pseudo** est terminé` (le nom persiste via le
+  dernier match connu).
+
+La source : le flux `WatchPlayerEvents` du service gamedata (les
+enrollments souscrivent déjà le provider aux profile_ids des guilds)
+; le transport : `logs_service.log_event` ; la boucle est résiliente
+(stream cassé → reconnexion, un envoi raté ne tue rien).
+
 ### Menus d'admin
 
 **Panel épinglé** (`🛡️ Bot admin — cross-guild` en DM, panel par

@@ -299,6 +299,12 @@ class KingdomsBot(discord.Client):
         from kingdoms.discord.player_status import start_player_status_stream
 
         start_player_status_stream(self)
+        # the AoE2 live activity feed (owner direction 2026-10-30): every
+        # linked player's transition lands in each concerned guild's
+        # logs channel — reading the channel tells who plays and when
+        from kingdoms.discord.live_activity import start_live_activity_feed
+
+        self._live_activity_task = start_live_activity_feed(self)
         if self._synced:
             return
         self._synced = True

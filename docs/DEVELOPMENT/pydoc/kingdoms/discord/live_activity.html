@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.live_activity</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.live_activity</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/live_activity.py">SOURCE_ROOT/discord/live_activity.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;AoE2&nbsp;live&nbsp;activity&nbsp;feed&nbsp;(kingdoms-services#147,&nbsp;owner&nbsp;direction).<br>
+&nbsp;<br>
+Every&nbsp;known&nbsp;player's&nbsp;transition&nbsp;—&nbsp;a&nbsp;linked&nbsp;profile&nbsp;entering&nbsp;a&nbsp;lobby,<br>
+starting&nbsp;a&nbsp;game,&nbsp;leaving&nbsp;—&nbsp;lands&nbsp;as&nbsp;ONE&nbsp;message&nbsp;in&nbsp;each&nbsp;concerned<br>
+guild's&nbsp;LOGS&nbsp;channel,&nbsp;in&nbsp;arrival&nbsp;order:&nbsp;reading&nbsp;the&nbsp;channel&nbsp;tells&nbsp;the<br>
+guild&nbsp;who&nbsp;plays&nbsp;/&nbsp;played&nbsp;AoE2&nbsp;and&nbsp;when.<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;source:&nbsp;the&nbsp;game&nbsp;service's&nbsp;``WatchPlayerEvents``&nbsp;stream&nbsp;(the<br>
+&nbsp;&nbsp;gamedata&nbsp;aggregator&nbsp;folds&nbsp;the&nbsp;providers'&nbsp;events;&nbsp;the&nbsp;enrollments<br>
+&nbsp;&nbsp;subscribe&nbsp;the&nbsp;provider&nbsp;to&nbsp;the&nbsp;guilds'&nbsp;linked&nbsp;profile&nbsp;ids);<br>
+-&nbsp;the&nbsp;audience:&nbsp;every&nbsp;guild&nbsp;where&nbsp;the&nbsp;profile's&nbsp;linked&nbsp;platform&nbsp;user<br>
+&nbsp;&nbsp;is&nbsp;a&nbsp;member&nbsp;(the&nbsp;member&nbsp;cache),&nbsp;read&nbsp;from&nbsp;the&nbsp;bindings;<br>
+-&nbsp;the&nbsp;transport:&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(``logs_service``),&nbsp;plain&nbsp;text<br>
+&nbsp;&nbsp;lines&nbsp;—&nbsp;the&nbsp;channel&nbsp;is&nbsp;the&nbsp;activity&nbsp;trail,&nbsp;no&nbsp;views,&nbsp;no&nbsp;pins.<br>
+&nbsp;<br>
+The&nbsp;loop&nbsp;is&nbsp;resilient:&nbsp;a&nbsp;stream&nbsp;break&nbsp;reconnects,&nbsp;a&nbsp;send&nbsp;failure<br>
+never&nbsp;kills&nbsp;the&nbsp;feed.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-start_live_activity_feed"><strong>start_live_activity_feed</strong></a>(bot: 'discord.Client') -&gt; 'asyncio.Task[None] | None'</dt><dd><span class="code">Run&nbsp;the&nbsp;AoE2&nbsp;activity&nbsp;feed:&nbsp;transitions&nbsp;→&nbsp;the&nbsp;guilds'&nbsp;logs&nbsp;channels.<br>
+&nbsp;<br>
+One&nbsp;stream&nbsp;consumer,&nbsp;forever;&nbsp;None&nbsp;when&nbsp;the&nbsp;game&nbsp;service&nbsp;is&nbsp;not<br>
+wired&nbsp;(the&nbsp;feed&nbsp;degrades&nbsp;to&nbsp;nothing,&nbsp;silently).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['start_live_activity_feed']<br>
+<strong>__annotations__</strong> = {'_LAST_NAME': 'dict[str, str]'}</td></tr></table>
+</body></html>
