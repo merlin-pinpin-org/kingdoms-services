@@ -474,6 +474,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "sab_panel_used": "Retirées : {list}",
         "sab_panel_none": "Aucune civilisation retirée pour l'instant.",
         "sab_panel_done": "🪶 **{civ}** retirée du camp adverse — {used}/2.",
+        "sab_again_ask": "🗡️ Veux-tu saboter une autre civilisation ?",
+        "sab_again_yes": "Oui — un autre sabotage",
+        "sab_again_no": "Non — j'ai fini",
         "room_ping_winner": "🏆 Vainqueur : **{winner}**",
         "ready_button": "✅ Prêt — confirme ta présence",
         "ready_done": "✅ Présence confirmée — rejoins le salon de la bataille à l'heure du RDV.",
@@ -842,6 +845,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "sab_panel_used": "Removed: {list}",
         "sab_panel_none": "No civilization removed yet.",
         "sab_panel_done": "🪶 **{civ}** removed from the enemy side — {used}/2.",
+        "sab_again_ask": "🗡️ Do you want to sabotage another civilization?",
+        "sab_again_yes": "Yes — another sabotage",
+        "sab_again_no": "No — I'm done",
         "room_ping_winner": "🏆 Winner: **{winner}**",
         "ready_button": "✅ Ready — confirm your presence",
         "ready_done": "✅ Presence confirmed — join the battle room at the meeting time.",
@@ -3622,17 +3628,46 @@ def _room_key(attack_id: str) -> str:
     return hashlib.sha256(str(attack_id).encode()).hexdigest()[:16]
 
 
-def _sabotage_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui.View:
+async def _sabotage_open_available(wiring: Any, attack: Any, side: str) -> bool:
+    """Whether this side can still sabotage (sabotage-dm-fresh-v1).
+
+    True while the side owns a usable Sabotage charge or a ready
+    Faucon AND the 2-per-attack cap is not reached — the 🗡️ DM button
+    wears this state (blue = can sabotage, red = done/dry).
+    """
+    if wiring is None:
+        return True
+    pickban = dict(attack.pickban or {})
+    used = len([str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])])
+    if used >= 2:
+        return False
+    view = await _sabotage_menu_view(wiring, attack, side, _strings("fr"))
+    return view is not None and bool(list(view.children))
+
+
+async def _sabotage_dm_view(
+    wiring: Any, attack: Any, side: str, strings: dict[str, str]
+) -> discord.ui.View:
     """Build the persistent sabotage-phase view of one player's DM (v4).
 
     Two restart-proof buttons: open the sabotage/Faucon menu, or Pass
     (settle the side). A player with neither sabotage nor Faucon sees
     the notice when OPENING the menu (availability is dynamic).
+    sabotage-dm-fresh-v1 (Drasah 30/10): the 🗡️ button carries the
+    availability — blue (Primary) while the side can still sabotage,
+    red (Danger) once the stock is dry or the 2-cap is reached. The
+    DM is re-edited after every pick, so the color follows the live
+    state.
     """
-    strings = _strings(locale)
+    player_id = str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
+    available = await _sabotage_open_available(wiring, attack, side)
     view = discord.ui.View(timeout=None)
-    view.add_item(KingdomSabotageOpenButton(attack_id, player_id, strings["sab_open_button"]))
-    view.add_item(KingdomSabotagePassButton(attack_id, player_id, strings["sab_pass_button"]))
+    view.add_item(
+        KingdomSabotageOpenButton(
+            str(attack.id), player_id, strings["sab_open_button"], available=available
+        )
+    )
+    view.add_item(KingdomSabotagePassButton(str(attack.id), player_id, strings["sab_pass_button"]))
     return view
 
 
@@ -3668,6 +3703,69 @@ async def _edit_dm_message_safe(
         return False
 
 
+async def _sabotage_reveal_payload(
+    wiring: Any, attack: Any, side: str, strings: dict[str, str]
+) -> tuple[str, str, discord.ui.View, list[discord.File] | None]:
+    """Build one side's REVEAL DM content + view + crossed mosaic.
+
+    sabotage-dm-fresh-v1 (Drasah 30/10): the payload is shared by the
+    initial reveal AND every post-pick refresh — the DM stays the ONE
+    living surface, the mosaic wears the ❌ crosses of the civs this
+    side already sabotaged, the stock line and the 🗡️ button color
+    follow the live state. The order is SEEDED (stable across every
+    refresh — a fresh shuffle would reorder the mosaic at each snipe).
+    """
+    pickban = dict(attack.pickban or {})
+    player_id = str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
+    enemy = "defender" if side == "attacker" else "attacker"
+    shuffled = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
+    civs = ", ".join(shuffled) or "—"
+    content = strings["pickban_reveal_dm"].format(
+        map=attack.map_key, civs=civs, deadline=_fmt_paris(attack.expires_at)
+    )
+    # sabotage-ux-v1 (Drasah 22/10): the reveal keeps the stock
+    # line visible (the sabotage phase follows right after).
+    if wiring is not None:
+        content = f"{content}\n\n{await _sabotage_stock_line(wiring, attack, side, strings)}"
+    view = await _sabotage_dm_view(wiring, attack, side, strings)
+    used = {str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])}
+    # blasons-affichage-v1 (Drasah 28/10): the revealed civs wear
+    # ONE composite mosaic — each name painted above its crest
+    # (the alliances-lisibilite-v1 style), in the SAME shuffled
+    # order as the names (the raw pick order stays hidden). The
+    # origin badge is STRIPPED here (revelation 28/10): the ⭐ is
+    # useless on a reveal, the Alliances panel keeps its own.
+    mosaic = await civ_crest_mosaic_file(
+        [(civ, "", civ) for civ in shuffled],
+        filename="reveal.png",
+        with_origin_badges=False,
+        crossed=used,
+    )
+    files = [mosaic] if mosaic is not None else None
+    return player_id, content, view, files
+
+
+async def _refresh_sabotage_dm_safe(
+    bot: Any, wiring: Any, attack: Any, side: str, strings: dict[str, str]
+) -> None:
+    """Edit one side's Reveal DM after a sabotage pick (dm-fresh-v1).
+
+    Option A (Drasah 30/10): the DM is re-edited in place with the
+    crossed mosaic + fresh stock line; a dead or lost message falls
+    back to a NEW DM so the surface is never lost. Best effort — a
+    failing refresh never breaks the pick itself.
+    """
+    player_id, content, view, files = await _sabotage_reveal_payload(wiring, attack, side, strings)
+    if not player_id:
+        return
+    ref = (attack.pickban or {}).get(f"{side}_dm") or {}
+    edited = False
+    if ref.get("channel_id") and ref.get("message_id"):
+        edited = await _edit_dm_message_safe(bot, ref, content, view, files)
+    if not edited:
+        await _dm_user_safe(bot, player_id, content, view, files)
+
+
 async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> None:
     """Edit both draft DMs into the REVEAL + sabotage prompt (v4).
 
@@ -3691,29 +3789,7 @@ async def _edit_pickban_dms_reveal(bot: Any, attack: Any, kingdoms_service: Any,
     ):
         if not player_id or (side == "defender" and attack.ai_defender):
             continue
-        enemy = "defender" if side == "attacker" else "attacker"
-        shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
-        civs = ", ".join(shuffled) or "—"
-        content = strings["pickban_reveal_dm"].format(
-            map=attack.map_key, civs=civs, deadline=_fmt_paris(attack.expires_at)
-        )
-        # sabotage-ux-v1 (Drasah 22/10): the reveal keeps the stock
-        # line visible (the sabotage phase follows right after).
-        if wiring is not None:
-            content = f"{content}\n\n{await _sabotage_stock_line(wiring, attack, side, strings)}"
-        view = _sabotage_dm_view(str(attack.id), player_id, "fr")
-        # blasons-affichage-v1 (Drasah 28/10): the revealed civs wear
-        # ONE composite mosaic — each name painted above its crest
-        # (the alliances-lisibilite-v1 style), in the SAME shuffled
-        # order as the names (the raw pick order stays hidden). The
-        # origin badge is STRIPPED here (revelation 28/10): the ⭐ is
-        # useless on a reveal, the Alliances panel keeps its own.
-        mosaic = await civ_crest_mosaic_file(
-            [(civ, "", civ) for civ in shuffled],
-            filename="reveal.png",
-            with_origin_badges=False,
-        )
-        files = [mosaic] if mosaic is not None else None
+        _pid, content, view, files = await _sabotage_reveal_payload(wiring, attack, side, strings)
         ref = pickban.get(f"{side}_dm") or {}
         edited = False
         if ref.get("channel_id") and ref.get("message_id"):
@@ -3744,7 +3820,7 @@ async def _edit_pickban_dms_default_reveal(
         if not player_id or (side == "defender" and attack.ai_defender):
             continue
         enemy = "defender" if side == "attacker" else "attacker"
-        shuffled = _shuffled_civs(pickban.get(f"{enemy}_picks"))
+        shuffled = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
         civs = ", ".join(shuffled) or "—"
         content = strings["pickban_default_reveal_dm"].format(map=attack.map_key, civs=civs)
         # blasons-affichage-v1 (Drasah 28/10): the defaulted reveal
@@ -3844,13 +3920,21 @@ class KingdomSabotageOpenButton(
 ):
     """The restart-proof 🗡️ Sabotage / Faucon button of the draft DM (v4)."""
 
-    def __init__(self, attack_id: str, player_id: str, label: str) -> None:
+    def __init__(self, attack_id: str, player_id: str, label: str, *, available: bool = True) -> None:
         key = _ready_key(attack_id, player_id)
+        # sabotage-dm-fresh-v1 (Drasah 30/10): the 🗡️ button carries the
+        # availability — blue (Primary) while the side can still
+        # sabotage, red (Danger) once the stock is dry or the 2-per-
+        # attack cap is reached.
         super().__init__(
             discord.ui.Button(
                 label=label[:80],
                 custom_id=f"kingdoms:attack:sab:open:{key}",
-                style=discord.ButtonStyle.primary,
+                style=(
+                    discord.ButtonStyle.primary
+                    if available
+                    else discord.ButtonStyle.danger
+                ),
             )
         )
         self.attack_id = attack_id
@@ -4419,6 +4503,21 @@ def _shuffled_civs(picks: Any) -> list[str]:
 
     pool = [str(civ) for civ in (picks or [])]
     _random.shuffle(pool)
+    return pool
+
+
+def _reveal_civs(seed: str, picks: Any) -> list[str]:
+    """Seeded shuffle of one side's 3 picks (sabotage-dm-fresh-v1).
+
+    The reveal order must stay STABLE across the initial reveal and
+    every post-pick DM refresh — a fresh random shuffle would reorder
+    the mosaic at each snipe. The seed is private to the bot, so the
+    pick ranking stays hidden.
+    """
+    import random as _random
+
+    pool = [str(civ) for civ in (picks or [])]
+    _random.Random(f"reveal:{seed}").shuffle(pool)
     return pool
 
 
@@ -5915,7 +6014,10 @@ async def _sabotage_panel_content(
     lines.append(await _sabotage_stock_line(wiring, attack, side, strings))
     view = await _sabotage_menu_view(wiring, attack, side, strings)
     enemy = "defender" if side == "attacker" else "attacker"
-    enemy_picks = [str(civ) for civ in (pickban.get(f"{enemy}_picks") or [])]
+    # sabotage-dm-fresh-v1 (Drasah 30/10): the panel mosaic wears the
+    # SAME seeded order as the DM reveal — stable across re-renders
+    # (the raw pick order would leak the hidden ranking anyway).
+    enemy_picks = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
     file: discord.File | None = None
     if enemy_picks:
         try:
@@ -6039,7 +6141,11 @@ async def _sabotage_civ_select_view(
     pickban = dict(attack.pickban or {})
     enemy = "defender" if side == "attacker" else "attacker"
     already = [str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])]
-    options = [civ for civ in _shuffled_civs(pickban.get(f"{enemy}_picks")) if civ not in already][:25]
+    options = [
+        civ
+        for civ in _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
+        if civ not in already
+    ][:25]
     if not options:
         return None
     view = discord.ui.View(timeout=300)
@@ -6080,10 +6186,29 @@ async def _sabotage_civ_select_view(
         used = len([str(civ2) for civ2 in ((fresh.pickban or {}).get(f"{side}_sabotages") or [])])
         note = strings["sab_panel_done"].format(civ=civ, used=used)
         key = (attack_id, user_id)
+        # sabotage-dm-fresh-v1 (Drasah 30/10): the DM Reveal is the ONE
+        # living surface — it is re-edited in place right after the
+        # pick (crossed mosaic + fresh stock), BEFORE the panel moves
+        # on; a dead DM falls back to a NEW DM (option A).
+        await _refresh_sabotage_dm_safe(
+            getattr(target, "client", None), wiring, fresh, side, strings
+        )
+        more = used < 2 and menu is not None and bool(list(menu.children))
+        if more:
+            # Under the cap and still owning a charge — the panel asks
+            # for a 2nd sabotage IN place: Oui re-opens the action menu,
+            # Non closes the ephemeral for good.
+            body = f"{content}\n\n{note}\n\n{strings['sab_again_ask']}"
+            view: discord.ui.View | None = _sabotage_again_view(wiring, attack_id, side, strings)
+        else:
+            # Cap reached or stock dry — no question, the panel shows
+            # the récap and sweeps itself away (the DM carries on).
+            body = f"{content}\n\n{note}"
+            view = None
         try:
             await target.response.edit_message(
-                content=f"{content}\n\n{note}",
-                view=menu,
+                content=body,
+                view=view,
                 attachments=[file] if file is not None else [],
             )
         except Exception:
@@ -6095,19 +6220,90 @@ async def _sabotage_civ_select_view(
             from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
 
             await _close_stale_notice(user_id)
-            fallback_kwargs: dict[str, Any] = {"view": menu, "ephemeral": True}
+            fallback_kwargs: dict[str, Any] = {"view": view, "ephemeral": True}
             if file is not None:
                 fallback_kwargs["files"] = [file]
-            window = await target.followup.send(f"{content}\n\n{note}", **fallback_kwargs)
+            window = await target.followup.send(body, **fallback_kwargs)
             _EPHEMERAL_WINDOWS[user_id] = (target, time.monotonic(), window)
-        if menu is None or not list(menu.children):
+        if more:
+            _arm_sabotage_panel_timer(key)
+        else:
             # No action left — sweep the closed panel quickly.
             _arm_sabotage_panel_timer(key, seconds=_SABOTAGE_PANEL_SWEEP_SECONDS)
-        else:
-            _arm_sabotage_panel_timer(key)
 
     select.callback = _on_pick  # type: ignore[method-assign,assignment]
     view.add_item(select)
+    return view
+
+
+def _sabotage_again_view(
+    wiring: Any, attack_id: str, side: str, strings: dict[str, str]
+) -> discord.ui.View:
+    """The « one more sabotage ? » confirmation of the panel (dm-fresh-v1).
+
+    Drasah 30/10: after a successful pick the panel asks IN place —
+    Oui (green) re-opens the action menu, Non (red) closes the
+    ephemeral at once. The DM Reveal stays the living surface either
+    way (it was refreshed before the question).
+    """
+    view = discord.ui.View(timeout=300)
+
+    async def _fresh() -> Any:
+        try:
+            return next(
+                item for item in await wiring.attacks_service.attacks() if str(item.id) == attack_id
+            )
+        except Exception:
+            return None
+
+    async def _on_yes(target: discord.Interaction) -> None:
+        attack = await _fresh()
+        user_id = (
+            str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
+            if attack is not None
+            else ""
+        )
+        if not user_id or str(getattr(target.user, "id", "")) != user_id:
+            await target.response.defer()
+            return
+        key = (attack_id, user_id)
+        content, menu, file = await _sabotage_panel_content(wiring, attack, side, strings)
+        if menu is None or not list(menu.children):
+            # Nothing left after all — the récap stands, the panel sweeps.
+            await target.response.edit_message(
+                content=f"{content}\n\n{strings['sab_empty']}",
+                view=None,
+                attachments=[file] if file is not None else [],
+            )
+            _arm_sabotage_panel_timer(key, seconds=_SABOTAGE_PANEL_SWEEP_SECONDS)
+            return
+        await target.response.edit_message(
+            content=f"{content}\n\n{strings['sab_choose']}",
+            view=menu,
+            attachments=[file] if file is not None else [],
+        )
+        _arm_sabotage_panel_timer(key)
+
+    async def _on_no(target: discord.Interaction) -> None:
+        attack = await _fresh()
+        user_id = (
+            str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
+            if attack is not None
+            else str(getattr(target.user, "id", ""))
+        )
+        if attack is not None and str(getattr(target.user, "id", "")) != user_id:
+            await target.response.defer()
+            return
+        # The player is done — the ephemeral closes NOW, the DM remains.
+        await target.response.defer()
+        await _delete_sabotage_panel((attack_id, user_id))
+
+    yes = discord.ui.Button(label=strings["sab_again_yes"][:80], style=discord.ButtonStyle.success)
+    no = discord.ui.Button(label=strings["sab_again_no"][:80], style=discord.ButtonStyle.danger)
+    yes.callback = _on_yes  # type: ignore[method-assign,assignment]
+    no.callback = _on_no  # type: ignore[method-assign,assignment]
+    view.add_item(yes)
+    view.add_item(no)
     return view
 
 

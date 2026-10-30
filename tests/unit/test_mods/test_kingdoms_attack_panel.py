@@ -3202,3 +3202,178 @@ async def test_pickban_and_reveal_dms_carry_the_closing_time(monkeypatch) -> Non
     assert len(contents) == 2
     assert all("28/10 21:40" in content for content in contents)
     assert all("RDV : 28/10 21:40" in content for content in contents)
+def test_reveal_civs_order_is_stable_across_refreshes() -> None:
+    """sabotage-dm-fresh-v1 (Drasah 30/10): the reveal order is SEEDED
+    — the DM mosaic never reorders between the initial reveal and a
+    post-pick refresh (a fresh shuffle jumped at each snipe)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _reveal_civs
+
+    picks = ["francs", "bretons", "goths", "huns", "perses"]
+    first = _reveal_civs("a-1:defender", picks)
+    assert first == _reveal_civs("a-1:defender", picks)
+    assert sorted(first) == sorted(picks)
+    assert _reveal_civs("a-1:attacker", picks)  # another seed resolves too
+
+
+async def test_sabotage_dm_button_wears_the_availability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """sabotage-dm-fresh-v1 (Drasah 30/10): the 🗡️ DM button is BLUE
+    while the side owns a usable charge under the 2 cap, RED once the
+    stock is dry or the cap is reached."""
+    import discord
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=1)
+    _wiring(bundle)
+    wiring = _panel_wiring()
+    strings = panel._strings("fr")
+
+    async def fake_mosaic(entries, filename="reveal.png", **kwargs):  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
+    view = await panel._sabotage_dm_view(wiring, attack, "attacker", strings)
+    assert view.children[0].item.style is discord.ButtonStyle.primary
+
+    # The 2-per-attack cap is reached — the button turns red.
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    pickban = dict(fresh.pickban)
+    pickban["attacker_sabotages"] = ["huns", "perses"]
+    fresh.pickban = pickban
+    await bundle.store.upsert_attack(fresh.to_mongo())
+    view = await panel._sabotage_dm_view(wiring, fresh, "attacker", strings)
+    assert view.children[0].item.style is discord.ButtonStyle.danger
+
+
+async def test_sabotage_pick_refreshes_the_reveal_dm_and_asks_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """sabotage-dm-fresh-v1 (Drasah 30/10): the pick edits the Reveal DM
+    IN PLACE (crossed mosaic + fresh stock) and the panel asks « one
+    more ? » — Oui (green) re-opens the action menu in the same panel."""
+    import asyncio
+
+    import discord
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=2)
+    _wiring(bundle)
+    wiring = _panel_wiring()
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    pickban = dict(fresh.pickban)
+    pickban["attacker_dm"] = {"channel_id": 10, "message_id": 11}
+    fresh.pickban = pickban
+    await bundle.store.upsert_attack(fresh.to_mongo())
+
+    dm_edits: list[dict[str, Any]] = []
+
+    async def fake_edit(bot, ref, content, view, files=None):  # type: ignore[no-untyped-def]
+        dm_edits.append({"ref": dict(ref), "content": str(content)})
+        return True
+
+    async def fake_mosaic(entries, filename="reveal.png", **kwargs):  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr(panel, "_edit_dm_message_safe", fake_edit)
+    monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
+
+    strings = panel._strings("fr")
+    view = await panel._sabotage_civ_select_view(
+        wiring, str(attack.id), "attacker", "techno", strings
+    )
+    assert view is not None
+    select = view.children[0]
+    select.values = ["huns"]
+    click = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await select.callback(click)  # type: ignore[arg-type]
+
+    # The Reveal DM was re-edited IN PLACE — the stock went 2 → 1.
+    assert len(dm_edits) == 1
+    assert dm_edits[0]["ref"] == {"channel_id": 10, "message_id": 11}
+    assert "Sabotage : 1" in dm_edits[0]["content"]
+    # The panel asks for a 2nd sabotage — green Oui, red Non.
+    content = str(click.response.message.content or "")
+    assert "1/2" in content
+    assert "Veux-tu saboter une autre" in content
+    confirm = click.response.message.view
+    assert confirm is not None and len(confirm.children) == 2
+    assert confirm.children[0].style is discord.ButtonStyle.success
+    assert confirm.children[1].style is discord.ButtonStyle.danger
+
+    # Oui re-opens the action menu in the SAME panel (stock left: 1).
+    yes_click = MockInteraction(
+        user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr"
+    )
+    await confirm.children[0].callback(yes_click)  # type: ignore[arg-type]
+    assert "Choisis la civilisation" in str(yes_click.response.message.content or "")
+    assert yes_click.response.message.view is not None
+    assert list(yes_click.response.message.view.children)
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
+async def test_sabotage_dry_pick_closes_the_panel_without_asking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """sabotage-dm-fresh-v1: the LAST charge (dry stock) closes the
+    panel directly — no question, the DM carries the récap alone."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.meeting()
+    await bundle.stock(aquitaine, sabotage=1)
+    _wiring(bundle)
+    wiring = _panel_wiring()
+
+    dm_edits: list[str] = []
+
+    async def fake_edit(bot, ref, content, view, files=None):  # type: ignore[no-untyped-def]
+        dm_edits.append(str(content))
+        return True
+
+    async def fake_mosaic(entries, filename="reveal.png", **kwargs):  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr(panel, "_edit_dm_message_safe", fake_edit)
+    monkeypatch.setattr(panel, "civ_crest_mosaic_file", fake_mosaic)
+
+    strings = panel._strings("fr")
+    view = await panel._sabotage_civ_select_view(
+        wiring, str(attack.id), "attacker", "techno", strings
+    )
+    assert view is not None
+    select = view.children[0]
+    select.values = ["huns"]
+    click = MockInteraction(user=MockUser(id="king-a"), guild=MockGuild(), channel=None, locale="fr")
+    await select.callback(click)  # type: ignore[arg-type]
+
+    assert len(dm_edits) == 1
+    assert "Sabotage : 0" in dm_edits[0]
+    content = str(click.response.message.content or "")
+    assert "1/2" in content
+    assert "Veux-tu saboter une autre" not in content
+    assert click.response.message.view is None
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
