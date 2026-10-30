@@ -159,8 +159,6 @@ en:
     admin_name: admin
     admin_description: Admin panel (bot operators and guild admins only)
     register_name: register
-    live_name: live
-    live_description: 'Live AoE2 dashboard: linked players, lobbies and games'
     register_description: Link your AoE2 profile to your account (DM enrollment)
     home_name: home
     home_description: The guild's home menu

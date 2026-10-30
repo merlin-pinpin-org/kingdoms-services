@@ -299,7 +299,6 @@ class KingdomsBot(discord.Client):
         from kingdoms.discord.player_status import start_player_status_stream
 
         start_player_status_stream(self)
-        self._live_dashboard_task = _start_live_dashboards(self)
         if self._synced:
             return
         self._synced = True
@@ -777,8 +776,6 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
-        if self._live_dashboard_task is not None:
-            self._live_dashboard_task.cancel()
         if self.registration_engine is not None:
             await self.registration_engine.stop()
         if self.state_service is not None:
@@ -912,38 +909,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         tuple((name, definition.required_games) for name, definition in registry.enabled().items()),
     )
     return bot
-
-
-def _start_live_dashboards(bot: KingdomsBot) -> asyncio.Task[None] | None:
-    """Run the per-game live dashboard refresh loops when wired.
-
-    Generic (owner direction 2026-10-23): every installed game with a
-    configured game service gets its own dashboard stream and channel.
-    The game-service URI convention is ``GAME_<KEY>_URI`` (uppercase
-    game key); aoe2 is the first game.
-    """
-    from kingdoms.discord.live import start_live_dashboard_refresh
-    from kingdoms.discord.messages_platform import build_message_registry
-
-    registry = build_message_registry()
-    if registry is None:
-        return None
-    clients: dict[str, Any] = {}
-    for game_key in getattr(bot, "games", ()) or ():
-        uri = os.environ.get(f"GAME_{game_key.upper()}_URI", "")
-        if not uri:
-            continue
-        if game_key == "aoe2":
-            from kingdoms.game_aoe2.client import GameDataClient
-
-            clients[game_key] = GameDataClient(uri)
-        else:
-            logger.warning("live dashboard: no client for game %s yet", game_key)
-    if not clients:
-        return None
-    task: Any = asyncio.create_task(start_live_dashboard_refresh(bot, clients, registry))
-    bot._live_refresh_task = task  # type: ignore[attr-defined]  # the refresh button revives it
-    return task  # type: ignore[no-any-return]
 
 
 def _build_home_channel_service(

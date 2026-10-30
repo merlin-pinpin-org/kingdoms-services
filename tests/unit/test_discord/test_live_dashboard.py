@@ -1,30 +1,31 @@
-"""Unit tests for the persistent live dashboard surface (#147).
+"""Unit tests for the ephemeral live dashboard surface (#147).
 
-Covers the logical-key lifecycle: the dashboard message is created once,
-registered in the message registry, then edited in place on every
-refresh — the channel never accumulates messages.
+The live view is ephemeral-only (owner direction): rendered on demand
+(/live, the menu button, the refresh button), never pinned, never a
+persistent message. Covered here: the render itself (title, body,
+relative timestamp, the refresh button, the id footer) and the
+guild-scoped snapshot filter.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, ClassVar
-
 import pytest
 
-from kingdoms.core.models.registered_message import RegisteredMessageModel
+from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.discord.live import (
     DEFAULT_GAME_KEY as GAME_KEY,
 )
-from kingdoms.discord.live import (
-    PLATFORM,
-    ensure_live_dashboard,
-    live_view_key,
-)
+from kingdoms.discord.live import build_dashboard_view, live_view_key, scope_snapshot_to_guild
+
+
+class _CatalogBot:
+    """A bot stand-in exposing the message catalog."""
+
+    messages = MessageCatalog("config")
 
 
 def _view_text(view: object) -> str:
-    """Flatten a LayoutView's TextDisplays (real or fake) into text."""
+    """Flatten a LayoutView's TextDisplays into text."""
     if view is None:
         return ""
     parts: list[str] = []
@@ -39,324 +40,82 @@ def _view_text(view: object) -> str:
     return "\n".join(parts)
 
 
-@dataclass
-class _FakeMessage:
-    id: int
-    content: str = ""
-    edits: list[str] = field(default_factory=list)
-    author: object = field(default_factory=lambda: _FakeAuthor())
-    flags: object = None
-    embeds: list[object] = field(default_factory=list)
-    author_id: int = 999
-    pinned: bool = False
-
-    async def pin(self, reason: str = "") -> None:
-        """Pin the message (fake)."""
-        self.pinned = True
+def test_live_view_key_is_stable() -> None:
+    """The declared view id: the same for every surface."""
+    assert live_view_key(GAME_KEY) == "view:aoe2:live"
 
 
-class _FakeResponse:
-    """A minimal HTTP response stub (discord.NotFound needs .status)."""
-
-    status = 404
-    reason = "Not Found"
-    headers: ClassVar[dict] = {}
-
-
-def _raise_not_found() -> None:
-    """Raise a real discord.NotFound (the recreate path keys on it)."""
-    import discord
-
-    raise discord.NotFound(_FakeResponse(), {"code": 10008, "message": "Unknown Message"})
+def test_build_dashboard_view_renders_the_essentials() -> None:
+    """Title, body, relative timestamp, refresh button, id footer."""
+    snapshot = {"players": [], "generated_at": 1730000000000, "degraded": False}
+    view = build_dashboard_view(snapshot, "🟡 someone is in a lobby", _CatalogBot(), locale="fr")
+    text = _view_text(view)
+    assert "Dashboard en direct" in text, "the guild locale renders (FR catalog)"
+    assert "🟡 someone is in a lobby" in text
+    assert "<t:1730000000:R>" in text, "the relative timestamp rides the container"
+    assert "Rafraîchir" in text, "the refresh button renders in the locale"
+    assert "panel:game:aoe2:live" in text, "the view id is the footer"
 
 
-class _FakePartialMessage:
-    """PartialMessage stand-in recording in-place edits."""
-
-    def __init__(self, store: _FakeChannel, message_id: int) -> None:
-        self._store = store
-        self._id = message_id
-
-    async def edit(self, content: str = "", embed: object = None, view: object = None) -> None:
-        message = self._store.messages.get(self._id)
-        if message is None:
-            _raise_not_found()
-        if content:
-            message.content = content
-        if embed is not None:
-            message.embeds.append(embed)
-        if view is not None:
-            self._store.sent_views.append(view)
-        # the unified dashboard edits ride the VIEW (components-v2):
-        # capture its text content so the render asserts keep working
-        view_text = _view_text(view)
-        message.edits.append(content or getattr(embed, "description", "") or view_text)
-
-
-class _FakeChannel:
-    """TextChannel stand-in: id, sent messages, partial-message lookups."""
-
-    def __init__(self, id: int) -> None:
-        self.id = id
-        self.name = "📡-live-dashboard"
-        self.messages: dict[int, _FakeMessage] = {}
-        self.sent: list[_FakeMessage] = []
-        self.sent_views: list[object] = []
-        self.guild = _FakeGuildRef(self)
-
-    def get_partial_message(self, message_id: int) -> _FakePartialMessage:
-        return _FakePartialMessage(self, message_id)
-
-    async def pins(self) -> list[_FakeMessage]:
-        """Return the channel's pinned messages (fake)."""
-        return [m for m in self.messages.values() if m.pinned]
-
-    async def send(
-        self, content: str = "", embed: object = None, view: object = None
-    ) -> _FakeMessage:
-        message = _FakeMessage(id=1000 + len(self.sent), content=content)
-        if embed is not None:
-            message.embeds.append(embed)
-        if view is not None:
-            self.sent_views.append(view)
-        self.messages[message.id] = message
-        self.sent.append(message)
-        return message
-
-
-class _FakeAuthor:
-    id: int = 999
-
-
-class _FakeGuildRef:
-    """Minimal guild reference for the channel (me, for author checks)."""
-
-    def __init__(self, channel: _FakeChannel) -> None:
-        self._channel = channel
-        self.me = _FakeMember()
-
-
-class _FakeMember:
-    """Guild.me stand-in (the bot's own member)."""
-
-    id = 999
-
-
-class _FakeGuild:
-    """Guild stand-in resolving the dashboard channel by its id."""
-
-    def __init__(self, id: int, channel: _FakeChannel) -> None:
-        self.id = id
-        self._channel = channel
-        self.text_channels = [channel]
-
-    def get_channel(self, channel_id: int) -> _FakeChannel | None:
-        return self._channel if channel_id == self._channel.id else None
-
-    def get_member(self, user_id: int) -> Any:
-        """Membership seam: every platform user is a member (test default)."""
-        return object()
-
-    async def fetch_member(self, user_id: int) -> Any:
-        """Fetch fallback: same as the cache (member)."""
-        return object()
-
-    async def fetch_members(self, limit: int | None = None) -> Any:
-        """The member cache's chunked fetch: the snapshot's users are members."""
-
-        class _M:
-            def __init__(self, uid: int) -> None:
-                self.id = uid
-                self.display_name = f"member{uid}"
-
-        ids = {10, 20}
-        for uid in sorted(ids):
-            yield _M(uid)
-
-
-@pytest.fixture
-def stored_live_channel(monkeypatch: Any) -> None:
-    """Wire the tree's stored id (games/aoe2:live) to the fake channel."""
-    monkeypatch.setattr(
-        "kingdoms.discord.ui.panels_provisioning.stored_channel_id",
-        lambda guild_id, scope, key: _stored(str(guild_id)),
-    )
-
-
-class _FakeBot:
-    """Client stand-in resolving the guild."""
-
-    def __init__(self, guild: _FakeGuild) -> None:
-        self._guild = guild
-        self.guilds = [guild]
-
-    def get_guild(self, guild_id: int) -> _FakeGuild | None:
-        return self._guild if guild_id == self._guild.id else None
-
-
-class _FakeLiveClient:
-    """LiveClient seam: a fixed snapshot per game key."""
-
-    def __init__(self, snapshot: dict[str, Any]) -> None:
-        self.snapshot = snapshot
-        self.watch_calls: list[str] = []
-
-    async def watch(self, game_key: str) -> dict[str, Any]:
-        self.watch_calls.append(game_key)
-        return self.snapshot
-
-
-class _FakeRegistry:
-    """In-memory MessageRegistryService seam."""
-
-    def __init__(self) -> None:
-        self.messages: dict[str, RegisteredMessageModel] = {}
-        self.registrations: list[RegisteredMessageModel] = []
-
-    async def resolve(self, platform: str, message_key: str, entity_id: str) -> RegisteredMessageModel | None:
-        return self.messages.get(f"{platform}:{message_key}:{entity_id}")
-
-    async def register(
-        self,
-        *,
-        platform: str,
-        message_key: str,
-        entity_id: str,
-        channel_id: str,
-        message_id: str,
-        guild_id: str | None = None,
-    ) -> None:
-        message = RegisteredMessageModel(
-            _id=f"{platform}:{message_key}:{entity_id}",
-            platform=platform,
-            message_key=message_key,
-            entity_id=entity_id,
-            channel_id=channel_id,
-            message_id=message_id,
-            guild_id=guild_id,
-        )
-        self.messages[message.id] = message
-        self.registrations.append(message)
-
-
-_STORED: dict[str, str] = {}
-
-
-def _stored(guild_id: str) -> Any:
-    class _Awaitable:
-        def __await__(self):
-            if False:  # pragma: no cover — keeps this a generator
-                yield
-            return _STORED.get(guild_id)
-
-    return _Awaitable()
-
-
-def _snapshot(state: str) -> dict[str, Any]:
-    return {
-        "players": [{"user_id": "10", "profile_id": "A", "state": state, "match_ref": "", "since": 0}],
-        "generated_at": 1,
-        "degraded": False,
-    }
+def test_build_dashboard_view_degraded_renders_red() -> None:
+    """A degraded snapshot renders (the colour flips, the id stays)."""
+    snapshot = {"players": [], "generated_at": 1730000000000, "degraded": True}
+    view = build_dashboard_view(snapshot, "⚠️ stale", _CatalogBot(), locale="fr")
+    assert "panel:game:aoe2:live" in _view_text(view)
 
 
 @pytest.mark.asyncio
-async def test_first_refresh_creates_and_registers_the_message(stored_live_channel) -> None:
-    """Without a registered message, one is sent and registered by logical key."""
-    channel = _FakeChannel(555)
-    _STORED["42"] = str(channel.id)
-    bot = _FakeBot(_FakeGuild(42, channel))
-    client = _FakeLiveClient(_snapshot("offline"))
-    registry = _FakeRegistry()
-
-    created = await ensure_live_dashboard(bot, "42", client, registry, GAME_KEY)  # type: ignore[arg-type]
-
-    assert created is True
-    assert len(channel.sent) == 1, "exactly one dashboard message is created"
-    assert client.watch_calls == [GAME_KEY]
-    key = f"{PLATFORM}:{live_view_key(GAME_KEY)}:42"
-    assert key in registry.messages, "the message is registered by its logical key"
-
-
-@pytest.mark.asyncio
-async def test_refresh_edits_in_place_without_spam(stored_live_channel) -> None:
-    """A registered message is edited in place — no new message is sent."""
-    channel = _FakeChannel(555)
-    _STORED["42"] = str(channel.id)
-    bot = _FakeBot(_FakeGuild(42, channel))
-    registry = _FakeRegistry()
-    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry, GAME_KEY)  # type: ignore[arg-type]
-
-    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_lobby")), registry, GAME_KEY)  # type: ignore[arg-type]
-
-    assert created is False
-    assert len(channel.sent) == 1, "the refresh never adds a message"
-    assert channel.sent[0].edits, "the existing message is edited in place"
-    assert "<@10>" in channel.sent[0].edits[-1], "the user line is still rendered"
-
-
-@pytest.mark.asyncio
-async def test_deleted_message_is_recreated_and_reregistered(stored_live_channel) -> None:
-    """A deleted registered message self-heals: recreated and re-registered."""
-    channel = _FakeChannel(555)
-    _STORED["42"] = str(channel.id)
-    bot = _FakeBot(_FakeGuild(42, channel))
-    registry = _FakeRegistry()
-    await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("offline")), registry, GAME_KEY)  # type: ignore[arg-type]
-    channel.messages.clear()
-
-    created = await ensure_live_dashboard(bot, "42", _FakeLiveClient(_snapshot("in_game")), registry, GAME_KEY)  # type: ignore[arg-type]
-
-    assert created is True
-    assert len(channel.sent) == 2, "a fresh message replaces the deleted one"
-    assert len(registry.registrations) == 2, "the replacement is re-registered"
-
-
-@pytest.mark.asyncio
-async def test_provider_failure_degrades_to_offline_dashboard(stored_live_channel) -> None:
-    """With the provider down, the dashboard still renders (degraded)."""
-
-    class _BrokenClient:
-        async def watch(self, game_key: str) -> dict[str, Any]:
-            raise RuntimeError("core down")
-
-    channel = _FakeChannel(555)
-    _STORED["42"] = str(channel.id)
-    bot = _FakeBot(_FakeGuild(42, channel))
-    registry = _FakeRegistry()
-
-    created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry, GAME_KEY)  # type: ignore[arg-type]
-
-    assert created is True
-    # the created message carries the unified view (Container + footer)
-    body = channel.sent_views[0] if channel.sent_views else ""
-    flat = _view_text(body) if not isinstance(body, str) else body
-    assert "Providers unreachable" in flat, "the degraded note is shown"
-
-
 async def test_scope_snapshot_filters_by_cached_members() -> None:
     """The dashboard scope keeps only the guild's members."""
     from kingdoms.discord import member_cache
-    from kingdoms.discord.live import scope_snapshot_to_guild
-
-    class _Guild:
-        id = 42
-
-        async def fetch_members(self, limit: int | None = None):
-            class _M:
-                def __init__(self, uid: int, name: str) -> None:
-                    self.id = uid
-                    self.display_name = name
-
-            yield _M(10, "Merlin")
 
     snapshot = {
         "players": [
-            {"user_id": "10", "profile_id": "A"},
-            {"user_id": "99", "profile_id": "B"},
-            {"user_id": "", "profile_id": "C"},
-        ]
+            {"user_id": "10", "profile_id": "111", "state": "in_lobby", "match_ref": "m", "since": 1},
+            {"user_id": "20", "profile_id": "222", "state": "offline", "match_ref": "", "since": 2},
+        ],
+        "generated_at": 3,
     }
-    scoped = await scope_snapshot_to_guild(snapshot, _Guild())
-    assert [p["profile_id"] for p in scoped["players"]] == ["A"]
-    member_cache._cache.pop(42, None)
+
+    class _Member:
+        def __init__(self, uid: int, name: str) -> None:
+            self.id = uid
+            self.display_name = name
+
+    class _Guild:
+        id = 424242
+
+        async def fetch_members(self, limit: int | None = None):
+            yield _Member(10, "alice")
+
+    member_cache._cache.pop(424242, None)
+    try:
+        scoped = await scope_snapshot_to_guild(snapshot, _Guild())
+        assert [p["user_id"] for p in scoped["players"]] == ["10"]
+    finally:
+        member_cache._cache.pop(424242, None)
+
+
+@pytest.mark.asyncio
+async def test_scope_snapshot_fails_open_on_empty_roster() -> None:
+    """An unresolvable roster never blanks the dashboard."""
+    snapshot = {
+        "players": [{"user_id": "10", "profile_id": "111", "state": "in_lobby", "match_ref": "m", "since": 1}],
+        "generated_at": 3,
+    }
+
+    class _Guild:
+        id = 434343
+
+        async def fetch_members(self, limit: int | None = None):
+            return
+            yield  # pragma: no cover - an empty async generator
+
+    from kingdoms.discord import member_cache
+
+    member_cache._cache.pop(434343, None)
+    try:
+        scoped = await scope_snapshot_to_guild(snapshot, _Guild())
+        assert len(scoped["players"]) == 1, "an unresolvable roster fails open"
+    finally:
+        member_cache._cache.pop(434343, None)

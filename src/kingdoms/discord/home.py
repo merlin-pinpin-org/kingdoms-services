@@ -314,13 +314,10 @@ GAME_LABELS = {"aoe2": "Age of Empires II"}
 def _live_client_for(bot: Any, game_key: str) -> Any:
     """Resolve the dashboard client of one game (None when unwired).
 
-    THE loop's client first (``bot._live_clients`` — the exact client
-    the pinned dashboard reads, one source of truth); the URI fallback
-    (``GAME_<KEY>_URI``) only covers an unwired loop.
+    The URI convention is ``GAME_<KEY>_URI``; aoe2 is served by the
+    game service's GameData client. The live view is ephemeral-only
+    (on demand): one client per render, nothing kept warm.
     """
-    loop_client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
-    if loop_client is not None:
-        return loop_client
     import os
 
     uri = os.environ.get(f"GAME_{game_key.upper()}_URI", "")

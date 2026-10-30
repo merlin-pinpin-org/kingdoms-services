@@ -200,11 +200,6 @@ scopes:
       kind: text
       access: readonly
       description: ui.panels.channels.general_description
-    - key: live
-      label: ui.panels.channels.live
-      kind: text
-      access: readonly
-      description: ui.panels.channels.live_description
     - key: civs
       label: ui.panels.channels.civs
       kind: forum

@@ -215,17 +215,17 @@ Des mécaniques de la bibliothèque — changent en upgradeant discord.py.
 Des limites de l'API Discord — hors de notre contrôle.
 
 - **Embed description** : 4096 caractères max → pagination
-  multi-messages (dashboard live). The live dashboard: ONE
-  components-v2 view (Container + a `live:refresh:<game>` button + the
-  id footer), rendered in the guild's locale with the bot's catalog —
-  the ephemeral views and the pin share the same client
-  (`bot._live_clients`) and the same rendering. The button refreshes
-  the view that carries it (the ephemeral edits itself through the
-  webhook, the pin through the ensure cycle) and ACKs first (defer);
-  the ensure never edits an unchanged pin (fingerprint) and a 429
-  never recreates the message (the next tick retries the edit); the
-  full lobby state (civs, map, settings, slots) travels the whole
-  chain (match_updated + match_json).
+  dashboard live). The live dashboard is EPHEMERAL-ONLY (owner
+  direction 2026-10-30): never pinned, never a persistent message —
+  rendered on demand (/live, the menu button, the refresh button)
+  as ONE components-v2 view (Container + a relative timestamp
+  `<t:...:R>` + a `live:refresh:<game>` button + the id footer), in
+  the guild's locale with the bot's catalog. The refresh button
+  updates the message that carries it (the view SDK) and ACKs first
+  (defer). The full lobby state (civs, map, settings, slots) travels
+  the chain (match_updated + match_json). No channel, no loop, no
+  registry entry — the 429 storm and the refresh loop are gone with
+  the pinned channel.
 - **View answers (the SDK rule)** (`ui/responsive.py`): every view
   callback answers through `respond_with_view` — a component click
   UPDATES the message it rode (an ephemeral through its webhook, a

@@ -111,11 +111,8 @@ def test_render_dashboard_degraded_and_empty() -> None:
 
 
 def test_live_keys_are_per_game() -> None:
-    """The live message keys carry the game key — one channel message per game."""
-    from kingdoms.discord.live import _page_key, live_view_key
+    """The live view keys carry the game key — one ephemeral view per game."""
+    from kingdoms.discord.live import live_view_key
 
     assert live_view_key("aoe2") == "view:aoe2:live"
     assert live_view_key("aoe4") == "view:aoe4:live"
-    assert _page_key("aoe2", 1) == "view:aoe2:live"
-    assert _page_key("aoe2", 2) == "view:aoe2:live:2"
-    assert _page_key("aoe4", 3) == "view:aoe4:live:3"

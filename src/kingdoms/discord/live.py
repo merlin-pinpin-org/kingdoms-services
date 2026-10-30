@@ -10,7 +10,6 @@ degrades to its empty dashboard — the machinery is game-agnostic.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import re
@@ -416,41 +415,6 @@ class LiveClientLike(Protocol):
         ...
 
 
-class RegisteredMessageLike(Protocol):
-    """A resolved registered message (RegisteredMessageModel)."""
-
-    @property
-    def channel_id(self) -> str:
-        """The channel the message lives in."""
-        ...
-
-    @property
-    def message_id(self) -> str:
-        """The platform message id."""
-        ...
-
-
-class MessageRegistryServiceLike(Protocol):
-    """The message registry seam (MessageRegistryService)."""
-
-    async def resolve(self, platform: str, message_key: str, entity_id: str) -> RegisteredMessageLike | None:
-        """Resolve a registered message; None when never registered."""
-        ...
-
-    async def register(
-        self,
-        *,
-        platform: str,
-        message_key: str,
-        entity_id: str,
-        channel_id: str,
-        message_id: str,
-        guild_id: str | None = None,
-    ) -> None:
-        """Persist (or replace) a registered message."""
-        ...
-
-
 async def collect_profile_stats(
     profile_ids: list[str], game_key: str = DEFAULT_GAME_KEY
 ) -> dict[str, dict[str, Any]]:
@@ -530,135 +494,6 @@ async def _last_completed_match_ms(matches: Any, profile_id: str) -> int:
     return last
 
 
-async def ensure_live_dashboard_channel(
-    guild: discord.Guild, game_key: str
-) -> discord.TextChannel:
-    """Resolve the guild's live channel for one game through the tree's stored id.
-
-    The channel lives in the game's tree scope folder (``games/<game_key>``,
-    key ``live``), provisioned and persisted by the Panels SDK; the name
-    never drives the resolution. Raises LookupError when the tree has
-    not provided it yet (the caller degrades quietly).
-    """
-    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
-
-    stored = await stored_channel_id(str(guild.id), f"games/{game_key}", "live")
-    if stored and stored.isdigit():
-        channel = guild.get_channel(int(stored))
-        if channel is not None and not isinstance(channel, (discord.CategoryChannel, discord.ForumChannel)):
-            return channel  # type: ignore[return-value]
-    raise LookupError(f"the tree has no live channel yet (games/{game_key}:live)")
-
-
-async def ensure_live_dashboard(
-    bot: discord.Client,
-    guild_id: str,
-    client: LiveClientLike,
-    registry: MessageRegistryServiceLike,
-    game_key: str = DEFAULT_GAME_KEY,
-) -> bool:
-    """Ensure the guild's dashboard channel holds one up-to-date dashboard message.
-
-    The message is addressed by its logical key (``live-dashboard``)
-    through the message registry and edited in place on every refresh —
-    never re-sent, so the channel never spams. When the registered
-    message is gone (deleted, channel wiped), a new one is created and
-    registered. Best-effort: a failure never blocks the bot.
-    Returns True when a message was created, False when an existing
-    one was refreshed (or the step degraded quietly).
-    """
-    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
-    if guild is None:
-        return False
-    try:
-        channel = await ensure_live_dashboard_channel(guild, game_key)
-    except LookupError:
-        return False  # the tree has not provisioned the game's live channel yet
-    try:
-        snapshot = await client.watch(game_key)
-    except Exception:
-        logger.warning(
-            "live dashboard fetch failed (guild %s, game %s) — best-effort",
-            guild_id,
-            game_key,
-            exc_info=True,
-        )
-        snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
-    snapshot = await scope_snapshot_to_guild(snapshot, guild)
-    from kingdoms.discord.content_posts import guild_locale
-
-    locale = await guild_locale(guild_id, bot)
-    body = render_dashboard(snapshot, locale=locale, bot=bot)
-    registered = await _resolve_page(registry, guild_id, game_key)
-    page_view = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
-    if await _edit_registered(channel, registered, None, page_view):
-        await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
-        return False
-    reused = await _reuse_pinned_dashboard(channel, page_view)
-    if reused is not None:
-        await registry.register(
-            platform=PLATFORM,
-            message_key=_page_key(game_key, 1),
-            entity_id=guild_id,
-            channel_id=str(channel.id),
-            message_id=reused,
-            guild_id=guild_id,
-        )
-        await _sweep_duplicate_dashboards(channel, keep=reused)
-        return False
-    await _sweep_duplicate_dashboards(channel, keep=None)
-    message = await channel.send(view=page_view)
-    try:
-        await message.pin(reason="kingdoms: live dashboard (#147)")
-    except Exception:
-        logger.warning("live dashboard pin failed (guild %s) — best-effort", guild_id, exc_info=True)
-    await registry.register(
-        platform=PLATFORM,
-        message_key=_page_key(game_key, 1),
-        entity_id=guild_id,
-        channel_id=str(channel.id),
-        message_id=str(message.id),
-        guild_id=guild_id,
-    )
-    return True
-
-
-def _page_key(game_key: str, page: int) -> str:
-    """Build the registry key of one game's dashboard page.
-
-    The view convention is ``view:<game>:live``; extra pages suffix it.
-    """
-    return live_page_key(game_key, page)
-
-
-async def _resolve_page(registry: Any, guild_id: str, game_key: str, page: int = 1) -> Any:
-    """Resolve a game's dashboard page message."""
-    return await registry.resolve(PLATFORM, _page_key(game_key, page), guild_id)
-
-
-async def _reuse_pinned_dashboard(
-    channel: discord.TextChannel, view: discord.ui.LayoutView
-) -> str | None:
-    """Reuse an already-pinned dashboard message instead of adding a new one.
-
-    The registry may point at a dead message (deleted, channel wiped) while
-    the channel still holds the pinned dashboard: adopting it keeps one
-    dashboard message per channel instead of accumulating a new message
-    per refresh failure.
-    """
-    try:
-        for message in await channel.pins():
-            if message.author.id != channel.guild.me.id:
-                continue
-            if not (message.flags and int(message.flags.value) & (1 << 15)):
-                continue  # not a components-v2 dashboard of ours (bit 15 = IS_COMPONENTS_V2)
-            await message.edit(content=None, embed=None, view=view)
-            return str(message.id)
-    except Exception:
-        logger.warning("live dashboard pin adoption failed — best-effort", exc_info=True)
-    return None
-
-
 def _interaction_locale(interaction: discord.Interaction) -> str:
     """Return the clicker's own client locale (a one-line ack reads nothing)."""
     from kingdoms.discord.locales import interaction_locale
@@ -670,13 +505,11 @@ class LiveRefreshButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"live:refresh:(?P<game_key>[a-z0-9]+)",
 ):
-    """The dashboard's refresh button: force an update, revive the loop.
+    """The ephemeral dashboard's refresh button: re-render on demand.
 
-    On the PINNED dashboard the click forces an immediate refresh
-    (``ensure_live_dashboard``) and restarts the auto-update loop when
-    its task died; on an EPHEMERAL dashboard the click re-renders the
-    view with a fresh snapshot (the ephemeral refreshes on open, the
-    button makes it refresh on demand).
+    The live view is ephemeral-only (owner direction): the click
+    rebuilds the view with a fresh snapshot and the SDK updates the
+    message carrying the button — never a sibling message.
     """
 
     def __init__(self, game_key: str, label: str) -> None:
@@ -703,57 +536,18 @@ class LiveRefreshButton(
         return cls(match["game_key"], label)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Refresh the view that carries the button — never a new one.
+        """Refresh the message carrying the button — never a sibling.
 
-        An EPHEMERAL dashboard edits ITSELF with the fresh view (a
-        component edit on the message carrying the button). A PINNED
-        dashboard's content is refreshed through the ensure cycle (the
-        registry-resolved pin, edited in place — the click is the
-        action that changes the pin's content, per the pinned-view
-        rules); the click answers with a short text ack, never a copy
-        of the dashboard.
+        ACK first (the SDK's 3-second rule), then rebuild with a fresh
+        snapshot; the SDK updates the clicked message in place.
         """
-        bot = interaction.client
-        game_key = self.game_key
-        message = interaction.message
-        ephemeral = bool(message is not None and int(getattr(message.flags, "value", 0) or 0) & (1 << 6))
-        # ACK FIRST (the view SDK's 3-second rule): the work below
-        # takes seconds; an unacked interaction dies and 404s everywhere
-        from kingdoms.discord.ui.responsive import ack_view_interaction
+        from kingdoms.discord.ui.responsive import ack_view_interaction, respond_with_view
 
         await ack_view_interaction(interaction)
-
-        # the auto-update loop: revive it when dead (owner direction)
-        from kingdoms.discord.live import restart_live_dashboard_refresh
-
-        await restart_live_dashboard_refresh(bot)
-        if not ephemeral:
-            # a pinned/persistent message: force the pin's edit now (the
-            # registry-resolved message, in place, never resent)
-            registry = getattr(bot, "_live_registry", None)
-            client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
-            if registry is not None and client is not None and interaction.guild_id:
-                try:
-                    await ensure_live_dashboard(bot, str(interaction.guild_id), client, registry, game_key)
-                except Exception:
-                    logger.warning(
-                        "live refresh button: forced refresh failed (guild %s) — best-effort",
-                        interaction.guild_id,
-                        exc_info=True,
-                    )
-            # the pin's content is refreshed; the click acks with one line
-            await interaction.followup.send(
-                _t(bot, _interaction_locale(interaction), "refreshed", "Dashboard refreshed."),
-                ephemeral=True,
-            )
-            return
-        # an ephemeral dashboard: the view SDK updates the clicked
-        # message (same id → update, never a sibling)
         from kingdoms.discord.home import _build_live_view
-        from kingdoms.discord.ui.responsive import respond_with_view
 
-        view = await _build_live_view(interaction, game_key)
-        await respond_with_view(interaction, view, f"panel:game:{game_key}:live")
+        view = await _build_live_view(interaction, self.game_key)
+        await respond_with_view(interaction, view, f"panel:game:{self.game_key}:live")
 
 
 def build_dashboard_view(
@@ -765,12 +559,14 @@ def build_dashboard_view(
     page_index: int = 1,
     page_count: int = 1,
 ) -> discord.ui.LayoutView:
-    """Build THE dashboard view — the players-panel look, one code path.
+    """Build THE ephemeral dashboard view — the players-panel look.
 
-    A components-v2 Container (accent colour, like an embed) holding the
-    body, the view id as a TextDisplay UNDER it. No embed anywhere (an
-    embed cannot share a message with components-v2 — 50035). The
-    pinned channel, /live and the menu button all send this exact view.
+    A components-v2 Container (accent colour, like an embed) holding
+    the body and a RELATIVE TIMESTAMP (Discord renders <t:...:R> as
+    '2 minutes ago' — the reader knows at a glance how fresh the
+    snapshot is); the refresh button under it; the view id as the
+    last line. Ephemeral-only (owner direction): never pinned, never
+    a persistent message.
     """
     from kingdoms.discord.message_limits import truncate_body
 
@@ -778,17 +574,18 @@ def build_dashboard_view(
     if page_count > 1:
         title += f" ({page_index}/{page_count})"
     colour = 0xE74C3C if snapshot.get("degraded") else 0xF1C40F
+    generated_at = int(snapshot.get("generated_at") or 0) or _now_ms()
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(f"# {title}\n\n{truncate_body(body, 3500)}"),
+            discord.ui.TextDisplay(
+                f"# {title}\n\n{truncate_body(body, 3400)}\n\n-# <t:{generated_at // 1000}:R>"
+            ),
             accent_colour=discord.Colour(colour),
         )
     )
     from kingdoms.discord.ui.view_footer import add_view_footer
 
-    # the refresh button (owner direction): force an update, and restart
-    # the auto-update loop when it died (both surfaces, one code path)
     view.add_item(
         discord.ui.ActionRow(
             LiveRefreshButton(game_key, _t(bot, locale, "refresh", "Refresh")).item
@@ -797,313 +594,3 @@ def build_dashboard_view(
     return add_view_footer(view, f"panel:game:{game_key}:live")
 
 
-async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | None) -> int:
-    """Delete the duplicate dashboard messages; the kept one stays.
-
-    A crash mid-cycle (or a pre-adoption deployment) can leave an
-    orphan dashboard next to the pinned one. The sweep keeps the
-    pinned (or freshly created) message and removes the bot's other
-    dashboard messages in the channel — the view-id mark identifies
-    ours; foreign messages are never touched.
-    """
-    from kingdoms.discord.pinned_marks import is_pinned_view
-
-    removed = 0
-    try:
-        async for message in channel.history(limit=50, oldest_first=False):
-            if str(message.id) == str(keep or ""):
-                continue
-            if message.author.id != channel.guild.me.id:
-                continue
-            if not is_pinned_view(message):
-                continue
-            if message.pinned:
-                continue
-            try:
-                await message.delete()
-                removed += 1
-            except Exception:
-                logger.debug("dashboard sweep skip (message %s)", message.id, exc_info=True)
-    except Exception:
-        logger.debug("dashboard sweep failed — best-effort", exc_info=True)
-    if removed:
-        logger.info("live dashboard: %d duplicate message(s) swept", removed)
-    return removed
-
-
-
-
-async def _edit_registered(
-    channel: discord.TextChannel,
-    registered: RegisteredMessageLike | None,
-    embed: discord.Embed | None,
-    view: discord.ui.LayoutView,
-) -> bool:
-    """Edit the registered message in place; True when the edit landed.
-
-    The unified view rides every edit — the footer (the view id) never
-    disappears on refresh.
-    """
-    if registered is None or not str(registered.channel_id).isdigit() or not str(registered.message_id).isdigit():
-        return False
-    try:
-        message = channel.get_partial_message(int(registered.message_id))
-        await message.edit(content=None, embed=embed, view=view)
-        return True
-    except discord.NotFound:
-        logger.info("live dashboard message %s is gone — recreating", registered.message_id)
-        return False
-    except Exception:
-        # a rate limit (429), a transient API hiccup: the message is
-        # FINE — never recreate on these (the recreate avalanche killed
-        # the loop); the next tick retries the edit
-        logger.warning(
-            "live dashboard edit throttled/failed (message %s) — retrying next tick",
-            getattr(registered, "message_id", "?"),
-            exc_info=True,
-        )
-        return True
-
-
-def _log_refresh_loop_death(task: asyncio.Task[None]) -> None:
-    """Log the refresh loop's death — a dead loop means a frozen dashboard."""
-    if not task.cancelled() and task.exception() is not None:
-        logger.error("live dashboard refresh loop DIED: %r", task.exception())
-
-
-async def start_live_dashboard_refresh(
-    bot: discord.Client,
-    clients: dict[str, LiveClientLike],
-    registry: MessageRegistryServiceLike,
-) -> asyncio.Task[None]:
-    """Refresh every guild's per-game dashboards: streams + a self-healing interval.
-
-    One stream watcher per game (``clients`` maps a game key to its
-    dashboard client); the interval pass remains as the safety net
-    (recreating a deleted message, healing a broken stream) — it walks
-    every game of every guild.
-    """
-    bot._live_clients = clients  # type: ignore[attr-defined]  # the refresh button restarts the loop
-    bot._live_registry = registry  # type: ignore[attr-defined]
-
-    async def _ensure_all_guilds() -> None:
-        """One interval pass: every game of every guild (best-effort each)."""
-        for guild in list(bot.guilds):
-            for game_key, client in clients.items():
-                try:
-                    await ensure_live_dashboard(bot, str(guild.id), client, registry, game_key)
-                except Exception:
-                    logger.warning(
-                        "live dashboard refresh failed (guild %s, game %s) — best-effort",
-                        guild.id,
-                        game_key,
-                        exc_info=True,
-                    )
-
-    async def _run() -> None:
-        watchers = [
-            asyncio.create_task(_watch_stream(bot, client, registry, game_key))
-            for game_key, client in clients.items()
-        ]
-        try:
-            while True:
-                try:
-                    await _ensure_all_guilds()
-                    await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
-                except asyncio.CancelledError:
-                    raise
-                except Exception:
-                    # the loop itself must never die (owner direction): an
-                    # unexpected failure waits one interval and retries
-                    logger.warning(
-                        "live dashboard refresh loop tick failed — retrying",
-                        exc_info=True,
-                    )
-                    await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
-        finally:
-            for watcher in watchers:
-                watcher.cancel()
-
-    task = asyncio.create_task(_run())
-    task.add_done_callback(_log_refresh_loop_death)
-    return task
-
-
-PLATFORM = "discord"
-# The dashboard cadence (owner direction: 15 s), configurable through
-# the bot's environment without a code change.
-DASHBOARD_REFRESH_INTERVAL_S = float(os.environ.get("DASHBOARD_REFRESH_INTERVAL_S", "15"))
-DASHBOARD_MIN_EDIT_INTERVAL_S = float(os.environ.get("DASHBOARD_MIN_EDIT_INTERVAL_S", "15"))
-_LAST_PUSH: dict[str, tuple[float, str]] = {}
-LIVE_STATE_SCOPE = "live-dashboard"
-
-
-async def _remember_sent_fingerprint(guild_id: str, fingerprint: str) -> None:
-    """Persist the last-sent dashboard state (the bot knows, no re-read).
-
-    The state store (Redis cache-aside) holds the fingerprint of the
-    last snapshot each guild's dashboard shows; after a restart the
-    comparison continues without fetching the message content.
-    """
-    redis_uri = os.environ.get("REDIS_URI", "")
-    if not redis_uri:
-        return
-    try:
-        from redis.asyncio import Redis
-
-        client = Redis.from_url(redis_uri, decode_responses=True)
-        await client.set(f"{LIVE_STATE_SCOPE}:{guild_id}", fingerprint)
-        await client.close()
-    except Exception:
-        logger.debug("live dashboard state persist skipped — best-effort", exc_info=True)
-
-
-async def _last_sent_fingerprint(guild_id: str) -> str | None:
-    """Read the persisted last-sent fingerprint; None when never sent."""
-    redis_uri = os.environ.get("REDIS_URI", "")
-    if not redis_uri:
-        return None
-    try:
-        from redis.asyncio import Redis
-
-        client = Redis.from_url(redis_uri, decode_responses=True)
-        value = await client.get(f"{LIVE_STATE_SCOPE}:{guild_id}")
-        await client.close()
-        return str(value) if value else None
-    except Exception:
-        return None
-
-
-def _snapshot_fingerprint(snapshot: dict[str, Any]) -> str:
-    """Build a stable fingerprint of the rendered-relevant snapshot fields.
-
-    ``generated_at`` changes on every stream frame; it is excluded —
-    the fingerprint tracks the **player states** the dashboard renders,
-    so an unchanged roster never triggers an edit (#251).
-    """
-    players = snapshot.get("players") or []
-    parts = [
-        str(p.get("profile_id", ""))
-        + ":"
-        + str(p.get("state", ""))
-        + ":"
-        + _match_fingerprint(p.get("match") or {})
-        for p in players
-    ]
-    return "|".join(parts) + f"|degraded={snapshot.get('degraded', False)}"
-
-
-def _match_fingerprint(match: dict[str, Any]) -> str:
-    """Hash a player's live match payload (short + stable)."""
-    import hashlib
-    import json as _json
-
-    try:
-        return hashlib.sha256(
-            _json.dumps(match, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
-        ).hexdigest()[:12]
-    except (TypeError, ValueError):
-        return ""
-
-
-async def restart_live_dashboard_refresh(bot: discord.Client) -> bool:
-    """Revive the auto-update loop when its task died (owner direction).
-
-    The refresh button calls this: a dead stream + a dead interval loop
-    leave a frozen dashboard; the restart rebuilds both (the streams
-    and the 15 s safety-net interval) from the clients kept on the bot.
-    Returns True when a restart happened, False when the loop lives.
-    """
-    task = getattr(bot, "_live_refresh_task", None)
-    if task is not None and not task.done():
-        return False
-    clients = getattr(bot, "_live_clients", None)
-    registry = getattr(bot, "_live_registry", None)
-    if not clients or registry is None:
-        return False
-    task = asyncio.create_task(start_live_dashboard_refresh(bot, clients, registry))
-    bot._live_refresh_task = task  # type: ignore[attr-defined]
-    logger.info("live dashboard refresh loop restarted (was dead)")
-    return True
-
-
-async def _watch_stream(
-    bot: discord.Client,
-    client: LiveClientLike,
-    registry: MessageRegistryServiceLike,
-    game_key: str,
-) -> None:
-    """Consume one game's WatchDashboard stream; every changed frame refreshes.
-
-    Works with either client: the Live seam (svc-core) or the enriched
-    GameData client — both expose ``stream_snapshots``. One stream per
-    game (each game has its own game service and channels).
-    """
-    while True:
-        try:
-            async for snapshot in client.stream_snapshots(game_key):
-                await _push_snapshot(bot, client, registry, snapshot, game_key)
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            logger.warning("live dashboard stream broke — reconnecting", exc_info=True)
-            await asyncio.sleep(5)
-
-
-async def _push_snapshot(
-    bot: discord.Client,
-    client: LiveClientLike,
-    registry: MessageRegistryServiceLike,
-    snapshot: dict[str, Any],
-    game_key: str = DEFAULT_GAME_KEY,
-) -> None:
-    """Edit every guild's dashboard message — throttled, on change only.
-
-    Discord caps edits of messages older than one hour (30046): pushing
-    every stream frame edits far too often. Each guild edits at most
-    once per ``DASHBOARD_MIN_EDIT_INTERVAL_S`` and only when the
-    snapshot fingerprint actually changed; the periodic interval pass
-    remains the safety net.
-    """
-    now = time.monotonic()
-    fingerprint = _snapshot_fingerprint(snapshot)
-    if fingerprint == _LAST_PUSH.get("_global", (0.0, ""))[1]:
-        return
-    _LAST_PUSH["_global"] = (now, fingerprint)
-    active_ids = [
-        str(p.get("profile_id", ""))
-        for p in snapshot.get("players", [])
-        if p.get("state") != "offline"
-    ]
-    stats = await collect_profile_stats(active_ids)
-    # the push renders per guild (the locale + the bot's catalog travel
-    # with the edit — a stream push must never flip the pin to English)
-    for guild in list(bot.guilds):
-        guild_id = str(guild.id)
-        last_at, last_fp = _LAST_PUSH.get(guild_id, (0.0, ""))
-        if fingerprint == last_fp:
-            continue
-        if not last_fp:
-            persisted = await _last_sent_fingerprint(guild_id)
-            if persisted == fingerprint:
-                _LAST_PUSH[guild_id] = (now, fingerprint)
-                continue
-        if now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S:
-            continue
-        _LAST_PUSH[guild_id] = (now, fingerprint)
-        try:
-            channel = await ensure_live_dashboard_channel(guild, game_key)
-        except LookupError:
-            continue  # the tree has not provisioned the game's live channel yet
-        registered = await registry.resolve(PLATFORM, _page_key(game_key, 1), str(guild.id))
-        try:
-            from kingdoms.discord.content_posts import guild_locale
-
-            locale = await guild_locale(guild_id, bot)
-            body = render_dashboard(snapshot, locale=locale, stats=stats, bot=bot)
-            page_view = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
-            if not await _edit_registered(channel, registered, None, page_view):
-                await ensure_live_dashboard(bot, guild_id, client, registry, game_key)
-            await _remember_sent_fingerprint(guild_id, fingerprint)
-        except Exception:
-            logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)
