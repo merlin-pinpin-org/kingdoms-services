@@ -185,6 +185,8 @@ def _strings(locale: str) -> dict[str, str]:
             "status_visible": "Statut : **Tout visible** — le hors-jeu est affiché.",
             "show_button": "👁️ Voir aussi le hors-jeu",
             "hide_button": "Immersion (masquer le hors-jeu)",
+            "toggle_show_label": "👁️ Afficher le hors-jeu",
+            "toggle_hide_label": "Immersion (masquer le hors-jeu)",
             "now_visible": "✅ Le hors-jeu est visible, en même temps que le jeu.",
             "now_hidden": "✅ Le hors-jeu est masqué — retour à l'immersion.",
             "not_a_member": "Ces réglages ne vivent que sur le serveur.",
@@ -202,6 +204,8 @@ def _strings(locale: str) -> dict[str, str]:
         "status_visible": "Status: **Everything visible** — out-of-game is shown.",
         "show_button": "👁️ Show the out-of-game too",
         "hide_button": "Immersion (hide the out-of-game)",
+        "toggle_show_label": "👁️ Show the out-of-game",
+        "toggle_hide_label": "Immersion (hide the out-of-game)",
         "now_visible": "✅ The out-of-game is visible, alongside the game.",
         "now_hidden": "✅ The out-of-game is hidden — back to immersion.",
         "not_a_member": "These settings only live on the server.",
@@ -216,19 +220,73 @@ def _locale(interaction: discord.Interaction) -> str:
 
 
 def _settings_view(strings: dict[str, str], visible: bool) -> discord.ui.LayoutView:
-    """Build the ephemeral user-settings view (the immersion toggle)."""
+    """Build the ephemeral user-settings view (the immersion toggle).
+
+    reglages-interrupteur-v1 (Drasah 30/10): ONE switch button whose
+    label+style announce the state you will SWITCH TO — clicking from
+    « Immersion » announces « Afficher le hors-jeu », clicking from
+    « Tout visible » announces « Immersion (masquer le hors-jeu) ». No
+    more two-button confusion (the old pair stays registered below for
+    the ≤15-minute living ephemerals)."""
     status = strings["status_visible"] if visible else strings["status_hidden"]
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.TextDisplay(f"# {strings['user_settings_title']}"))
     view.add_item(discord.ui.TextDisplay(strings["user_settings_blurb"]))
     view.add_item(discord.ui.TextDisplay(status))
-    view.add_item(
-        discord.ui.ActionRow(
-            KingdomOutgameShowButton(strings["show_button"]),
-            KingdomOutgameHideButton(strings["hide_button"]),
-        )
-    )
+    view.add_item(discord.ui.ActionRow(KingdomOutgameToggle(strings, visible)))
     return view
+
+
+class KingdomOutgameToggle(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:user:outgame:toggle",
+):
+    """The ONE immersion switch — flips to the other state at each click.
+
+    reglages-interrupteur-v1 (Drasah 30/10): the Discord overwrite is
+    the persisted preference (no DB); the toggle reads the CURRENT
+    visibility, flips it and re-edits the settings view in place."""
+
+    def __init__(self, strings: dict[str, str], visible: bool) -> None:
+        if visible:
+            label, style = strings["toggle_hide_label"], discord.ButtonStyle.primary
+        else:
+            label, style = strings["toggle_show_label"], discord.ButtonStyle.secondary
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:user:outgame:toggle",
+                style=style,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomOutgameToggle:
+        """Rebuild the switch from the wire — the CURRENT state drives it."""
+        strings = _strings(_locale(interaction))
+        visible = outgame_visible(interaction.guild, getattr(interaction, "user", None))
+        return cls(strings, visible)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Flip to the other state and re-edit the settings view in place."""
+        strings = _strings(_locale(interaction))
+        guild = interaction.guild
+        member = getattr(interaction, "user", None)
+        if guild is None or member is None:
+            await interaction.response.send_message(strings["not_a_member"], ephemeral=True)
+            return
+        new_visible = not outgame_visible(guild, member)
+        await set_outgame_visibility(guild, member, new_visible)
+        await interaction.response.edit_message(
+            view=_settings_view(strings, new_visible),
+            content=strings["now_visible"] if new_visible else strings["now_hidden"],
+        )
 
 
 class KingdomUserSettingsButton(
