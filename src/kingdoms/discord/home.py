@@ -272,6 +272,11 @@ async def _profile_followup(
     if origin is not None:
         from kingdoms.discord.ephemeral import edit_ephemeral
 
+        logger.info(
+            "PROFILE FOLLOWUP: origin=%s (message_id=%s), editing in place",
+            "captured",
+            getattr(origin, "message_id", "?"),
+        )
         if await edit_ephemeral(origin, view):
             # a modal submit's defer(thinking=True) leaves a followup
             # message — the edit above refreshed the ORIGINAL view, the
@@ -284,6 +289,7 @@ async def _profile_followup(
         note = banner or await reply(interaction, "profile.updated")
         await interaction.followup.send(note, ephemeral=True)
         return
+    logger.info("PROFILE FOLLOWUP: no origin — sending a fresh ephemeral view")
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -1304,7 +1310,8 @@ async def _roster_lines(
     entries: list[tuple[str, str, str]] = []
     for user_id, user_bindings in by_user.items():
         # the pseudo rides the member cache (the guild's own cache can be
-        # incomplete); fall back to the mention when the cache misses
+        # incomplete); the RAW user id shows when even the cache misses —
+        # the mention follows, always the same readable shape
         pseudo = cached_members.get(int(user_id), "") if cached_members else ""
         mention = f"<@{user_id}>"
         profiles: list[str] = []
@@ -1318,7 +1325,7 @@ async def _roster_lines(
             name = stored or alias or pid
             url = _game_account_url(game_key, pid)
             profiles.append(f"[{name}]({url})" if url else name)
-        entries.append((pseudo or mention, mention, ", ".join(profiles)))
+        entries.append((pseudo or f"user {user_id}", mention, ", ".join(profiles)))
     entries.sort(key=lambda e: _casefold_key(e[0]))
     return [f"\u2022 **{pseudo}** \u2014 {mention}: {profiles}" for pseudo, mention, profiles in entries]
 
