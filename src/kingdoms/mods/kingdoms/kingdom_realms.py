@@ -667,6 +667,82 @@ async def ensure_all_realm_structures(guild: discord.Guild, kingdoms_service: An
             await _announce_realm_alliances(guild, kingdom, kingdoms_service)
         except Exception:
             logger.warning("KINGDOM REALMS: draft announce failed for %s", kingdom.id, exc_info=True)
+    # ejection-cleanup-v1 (Drasah 30/10): the departed lords' stale
+    # member overwrites never leave on their own — a realm's re-sync is
+    # a replace-edit that only runs on launch/approval, and the ghost
+    # of an older ejection survives it. The blanket re-sync self-heals
+    # them on every seam.
+    try:
+        await sweep_departed_member_overwrites(guild, kingdoms_service)
+    except Exception:
+        logger.warning("KINGDOM REALMS: departed member sweep failed", exc_info=True)
+
+
+async def sweep_departed_member_overwrites(
+    guild: discord.Guild | None, kingdoms_service: Any
+) -> int:
+    """Strip the member overwrites of the DEPARTED lords on realm zones.
+
+    ejection-cleanup-v1 (Drasah 30/10): an ejected lord keeps his
+    member allow on the ex-kingdom's category and still reads its
+    salons while ruling another kingdom (beta report: AEGIS visible
+    from Pytoland). The sweep walks every APPROVED kingdom's category
+    and salons, reads the member-level overwrite ids (duck-typed, no
+    member resolution — the bot runs without the members intent) and
+    strips the ones belonging to no ACTIVE lord of THAT kingdom. The
+    tavern insiders are active lords (their member DENIES are safe by
+    construction), the bot's own allow and every role overwrite are
+    never touched. Idempotent: a converged guild costs zero API call.
+    Returns the number of strips.
+    """
+    if guild is None or kingdoms_service is None:
+        return 0
+    try:
+        kingdoms = await kingdoms_service.kingdoms()
+        lords = await kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOM REALMS: departed sweep state read failed", exc_info=True)
+        return 0
+    active: dict[str, set[str]] = {}
+    for lord in lords:
+        if getattr(lord, "left", False):
+            continue
+        active.setdefault(str(getattr(lord, "kingdom_id", "")), set()).add(str(lord.id))
+    from kingdoms.mods.kingdoms.kingdom_persistent import _member_overwrite_ids
+
+    bot_id = getattr(getattr(guild, "me", None), "id", None)
+    removed = 0
+    for kingdom in kingdoms:
+        if getattr(kingdom, "is_gaia", False):
+            continue
+        if str(getattr(kingdom, "validation", "")) != "approved":
+            continue
+        category = _find_realm_category(guild, str(getattr(kingdom, "name", "")))
+        if category is None:
+            continue
+        keep = active.get(str(getattr(kingdom, "id", "")), set())
+        for channel in (category, *(getattr(category, "channels", []) or [])):
+            for overwrite_id in _member_overwrite_ids(channel, bot_id):
+                if str(overwrite_id) in keep:
+                    continue
+                try:
+                    await channel.set_permissions(
+                        discord.Object(id=overwrite_id, type=discord.User), overwrite=None
+                    )
+                    removed += 1
+                except Exception:
+                    logger.warning(
+                        "KINGDOM REALMS: departed overwrite strip failed (%s)",
+                        overwrite_id,
+                        exc_info=True,
+                    )
+    if removed:
+        logger.info(
+            "KINGDOM REALMS: ejection-cleanup-v1 — %s stale member overwrite(s) stripped (guild %s)",
+            removed,
+            guild.id,
+        )
+    return removed
 
 
 async def _announce_realm_alliances(

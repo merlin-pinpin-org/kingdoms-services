@@ -5556,6 +5556,118 @@ async def _notify_heirs_safe(guild: discord.Guild | None, locale: str) -> None:
         await _send_king_claim_request(guild, str(heir.id), locale, available)
 
 
+async def _remove_player_mod_roles_safe(guild: discord.Guild | None, user_id: str) -> None:
+    """Remove the Kingdoms Lord/King roles of ONE player (best effort).
+
+    ejection-cleanup-v1 (Drasah 30/10): the channel gating rides the
+    player roles — an ejected/departed player who keeps Kingdoms Lord
+    still sees every game salon (the reset-ghost-roles-v1 live finding,
+    at the single-player scale). The Kingdoms Admin role is NEVER
+    touched: it is a staff role, not a game state.
+    """
+    if guild is None or not user_id.isdigit():
+        return
+    wiring = _wiring()
+    member = await _resolve_member(guild, int(user_id))
+    if member is None:
+        return
+    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
+
+    roles: list[discord.Role] = []
+    for role_key, display_name in (
+        (ROLE_LORD, "Kingdoms Lord"),
+        (ROLE_KING, "Kingdoms King"),
+    ):
+        role: discord.Role | None = None
+        if wiring.mod_roles_service is not None:
+            try:
+                role_id = await wiring.mod_roles_service.resolve_role_id(
+                    str(guild.id), KINGDOM_MOD, role_key
+                )
+                if role_id is not None and str(role_id).isdigit():
+                    role = guild.get_role(int(role_id))
+            except Exception:
+                logger.warning(
+                    "KINGDOMS: mod role resolution failed (%s)", role_key, exc_info=True
+                )
+        if role is None:
+            role = discord.utils.get(getattr(guild, "roles", []) or [], name=display_name)
+        if role is not None:
+            roles.append(role)
+    if not roles:
+        return
+    held = [role for role in roles if role in getattr(member, "roles", ())]
+    if not held:
+        return
+    try:
+        await member.remove_roles(
+            *held, reason="kingdoms: départ/éjection — rôles joueurs retirés"
+        )
+        logger.info(
+            "KINGDOMS: ejection-cleanup-v1 — player roles stripped for %s (guild %s)",
+            user_id,
+            guild.id,
+        )
+    except Exception:
+        logger.warning(
+            "KINGDOMS: player role strip failed for %s", user_id, exc_info=True
+        )
+
+
+async def _cleanup_departed_player_safe(
+    guild: discord.Guild | None, user_id: str, kingdom_id: str
+) -> None:
+    """Return a departed/ejected player to the NEWCOMER state.
+
+    ejection-cleanup-v1 (Drasah 30/10, beta report): an ejected lord
+    kept his member overwrite on the ex-kingdom's category — the realm
+    re-syncs are replace-edits that only run on launch/approval, so
+    nothing ever removed it and he still read AEGIS while ruling his
+    own new kingdom. The leave seam now strips (1) the departed member
+    overwrites on the ex-kingdom's category and its salons (by id, no
+    member resolution — the bot runs without the members intent) and
+    (2) the player's Kingdoms Lord/King roles. Idempotent, best
+    effort, the bot's own allow is never touched.
+    """
+    if guild is None or not user_id:
+        return
+    wiring = _wiring()
+    kingdom = None
+    if kingdom_id:
+        kingdom = await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
+    if kingdom is not None:
+        try:
+            from kingdoms.mods.kingdoms.kingdom_realms import _find_realm_category
+
+            category = _find_realm_category(guild, str(getattr(kingdom, "name", "")))
+            if category is not None:
+                bot_id = getattr(getattr(guild, "me", None), "id", None)
+                channels = [category, *(getattr(category, "channels", []) or [])]
+                for channel in channels:
+                    for overwrite_id in _member_overwrite_ids(channel, bot_id):
+                        if str(overwrite_id) != str(user_id):
+                            continue
+                        try:
+                            await channel.set_permissions(
+                                discord.Object(id=overwrite_id, type=discord.User),
+                                overwrite=None,
+                            )
+                        except Exception:
+                            logger.warning(
+                                "KINGDOMS: departed overwrite strip failed for %s on %r",
+                                user_id,
+                                str(getattr(channel, "name", "?")),
+                                exc_info=True,
+                            )
+        except Exception:
+            logger.warning(
+                "KINGDOMS: departed overwrite cleanup failed for %s",
+                user_id,
+                exc_info=True,
+            )
+    await _remove_player_mod_roles_safe(guild, user_id)
+
+
 async def _apply_player_leave_safe(
     guild: discord.Guild | None, user_id: str, reason: str, locale: str
 ) -> bool:
@@ -5585,6 +5697,10 @@ async def _apply_player_leave_safe(
     except Exception:
         logger.info("KINGDOMS: leave not applied for %s", user_id, exc_info=True)
         return False
+    # ejection-cleanup-v1 (Drasah 30/10): the departed player returns to
+    # the NEWCOMER state — his stale member overwrites on the ex-kingdom
+    # and his player roles die at the leave seam, not "at some point".
+    await _cleanup_departed_player_safe(guild, user_id, kingdom_id)
     if kingdom_id:
         await _refresh_realm_views_for_kingdom_safe(guild, kingdom_id)
     await _refresh_realms_panel_safe(guild, locale)

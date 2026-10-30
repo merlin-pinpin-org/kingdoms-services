@@ -671,6 +671,18 @@ async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], 
         await refresh_mercenary_panels_safe(guild, "fr")
     except Exception:
         logger.warning("KINGDOM SETUP: mercenary panel refresh failed", exc_info=True)
+    # ejection-cleanup-v1 (Drasah 30/10): the provisioning pass also
+    # self-heals the stale member overwrites of the departed lords —
+    # the live ejections are cleaned at the leave seam, this sweep
+    # heals the pre-patch ghosts (boot, /kingdom, 🚀 Déployer).
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            sweep_departed_member_overwrites,
+        )
+
+        await sweep_departed_member_overwrites(guild, wiring.kingdoms_service)
+    except Exception:
+        logger.warning("KINGDOM SETUP: departed member sweep failed", exc_info=True)
     return list(report.created), list(report.adopted)
 
 
