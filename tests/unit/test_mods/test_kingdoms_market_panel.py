@@ -326,6 +326,27 @@ async def test_market_sheet_wears_the_styled_labels() -> None:
     assert " — " not in sheet.split("**__EFFET")[0]  # plus de trait d'étiquette
 
 
+async def test_purchase_closes_the_card_window() -> None:
+    """achat-fermeture-v1 (Drasah 30/10): once the purchase is done the
+    card window closes BY ITSELF — only the cumulative receipt stays."""
+    economy = FakeEconomyService()
+    _wiring(lords=[FakeLord(id="111", role="king", kingdom_id="k1")], economy=economy)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketTechButton("embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary)
+    await button.callback(interaction)
+    card = interaction.response.message
+    assert card is not None  # la carte TCG est ouverte
+
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit)
+    assert economy.tech_bought == [("k1", "embuscade")]
+    # la carte est FERMÉE (fenêtre supprimée), le reçu est vivant.
+    assert interaction.original_deleted is True
+    assert submit.followup.messages  # le reçu ✅ reste la trace
+    receipt = str(submit.followup.messages[-1].content or "")
+    assert "Purchased" in receipt
+
+
 async def test_tech_button_refuses_non_kings() -> None:
     economy = FakeEconomyService()
     _wiring(

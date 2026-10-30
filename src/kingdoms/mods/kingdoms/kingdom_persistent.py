@@ -1054,6 +1054,9 @@ async def _market_lord_select_view(
         await _append_purchase_receipt(target, note, strings)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+        # achat-fermeture-v1 (Drasah 30/10): same rule after the select
+        # flows — the card window that opened the purchase closes.
+        await _close_previous_ephemeral(str(target.user.id))
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -1124,6 +1127,9 @@ async def _market_action_select_view(
         await _append_purchase_receipt(target, note, strings)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+        # achat-fermeture-v1 (Drasah 30/10): same rule after the select
+        # flows — the card window that opened the purchase closes.
+        await _close_previous_ephemeral(str(target.user.id))
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -1488,6 +1494,10 @@ async def _market_purchase_flow(
     )
     await _append_purchase_receipt(interaction, note, strings)
     await _refresh_realm_views_for_kingdom_safe(interaction.guild, kingdom_id)
+    # achat-fermeture-v1 (Drasah 30/10): the purchase is DONE — the card
+    # window closes by itself (the receipt stays as the living trace).
+    # Best effort: a >15-min-old card has a dead token and dies alone.
+    await _close_previous_ephemeral(str(interaction.user.id))
 
 
 def _market_card_file(item: str) -> discord.File | None:
