@@ -3,6 +3,10 @@
 The pinned Attaquer panel, the persistent declare/defend buttons, the
 declaration modal and the scheduler entry (reveal announcement, pick
 & ban DM dispatch, forfeit announcements) behind the in-memory store.
+
+hygiene-ephemere-v1 (Drasah 30/10): error bubbles self-destruct, the
+declare wizard dies with the declaration, the declared note never
+outlives the cancellation window.
 """
 
 from __future__ import annotations
