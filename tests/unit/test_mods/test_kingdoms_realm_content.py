@@ -535,6 +535,29 @@ async def test_open_buttons_refuse_strangers_and_lost_services() -> None:
     assert "Le marché n'est pas disponible" in (orphan.response.message.content or "")
 
 
+async def test_le_royaume_open_buttons_share_the_single_window() -> None:
+    """fenetre-unique-royaume-v1 (Drasah 30/10): opening a second
+    Le-Royaume view closes the player's previous ephemeral window —
+    the Chambre des comptes never stacks with Remparts/Seigneurie."""
+    import kingdoms.mods.kingdoms.kingdom_persistent as persistent_mod
+
+    persistent_mod._EPHEMERAL_WINDOWS.pop("111", None)
+    _wire_buttons(_ButtonKingdomsService())
+    first: Any = MockInteraction(user=MockUser(id=111), locale="fr")
+    await KingdomRempartsOpenButton("🧱 Remparts").callback(first)
+    assert first.response.ephemeral is True
+    assert first.response.message is not None
+    assert not first.original_deleted
+
+    second: Any = MockInteraction(user=MockUser(id=111), locale="fr")
+    await KingdomSeigneurieOpenButton("🛡️ Seigneurie").callback(second)
+    assert second.response.ephemeral is True
+    assert second.response.message is not None
+    # the Remparts window closed instead of stacking
+    assert first.original_deleted is True
+    persistent_mod._EPHEMERAL_WINDOWS.pop("111", None)
+
+
 # ----------------------------------------------------------------------
 # restructuration-serveur-v1 c (Drasah 19/10): the Gaïa category drops
 # to ONE salon — the AI level rides the Territoire view.
