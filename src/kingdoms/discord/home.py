@@ -842,19 +842,24 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             except Exception as exc:
                 failures.append(f"{game_key} `{profile_id}` ({type(exc).__name__})")
                 await _report_profile_error(interaction, "profile.remove", game_key, exc)
+        # ONE surface (owner direction, the view SDK): the result rides
+        # the refreshed profile view's banner — no standalone followup
+        # messages, the deferred thinking residue is cleaned by the
+        # followup's origin edit
+        banner_bits: list[str] = []
         if removed:
             listed = ", ".join(removed)
-            await interaction.followup.send(
-                await reply(interaction, "profile.accounts_removed", listed=listed), ephemeral=True
-            )
+            banner_bits.append(await reply(interaction, "profile.accounts_removed", listed=listed))
         if failures:
-            await interaction.followup.send(
-                "Retrait \u00e9chou\u00e9 pour : " + ", ".join(failures) + " \u2014 le d\u00e9tail part aux admins.",
-                ephemeral=True,
+            banner_bits.append(
+                "Retrait échoué pour : " + ", ".join(failures) + " — le détail part aux admins."
             )
         if removed:
-            await _dm_profile_notice(interaction, "accounts_removed", listed=listed)
-            await _profile_followup(interaction, origin=self.origin)
+            await _dm_profile_notice(interaction, "accounts_removed", listed=", ".join(removed))
+        banner = "\n".join(banner_bits)
+        if not removed and not failures:
+            banner = await reply(interaction, "profile.no_account")
+        await _profile_followup(interaction, banner=banner, origin=self.origin)
 
 
 async def _tree_channel_link(guild_id: str, scope: str, key: str) -> str:
