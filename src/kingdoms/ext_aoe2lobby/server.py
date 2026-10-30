@@ -26,7 +26,22 @@ def main() -> None:
     )
 
     async def match_events() -> AsyncIterator[MatchEvent]:
-        """Yield normalized WS frames as core MatchEvent models."""
+        """Yield the current world, then the live frames (MatchEvents).
+
+        The handshake first (owner direction 2026-10-30): a fresh
+        consumer — the game service starting, reconnecting — first
+        receives the CURRENT state (every enrolled profile's live
+        lobby/game), then the live transitions. Without the handshake
+        a restarted consumer stays blind until the next transition.
+        """
+        for frame in adapter.current_state_events():
+            yield MatchEvent(
+                match_ref=frame["match_ref"],
+                type=frame["type"],
+                occurred_at=frame["occurred_at"],
+                profile_ids=tuple(frame["profile_ids"]),
+                metadata=tuple(sorted(frame["metadata"].items())),
+            )
         async for frame in adapter.stream_events():
             yield MatchEvent(
                 match_ref=frame["match_ref"],

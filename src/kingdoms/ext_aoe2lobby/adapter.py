@@ -209,6 +209,47 @@ class Aoe2LobbyAdapter:
             return True
         return False
 
+    def current_state_events(self) -> list[dict[str, Any]]:
+        """Build the CURRENT world's events (a new consumer's handshake).
+
+        Every subscribed profile's live status becomes one event (the
+        open lobbies, the running games) — a fresh consumer (the game
+        service reconnecting, a restart) re-synchronizes instead of
+        waiting for the next transition. The per-payload anti-spam
+        fingerprints stay untouched: this is the stream's handshake,
+        not a tick.
+        """
+        events: list[dict[str, Any]] = []
+        now = _now_ms()
+        for profile_id in sorted(self._subscribed_ids):
+            previous = self._player_status.get(profile_id)
+            if previous is None:
+                continue
+            status, match_ref = previous
+            events.append(
+                {
+                    "match_ref": match_ref,
+                    "type": EVENT_LOBBY_OPENED if status == STATUS_LOBBY else EVENT_GAME_STARTED,
+                    "occurred_at": now,
+                    "profile_ids": [profile_id],
+                    "metadata": self._event_metadata(match_ref, status),
+                }
+            )
+        return events
+
+    def _event_metadata(self, match_ref: str, status: str) -> dict[str, str]:
+        """Build the transition metadata for one replayed state event."""
+        metadata: dict[str, str] = {}
+        if match_ref:
+            metadata["match_url"] = (
+                "https://www.aoe2lobby.com/w/" if status == STATUS_GAME else "https://www.aoe2lobby.com/j/"
+            ) + match_ref
+            summary = self.match_summary(match_ref, status)
+            for key, value in summary.items():
+                if value not in ("", None):
+                    metadata[str(key)] = str(value)
+        return metadata
+
     async def stream_events(self) -> AsyncIterator[dict[str, Any]]:
         """Yield normalized event dicts from the WebSocket, forever.
 
