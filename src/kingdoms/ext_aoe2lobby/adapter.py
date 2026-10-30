@@ -104,6 +104,7 @@ class Aoe2LobbyAdapter:
         self._subscribed_ids: set[str] = set()
         self._ws: Any = None
         self._schema: dict[str, Any] = {}
+        self._last_frame: dict[str, Any] | None = None
 
     async def set_subscribed_profiles(self, profile_ids: list[str] | tuple[str, ...]) -> bool:
         """Reconcile the players subscription in place (no session teardown).
@@ -192,6 +193,8 @@ class Aoe2LobbyAdapter:
                     yield item  # a grace-close event from the sweeper
                 else:
                     for event in self.apply_frame(item):
+                        if self._last_frame is not None:
+                            await self._persist_last_frame()
                         yield event
                 if self._snapshot_due():
                     break
@@ -299,6 +302,11 @@ class Aoe2LobbyAdapter:
         the server actually honors.
         """
         ids = sorted(self._subscribed_ids)
+        logger.info(
+            "aoe2lobby SUBSCRIBE matches+players: %d profile(s): %s",
+            len(ids),
+            ",".join(ids[:20]) + ("..." if len(ids) > 20 else ""),
+        )
         for context in _CONTEXTS:
             await ws.send(
                 json.dumps(
@@ -340,6 +348,13 @@ class Aoe2LobbyAdapter:
             self._schema = schema
             logger.info("aoe2lobby schema captured: %d key(s)", len(schema))
             return []
+        # every match-carrying frame logs (the owner's tick visibility):
+        # what the websocket actually sends, when
+        keys = sorted(k for k in frame if "_match_" in k or k == PLAYER_STATUS_FIELD)
+        if keys:
+            sizes = {k: len(frame.get(k) or {}) for k in keys if isinstance(frame.get(k), (dict, list))}
+            if sizes:
+                logger.info("aoe2lobby FRAME: %s", " ".join(f"{k}={v}" for k, v in sizes.items()))
         events = self._reduce_player_status(frame.get(PLAYER_STATUS_FIELD))
         if events:
             self._log_events("player_status push", events)
@@ -349,7 +364,43 @@ class Aoe2LobbyAdapter:
             self._apply_context_deltas(context, frame, touched)
         events = self._reduce_touched(touched)
         self._log_events("match delta", events)
+        self._last_frame = {"raw": str(raw)[:20000], "frame": frame, "events": events, "at": _now_ms()}
         return events
+
+    async def _persist_last_frame(self) -> None:
+        """Persist the last received frame + its derived info (Mongo).
+
+        The owner's observability ask: the provider's `ws_last_frame`
+        collection holds the newest raw frame and its derived events —
+        the debugging trail reads the base instead of guessing what
+        the websocket sent. Best-effort: a store failure never breaks
+        the stream.
+        """
+        import os
+
+        uri = os.environ.get("MONGO_URI", "")
+        buffered = self._last_frame
+        if not uri or buffered is None:
+            return
+        try:
+            from kingdoms.core.models.db import get_async_database
+
+            database = get_async_database()
+            frame = buffered.get("frame") or {}
+            keys = sorted(k for k in frame if "_match_" in k or k == PLAYER_STATUS_FIELD)
+            document = {
+                "_id": "last",
+                "at": buffered.get("at", _now_ms()),
+                "keys": keys,
+                "raw": buffered.get("raw", ""),
+                "derived_events": [
+                    {"type": e.get("type"), "match": e.get("match_ref"), "profiles": list(e.get("profile_ids", []))}
+                    for e in buffered.get("events", [])
+                ],
+            }
+            await database["ws_last_frame"].replace_one({"_id": "last"}, document, upsert=True)
+        except Exception:
+            logger.debug("ws last-frame persist skipped — best-effort", exc_info=True)
 
     def _log_events(self, source: str, events: list[dict[str, Any]]) -> None:
         """Log every emitted transition — the pod's observable trail.

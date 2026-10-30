@@ -31,13 +31,16 @@ logger = logging.getLogger("kingdoms.discord.ui.responsive")
 __all__ = ["ack_view_interaction", "respond_with_view"]
 
 
-async def ack_view_interaction(interaction: discord.Interaction, *, thinking: bool = True) -> None:
+async def ack_view_interaction(interaction: discord.Interaction, *, thinking: bool = False) -> None:
     """Ack an interaction before slow work (the 3-second rule, one place).
 
     Discord kills an unacked interaction after 3 s and every later
     response 404s (merlin 10062). Every view callback doing slow work
-    (a provider call, a DB read) acks through this — with
-    ``thinking=True`` the user sees the bot working.
+    (a provider call, a DB read) acks through this. The default is a
+    QUIET defer (no thinking indicator): an update-in-place does not
+    flip-flap on screen (owner direction 2026-10-30) — pass
+    ``thinking=True`` only when the answer is a genuinely new message
+    that benefits from the working indicator.
     """
     if not interaction.response.is_done():
         await interaction.response.defer(ephemeral=True, thinking=thinking)
