@@ -89,8 +89,16 @@ def _arm_declared_note_timer(attack_id: str, interaction: Any, message_id: int, 
         delay = (when - game_now()).total_seconds()
     except Exception:
         return
-    if delay <= 0 or delay > 840:
-        return
+    # hygiene-ephemere-v1 (Drasah 30/10): the declared note NEVER
+    # outlives the attack's cancellation window — it dies at the
+    # MEETING time or at the window's end, whichever comes first
+    # (a later meeting keeps the note alive only as long as the
+    # attack may still be cancelled).
+    from kingdoms.mods.kingdoms.attacks import CANCEL_ATTACK_WINDOW_MINUTES
+
+    delay = min(delay, float(CANCEL_ATTACK_WINDOW_MINUTES) * 60.0)
+    if delay <= 0:
+        delay = 1.0  # the meeting already passed — sweep the note now
     existing = _DECLARE_NOTE_TASKS.pop(attack_id, None)
     if existing is not None:
         existing.cancel()
@@ -1808,7 +1816,15 @@ async def _declare_embuscade_attack(
     if attacks is None:
         await target.response.send_message(strings["no_service"], ephemeral=True)
         return
-    await target.response.defer(ephemeral=True)
+    # hygiene-ephemere-v1 (Drasah 30/10): the wizard that led here
+    # (the mode/kingdom/map steps, the « Sous l'identité » cover
+    # select) DIES with the declaration — the window is never
+    # reusable afterwards.
+    await target.response.defer()
+    try:
+        await target.delete_original_response()
+    except Exception:
+        logger.debug("kingdoms: declare wizard delete skipped", exc_info=True)
     try:
         attack = await attacks.declare_embuscade(str(target.user.id), map_key, "")
     except Exception as exc:
@@ -1855,6 +1871,59 @@ async def _followup_send_ephemeral(interaction: Any, content: str) -> Any:
     return await interaction.followup.send(content, ephemeral=True)
 
 
+# hygiene-ephemere-v1 (Drasah 30/10): an ERROR bubble is never news —
+# every refusal of the attack flows self-destructs quickly, so a stale
+# error can never outlive the meeting it refused.
+_ERROR_NOTE_SECONDS = 90.0
+
+
+def _schedule_error_delete(interaction: Any, seconds: float | None = None) -> None:
+    """Arm the short auto-deletion of an interaction's ORIGINAL response."""
+    wait = _ERROR_NOTE_SECONDS if seconds is None else seconds
+
+    async def _delete_later() -> None:
+        try:
+            await asyncio.sleep(wait)
+            await interaction.delete_original_response()
+        except Exception:
+            logger.debug("kingdoms: error note auto-delete skipped", exc_info=True)
+
+    asyncio.create_task(_delete_later())
+
+
+async def _error_note_followup(interaction: Any, content: str) -> None:
+    """Send an error ephemeral followup and arm its auto-deletion."""
+    try:
+        message = await interaction.followup.send(content, ephemeral=True)
+    except Exception:
+        logger.debug("kingdoms: error note send skipped", exc_info=True)
+        return
+    message_id = int(getattr(message, "id", 0) or 0)
+    if not message_id:
+        return
+
+    async def _delete_later() -> None:
+        try:
+            await asyncio.sleep(_ERROR_NOTE_SECONDS)
+            delete = getattr(interaction.followup, "delete_message", None)
+            if delete is not None:
+                await delete(message_id)
+        except Exception:
+            logger.debug("kingdoms: error note auto-delete skipped", exc_info=True)
+
+    asyncio.create_task(_delete_later())
+
+
+async def _error_note_send(interaction: Any, content: str) -> None:
+    """Answer an error on the response and arm its auto-deletion."""
+    try:
+        await interaction.response.send_message(content, ephemeral=True)
+    except Exception:
+        logger.debug("kingdoms: error note send skipped", exc_info=True)
+        return
+    _schedule_error_delete(interaction)
+
+
 async def _declare_player_attack(
     wiring: Any,
     target: discord.Interaction[Any],
@@ -1875,7 +1944,14 @@ async def _declare_player_attack(
     if attacks is None:
         await target.response.send_message(strings["no_service"], ephemeral=True)
         return
-    await target.response.defer(ephemeral=True)
+    # hygiene-ephemere-v1 (Drasah 30/10): the wizard that led here
+    # (the map/kingdom steps, the « Sous l'identité » cover select)
+    # DIES with the declaration — the window is never reusable.
+    await target.response.defer()
+    try:
+        await target.delete_original_response()
+    except Exception:
+        logger.debug("kingdoms: declare wizard delete skipped", exc_info=True)
     try:
         attack = await attacks.declare_attack(str(target.user.id), map_key, "", cover_lord_id=cover_lord_id)
     except Exception as exc:
@@ -2230,7 +2306,7 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
             )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await _error_note_followup(interaction, strings["failed"].format(message=message))
             return
         note: Any = await _followup_send_ephemeral(
             interaction,
@@ -3222,7 +3298,7 @@ class KingdomAttackJoinButton(
             )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await _error_note_followup(interaction, strings["failed"].format(message=message))
             return
         await interaction.followup.send(
             strings["gaia_join_note"].format(
@@ -3295,7 +3371,7 @@ class KingdomAttackCancelButton(
             attack = await wiring.attacks_service.cancel_attack(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await _error_note_followup(interaction, strings["failed"].format(message=message))
             return
         salon = _attack_salon(interaction.guild, attack)
         if salon is not None:
@@ -3367,7 +3443,7 @@ class KingdomCancelDefenseButton(
             await wiring.attacks_service.cancel_defense(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await _error_note_followup(interaction, strings["failed"].format(message=message))
             return
         await interaction.followup.send(strings["cancel_defense_done"], ephemeral=True)
 
@@ -3652,6 +3728,7 @@ class KingdomPickBanView(discord.ui.View):
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await _unique_notice(interaction, strings["failed"].format(message=message))
+            _schedule_error_delete(interaction)
             return
         # Symmetry (Drasah 18/10 v2): the SAME answer for the first
         # and the second validator — nobody sees the adversary civs.
@@ -3818,7 +3895,6 @@ async def _sabotage_reveal_payload(
     player_id = str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
     enemy = "defender" if side == "attacker" else "attacker"
     shuffled = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
-    civs = ", ".join(shuffled) or "—"
     # reveal-mp-ping-v1 (Drasah 30/10): the reveal DM PINGS its player
     # (the head mention) and names its block in bold — the draft DM is
     # EDITED in place to « waiting for the adversary », so a player who
@@ -3829,9 +3905,12 @@ async def _sabotage_reveal_payload(
     own_line = strings["pickban_own_picks_line"].format(
         picks=_own_picks_line(own) or "—"
     )
+    # hygiene-ephemere-v1 (Drasah 30/10): the written civs block is
+    # GONE — the mosaic paints the crests and the sabotage menu lists
+    # the names; the text keeps the bold header + the own picks line.
     content = (
         f"<@{player_id}>\n"
-        f"{strings['pickban_reveal_adversary']}\n**{civs}**\n\n"
+        f"{strings['pickban_reveal_adversary']}\n\n"
         f"{own_line}\n\n"
         f"{strings['pickban_reveal_dm'].format(map=attack.map_key, deadline=_fmt_paris(attack.expires_at))}"
     )
@@ -4195,6 +4274,7 @@ class KingdomSabotagePassButton(
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await _unique_notice(interaction, strings["failed"].format(message=message))
+            _schedule_error_delete(interaction)
             return
         # sabotage-ux-v1 (Drasah 22/10): the Passer click closes the
         # sabotage panel — the player is done with the phase, the panel
@@ -5681,7 +5761,7 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             attack = await wiring.attacks_service.set_lobby_url(self.attack_id, self.player_id, url)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            await _error_note_send(interaction, strings["failed"].format(message=message))
             return
         # Drasah 18/10 v5 + battle-room-id-v1: no extra post — the room's
         # single message refreshes in place (the ID line + the unlocked
@@ -5796,6 +5876,10 @@ class KingdomRoomResultButton(
 
 _ROOM_FLOW_IDLE_SECONDS = 10
 _ROOM_RECEIPT_SECONDS = 300
+# hygiene-ephemere-v1 (Drasah 30/10): a RESOLVED receipt tells nothing
+# the room does not already show — it sweeps away in 60 s (the pending
+# note keeps its full 5 minutes: it carries the objection window).
+_ROOM_RESULT_SECONDS = 60.0
 
 
 async def _room_select_view(
@@ -6062,6 +6146,8 @@ async def _declare_room_score(
     except Exception as exc:
         message = getattr(exc, "message", None) or str(exc)
         await _respond(strings["failed"].format(message=message))
+        # hygiene-ephemere-v1: a refusal never outlives its reading.
+        _schedule_error_delete(interaction)
         return
     key = (str(attack.id), str(getattr(interaction.user, "id", "")))
     if outcome == "disputed":
@@ -6082,7 +6168,7 @@ async def _declare_room_score(
         return
     if outcome == "already":
         await _respond(strings["score_already"])
-        _arm_ephemeral_timer(key, interaction, _ROOM_RECEIPT_SECONDS)
+        _arm_ephemeral_timer(key, interaction, _ROOM_RESULT_SECONDS)
         return
     if outcome == "resolved":
         winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
@@ -6090,7 +6176,7 @@ async def _declare_room_score(
         await _on_score_resolved_safe(
             interaction.client, wiring, attack, strings, winner, _locale(interaction)
         )
-        _arm_ephemeral_timer(key, interaction, _ROOM_RECEIPT_SECONDS)
+        _arm_ephemeral_timer(key, interaction, _ROOM_RESULT_SECONDS)
         return
     minutes = 10
     try:
@@ -6199,7 +6285,7 @@ class KingdomRoomReadyButton(
             attack = await wiring.attacks_service.mark_ready(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            await _error_note_send(interaction, strings["failed"].format(message=message))
             return
         # battle-room-id-v1: the scoreboard refreshes in place — the
         # player's own half shows « ✅ Prêt », 🏆 appears once both are
@@ -6285,23 +6371,11 @@ async def _sabotage_panel_content(
     lines.append("")
     lines.append(await _sabotage_stock_line(wiring, attack, side, strings))
     view = await _sabotage_menu_view(wiring, attack, side, strings)
-    enemy = "defender" if side == "attacker" else "attacker"
-    # sabotage-dm-fresh-v1 (Drasah 30/10): the panel mosaic wears the
-    # SAME seeded order as the DM reveal — stable across re-renders
-    # (the raw pick order would leak the hidden ranking anyway).
-    enemy_picks = _reveal_civs(f"{attack.id}:{enemy}", pickban.get(f"{enemy}_picks"))
-    file: discord.File | None = None
-    if enemy_picks:
-        try:
-            file = await civ_crest_mosaic_file(
-                [(civ, "", civ) for civ in enemy_picks],
-                filename="sabotage.png",
-                with_origin_badges=False,
-                crossed=set(used),
-            )
-        except Exception:
-            logger.warning("KINGDOM ATTACK: sabotage mosaic failed", exc_info=True)
-    return "\n".join(lines), view, file
+    # hygiene-ephemere-v1 (Drasah 30/10): the panel carries NO mosaic —
+    # the reveal DM already paints the crests (a duplicated image in
+    # the ephemeral window is pure noise); a snipe shows in the DM's
+    # crossed mosaic and in the removed-civs line here.
+    return "\n".join(lines), view, None
 
 
 async def _sabotage_menu_view(wiring: Any, attack: Any, side: str, strings: dict[str, str]) -> discord.ui.View | None:
@@ -6443,6 +6517,7 @@ async def _sabotage_civ_select_view(
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await _unique_notice(target, strings["failed"].format(message=message))
+            _schedule_error_delete(target)
             return
         # sabotage-ux-v1 (Drasah 22/10): the pick edits the SAME panel —
         # récap X/2 + the removed civ + the stock line, no new bubble.
@@ -6700,7 +6775,7 @@ class KingdomDisputeView(discord.ui.View):
                 attack = await wiring.attacks_service.resolve_dispute(self.attack_id, choice)
             except Exception as exc:
                 message = getattr(exc, "message", None) or str(exc)
-                await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+                await _error_note_send(interaction, strings["failed"].format(message=message))
                 return
             if choice == "both":
                 await interaction.response.send_message(
