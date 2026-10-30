@@ -356,8 +356,8 @@ def _refuse_lords_day_execution(
     expires = timestamp + timedelta(minutes=delay_minutes)
     if expires <= window[1] and not bypass_guard("lords-day declare window"):
         raise LordsDayAttackError(
-            "the attack would be played inside the Lord's Day window "
-            "(declare only if the execution lands after it closes)"
+            "l'attaque serait jouée dans la fenêtre du Jour du Seigneur "
+            "(déclarez seulement si l'exécution tombe après sa fermeture)"
         )
 
 
@@ -585,7 +585,7 @@ class AttackService:
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
-            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
         timestamp = now or _now()
         # planification-attaque-v1: an engaged lord (attacker or
         # defender of an unresolved attack) declares NOTHING new.
@@ -601,7 +601,7 @@ class AttackService:
         if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
             f"attack budget of {lord.display_name} ({lord.attack_used})"
         ):
-            raise NoBudgetError("the weekly attack budget is spent")
+            raise NoBudgetError("le budget d'attaque hebdomadaire est épuisé")
         # Drasah 18/10: the lobby URL is no longer asked at the
         # declaration — it is shared at the RDV (ready phase) through
         # the meeting DM's 🔗 button. An empty URL at the declaration
@@ -693,7 +693,7 @@ class AttackService:
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
-            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
         timestamp = now or _now()
         # planification-attaque-v1: an engaged lord ambushes NOTHING.
         await self._refuse_engaged(lord.id, timestamp)
@@ -704,11 +704,11 @@ class AttackService:
         # adverse technology effect — a released defender is immune.
         target_kingdom = await self._kingdom_by_id(territory.owner_kingdom_id)
         if _faucon_released(target_kingdom, timestamp):
-            raise EmbuscadeError("the defender released the faucon — immune to technologies")
+            raise EmbuscadeError("le défenseur a relâché le faucon — immunisé aux technologies")
         # lieu-sacree-v1: a cathedral chantier resists every adverse
         # technology — Embuscade included.
         if territory.is_tech_protected_at(timestamp):
-            raise EmbuscadeError("the territory's chantier resists the Embuscade (lieu-sacree-v1)")
+            raise EmbuscadeError("le chantier du territoire résiste à l'Embuscade (lieu-sacree-v1)")
         # planification-attaque-v1: the Embuscade button follows the
         # same flow as a classic declaration — the lobby URL is
         # shared at the RDV through the meeting DM's 🔗 button, so an
@@ -721,7 +721,7 @@ class AttackService:
         state = await self.technology_state(lord.kingdom_id)
         bought = state.purchases.get("embuscade", 0)
         if bought <= 0:
-            raise EmbuscadeError("the kingdom bought no Embuscade")
+            raise EmbuscadeError("le royaume n'a pas acheté d'Embuscade")
         state.purchases["embuscade"] = bought - 1
         await self._store.upsert_technology(state.to_mongo())
         attack = AttackModel(
@@ -784,7 +784,7 @@ class AttackService:
             if str(attack.attacker_lord_id) == str(player_id) or (
                 attack.defender_lord_id is not None and str(attack.defender_lord_id) == str(player_id)
             ):
-                raise LordEngagedError("the lord is engaged in an unresolved battle")
+                raise LordEngagedError("le seigneur est engagé dans une bataille non résolue")
 
     def _refuse_tavern(self, lord: LordModel, timestamp: datetime) -> None:
         """Raise ``LordTavernLockedError`` while a drink locks the lord.
@@ -799,7 +799,7 @@ class AttackService:
             and lord.tavern_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"tavern lock of {lord.display_name}")
         ):
-            raise LordTavernLockedError("the lord is locked by a tavern drink (taverne-v1)")
+            raise LordTavernLockedError("le seigneur est bloqué par une boisson de taverne (taverne-v1)")
 
     def _plan_declare_at(self, plan: PlannedAttackModel) -> datetime:
         """The scheduled declaration moment: T - itinéraire (Drasah 23/10).
@@ -833,22 +833,22 @@ class AttackService:
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
-            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
         timestamp = now or _now()
         await self._refuse_engaged(player_id, timestamp)
         # taverne-v1: a drinking lord plans NOTHING either.
         self._refuse_tavern(lord, timestamp)
         if not choices:
-            raise PlanningError("a plan needs at least one territory choice")
+            raise PlanningError("un plan exige au moins un choix de territoire")
         if len(choices) > PLANNING_CHOICES_MAX:
-            raise PlanningError(f"a plan holds at most {PLANNING_CHOICES_MAX} choices")
+            raise PlanningError(f"un plan retient au plus {PLANNING_CHOICES_MAX} choix")
         if len(set(choices)) != len(choices):
-            raise PlanningError("the same territory cannot be picked twice")
+            raise PlanningError("le même territoire ne peut pas être retenu deux fois")
         # The golden 24h rule + the minimum itinéraire before T.
         max_horizon = timedelta(hours=int(self._config.attacks.planning_max_hours))
         travel = timedelta(minutes=int(self._config.attacks.player_attack_delay_minutes))
         if meeting_at <= timestamp + travel:
-            raise PlanningError("the RDV must land at least one itinéraire ahead")
+            raise PlanningError("le RDV doit tomber au moins un itinéraire plus loin")
         if meeting_at > timestamp + max_horizon:
             raise PlanningError(
                 f"the RDV cannot sit further than {int(self._config.attacks.planning_max_hours)}h ahead"
@@ -857,26 +857,26 @@ class AttackService:
         # (the execution re-checks at T - itinéraire anyway).
         window = await self._active_lords_day_window(timestamp)
         if window is not None and window[0] <= meeting_at <= window[1]:
-            raise LordsDayAttackError("the RDV would be played inside the Lord's Day window")
+            raise LordsDayAttackError("le RDV tomberait dans la fenêtre du Jour du Seigneur")
         # Choice 1 must be a real attackable target NOW (the others are
         # re-validated at the execution — protections may change).
         validated: list[str] = []
         for index, map_key in enumerate(choices):
             territory = await self._territory_by_map(map_key)
             if territory is None:
-                raise PlanningError(f"unknown territory: {map_key}")
+                raise PlanningError(f"territoire inconnu : {map_key}")
             if territory.owner_kingdom_id == lord.kingdom_id:
-                raise PlanningError("a kingdom cannot attack its own territory")
+                raise PlanningError("un royaume ne peut pas attaquer son propre territoire")
             owner = await self._kingdom_by_id(territory.owner_kingdom_id)
             if owner.is_gaia:
-                raise PlanningError("Gaïa territories are attacked through the free-for-all")
+                raise PlanningError("les territoires Gaïa s'attaquent par la bataille libre")
             if territory.sacred:
-                raise PlanningError("the territory is SACRED — immune to every attack")
+                raise PlanningError("le territoire est SACRÉ — immunisé contre toute attaque")
             if index == 0:
                 # The active choice must be free right now — a busy
                 # choice would break the plan on its very first tick.
                 if await self._territory_busy(territory.id):
-                    raise TerritoryBusyError("the territory already has an ongoing attack")
+                    raise TerritoryBusyError("le territoire a déjà une attaque en cours")
             validated.append(territory.map_key)
         plan = PlannedAttackModel(
             _id=f"{season.id}-plan-{lord.id}-{int(timestamp.timestamp())}",
@@ -908,9 +908,9 @@ class AttackService:
         """Withdraw a planned attack — free, the plan consumed nothing."""
         plan = next((p for p in await self.plans() if str(p.id) == str(plan_id)), None)
         if plan is None or not plan.is_live:
-            raise PlanNotFoundError("the plannification no longer exists")
+            raise PlanNotFoundError("la plannification n'existe plus")
         if str(plan.lord_id) != str(player_id):
-            raise PlanNotFoundError("only the planificateur can cancel his plan")
+            raise PlanNotFoundError("seul le planificateur peut annuler son plan")
         plan.state = PlanState.CANCELLED
         plan.last_event = "cancelled"
         await self._store.upsert_plan(plan.to_mongo())
@@ -1104,15 +1104,15 @@ class AttackService:
         """Run the shared declaration checks on one target territory."""
         territory = await self._territory_by_map(map_key)
         if territory.owner_kingdom_id == lord.kingdom_id:
-            raise TerritoryNotAttackableError("a kingdom cannot attack its own territory")
+            raise TerritoryNotAttackableError("un royaume ne peut pas attaquer son propre territoire")
         owner = await self._kingdom_by_id(territory.owner_kingdom_id)
         if owner.is_gaia:
-            raise TerritoryNotAttackableError("Gaïa territories are attacked through the free-for-all")
+            raise TerritoryNotAttackableError("les territoires Gaïa s'attaquent par la bataille libre")
         if territory.is_protected_at(timestamp):
-            raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
+            raise TerritoryNotAttackableError("le territoire est protégé (Garde Royale/Corruption)")
         # lieu-sacree-v1: a SACRED territory is immune to everything.
         if territory.sacred:
-            raise TerritoryNotAttackableError("the territory is SACRED — immune to every attack")
+            raise TerritoryNotAttackableError("le territoire est SACRÉ — immunisé contre toute attaque")
         # D68: the target kingdom's daily patrol covers all its
         # territories during the bought slot (3h once Renforcée, art. 5).
         if patrouille_active_at(
@@ -1120,14 +1120,14 @@ class AttackService:
             timestamp,
             base_level=await self.base_ai_level(),
         ):
-            raise PatrolProtectedError("the target kingdom's patrol protects its territories (D68)")
+            raise PatrolProtectedError("la patrouille du royaume cible protège ses territoires (D68)")
         # D59/D60: a fresh marriage locks the lord out of combat.
         if (
             lord.marriage_locked_until is not None
             and lord.marriage_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"marriage lock of {lord.display_name}")
         ):
-            raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
+            raise LordLockedError("le seigneur est bloqué par un mariage récent (D59/D60)")
         # marche-v2 art. 6: a lord sent exploring is locked out of
         # combat for the whole 48h exploration (fixed lock).
         if (
@@ -1135,10 +1135,10 @@ class AttackService:
             and lord.exploration_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"exploration lock of {lord.display_name}")
         ):
-            raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
+            raise LordLockedError("le seigneur est bloqué par l'exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         if await self._territory_busy(territory.id):
-            raise TerritoryBusyError("the territory already has an ongoing attack")
+            raise TerritoryBusyError("le territoire a déjà une attaque en cours")
         return territory
 
     def _refuse_ffa_no_show(self, lord: LordModel, timestamp: datetime) -> None:
@@ -1148,7 +1148,7 @@ class AttackService:
             and lord.ffa_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"ffa no-show lock of {lord.display_name}")
         ):
-            raise LordLockedError("the lord is locked by a missed FFA (ffa-exploration-v1)")
+            raise LordLockedError("le seigneur est bloqué par une FFA manquée (ffa-exploration-v1)")
 
     async def _engage_cover(
         self, lord: LordModel, cover_lord_id: str, defender_kingdom_id: str
@@ -1162,16 +1162,16 @@ class AttackService:
         him) and the attacker himself.
         """
         if cover_lord_id == lord.id:
-            raise AttackError("the cover lord cannot be the attacker himself")
+            raise AttackError("le seigneur de couverture ne peut pas être l'attaquant lui-même")
         cover = await self._require_lord(cover_lord_id)
         if cover.left or cover.kingdom_id is None:
-            raise AttackError("the cover lord is no active lord of the season")
+            raise AttackError("le seigneur de couverture n'est pas un seigneur actif de la saison")
         if str(cover.kingdom_id) == str(defender_kingdom_id):
-            raise AttackError("the cover lord cannot belong to the attacked kingdom")
+            raise AttackError("le seigneur de couverture ne peut pas appartenir au royaume attaqué")
         state = await self.technology_state(lord.kingdom_id or "")
         bought = state.purchases.get("contre_espionnage", 0)
         if bought <= 0:
-            raise AttackError("the kingdom bought no Contre-espionnage")
+            raise AttackError("le royaume n'a pas acheté de Contre-espionnage")
         state.purchases["contre_espionnage"] = bought - 1
         await self._store.upsert_technology(state.to_mongo())
         return cover.id
@@ -1191,16 +1191,16 @@ class AttackService:
         await self._require_running_season()
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
-            raise AttackStateError("a Gaïa free-for-all has no defending side")
+            raise AttackStateError("une bataille libre Gaïa n'a pas de camp défenseur")
         if attack.state is not AttackState.DECLARED:
-            raise AttackStateError("the attack no longer waits for a defender")
+            raise AttackStateError("l'attaque n'attend plus de défenseur")
         timestamp = now or _now()
         cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
         if timestamp >= cutoff and not bypass_guard("defense window closing (T-15)"):
             raise DefenseCutoffError("la fenêtre de défense est fermée (T-15) — le reveal a verrouillé la partie")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
-            raise AttackStateError("only a lord of the defending kingdom can defend")
+            raise AttackStateError("seul un seigneur du royaume défenseur peut défendre")
         # planification-attaque-v1 (Drasah 23/10): an engaged lord
         # defends NOTHING else — he is locked until his own battle's
         # result is announced.
@@ -1213,14 +1213,14 @@ class AttackService:
             and lord.marriage_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"marriage lock of {lord.display_name}")
         ):
-            raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
+            raise LordLockedError("le seigneur est bloqué par un mariage récent (D59/D60)")
         # marche-v2 art. 6: the exploring lord cannot defend either.
         if (
             lord.exploration_locked_until is not None
             and lord.exploration_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"exploration lock of {lord.display_name}")
         ):
-            raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
+            raise LordLockedError("le seigneur est bloqué par l'exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         # planification-attaque-v1 (Drasah 23/10): the Embuscade
         # generates an EXCEPTIONAL defense — the defender neither
@@ -1231,7 +1231,7 @@ class AttackService:
         elif lord.defense_used >= self._config.attacks.defenses_per_week and not bypass_guard(
             f"defense budget of {lord.display_name} ({lord.defense_used})"
         ):
-            raise NoBudgetError("the weekly defense budget is spent")
+            raise NoBudgetError("le budget de défense hebdomadaire est épuisé")
         else:
             lord.defense_used += 1
             await self._store.upsert_lord(lord.to_mongo())
@@ -1262,17 +1262,17 @@ class AttackService:
         """
         attack = await self._find_attack(attack_id)
         if attack.is_over:
-            raise AttackStateError("the attack is over")
+            raise AttackStateError("l'attaque est terminée")
         if attack.kind is not AttackKind.PLAYER:
-            raise AttackStateError("a Gaïa free-for-all cannot be cancelled")
+            raise AttackStateError("une bataille libre Gaïa ne peut pas être annulée")
         if str(player_id) != str(attack.attacker_lord_id):
-            raise AttackStateError("only the declarant may cancel the attack")
+            raise AttackStateError("seul le déclarant peut annuler l'attaque")
         if attack.revealed and not bypass_guard("cancel window after the reveal"):
-            raise AttackStateError("the reveal ran — the attack can no longer be cancelled")
+            raise AttackStateError("le reveal est passé — l'attaque ne peut plus être annulée")
         timestamp = now or _now()
         deadline = attack.declared_at + timedelta(minutes=CANCEL_ATTACK_WINDOW_MINUTES)
         if timestamp > deadline and not bypass_guard("cancel window of the declaration"):
-            raise AttackStateError(f"the {CANCEL_ATTACK_WINDOW_MINUTES}-minute cancellation window is closed")
+            raise AttackStateError(f"la fenêtre d'annulation de {CANCEL_ATTACK_WINDOW_MINUTES} minutes est fermée")
         attacker = await self._require_lord(str(attack.attacker_lord_id))
         if not attack.embuscade and attacker.attack_used > 0:
             attacker.attack_used -= 1
@@ -1316,19 +1316,19 @@ class AttackService:
         """
         attack = await self._find_attack(attack_id)
         if attack.is_over:
-            raise AttackStateError("the attack is over")
+            raise AttackStateError("l'attaque est terminée")
         if attack.kind is not AttackKind.PLAYER:
-            raise AttackStateError("a Gaïa free-for-all has no defending side")
+            raise AttackStateError("une bataille libre Gaïa n'a pas de camp défenseur")
         if attack.state is not AttackState.DEFENDED or not attack.defender_lord_id:
-            raise AttackStateError("no defense is recorded on this attack")
+            raise AttackStateError("aucune défense n'est enregistrée sur cette attaque")
         if str(player_id) != str(attack.defender_lord_id):
-            raise AttackStateError("only the defender may withdraw the defense")
+            raise AttackStateError("seul le défenseur peut retirer sa défense")
         timestamp = now or _now()
         draft_start = attack.expires_at - timedelta(minutes=self._config.attacks.pick_ban_lead_minutes)
         if (attack.revealed or (attack.pickban or {}).get("sent") or timestamp >= draft_start) and not bypass_guard(
             "defense cancel after the draft start"
         ):
-            raise AttackStateError("the draft phase started — the defense can no longer be withdrawn")
+            raise AttackStateError("la phase de draft a commencé — la défense ne peut plus être retirée")
         defender = await self._require_lord(str(attack.defender_lord_id))
         if defender.defense_used > 0:
             defender.defense_used -= 1
@@ -1512,9 +1512,9 @@ class AttackService:
         )
         required = min(3, len(hand))
         if len(picks) != required or len(set(picks)) != required:
-            raise PickBanStateError(f"rank exactly {required} distinct civilization(s)")
+            raise PickBanStateError(f"classez exactement {required} civilisation(s) distincte(s)")
         if any(pick not in hand for pick in picks):
-            raise PickBanStateError("every pick must come from your kingdom's hand")
+            raise PickBanStateError("chaque pick doit venir de la main de votre royaume")
         pickban = dict(attack.pickban)
         pickban[f"{side}_picks"] = list(picks)
         pickban[f"{side}_sabotages"] = []  # legacy field — the draft is sabotage-free
@@ -1581,11 +1581,11 @@ class AttackService:
         """Fetch the attack and enforce the pré-combat window (D77)."""
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
-            raise PickBanStateError("the free-for-all has no pick & ban")
+            raise PickBanStateError("la bataille libre n'a pas de pick & ban")
         if attack.state is not AttackState.DEFENDED:
-            raise PickBanStateError("the pick & ban is not open on this attack")
+            raise PickBanStateError("le pick & ban n'est pas ouvert sur cette attaque")
         if attack.pickban.get("resolved_pickban"):
-            raise PickBanStateError("the pick & ban is already resolved")
+            raise PickBanStateError("le pick & ban est déjà résolu")
         if not attack.pickban.get("sent"):
             raise PickBanStateError("le draft n'est pas encore ouvert (il part au reveal T-15)")
         if timestamp >= attack.expires_at and not attack.ai_defender:
@@ -1602,7 +1602,7 @@ class AttackService:
             return "attacker"
         if lord.kingdom_id == attack.defender_kingdom_id and lord.id == attack.defender_lord_id:
             return "defender"
-        raise PickBanStateError("only the two players of the meeting pick & ban")
+        raise PickBanStateError("seuls les deux joueurs de la rencontre pick & ban")
 
     async def _side_hand(self, kingdom_id: str) -> list[str]:
         """Return the kingdom's civilizations (its Alliances hand, D77)."""
@@ -1786,19 +1786,19 @@ class AttackService:
         """
         season = await self._kingdoms.current_season()
         if season is not None and season.finished:
-            raise AttackError("the season is finished")
+            raise AttackError("la saison est terminée")
         if not lobby_url.strip():
-            raise AttackError("the lobby link is empty")
+            raise AttackError("le lien du lobby est vide")
         attack = next((item for item in await self.attacks() if item.id == attack_id), None)
         if attack is None or attack.kind is not AttackKind.PLAYER:
-            raise AttackError("unknown attack")
+            raise AttackError("attaque inconnue")
         if attack.is_over:
-            raise AttackError("the attack is over")
+            raise AttackError("l'attaque est terminée")
         allowed = {str(attack.attacker_lord_id)}
         if attack.defender_lord_id and not attack.ai_defender:
             allowed.add(str(attack.defender_lord_id))
         if player_id not in allowed:
-            raise AttackStateError("only a player of the meeting may share the lobby link")
+            raise AttackStateError("seul un joueur de la rencontre peut partager le lien du lobby")
         new_url = lobby_url.strip()
         previous = str(attack.lobby_url or "").strip()
         # battle-room-id-v1 (Drasah 22/10): a CHANGED ID resets both
@@ -2249,9 +2249,9 @@ class AttackService:
         """Fetch the attack and enforce the sabotage-phase window (v4)."""
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
-            raise PickBanStateError("the free-for-all has no sabotage phase")
+            raise PickBanStateError("la bataille libre n'a pas de phase de sabotage")
         if attack.state is not AttackState.DEFENDED:
-            raise PickBanStateError("the sabotage phase is not open on this attack")
+            raise PickBanStateError("la phase de sabotage n'est pas ouverte sur cette attaque")
         if not attack.pickban.get("resolved_pickban"):
             raise PickBanStateError("le draft doit être résolu avant la phase de sabotage")
         if attack.pickban.get("sabotage_resolved"):
@@ -2273,7 +2273,7 @@ class AttackService:
             return "attacker"
         if lord.kingdom_id == attack.defender_kingdom_id and lord.id == attack.defender_lord_id:
             return "defender"
-        raise PickBanStateError("only the two players of the meeting may sabotage")
+        raise PickBanStateError("seuls les deux joueurs de la rencontre peuvent saboter")
 
     async def sabotage_techno(self, attack_id: str, player_id: str, civ_key: str) -> AttackModel:
         """Retire one enemy civ with the bought Sabotage techno (v4).
@@ -2291,17 +2291,17 @@ class AttackService:
         kingdom_id = attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
         state = await self.technology_state(kingdom_id)
         if state.purchases.get("sabotage", 0) <= 0:
-            raise AttackStateError("the kingdom has not bought the sabotage technology")
+            raise AttackStateError("le royaume n'a pas acheté la technologie Sabotage")
         pickban = dict(attack.pickban)
         enemy = "defender" if side == "attacker" else "attacker"
         enemy_picks = [str(civ) for civ in (pickban.get(f"{enemy}_picks") or [])]
         if civ_key not in enemy_picks:
-            raise AttackStateError("this civilization is not in the enemy picks")
+            raise AttackStateError("cette civilisation ne fait pas partie des picks adverses")
         sabotages = list(pickban.get(f"{side}_sabotages") or [])
         if civ_key in sabotages:
-            raise AttackStateError("this civilization is already sabotaged")
+            raise AttackStateError("cette civilisation est déjà sabotée")
         if len(sabotages) >= 2:
-            raise SabotageError("the sabotage limit (2) is already reached")
+            raise SabotageError("la limite de sabotage (2) est déjà atteinte")
         # sabotage-consommable-v1 (Drasah 22/10): the charge is spent
         # ONLY on a successful snipe (bought - 1, pattern Embuscade) —
         # a refused pick never consumes a charge.
@@ -2528,17 +2528,17 @@ class AttackService:
             )
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
-            raise AttackStateError("the free-for-all has no score phase")
+            raise AttackStateError("la bataille libre n'a pas de phase de score")
         game_id = (game_id or "").strip()
         if not game_id:
-            raise AttackError("the game id is required")
+            raise AttackError("l'ID de la game est requis")
         allowed = {attack.attacker_kingdom_id, attack.defender_kingdom_id}
         if winner_kingdom_id not in allowed:
-            raise AttackStateError("this kingdom took no part in the attack")
+            raise AttackStateError("ce royaume ne prend pas part à l'attaque")
         if attack.is_over:
             return await self._declare_after_resolution(attack, player_id, winner_kingdom_id, game_id, timestamp)
         if attack.state is not AttackState.MEETING:
-            raise AttackStateError("the score phase is not open on this attack")
+            raise AttackStateError("la phase de score n'est pas ouverte sur cette attaque")
         self._require_score_player(attack, player_id)
         score = dict(attack.score)
         declarations = dict(score.get("declarations") or {})
@@ -2810,7 +2810,7 @@ class AttackService:
         """Fetch the attack and enforce the open score phase."""
         attack = await self._find_attack(attack_id)
         if attack.state is not AttackState.MEETING:
-            raise AttackStateError("the score phase is not open on this attack")
+            raise AttackStateError("la phase de score n'est pas ouverte sur cette attaque")
         return attack
 
     def _require_score_player(self, attack: AttackModel, player_id: str) -> str:
@@ -2819,7 +2819,7 @@ class AttackService:
             return "attacker"
         if player_id == attack.defender_lord_id and not attack.ai_defender:
             return "defender"
-        raise AttackStateError("only the two players of the meeting declare a result")
+        raise AttackStateError("seuls les deux joueurs de la rencontre déclarent un résultat")
 
     async def resolve_dispute(self, attack_id: str, admin_choice: str, *, now: datetime | None = None) -> AttackModel:
         """Admin arbitration of a disputed meeting (attaques-score-v1).
@@ -2833,9 +2833,9 @@ class AttackService:
         timestamp = now or _now()
         attack = await self._find_attack(attack_id)
         if not attack.score.get("disputed"):
-            raise AttackStateError("this attack carries no dispute")
+            raise AttackStateError("cette attaque ne porte aucun litige")
         if admin_choice not in ("attacker", "defender", "both"):
-            raise AttackError("admin_choice must be attacker, defender or both")
+            raise AttackError("admin_choice doit être attacker, defender ou both")
         score = dict(attack.score)
         score["admin_choice"] = admin_choice
         score["disputed"] = False
@@ -2929,7 +2929,7 @@ class AttackService:
         if attack.state is AttackState.RESOLVED:
             if attack.winner_kingdom_id == winner_kingdom_id:
                 return attack  # idempotent replay of the same result
-            raise AttackStateError("the attack is already resolved with another winner")
+            raise AttackStateError("l'attaque est déjà résolue avec un autre vainqueur")
         # A Gaïa free-for-all has no defending step (D44): it resolves
         # from DECLARED once the game result comes in. A MEETING (the
         # RDV, attaques-score-v1) resolves from the score phase.
@@ -2941,11 +2941,11 @@ class AttackService:
         if attack.kind is AttackKind.GAIA:
             allowed_states = (AttackState.DECLARED, AttackState.DEFENDED, AttackState.EXPIRED)
         if attack.state not in allowed_states:
-            raise AttackStateError("the attack awaits a defender or its expiry")
+            raise AttackStateError("l'attaque attend un défenseur ou son expiration")
         kingdoms = await self._kingdoms.kingdoms()
         known = {kingdom.id for kingdom in kingdoms}
         if winner_kingdom_id not in known:
-            raise KingdomNotFoundError("the winner kingdom does not exist in the season")
+            raise KingdomNotFoundError("le royaume vainqueur n'existe pas dans la saison")
         allowed = {attack.attacker_kingdom_id, attack.defender_kingdom_id}
         if attack.kind is AttackKind.GAIA:
             allowed.add(
@@ -2955,7 +2955,7 @@ class AttackService:
                 )
             )
         if winner_kingdom_id not in allowed:
-            raise AttackStateError("this kingdom took no part in the attack")
+            raise AttackStateError("ce royaume ne prend pas part à l'attaque")
         attack.state = AttackState.RESOLVED
         attack.winner_kingdom_id = winner_kingdom_id
         attack.resolved_at = _now()
@@ -3120,11 +3120,11 @@ class AttackService:
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
-            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
         if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
             f"attack budget of {lord.display_name} ({lord.attack_used})"
         ):
-            raise NoBudgetError("the weekly attack budget is spent")
+            raise NoBudgetError("le budget d'attaque hebdomadaire est épuisé")
         timestamp = now or _now()
         # marche-v2 art. 6: an exploring lord can neither attack nor defend.
         if (
@@ -3132,16 +3132,16 @@ class AttackService:
             and lord.exploration_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"exploration lock of {lord.display_name}")
         ):
-            raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
+            raise LordLockedError("le seigneur est bloqué par l'exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         territory = await self._territory_by_map(map_key)
         owner = await self._kingdom_by_id(territory.owner_kingdom_id)
         if not owner.is_gaia:
-            raise TerritoryNotAttackableError("the free-for-all targets a Gaïa territory")
+            raise TerritoryNotAttackableError("la bataille libre vise un territoire Gaïa")
         if territory.is_protected_at(timestamp):
-            raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
+            raise TerritoryNotAttackableError("le territoire est protégé (Garde Royale/Corruption)")
         if territory.sacred:
-            raise TerritoryNotAttackableError("the territory is SACRED — immune to every attack")
+            raise TerritoryNotAttackableError("le territoire est SACRÉ — immunisé contre toute attaque")
         attack = next(
             (
                 item
@@ -3185,7 +3185,7 @@ class AttackService:
     ) -> AttackModel:
         """Build the first declaration of a Gaïa free-for-all."""
         if lord.kingdom_id is None:
-            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
         return AttackModel(
             _id=f"{season.id}-g-{territory.id}",
             season_id=season.id,
@@ -3204,16 +3204,16 @@ class AttackService:
     async def _join_gaia_attack(self, attack: AttackModel, lord: LordModel, territory: TerritoryModel) -> AttackModel:
         """Add one lord to an open Gaïa free-for-all (D6/D42)."""
         if attack.state is not AttackState.DECLARED:
-            raise AttackStateError("the free-for-all no longer accepts participants")
+            raise AttackStateError("la bataille libre n'accepte plus de participants")
         if any(participant == lord.id for participant in attack.participants):
-            raise AttackStateError("the lord already takes part in this free-for-all")
+            raise AttackStateError("le seigneur prend déjà part à cette bataille libre")
         lords = {item.id: item for item in await self._kingdoms.lords()}
         for participant in attack.participants:
             other = lords.get(participant)
             if other is not None and other.kingdom_id == lord.kingdom_id:
-                raise GaiaAttackFullError("a kingdom joins a Gaïa free-for-all once (D42)")
+                raise GaiaAttackFullError("un royaume ne rejoint une bataille libre Gaïa qu'une fois (D42)")
         if len(attack.participants) >= self._config.attacks.gaia_max_participants:
-            raise GaiaAttackFullError("the free-for-all is full")
+            raise GaiaAttackFullError("la bataille libre est complète")
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
         attack.participants = [*attack.participants, lord.id]
@@ -3235,7 +3235,7 @@ class AttackService:
     async def buy_technology(self, kingdom_id: str, technology: str) -> TechnologyState:
         """Buy one combat technology with tech points (D9/D36)."""
         if technology not in COMBAT_TECHNOLOGIES:
-            raise UnknownTechnologyError(f"unknown combat technology: {technology}")
+            raise UnknownTechnologyError(f"technologie de combat inconnue : {technology}")
         cost = self._cost(technology)
         limit = self._config.technologies.limits.get(technology, 0)
         state = await self.technology_state(kingdom_id)
@@ -3244,15 +3244,15 @@ class AttackService:
             f"(bank {state.tech_points}, {state.purchases.get(technology, 0)}/{limit})"
         )
         if not state.can_afford(cost) and not bypass:
-            raise InsufficientTechPointsError("the kingdom lacks tech points")
+            raise InsufficientTechPointsError("le royaume manque de points de technologie")
         bought = state.purchases.get(technology, 0)
         if limit > 0 and bought >= limit and not bypass:
-            raise TechnologyLimitReachedError("the per-season purchase limit is reached")
+            raise TechnologyLimitReachedError("la limite d'achat par saison est atteinte")
         if bypass:
             state.tech_points = max(0, state.tech_points - cost)
             state.purchases[technology] = bought + 1
         elif not state.spend(technology, cost, limit):
-            raise TechnologyLimitReachedError("the purchase was refused")
+            raise TechnologyLimitReachedError("l'achat a été refusé")
         await self._store.upsert_technology(state.to_mongo())
         logger.info("kingdoms: %s bought %s for %s tech points", kingdom_id, technology, cost)
         return state
@@ -3279,21 +3279,21 @@ class AttackService:
         await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
-            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
         if target_kingdom_id == lord.kingdom_id:
-            raise AttackError("the Traquenard targets another kingdom, never its own")
+            raise AttackError("le Traquenard vise un autre royaume, jamais le sien")
         target = await self._kingdom_by_id(target_kingdom_id)
         if target.is_gaia:
-            raise TerritoryNotAttackableError("the Traquenard targets a player kingdom")
+            raise TerritoryNotAttackableError("le Traquenard vise un royaume joueur")
         timestamp = now or _now()
         # Volière Lâcher de faucon (voliere-v1): the Traquenard is an
         # adverse technology effect — a released target is immune.
         if _faucon_released(target, timestamp):
-            raise TechnologyError("the target released the faucon — immune to technologies")
+            raise TechnologyError("la cible a relâché le faucon — immunisée aux technologies")
         state = await self.technology_state(lord.kingdom_id)
         bought = state.purchases.get("traquenard", 0)
         if bought <= 0:
-            raise TechnologyLimitReachedError("the kingdom bought no Traquenard")
+            raise TechnologyLimitReachedError("le royaume n'a pas acheté de Traquenard")
         state.purchases["traquenard"] = bought - 1
         await self._store.upsert_technology(state.to_mongo())
         now_ts = int(timestamp.timestamp())
@@ -3350,14 +3350,14 @@ class AttackService:
         """
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
-            raise SabotageError("sabotage targets a kingdom-vs-kingdom attack only")
+            raise SabotageError("le sabotage vise uniquement une attaque royaume contre royaume")
         if attack.attacker_kingdom_id != attacker_kingdom_id:
-            raise SabotageError("only the attacking kingdom sabotages")
+            raise SabotageError("seul le royaume attaquant sabote")
         if attack.is_over:
-            raise AttackStateError("the attack is over")
+            raise AttackStateError("l'attaque est terminée")
         sniped = list(attack.effects.get("sabotage", []))
         if len(sniped) + len(civilizations) > 2:
-            raise SabotageError("at most two sniped civilizations per game")
+            raise SabotageError("au plus deux civilisations snipées par game")
         sniped = [*sniped, *civilizations]
         attack.effects = {**attack.effects, "sabotage": sniped}
         await self._store.upsert_attack(attack.to_mongo())
@@ -3367,7 +3367,7 @@ class AttackService:
         """Cancel the sabotage of an incoming attack (D11/D28)."""
         attack = await self._find_attack(attack_id)
         if attack.defender_kingdom_id != defender_kingdom_id:
-            raise SabotageError("only the defending kingdom counters")
+            raise SabotageError("seul le royaume défenseur contre-attaque")
         if "sabotage" not in attack.effects:
             return attack  # nothing to counter — idempotent
         effects = {key: value for key, value in attack.effects.items() if key != "sabotage"}
@@ -3393,7 +3393,7 @@ class AttackService:
             None,
         )
         if territory is None:
-            raise KingdomNotFoundError("no drawn territory with this map")
+            raise KingdomNotFoundError("aucun territoire tiré avec cette carte")
         return territory
 
     async def _kingdom_by_id(self, kingdom_id: str) -> KingdomModel:
@@ -3403,7 +3403,7 @@ class AttackService:
             None,
         )
         if kingdom is None:
-            raise KingdomNotFoundError("no kingdom with this id")
+            raise KingdomNotFoundError("aucun royaume avec cet identifiant")
         return kingdom
 
     async def _active_lords_day_window(self, timestamp: datetime) -> tuple[datetime, datetime] | None:
@@ -3440,7 +3440,7 @@ class AttackService:
         """Return the running season or raise the no-season error."""
         season = await self._kingdoms.current_season()
         if season is None:
-            raise NoSeasonError("no season is running")
+            raise NoSeasonError("aucune saison n'est en cours")
         return season
 
     async def _require_running_season(self) -> SeasonState:
@@ -3452,7 +3452,7 @@ class AttackService:
         """
         season = await self._require_season()
         if season.finished:
-            raise SeasonClosedError("the season is over — no combat action is possible")
+            raise SeasonClosedError("la saison est terminée — aucune action de combat n'est possible")
         return season
 
     async def _require_lord(self, player_id: str) -> LordModel:
@@ -3462,7 +3462,7 @@ class AttackService:
             None,
         )
         if lord is None:
-            raise NotEnrolledError("the player is not enrolled in the current season")
+            raise NotEnrolledError("le joueur n'est pas inscrit dans la saison en cours")
         return lord
 
     async def _find_attack(self, attack_id: str) -> AttackModel:
@@ -3472,5 +3472,5 @@ class AttackService:
             None,
         )
         if attack is None:
-            raise AttackNotFoundError("no attack with this id in the current data set")
+            raise AttackNotFoundError("aucune attaque avec cet id dans les données actuelles")
         return attack
