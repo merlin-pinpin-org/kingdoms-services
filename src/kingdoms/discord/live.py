@@ -659,6 +659,13 @@ async def _reuse_pinned_dashboard(
     return None
 
 
+def _interaction_locale(interaction: discord.Interaction) -> str:
+    """Return the clicker's own client locale (a one-line ack reads nothing)."""
+    from kingdoms.discord.locales import interaction_locale
+
+    return interaction_locale(interaction)
+
+
 class LiveRefreshButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"live:refresh:(?P<game_key>[a-z0-9]+)",
@@ -698,20 +705,43 @@ class LiveRefreshButton(
     async def callback(self, interaction: discord.Interaction) -> None:
         """Refresh the view that carries the button — never a new one.
 
-        On the PINNED dashboard the click forces the pin's edit (the
-        registry-resolved message gets the fresh view) and revives the
-        auto-update loop when its task died; on an EPHEMERAL dashboard
-        the click edits the ephemeral message itself with the fresh
-        view (component edit — the message that carries the button).
+        An EPHEMERAL dashboard edits ITSELF with the fresh view (a
+        component edit on the message carrying the button). A PINNED
+        dashboard's content is refreshed through the ensure cycle (the
+        registry-resolved pin, edited in place — the click is the
+        action that changes the pin's content, per the pinned-view
+        rules); the click answers with a short text ack, never a copy
+        of the dashboard.
         """
         bot = interaction.client
         game_key = self.game_key
+        message = interaction.message
+        ephemeral = bool(message is not None and int(getattr(message.flags, "value", 0) or 0) & (1 << 6))
+        # ACK FIRST (merlin 10062: the work below takes seconds; an
+        # unacked interaction dies in 3 s and every later response 404s)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # 1. the auto-update loop: revive it when dead (owner direction)
         from kingdoms.discord.live import restart_live_dashboard_refresh
 
         await restart_live_dashboard_refresh(bot)
-        # 2. force an immediate refresh of the pinned dashboard (the
-        #    registry-resolved message is edited in place, never resent)
+        if ephemeral:
+            # the ephemeral dashboard refreshes ITSELF: the webhook edits
+            # the message carrying the button in place (the project's
+            # ephemeral-edit pattern — never a new message)
+            from kingdoms.discord.home import _build_live_view
+
+            view = await _build_live_view(interaction, game_key)
+            try:
+                await interaction.followup.edit_message(interaction.message.id, view=view)  # type: ignore[union-attr]
+                await interaction.followup.send("✅", ephemeral=True)
+            except Exception:
+                # the ephemeral token may have expired (old message):
+                # answer with a fresh ephemeral view instead of nothing
+                await interaction.followup.send(view=view, ephemeral=True)
+            return
+        # a pinned/persistent message: force the pin's edit now (the
+        # registry-resolved message, in place, never resent)
         registry = getattr(bot, "_live_registry", None)
         client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
         if registry is not None and client is not None and interaction.guild_id:
@@ -723,22 +753,12 @@ class LiveRefreshButton(
                     interaction.guild_id,
                     exc_info=True,
                 )
-        # 3. answer on the message that carries the button: an ephemeral
-        #    dashboard edits ITSELF with the fresh view (never a copy)
-        message = interaction.message
-        if message is not None and message.flags and int(message.flags.value) & (1 << 6):
-            from kingdoms.discord.home import _build_live_view
-
-            view = await _build_live_view(interaction, game_key)
-            await interaction.response.edit_message(view=view)
-            return
-        # a pinned/persistent message: the pin's content was refreshed
-        # above (rule: a pin interaction answers with a dedicated
-        # ephemeral, never edit_message on the pin itself)
-        from kingdoms.discord.home import _build_live_view
-
-        view = await _build_live_view(interaction, game_key)
-        await interaction.response.send_message(view=view, ephemeral=True)
+        # a short text ack (a pin interaction never answers a copy of
+        # the dashboard — the pin above already carries the fresh view)
+        await interaction.followup.send(
+            _t(bot, _interaction_locale(interaction), "refreshed", "Dashboard refreshed."),
+            ephemeral=True,
+        )
 
 
 def build_dashboard_view(
@@ -835,13 +855,19 @@ async def _edit_registered(
         message = channel.get_partial_message(int(registered.message_id))
         await message.edit(content=None, embed=embed, view=view)
         return True
+    except discord.NotFound:
+        logger.info("live dashboard message %s is gone — recreating", registered.message_id)
+        return False
     except Exception:
+        # a rate limit (429), a transient API hiccup: the message is
+        # FINE — never recreate on these (the recreate avalanche killed
+        # the loop); the next tick retries the edit
         logger.warning(
-            "live dashboard edit failed (message %s) — recreating",
+            "live dashboard edit throttled/failed (message %s) — retrying next tick",
             getattr(registered, "message_id", "?"),
             exc_info=True,
         )
-        return False
+        return True
 
 
 def _log_refresh_loop_death(task: asyncio.Task[None]) -> None:
@@ -1055,9 +1081,8 @@ async def _push_snapshot(
         if p.get("state") != "offline"
     ]
     stats = await collect_profile_stats(active_ids)
-    body = render_dashboard(snapshot, stats=stats)
-    page_view = build_dashboard_view(snapshot, body, bot, game_key=game_key)
-    views = [page_view]
+    # the push renders per guild (the locale + the bot's catalog travel
+    # with the edit — a stream push must never flip the pin to English)
     for guild in list(bot.guilds):
         guild_id = str(guild.id)
         last_at, last_fp = _LAST_PUSH.get(guild_id, (0.0, ""))
@@ -1077,7 +1102,12 @@ async def _push_snapshot(
             continue  # the tree has not provisioned the game's live channel yet
         registered = await registry.resolve(PLATFORM, _page_key(game_key, 1), str(guild.id))
         try:
-            if not await _edit_registered(channel, registered, None, views[0]):
+            from kingdoms.discord.content_posts import guild_locale
+
+            locale = await guild_locale(guild_id, bot)
+            body = render_dashboard(snapshot, locale=locale, stats=stats, bot=bot)
+            page_view = build_dashboard_view(snapshot, body, bot, locale=locale, game_key=game_key)
+            if not await _edit_registered(channel, registered, None, page_view):
                 await ensure_live_dashboard(bot, guild_id, client, registry, game_key)
             await _remember_sent_fingerprint(guild_id, fingerprint)
         except Exception:

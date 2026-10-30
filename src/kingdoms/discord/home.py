@@ -243,9 +243,13 @@ GAME_LABELS = {"aoe2": "Age of Empires II"}
 def _live_client_for(bot: Any, game_key: str) -> Any:
     """Resolve the dashboard client of one game (None when unwired).
 
-    The URI convention is ``GAME_<KEY>_URI``; aoe2 is served by the
-    game service's GameData client.
+    THE loop's client first (``bot._live_clients`` — the exact client
+    the pinned dashboard reads, one source of truth); the URI fallback
+    (``GAME_<KEY>_URI``) only covers an unwired loop.
     """
+    loop_client = (getattr(bot, "_live_clients", None) or {}).get(game_key)
+    if loop_client is not None:
+        return loop_client
     import os
 
     uri = os.environ.get(f"GAME_{game_key.upper()}_URI", "")
@@ -906,7 +910,7 @@ async def _build_live_view(
     from kingdoms.discord.content_posts import guild_locale
 
     locale = await guild_locale(str(interaction.guild_id), interaction.client)
-    body = render_dashboard(snapshot, locale=locale, stats=stats)
+    body = render_dashboard(snapshot, locale=locale, stats=stats, bot=interaction.client)
     from kingdoms.discord.live import build_dashboard_view
 
     # THE dashboard rendering (unified, owner direction): the same view

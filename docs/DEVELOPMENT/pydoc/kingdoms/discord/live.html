@@ -141,11 +141,13 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LiveRefreshButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Refresh&nbsp;the&nbsp;view&nbsp;that&nbsp;carries&nbsp;the&nbsp;button&nbsp;—&nbsp;never&nbsp;a&nbsp;new&nbsp;one.<br>
 &nbsp;<br>
-On&nbsp;the&nbsp;PINNED&nbsp;dashboard&nbsp;the&nbsp;click&nbsp;forces&nbsp;the&nbsp;pin's&nbsp;edit&nbsp;(the<br>
-registry-resolved&nbsp;message&nbsp;gets&nbsp;the&nbsp;fresh&nbsp;view)&nbsp;and&nbsp;revives&nbsp;the<br>
-auto-update&nbsp;loop&nbsp;when&nbsp;its&nbsp;task&nbsp;died;&nbsp;on&nbsp;an&nbsp;EPHEMERAL&nbsp;dashboard<br>
-the&nbsp;click&nbsp;edits&nbsp;the&nbsp;ephemeral&nbsp;message&nbsp;itself&nbsp;with&nbsp;the&nbsp;fresh<br>
-view&nbsp;(component&nbsp;edit&nbsp;—&nbsp;the&nbsp;message&nbsp;that&nbsp;carries&nbsp;the&nbsp;button).</span></dd></dl>
+An&nbsp;EPHEMERAL&nbsp;dashboard&nbsp;edits&nbsp;ITSELF&nbsp;with&nbsp;the&nbsp;fresh&nbsp;view&nbsp;(a<br>
+component&nbsp;edit&nbsp;on&nbsp;the&nbsp;message&nbsp;carrying&nbsp;the&nbsp;button).&nbsp;A&nbsp;PINNED<br>
+dashboard's&nbsp;content&nbsp;is&nbsp;refreshed&nbsp;through&nbsp;the&nbsp;ensure&nbsp;cycle&nbsp;(the<br>
+registry-resolved&nbsp;pin,&nbsp;edited&nbsp;in&nbsp;place&nbsp;—&nbsp;the&nbsp;click&nbsp;is&nbsp;the<br>
+action&nbsp;that&nbsp;changes&nbsp;the&nbsp;pin's&nbsp;content,&nbsp;per&nbsp;the&nbsp;pinned-view<br>
+rules);&nbsp;the&nbsp;click&nbsp;answers&nbsp;with&nbsp;a&nbsp;short&nbsp;text&nbsp;ack,&nbsp;never&nbsp;a&nbsp;copy<br>
+of&nbsp;the&nbsp;dashboard.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>

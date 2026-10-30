@@ -108,6 +108,15 @@ class GameAoe2Aggregator:
     async def apply_event(self, event: Any) -> None:
         """Fold one provider MatchEvent into the player states."""
         self._degraded = False
+        if event.type == "match_updated":
+            # a live setup change (civ, map, settings, slots): refresh
+            # the stored match payload, no state transition, no noise
+            summary = _summary_of(event)
+            for profile_id in event.profile_ids:
+                current = self._players.get(profile_id)
+                if current is not None and current.get("match_ref") == event.match_ref:
+                    current["match"] = summary
+            return
         target_state = _EVENT_STATE.get(event.type)
         if target_state is None:
             return

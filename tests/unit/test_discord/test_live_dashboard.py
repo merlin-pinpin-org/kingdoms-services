@@ -8,7 +8,7 @@ refresh — the channel never accumulates messages.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -55,6 +55,21 @@ class _FakeMessage:
         self.pinned = True
 
 
+class _FakeResponse:
+    """A minimal HTTP response stub (discord.NotFound needs .status)."""
+
+    status = 404
+    reason = "Not Found"
+    headers: ClassVar[dict] = {}
+
+
+def _raise_not_found() -> None:
+    """Raise a real discord.NotFound (the recreate path keys on it)."""
+    import discord
+
+    raise discord.NotFound(_FakeResponse(), {"code": 10008, "message": "Unknown Message"})
+
+
 class _FakePartialMessage:
     """PartialMessage stand-in recording in-place edits."""
 
@@ -65,7 +80,7 @@ class _FakePartialMessage:
     async def edit(self, content: str = "", embed: object = None, view: object = None) -> None:
         message = self._store.messages.get(self._id)
         if message is None:
-            raise RuntimeError("message gone")
+            _raise_not_found()
         if content:
             message.content = content
         if embed is not None:

@@ -215,7 +215,16 @@ Des mécaniques de la bibliothèque — changent en upgradeant discord.py.
 Des limites de l'API Discord — hors de notre contrôle.
 
 - **Embed description** : 4096 caractères max → pagination
-  multi-messages (dashboard live).
+  multi-messages (dashboard live). Le dashboard live : UNE vue
+  components-v2 (Container + bouton `live:refresh:<game>` + footer id),
+  rendue par locale de guilde avec le catalog du bot — les éphémères
+  et le pin partagent le même client (`bot._live_clients`) et le même
+  rendu ; le bouton rafraîchit la vue qui le porte (l'éphémère
+  s'édite via le webhook, le pin via le cycle ensure), répond ACK
+  d'abord (defer) ; l'ensure n'édite jamais un pin inchangé
+  (fingerprint) et un 429 ne recrée jamais le message (retry au tick
+  suivant) ; l'état complet du lobby (civs, map, settings, slots)
+  traverse la chaîne (match_updated + match_json).
 - **Select** : 25 options max → pagination des catalogues ; une
   option `default=True` pré-remplit le sélecteur.
 - **Custom id** : 100 caractères max → les ids longs sont tronqués
