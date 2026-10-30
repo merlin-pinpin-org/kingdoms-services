@@ -36,6 +36,14 @@ from tests.mocks.discord_mock import (
     MockUser,
 )
 
+@pytest.fixture(autouse=True)
+def _clear_purchase_receipts() -> None:
+    """The receipt registry is module-level — never leak across tests."""
+    from kingdoms.mods.kingdoms import kingdom_persistent as _kp
+
+    _kp._RECEIPT_WINDOWS.clear()
+
+
 TECH_KEYS = (
     "embuscade",
     "traquenard",
@@ -342,8 +350,11 @@ async def test_action_button_opens_the_territory_select_and_buys() -> None:
     choice.message = message
     await select.callback(choice)
     assert economy.corrupted == [("k1", "t1")]
-    # Single-bubble echo: the select bubble is edited, no followup stack.
-    assert choice.followup.messages == []
+    # Single-bubble echo: the select bubble is edited, no followup stack —
+    # achat-recu-v1: the purchase ALSO lands its line in the receipt.
+    assert len(choice.followup.messages) == 1
+    receipt = str(choice.followup.messages[-1].content or "")
+    assert "Receipt" in receipt and "Purchased" in receipt
     assert "Purchased" in (choice.response.message.content if choice.response.message else "")
 
 
@@ -374,7 +385,10 @@ async def test_explorateur_button_locks_the_chosen_lord() -> None:
     choice.message = message
     await select.callback(choice)
     assert economy.explorateur_bought == [("k1", "222")]
-    assert choice.followup.messages == []
+    # achat-recu-v1: one receipt followup, never a stack of ✅ bubbles.
+    assert len(choice.followup.messages) == 1
+    receipt = str(choice.followup.messages[-1].content or "")
+    assert "Receipt" in receipt and "Purchased" in receipt
     assert "Purchased" in (choice.response.message.content if choice.response.message else "")
 
 
@@ -407,6 +421,60 @@ async def test_patrouille_button_buys_the_next_slot_unlock() -> None:
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await _card_confirm(interaction).callback(submit)
     assert economy.patrols == [("k1", 1), ("k1", 2)]
+
+
+async def test_two_purchases_share_one_cumulative_receipt() -> None:
+    """achat-recu-v1 (Drasah 30/10): the 2nd purchase EDITS the receipt
+    in place (same window, one more line) — never a new ✅ bubble."""
+    economy = FakeEconomyService()
+    _wiring(lords=[FakeLord(id="111", role="king", kingdom_id="k1")], economy=economy)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketActionButton("patrouille", "Patrol — 2 🔬", discord.ButtonStyle.secondary)
+
+    await button.callback(interaction)
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit)
+    assert len(submit.followup.messages) == 1
+    receipt = submit.followup.messages[-1]
+    assert "1" in str(receipt.content or "")  # slot 1 unlocked
+
+    await button.callback(interaction)
+    submit2: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit2)
+    assert economy.patrols == [("k1", 1), ("k1", 2)]
+    # SAME window — one followup on each interaction, and the FIRST
+    # receipt message was edited in place with BOTH lines.
+    assert len(submit2.followup.messages) == 0
+    assert receipt.edited is True
+    content = str(receipt.content or "")
+    assert content.count("Purchased") == 2
+
+
+async def test_expired_receipt_opens_a_fresh_one() -> None:
+    """The webhook token dies after ~15 min — the registry expires the
+    window and the next purchase opens a NEW receipt (no stack, no
+    crash)."""
+    import time as _time
+
+    from kingdoms.mods.kingdoms import kingdom_persistent as _kp
+
+    economy = FakeEconomyService()
+    _wiring(lords=[FakeLord(id="111", role="king", kingdom_id="k1")], economy=economy)
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketActionButton("patrouille", "Patrol — 2 🔬", discord.ButtonStyle.secondary)
+    await button.callback(interaction)
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit)
+    assert len(submit.followup.messages) == 1
+
+    # 16 minutes later the receipt is dead — a fresh one must open.
+    _kp._RECEIPT_WINDOWS["111"]["opened_at"] = _time.monotonic() - 16 * 60
+    await button.callback(interaction)
+    submit2: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await _card_confirm(interaction).callback(submit2)
+    assert len(submit2.followup.messages) == 1
+    content = str(submit2.followup.messages[-1].content or "")
+    assert content.count("Purchased") == 1  # the fresh receipt starts over
 
 
 async def test_garde_royale_market_button_buys_a_token() -> None:

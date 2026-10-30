@@ -1048,6 +1048,7 @@ async def _market_lord_select_view(
             cost=str(int(getattr(_market_costs(wiring), "explorateur", 0) or 0)),
         )
         await target.response.edit_message(content=note, view=None)
+        await _append_purchase_receipt(target, note, strings)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
 
@@ -1117,6 +1118,7 @@ async def _market_action_select_view(
             cost=str(int(getattr(_market_costs(wiring), action, 0) or 0)),
         )
         await target.response.edit_message(content=note, view=None)
+        await _append_purchase_receipt(target, note, strings)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
 
@@ -1344,6 +1346,73 @@ async def _market_buy_note(
         await _refresh_realm_views_for_kingdom_safe(interaction.guild, kingdom_id)
 
 
+_RECEIPT_TTL = 15 * 60
+"""achat-recu-v1 (Drasah 30/10): a followup webhook token lives ~15
+minutes — past that the receipt window is DEAD (no edit possible) and a
+fresh receipt opens instead of stacking bubbles."""
+
+_RECEIPT_WINDOWS: dict[str, dict[str, Any]] = {}
+"""One living cumulative purchase receipt per player (achat-recu-v1,
+Drasah 30/10): the 2nd purchase adds its line to the SAME ephemeral
+(edit in place) instead of stacking throwaway « ✅ Acheté » bubbles.
+The receipt lives in its OWN registry slot — opening other market
+cards (the fenêtre unique) NEVER closes it. Bounded: one entry max per
+player, replaced when its window expires (the dead one dies alone)."""
+
+
+def _receipt_body(title: str, lines: list[str]) -> str:
+    """Render the receipt (title + lines), keeping the LATEST under 4000
+    chars — an expired-window receipt is naturally short anyway (no cap
+    decided: the 15-minute edit window bounds the growth on its own)."""
+    body = f"{title}\n" + "\n".join(lines)
+    while len(body) > 3900 and len(lines) > 1:
+        lines = lines[1:]
+        body = f"{title}\n" + "\n".join(lines)
+    return body
+
+
+async def _append_purchase_receipt(
+    interaction: discord.Interaction, line: str, strings: dict[str, Any]
+) -> None:
+    """Add one ✅ purchase line to the player's cumulative receipt.
+
+    achat-recu-v1 (Drasah 30/10): the receipt is the living trace of the
+    session's purchases — an edit in place while the window lives, a
+    FRESH receipt once the ~15-minute webhook token is dead. Best
+    effort: a failed edit/send NEVER breaks the purchase (it already
+    happened); the line just falls back to a throwaway send."""
+    user_id = str(getattr(interaction.user, "id", ""))
+    if not user_id:
+        return
+    title = str(strings["market_receipt_title"])
+    receipt = _RECEIPT_WINDOWS.get(user_id)
+    if receipt is not None and time.monotonic() - receipt["opened_at"] <= _RECEIPT_TTL:
+        receipt["lines"].append(line)
+        try:
+            await receipt["message"].edit(content=_receipt_body(title, receipt["lines"]))
+            return
+        except Exception:
+            logger.warning(
+                "KINGDOMS MARKET: receipt edit failed — fresh receipt", exc_info=True
+            )
+            _RECEIPT_WINDOWS.pop(user_id, None)
+    lines = [line]
+    try:
+        message = await interaction.followup.send(
+            _receipt_body(title, lines), ephemeral=True
+        )
+    except Exception:
+        logger.warning(
+            "KINGDOMS MARKET: receipt send failed (purchase stands)", exc_info=True
+        )
+        return
+    _RECEIPT_WINDOWS[user_id] = {
+        "opened_at": time.monotonic(),
+        "message": message,
+        "lines": lines,
+    }
+
+
 async def _market_purchase_flow(
     interaction: discord.Interaction,
     wiring: KingdomsPanelWiring,
@@ -1414,7 +1483,8 @@ async def _market_purchase_flow(
         item=_market_label(item, strings),
         cost=str(int(cost or 0)),
     )
-    await _market_buy_note(interaction, note, kingdom_id)
+    await _append_purchase_receipt(interaction, note, strings)
+    await _refresh_realm_views_for_kingdom_safe(interaction.guild, kingdom_id)
 
 
 def _market_card_file(item: str) -> discord.File | None:
