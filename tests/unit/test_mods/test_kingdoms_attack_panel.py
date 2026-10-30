@@ -420,6 +420,8 @@ async def test_cancel_attack_button_refunds_and_purges_the_salon() -> None:
     await button.callback(stranger)  # type: ignore[arg-type]
     assert stranger.followup.messages
     assert "❌" in str(stranger.followup.messages[0].content)
+    # hygiene-ephemere-v1: the service errors speak French by default.
+    assert "Seul le déclarant" in str(stranger.followup.messages[0].content)
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert str(fresh.state.value) != "cancelled"
     # The declarant cancels inside the window — budgets refunded, salon gone.
@@ -920,7 +922,7 @@ async def test_gaia_declaration_opens_its_salon_and_is_never_cancellable() -> No
     # The service REFUSES a Gaïa cancellation — even the declarant,
     # even inside the window (axis ouvert, default followed).
     attacks_module._now = lambda: datetime(2026, 10, 11, 12, 5, tzinfo=UTC)
-    with pytest.raises(AttackStateError):
+    with pytest.raises(AttackStateError, match="Gaïa"):
         await bundle.attacks.cancel_attack(battle.id, "king-a")
 
 
@@ -2239,9 +2241,66 @@ async def test_ai_room_shows_the_raw_level_and_the_disclaimer() -> None:
     assert "fraude" in scoreboard
 
 
+async def test_error_notes_self_destruct_quickly(monkeypatch: pytest.MonkeyPatch) -> None:
+    """hygiene-ephemere-v1 (Drasah 30/10): an ERROR bubble is never
+    news — the followup and response refusals self-destruct after a
+    short TTL instead of dangling under the player's DM lane."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+
+    monkeypatch.setattr(panel, "_ERROR_NOTE_SECONDS", 0.01)
+
+    follow = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await panel._error_note_followup(follow, "❌ refus de test")
+    assert len(follow.followup.messages) == 1
+    await asyncio.sleep(0.05)
+    assert follow.followup.messages == []  # the bubble swept itself
+
+    direct = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await panel._error_note_send(direct, "❌ refus de test")
+    assert direct.response.message is not None
+    await asyncio.sleep(0.05)
+    assert direct.original_deleted is True  # the response swept itself
+
+
+async def test_declare_wizard_dies_with_the_declaration() -> None:
+    """hygiene-ephemere-v1 (Drasah 30/10): the « Sous l'identité »
+    wizard is DELETED the moment the attack is declared — the window
+    can never be reused afterwards (Drasah's 19:49 live report)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring as _panel_wiring
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(24)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    _wiring(bundle)
+    guild = MockGuild()
+    strings = panel._strings("fr")
+
+    target_interaction = MockInteraction(user=MockUser(id="king-a"), guild=guild, locale="fr")  # type: ignore[arg-type]
+    await panel._declare_player_attack(_panel_wiring(), target_interaction, strings, target, None)
+    # The wizard's original window is GONE — never reusable.
+    assert target_interaction.original_deleted is True
+    # The declaration itself went through.
+    fresh = next(a for a in await bundle.attacks.attacks() if a.map_key == target)
+    assert str(fresh.attacker_lord_id) == "king-a"
+
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+    await asyncio.sleep(0)
+
+
 async def test_declared_note_timer_deletes_the_note_at_the_meeting_time() -> None:
     """battle-ai-rdv-v1: the declared/itinerary ephemeral self-destructs
-    at the MEETING time (token life 15 min — a later meeting keeps it)."""
+    at the MEETING time — hygiene-ephemere-v1 (Drasah 30/10): it NEVER
+    outlives the 10-minute cancellation window (a far meeting keeps the
+    note alive only as long as the attack may still be cancelled)."""
     import asyncio
     from datetime import timedelta
 
@@ -2256,15 +2315,22 @@ async def test_declared_note_timer_deletes_the_note_at_the_meeting_time() -> Non
         locale="fr",  # type: ignore[arg-type]
     )
     note = await interaction.followup.send("⚔️ Attaque déclarée", ephemeral=True)
-    # A far meeting (> 15 min of followup-token life) — never armed.
+    # A far meeting (> 15 min of followup-token life) — STILL armed:
+    # hygiene-ephemere-v1 caps the note at the cancellation window,
+    # it never dangles after the attack can no longer be cancelled.
     _arm_declared_note_timer("attack-far", interaction, note.id, game_now() + timedelta(minutes=30))
-    assert "attack-far" not in _DECLARE_NOTE_TASKS
+    assert "attack-far" in _DECLARE_NOTE_TASKS
     # A near meeting — the timer deletes the note at the deadline.
     _arm_declared_note_timer("attack-x", interaction, note.id, game_now() + timedelta(seconds=0.05))
     assert "attack-x" in _DECLARE_NOTE_TASKS
     await asyncio.sleep(0.15)
     assert not [m for m in interaction.followup.messages if m.id == note.id]
     assert "attack-x" not in _DECLARE_NOTE_TASKS
+    # The far timer rides its 600 s cap — sweep it before leaving.
+    for task in list(_DECLARE_NOTE_TASKS.values()):
+        task.cancel()
+    _DECLARE_NOTE_TASKS.clear()
+    await asyncio.sleep(0)
 
 
 async def test_sabotage_stock_line_counts_and_faucon_state() -> None:
@@ -2323,10 +2389,9 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer(
     stacking bubbles), the panel carries the X/2 récap + stock line,
     and the ⚔️ Passer click deletes it at once.
 
-    sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): the panel
-    carries the enemy-picks MOSAIC, re-rendered at EVERY action with
-    the sabotaged civs crossed — the pick attaches the recomposed file
-    through the edit's ``attachments``."""
+    hygiene-ephemere-v1 (Drasah 30/10): the panel carries NO mosaic —
+    the reveal DM already paints the crests, a duplicated image in the
+    ephemeral window is pure noise (Drasah's 30/10 live report)."""
     import asyncio
 
     from kingdoms.mods.kingdoms import kingdom_attack_panel as panel
@@ -2374,9 +2439,9 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer(
     key = (str(attack.id), "king-a")
     assert key in _SABOTAGE_PANELS
     assert _SABOTAGE_PANELS[key]["interaction"] is click
-    # sabotage-visuel-v1: the opening panel already wears the mosaic.
-    assert mosaic_calls == [set()]
-    assert click.response.message.attachments and click.response.message.attachments[0].__class__ is _FakeMosaicFile
+    # hygiene-ephemere-v1: the panel wears NO mosaic — the DM has it.
+    assert mosaic_calls == []
+    assert not (click.response.message.attachments or [])
 
     # The techno click EDITS the panel — no new bubble, no followup.
     menu = click.response.message.view
@@ -2389,7 +2454,7 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer(
     assert "sab_title" not in step_content
     assert "0/2" in step_content  # the panel header survives the edit
     assert "Choisis la civilisation" in step_content
-    assert step.response.message.attachments and step.response.message.attachments[0].__class__ is _FakeMosaicFile
+    assert not (step.response.message.attachments or [])
 
     # The civ pick edits the SAME panel again — récap 1/2 + done note.
     civ_view = step.response.message.view if step.response.message else None
@@ -2407,9 +2472,9 @@ async def test_sabotage_panel_edits_in_place_and_dies_at_passer(
     # sabotage-consommable-v1: the stock line decrements after the snipe
     # (2 bought charges - 1 used = 1 left, the panel is edited in place).
     assert "🗡️ Sabotage : 1" in pick_content
-    # sabotage-visuel-v1: the pick re-rendered the mosaic with huns ❌.
-    assert mosaic_calls[-1] == {"huns"}
-    assert pick.response.message.attachments and pick.response.message.attachments[0].__class__ is _FakeMosaicFile
+    # hygiene-ephemere-v1: the pick re-renders the panel as TEXT only.
+    assert mosaic_calls == []
+    assert not (pick.response.message.attachments or [])
 
     # The ⚔️ Passer click deletes the panel at once.
     passer = KingdomSabotagePassButton(attack.id, "king-a", strings["sab_pass_button"])
@@ -2428,8 +2493,8 @@ async def test_sabotage_panel_fallback_resends_the_whole_panel_through_the_uniqu
 ) -> None:
     """sabotage-visuel-v1 (Drasah 29/10, PATCH 1.0 item 2): when the
     in-place edit DIES (expired token, restarted panel), the fallback
-    re-sends the WHOLE panel — récap + note + mosaic, NEVER a lone
-    note bubble — and the window rides the fenêtre unique registry so
+    re-sends the WHOLE panel — récap + note, NEVER a lone note
+    bubble — and the window rides the fenêtre unique registry so
     the next fallback closes the previous one (no stacking)."""
     import asyncio
 
@@ -2479,7 +2544,7 @@ async def test_sabotage_panel_fallback_resends_the_whole_panel_through_the_uniqu
         raise RuntimeError("the token died")
 
     # The pick's in-place edit dies — the fallback carries récap + note
-    # + mosaic in ONE followup, registered as the player's unique window.
+    # in ONE followup, registered as the player's unique window.
     select._values = ["huns"]  # type: ignore[attr-defined]
     pick = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=None, locale="fr")
     monkeypatch.setattr(pick.response, "edit_message", _raising_edit)
@@ -2490,7 +2555,7 @@ async def test_sabotage_panel_fallback_resends_the_whole_panel_through_the_uniqu
     assert "1/2" in fallback_content  # the récap rides the fallback
     assert "huns" in fallback_content
     assert "retirée du camp adverse" in fallback_content  # …and the note
-    assert window.files and window.files[0].__class__ is _FakeMosaicFile
+    assert not (window.files or [])  # hygiene: no mosaic in the panel
     stored = _EPHEMERAL_WINDOWS.get("king-a")
     assert stored is not None and stored[0] is pick and stored[2] is window
 
@@ -3634,9 +3699,10 @@ async def test_sabotage_reveal_payload_pings_and_carries_the_own_picks() -> None
     assert "Draft de votre adversaire :" in content
     assert "**Tes picks :**" in content
     assert "1️⃣ francs" in content and "2️⃣ goths" in content and "3️⃣ huns" in content
-    # The adversary civs ride the seeded random order (all 3 present).
+    # hygiene-ephemere-v1: the written civs block is GONE — the seeded
+    # mosaic paints the crests and the sabotage menu lists the names.
     for civ in ("bretons", "perses", "byzantins"):
-        assert civ in content
+        assert civ not in content
     assert view is not None
 
 
