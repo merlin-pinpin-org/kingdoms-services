@@ -591,3 +591,47 @@ async def test_the_sweep_costs_zero_permission_writes_in_steady_state() -> None:
     finally:
         taverne.set_permissions = original  # type: ignore[method-assign]
     assert len(calls) > before
+
+
+async def test_the_sweep_heals_orphan_denies_without_the_members_intent() -> None:
+    """taverne-orphan-deny-v1 (Drasah 31/10, live report blank): the
+    member self-heal iterated ``guild.members`` — EMPTY without the
+    members intent — so an orphan member deny on Beta was never
+    cleaned in steady state (blank saw only Conscription after his
+    resetup). The sweep reads the member ids FROM the overwrites and
+    resolves them via the REST fetch: the stale deny dies without any
+    reset, and an unresolvable id is left untouched (conservative)."""
+    from kingdoms.mods.kingdoms.tavern_immersion import ensure_tavern_immersion_structure, sweep_tavern_state
+
+    class _NoIntentGuild(MockGuild):
+        # the prod bot runs WITHOUT the members intent: the member
+        # cache is empty and only the REST fetch resolves a member.
+        @property
+        def members(self) -> list[object]:
+            return []
+
+        def get_member(self, user_id: int) -> object | None:
+            return None
+
+    guild = _NoIntentGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    beta = next(c for c in guild.categories if c.name == "Beta")
+    blank = MockMember(id=99, name="blank")
+    guild.add_member(blank)  # fetch_member resolves him, the cache never does
+    orphan = discord.PermissionOverwrite(view_channel=False)
+    await beta.set_permissions(blank, overwrite=orphan)
+    assert beta.permission_overwrite_for(blank) is not None
+    # a member-level ALLOW (the outgame toggle) must survive the sweep
+    insider_allow = discord.PermissionOverwrite(view_channel=True)
+    await beta.set_permissions(blank2 := MockMember(id=88, name="lord"), overwrite=insider_allow)
+    guild.add_member(blank2)
+
+    await sweep_tavern_state(guild)
+    await sweep_tavern_state(guild)  # idempotent — zero extra writes
+
+    # the orphan deny is gone: blank sees Beta again
+    assert beta.permission_overwrite_for(blank) is None
+    # the member-level allow is NEVER touched (outgame toggle survives)
+    kept = beta.permission_overwrite_for(blank2)
+    assert kept is not None and kept.view_channel is True

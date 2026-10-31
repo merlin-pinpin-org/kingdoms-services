@@ -335,6 +335,63 @@ async def _clear_member_view_deny(target: Any, member: Any) -> None:
         )
 
 
+async def _sweep_member_denies_by_overwrite_safe(
+    guild: discord.Guild, role: Any, taverne_category_id: int | None
+) -> None:
+    """Heal the member layer WITHOUT the members intent (v1).
+
+    taverne-orphan-deny-v1 (Drasah 31/10, live report blank): the
+    member self-heal iterates ``guild.members`` — EMPTY without the
+    members intent — so an orphan member deny (a half-done enter/exit,
+    a 429 mid-loop) was NEVER cleaned in steady state: blank kept a
+    stale view deny on Beta and saw only Conscription. The sweep now
+    reads the member ids FROM the overwrites themselves (the
+    reset-visibility-v1 pattern) and resolves each via the cache then
+    the REST fetch — insiders re-denied, everyone else swept clean.
+    Best effort, converged-skip keeps the steady state at zero writes.
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import _member_overwrite_ids
+
+    bot_id = getattr(getattr(guild, "me", None), "id", None)
+    targets = _immersion_targets(guild, taverne_category_id)
+    resolved: dict[int, Any] = {}
+    unresolved: set[int] = set()
+    for target in targets:
+        for user_id in _member_overwrite_ids(target, bot_id):
+            if user_id in resolved or user_id in unresolved:
+                continue
+            member = None
+            get_member = getattr(guild, "get_member", None)
+            if get_member is not None:
+                member = get_member(user_id)
+            if member is None:
+                try:
+                    fetch_member = getattr(guild, "fetch_member", None)
+                    if fetch_member is not None:
+                        member = await fetch_member(user_id)
+                except Exception:
+                    member = None
+            if member is None:
+                unresolved.add(user_id)
+                continue
+            resolved[user_id] = member
+    if unresolved:
+        logger.info(
+            "KINGDOMS TAVERN: %s overwrite id(s) unresolvable (member sweep, guild %s)",
+            len(unresolved),
+            getattr(guild, "id", "?"),
+        )
+    for target in targets:
+        for user_id in _member_overwrite_ids(target, bot_id):
+            member = resolved.get(user_id)
+            if member is None:
+                continue  # unresolvable — leave the overwrite untouched
+            if role in list(getattr(member, "roles", []) or []):
+                await _deny_member_view(target, member)
+            else:
+                await _clear_member_view_deny(target, member)
+
+
 def tavern_insiders(guild: discord.Guild) -> list[Any]:
     """Every member currently holding the taverne immersion role."""
     role = find_tavern_role(guild)
@@ -470,6 +527,9 @@ async def sweep_tavern_state(guild: discord.Guild) -> None:
         else:
             for target in _immersion_targets(guild, category_id):
                 await _clear_member_view_deny(target, member)
+    # taverne-orphan-deny-v1: the members loop is dead without the
+    # members intent — the overwrite-driven pass does the real heal.
+    await _sweep_member_denies_by_overwrite_safe(guild, role, category_id)
 
 
 async def _deny_view(target: Any, role: Any, *, reason: str) -> None:
@@ -598,6 +658,9 @@ async def ensure_tavern_immersion_structure(guild: discord.Guild, locale: str = 
         else:
             for target in _immersion_targets(guild, category_id):
                 await _clear_member_view_deny(target, member)
+    # taverne-orphan-deny-v1: the members loop is dead without the
+    # members intent — the overwrite-driven pass does the real heal.
+    await _sweep_member_denies_by_overwrite_safe(guild, role, category_id)
 
     # taverne-soudoyeur-v1 + taverne-comptoir-v2 (Drasah 26/10): the
     # Soudoyer's back room — created HIDDEN (even the insiders do not
