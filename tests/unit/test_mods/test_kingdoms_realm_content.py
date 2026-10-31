@@ -1324,3 +1324,21 @@ async def test_legacy_mercenary_rubric_is_swept_on_deploy() -> None:
     assert survivors == []
     # the unified panel itself is alive
     assert any(panel_marker in _text(m) for m in _live(channel))
+
+
+def test_panel_view_with_buttons_splits_rows_over_five() -> None:
+    """overview-rows-v1 (Drasah 31/10, live incident HeN): Discord caps
+    an ActionRow at FIVE children — the Le-Royaume sheet reached SIX
+    buttons (ledger + traquenard + exploration + volière + remparts +
+    seigneurie) and every deploy crashed with ValueError, leaving the
+    realm salon empty. The helper now chunks the buttons into rows of
+    five — seven buttons ride TWO action rows."""
+    from kingdoms.mods.kingdoms.kingdom_realm_content import _panel_view_with_buttons
+
+    buttons = [discord.ui.Button(label=f"b{i}") for i in range(7)]
+    view = _panel_view_with_buttons("t", "b", "marker", discord.Colour.gold(), buttons)
+
+    containers = [c for c in view.children if isinstance(c, discord.ui.Container)]
+    rows = [c for c in containers[0].children if isinstance(c, discord.ui.ActionRow)]
+    assert len(rows) == 2
+    assert [len(row.children) for row in rows] == [5, 2]
