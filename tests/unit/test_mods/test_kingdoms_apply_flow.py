@@ -313,3 +313,27 @@ async def test_roleinfo_second_sheet_closes_the_first_window() -> None:
     from kingdoms.mods.kingdoms.kingdom_persistent import _EPHEMERAL_WINDOWS
 
     assert list(_EPHEMERAL_WINDOWS) == ["777"]
+
+async def test_unique_ephemeral_window_tolerates_an_explicit_ephemeral_kwarg() -> None:
+    """fenetre-unique-globale-fix (Drasah 31/10): the 30/10 global rollout
+    routed every ephemeral flow through _open_unique_ephemeral and several
+    callers pass ``ephemeral=True`` explicitly — while the helper forced
+    the flag too, so send_message received the keyword TWICE and every
+    routed click died with a TypeError (live report: the 📋 S'inscrire
+    button never answered). The helper owns and merges the flag."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _open_unique_ephemeral
+
+    interaction = MockInteraction(locale="fr", user=MockUser(id=4242, name="candidat"))
+
+    # The exact 31/10 live crash shape: an explicit ephemeral kwarg.
+    await _open_unique_ephemeral(interaction, "fenêtre unique", ephemeral=True)
+    assert interaction.response.ephemeral is True
+    assert interaction.response.message is not None
+    assert interaction.response.message.content == "fenêtre unique"
+
+    # Extra kwargs (a view) keep flowing through unchanged.
+    view = discord.ui.View(timeout=None)
+    view.add_item(discord.ui.Button(custom_id="kingdoms:probe"))
+    await _open_unique_ephemeral(interaction, "avec vue", view=view, ephemeral=True)
+    assert interaction.response.message is not None
+    assert interaction.response.message.content == "avec vue"
