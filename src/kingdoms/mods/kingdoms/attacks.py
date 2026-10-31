@@ -1401,3 +1401,2094 @@ class AttackService:
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+                continue
+            if attack.pickban.get("sent") or attack.is_over:
+                continue
+            if not attack.revealed:
+                continue
+            if not attack.ai_defender and timestamp >= attack.expires_at:
+                continue
+            pickban = dict(attack.pickban)
+            pickban["sent"] = True
+            if attack.ai_defender:
+                # battle-ai-rdv-v1 (Drasah 22/10): the AI never bans but
+                # picks 3 RANDOM civilizations from its kingdom's hand
+                # (it must survive the attacker's sabotage techno) and
+                # validates after a 30-90 s random delay — the draft
+                # feels like a human one, the timing never leaks the bot.
+                pickban["defender_picks"] = _random_picks(await self._side_hand(attack.defender_kingdom_id))
+                pickban["ai_validate_at"] = int((timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp())
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+        return due
+
+    async def ai_draft_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Play the bot-AI's delayed draft validation (battle-ai-rdv-v1).
+
+        Drasah 22/10: the AI validates its draft ``ai_validate_at``
+        (30-90 s after its picks) — the timestamp is PERSISTED so the
+        tick replays it safely (a restart never loses nor doubles the
+        delay). When both sides validated the pick & ban resolves
+        exactly like the human flow; the panel tick then reveals the
+        civs in the attacker's DM and the meeting opens through the
+        normal RDV path.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+                continue
+            if not attack.ai_defender or attack.is_over:
+                continue
+            pickban = dict(attack.pickban)
+            if pickban.get("defender_validated") or not pickban.get("ai_validate_at"):
+                continue
+            if timestamp.timestamp() < float(pickban["ai_validate_at"]):
+                continue
+            pickban["defender_validated"] = True
+            pickban.pop("ai_validate_at", None)
+            if pickban.get("attacker_validated"):
+                pickban["resolved_pickban"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info(
+                "kingdoms: the defense AI validated its draft on %s",
+                attack.map_key,
+            )
+        return due
+
+    async def default_reveal_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Return the DEFAULTED drafts whose players never saw the reveal.
+
+        timeline-timers-v1 (Drasah 23/10): when the anti-blocking
+        default ran at T (a side never ranked its 3 civilizations),
+        ``_expire_defended`` drew random picks — but the players' draft
+        DMs never received their reveal and stayed stuck on the draft
+        forever. This probe returns those attacks so the panel can edit
+        both DMs (adversary civs, crests only — the default wiped every
+        sabotage, so no sabotage view). Idempotent through
+        ``pickban["default_reveal_sent"]`` — a restart replays nothing.
+        """
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.is_over:
+                continue
+            pickban = dict(attack.pickban or {})
+            # Only a RAN default owes a reveal — a draft that never
+            # left a DM (defense locked after the last tick) carries
+            # no ``default_picks`` and skips this probe by design.
+            if not pickban.get("default_picks") or pickban.get("default_reveal_sent"):
+                continue
+            if not (pickban.get("attacker_picks") and pickban.get("defender_picks")):
+                continue
+            pickban["default_reveal_sent"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info(
+                "kingdoms: defaulted draft reveal owed on %s",
+                attack.map_key,
+            )
+        return due
+
+    async def set_picks(
+        self,
+        attack_id: str,
+        player_id: str,
+        picks: list[str],
+        *,
+        now: datetime | None = None,
+    ) -> AttackModel:
+        """Submit one side's ranked civilizations (D77, Drasah 18/10 v2).
+
+        Each side ranks up to 3 civilizations from ITS OWN hand (blind
+        pick). The Sabotage/Faucon no longer applies here — the live
+        beta showed the asymmetry (the second validator saw the first
+        player's civilizations): the sabotages move to the battle
+        room (a future feature) and the pick & ban stays purely blind.
+        Only the declaring lord picks for the attack side; only the
+        lord who took the defense picks for the defense side.
+        """
+        attack = await self._require_pickban_attack(attack_id, now or _now())
+        side = await self._pick_ban_side(attack, player_id)
+        picker = await self._require_lord(player_id)
+        # chef-mercenaire-v1 T2c (Drasah 25/10): the picker's hand
+        # carries his LIVE mercenary civilization — one use per draft.
+        hand = await self.pickban_hand(
+            attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id,
+            player_id,
+        )
+        required = min(3, len(hand))
+        if len(picks) != required or len(set(picks)) != required:
+            raise PickBanStateError(f"classez exactement {required} civilisation(s) distincte(s)")
+        if any(pick not in hand for pick in picks):
+            raise PickBanStateError("chaque pick doit venir de la main de votre royaume")
+        pickban = dict(attack.pickban)
+        pickban[f"{side}_picks"] = list(picks)
+        pickban[f"{side}_sabotages"] = []  # legacy field — the draft is sabotage-free
+        mercenary_civ = self._live_mercenary_civ(picker)
+        if (
+            mercenary_civ is not None
+            and mercenary_civ in picks
+            and not pickban.get(f"{side}_mercenary_used")
+        ):
+            # ONE submission consumes ONE use — a resubmission never
+            # double-pays (the guard rides the pickban document).
+            if self._mercenary is not None:
+                await self._mercenary.consume_draft_use(player_id, mercenary_civ)
+                pickban[f"{side}_mercenary_used"] = True
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            picker,
+            chronicle.KIND_PICKBAN,
+            now=now or _now(),
+            store=self._store,
+            map=attack.map_key,
+            side=side,
+        )
+        logger.info("kingdoms: pick & ban submitted by %s on the attack on %s", player_id, attack.map_key)
+        return attack
+
+    async def validate_pickban(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
+        """Validate one side's pick & ban (D77, Drasah 18/10 v2).
+
+        When both sides validated the draft resolves — BLIND. The
+        civs are never announced to the players here (the live beta
+        asymmetry: the second validator saw everything first); the
+        battle room reveals the shuffled civilizations at the RDV.
+        """
+        attack = await self._require_pickban_attack(attack_id, now or _now())
+        side = await self._pick_ban_side(attack, player_id)
+        pickban = dict(attack.pickban)
+        pickban[f"{side}_validated"] = True
+        if pickban.get("attacker_validated") and pickban.get("defender_validated"):
+            pickban["resolved_pickban"] = True
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info("kingdoms: pick & ban validated by %s on %s", player_id, attack.map_key)
+        return attack
+
+    async def record_pickban_dm(self, attack_id: str, player_id: str, channel_id: int, message_id: int) -> None:
+        """Store the DM message refs of a pick & ban (Drasah 18/10 v2).
+
+        The resolution edits the SAME DM (anti-spam): the refs let the
+        panel append the « Prêt » button to the existing message
+        instead of sending a new one.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return
+        side = await self._pick_ban_side(attack, player_id)
+        pickban = dict(attack.pickban)
+        pickban[f"{side}_dm"] = {"channel_id": int(channel_id), "message_id": int(message_id)}
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+
+    async def _require_pickban_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:
+        """Fetch the attack and enforce the pré-combat window (D77)."""
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER:
+            raise PickBanStateError("la bataille libre n'a pas de pick & ban")
+        if attack.state is not AttackState.DEFENDED:
+            raise PickBanStateError("le pick & ban n'est pas ouvert sur cette attaque")
+        if attack.pickban.get("resolved_pickban"):
+            raise PickBanStateError("le pick & ban est déjà résolu")
+        if not attack.pickban.get("sent"):
+            raise PickBanStateError("le draft n'est pas encore ouvert (il part au reveal T-15)")
+        if timestamp >= attack.expires_at and not attack.ai_defender:
+            # battle-ai-rdv-v1 (Drasah 22/10): vs the bot AI the draft
+            # opens AT the meeting time — the attacker keeps his whole
+            # ``ai_draft_grace_minutes`` window to rank his 3 civs.
+            raise PickBanStateError("l'heure du RDV est atteinte — le draft est fermé")
+        return attack
+
+    async def _pick_ban_side(self, attack: AttackModel, player_id: str) -> str:
+        """Resolve which side the picking player speaks for (D77)."""
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id == attack.attacker_kingdom_id and lord.id == attack.attacker_lord_id:
+            return "attacker"
+        if lord.kingdom_id == attack.defender_kingdom_id and lord.id == attack.defender_lord_id:
+            return "defender"
+        raise PickBanStateError("seuls les deux joueurs de la rencontre pick & ban")
+
+    async def _side_hand(self, kingdom_id: str) -> list[str]:
+        """Return the kingdom's civilizations (its Alliances hand, D77)."""
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        return list(kingdom.civilizations or [])
+
+    def _live_mercenary_civ(self, lord: Any) -> str | None:
+        """Return the lord's LIVE mercenary civilization key (None).
+
+        chef-mercenaire-v1 (Drasah 24/10): a civilization with uses
+        left is pickable in the draft — one pick consumes one use.
+        """
+        civ = str(getattr(lord, "mercenary_civilization", "") or "")
+        uses = int(getattr(lord, "mercenary_uses_left", 0) or 0)
+        return civ if civ and uses > 0 else None
+
+    async def pickban_hand(self, kingdom_id: str, player_id: str) -> list[str]:
+        """Return ONE player's pick & ban hand (kingdom + mercenary).
+
+        chef-mercenaire-v1 T2c (Drasah 25/10): the kingdom's hand plus
+        the player's live mercenary civilization, when he holds one —
+        the draft DM reads this hand. Without the mercenary seam the
+        hand stays the kingdom's own (the legacy behaviour).
+        """
+        hand = await self._side_hand(kingdom_id)
+        civ: str | None = None
+        if self._mercenary is not None:
+            try:
+                civ = self._live_mercenary_civ(await self._require_lord(player_id))
+            except Exception:
+                civ = None
+        if civ is not None and civ not in hand:
+            return [*hand, civ]
+        return hand
+
+    async def expire_stale(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Apply the meeting-time outcome to every expired attack (D8/D77).
+
+        At T (``expires_at``): a defense never locked moves to the
+        kingdom's bot AI (vs_ai default) — legacy ``auto_victory``
+        captures without a game when configured. A locked defense
+        whose pick & ban never resolved is anti-blocking defaulted
+        (Drasah 18/10): random civs, no sabotage, never a forfeit —
+        the RDV then waits for the game result (D20).
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        # Lord's Day window: the automatic outcomes are executions too —
+        # they are deferred until the window closes (the next call picks
+        # the stale attacks up).
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        expired: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.is_over or attack.expires_at > timestamp:
+                continue
+            handled = await self._expire_one(attack, timestamp)
+            if handled is None:
+                continue
+            expired.append(attack)
+            logger.info("kingdoms: attack on %s expired (%s)", attack.map_key, attack.state)
+        return expired
+
+    async def _expire_one(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
+        """Apply the meeting-time outcome to ONE expired attack (D77).
+
+        Returns the attack when its state changed (it joins the
+        expired list), ``None`` when the outcome keeps waiting for
+        the game result (D20) or nothing applies.
+        """
+        if attack.state is AttackState.DECLARED:
+            if self._config.attacks.no_defense_outcome == "auto_victory":
+                attack.state = AttackState.RESOLVED
+                attack.winner_kingdom_id = attack.attacker_kingdom_id
+                attack.resolved_at = timestamp
+                await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
+            else:
+                # The defense window [declaration, T-5] closed with no defender:
+                # the bot AI takes the defense AT the meeting time and
+                # the RDV opens directly — no pick & ban ever left (the
+                # defense side had no human to pick, and the attacker's
+                # DM window is gone; the game decides, D20).
+                attack.revealed = True
+                attack.ai_defender = True
+                attack.state = AttackState.DEFENDED
+                # marche-v2 art. 2/5: the level the attacker faces — a
+                # Traquenard forces Facile (1), otherwise the defence
+                # bot's own level (epoch base + Jeu d'armes, ceiling 5).
+                attack.effects["ai_level"] = (
+                    1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
+                )
+                # battle-ai-rdv-v1 (Drasah 22/10): even against the bot
+                # AI the DRAFT runs — same DM flow as a human defense
+                # (effect of surprise). The pickban stays UNRESOLVED
+                # here: the next pick_ban_due tick sends the attacker's
+                # draft DM and arms the AI's random validate delay —
+                # the meeting then opens through the normal RDV path.
+                logger.info(
+                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s), draft opens",
+                    attack.map_key,
+                    attack.defender_kingdom_id,
+                    attack.effects["ai_level"],
+                )
+            await self._store.upsert_attack(attack.to_mongo())
+            return attack
+        if attack.state is not AttackState.DEFENDED or attack.pickban.get("resolved_pickban"):
+            return None
+        return await self._expire_defended(attack, timestamp)
+
+    async def _expire_defended(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
+        """Resolve the un-resolved pick & ban of an expired defense (D77)."""
+        if attack.ai_defender:
+            # battle-ai-rdv-v1 (Drasah 22/10): vs the bot AI the draft
+            # runs AT the meeting time — the anti-blocking default only
+            # applies after ``ai_draft_grace_minutes`` (the same window
+            # the human draft enjoys), never a forfeit.
+            deadline = attack.expires_at + timedelta(minutes=self._config.attacks.ai_draft_grace_minutes)
+            if timestamp < deadline:
+                return None
+        pickban = dict(attack.pickban)
+        if not pickban.get("sent"):
+            # A defense locked after the last pick & ban tick (the
+            # [declaration, T-5] window, Drasah 18/10): no DM ever left — the
+            # pick & ban is skipped and the RDV (score phase) decides,
+            # no forfait.
+            pickban["resolved_pickban"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            return None
+        # Drasah 18/10 — the anti-blocking default: a side that never
+        # ranked its 3 civilizations gets 3 RANDOM ones from its hand,
+        # NO sabotage and NO faucon apply for anyone, and the meeting
+        # proceeds (RDV decides, D20). A forgotten draft is never a
+        # forfeit anymore.
+        attacker_ok = bool(pickban.get("attacker_validated"))
+        defender_ok = bool(pickban.get("defender_validated")) or attack.ai_defender
+        if not (attacker_ok and defender_ok):
+            pickban["default_picks"] = sorted(
+                side for side, ok in (("attacker", attacker_ok), ("defender", defender_ok)) if not ok
+            )
+            pickban["sabotages"] = {}
+            pickban["attacker_sabotages"] = []
+            pickban["defender_sabotages"] = []
+            if not attacker_ok and not pickban.get("attacker_picks"):
+                pickban["attacker_picks"] = _random_picks(await self._side_hand(attack.attacker_kingdom_id))
+            if not attack.ai_defender and not defender_ok and not pickban.get("defender_picks"):
+                pickban["defender_picks"] = _random_picks(await self._side_hand(attack.defender_kingdom_id))
+            pickban["attacker_validated"] = True
+            pickban["defender_validated"] = True
+            logger.info(
+                "kingdoms: draft defaulted (random civs, no sabotage) on %s — sides %s",
+                attack.map_key,
+                pickban["default_picks"],
+            )
+        # Drasah 18/10 v2 — the draft is sabotage-free (the
+        # Sabotage/Faucon moves to the battle room later): the default
+        # keeps its anti-blocking guarantees — random civs for the
+        # missing side(s), no sabotage, never a forfeit. The empty
+        # lists also scrub any legacy/volière sabotage of a resolved
+        # document.
+        pickban["sabotages"] = {}
+        pickban["attacker_sabotages"] = []
+        pickban["defender_sabotages"] = []
+        pickban["resolved_pickban"] = True
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        return None  # defaulted at the wire — the game decides (D20)
+
+    # ------------------------------------------------------------------
+    # The RDV score phase (attaques-score-v1)
+    # ------------------------------------------------------------------
+    async def set_lobby_url(self, attack_id: str, player_id: str, lobby_url: str) -> AttackModel:
+        """Store the game lobby URL shared at the RDV (Drasah 18/10).
+
+        The declaration no longer asks for the URL — the RDV DM's 🔗
+        button calls this: any human player of the meeting (attacker
+        or defender) may share it, an outsider may not, and a finished
+        attack no longer moves.
+        """
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            raise AttackError("la saison est terminée")
+        if not lobby_url.strip():
+            raise AttackError("le lien du lobby est vide")
+        attack = next((item for item in await self.attacks() if item.id == attack_id), None)
+        if attack is None or attack.kind is not AttackKind.PLAYER:
+            raise AttackError("attaque inconnue")
+        if attack.is_over:
+            raise AttackError("l'attaque est terminée")
+        allowed = {str(attack.attacker_lord_id)}
+        if attack.defender_lord_id and not attack.ai_defender:
+            allowed.add(str(attack.defender_lord_id))
+        if player_id not in allowed:
+            raise AttackStateError("seul un joueur de la rencontre peut partager le lien du lobby")
+        new_url = lobby_url.strip()
+        previous = str(attack.lobby_url or "").strip()
+        # battle-room-id-v1 (Drasah 22/10): a CHANGED ID resets both
+        # Prêts — a relaunched game (wrong map, forgotten settings)
+        # restarts the readiness of the two players from zero.
+        if previous and new_url != previous:
+            score = dict(attack.score or {})
+            if score.get("ready") or score.get("all_ready"):
+                score["ready"] = []
+                score.pop("all_ready", None)
+                attack.score = score
+                logger.info(
+                    "kingdoms: lobby url changed on %s — both readiness flags reset",
+                    attack.map_key,
+                )
+        attack.lobby_url = new_url
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info("kingdoms: lobby url shared on %s by %s", attack.map_key, player_id)
+        return attack
+
+    async def record_battle_room(self, attack_id: str, channel_id: int, role_id: int | None = None) -> AttackModel:
+        """Store the battle-room voice channel (and its role) refs.
+
+        Drasah 18/10 v2: the scheduler opens a dedicated voice room at
+        the RDV — the presence tracking (forfeit line), the URL share
+        and the result declaration all ride this channel id.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_channel_id"] = int(channel_id)
+        if role_id is not None:
+            score["room_role_id"] = int(role_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_room_event(self, attack_id: str, event_id: int) -> AttackModel:
+        """Store the battle-room match event ref (Drasah 18/10).
+
+        Both players clicked Prêt in the vocal — the announced match
+        rides a Discord scheduled event; the ref keeps the announce
+        idempotent (a re-click never recreates the event).
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_event_id"] = int(event_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_room_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
+        """Store the battle-room single-message ref (Drasah 18/10 v5).
+
+        The room lives on ONE edited message (ID → Prêt → Résultat) —
+        the ref lets every step refresh that message in place.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_channel_id"] = int(channel_id)
+        score["room_message_id"] = int(message_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_voice_join(self, channel_id: int, player_id: str) -> AttackModel | None:
+        """Record a player joining the battle-room voice channel.
+
+        The voice listener maps the Discord event to the open meeting
+        through the stored ``room_channel_id``. Idempotent — a double
+        join adds nothing.
+        """
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = attack.score or {}
+            if int(score.get("room_channel_id") or 0) != int(channel_id):
+                continue
+            if player_id not in expected_score_players(attack):
+                continue
+            joined = list(score.get("voice_joined") or [])
+            fresh = dict(score)
+            if player_id not in joined:
+                joined.append(player_id)
+                fresh["voice_joined"] = joined
+                attack.score = fresh
+                await self._store.upsert_attack(attack.to_mongo())
+                logger.info(
+                    "kingdoms: %s joined the battle room of %s",
+                    player_id,
+                    attack.map_key,
+                )
+            return attack
+        return None
+
+    async def mark_room_cleaned(self, attack_id: str) -> None:
+        """Flag the battle room (channel + role) as cleaned up."""
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score or {})
+        if not score.get("room_channel_id") or score.get("room_cleaned"):
+            return
+        score["room_cleaned"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+
+    async def record_attack_channel(self, attack_id: str, channel_id: int) -> AttackModel:
+        """Store the per-attack salon ref (restructuration-serveur-v1 b).
+
+        Every declared attack gets its OWN text salon under « Déclarer
+        une attaque » — the ref routes every announcement (reveal,
+        forfeits, meeting message) of the attack to that salon.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["attack_channel_id"] = int(channel_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_attack_base_message(self, attack_id: str, message_id: int) -> AttackModel:
+        """Store the attack salon's base-message ref (the defend button lives on it)."""
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["attack_base_message_id"] = int(message_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_meeting_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
+        """Store the meeting's single-message ref (restructuration-serveur-v1 b).
+
+        The centralized follow-up message (🔗 ID → ✅ Prêt → 🏆 Résultat)
+        now lives IN THE ATTACK SALON (no more text-in-voice). The refs
+        are SEPARATE from ``room_channel_id``/``room_message_id`` (the
+        voice room) — record_room_message would overwrite the voice
+        channel id the voice-presence tracking maps joins through.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["meeting_channel_id"] = int(channel_id)
+        score["meeting_message_id"] = int(message_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_ping_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
+        """Store the room's PING message ref (sabotage-ux-v1).
+
+        Drasah 22/10: the « ⚔️ … à vos armes ! » ping of the room gets
+        the 🏆 winner stamped at every resolution — the ref lives in
+        the score, separate from the meeting message refs.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_ping_channel_id"] = int(channel_id)
+        score["room_ping_message_id"] = int(message_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_attack_reveal_message(self, attack_id: str, channel_id: int, message_id: int) -> AttackModel:
+        """Append one T-15 reveal message ref (salon-nettoyage-v1).
+
+        Drasah 29/10 live report (18:13 → 18:21): once the battle
+        room's scoreboard is up, the declaration announce and the
+        reveal notes (« ⚔️ Bataille en vue … ») are noise — the ids are
+        collected so the room's opening sweeps them out of the attack
+        salon (the scoreboard reads in one glance). Restart-safe:
+        ``reveal_due`` is idempotent, the refs never duplicate.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score or {})
+        refs = [dict(ref) for ref in (score.get("reveal_message_refs") or [])]
+        refs.append({"channel_id": int(channel_id), "message_id": int(message_id)})
+        score["reveal_message_refs"] = refs
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def mark_attack_salon_cleaned(self, attack_id: str) -> None:
+        """Flag the per-attack salon as cleaned up (deleted after the resolution)."""
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score or {})
+        if not score.get("attack_channel_id") or score.get("attack_salon_cleaned"):
+            return
+        score["attack_salon_cleaned"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+
+    async def score_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Open the score phase at T for every resolved pick & ban.
+
+        The tick moves the attack to the new ``MEETING`` state: the
+        RDV itself. Idempotent through ``score["opened"]`` — a restart
+        replays nothing. Un-resolved pick & bans are anti-blocking
+        defaulted by ``_expire_defended`` (random civs, no sabotage)
+        and open on the next tick.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+                continue
+            if attack.is_over or not attack.pickban.get("resolved_pickban"):
+                continue
+            if attack.score.get("opened") or timestamp < attack.expires_at:
+                continue
+            score = dict(attack.score)
+            score["opened"] = True
+            score["ready"] = []
+            # Drasah 18/10 v4: an unsettled sabotage phase defaults at
+            # T (anti-blocking) — the sabotages already placed stand,
+            # no further sabotage is possible once the room is open.
+            pickban = dict(attack.pickban)
+            pickban["sabotage_resolved"] = True
+            attack.pickban = pickban
+            # The game-start moment, epoch seconds — the 3h reminder base.
+            score["opened_at"] = int(timestamp.timestamp())
+            # The T+5 no-show line, epoch seconds (Mongo-proof).
+            # battle-ai-rdv-v1: a LATE opening (the AI draft runs at T)
+            # anchors the line on the ACTUAL open — never an instant
+            # forfeit for a room that opened past its own deadline.
+            score["ready_deadline"] = int(
+                (
+                    max(timestamp, attack.expires_at) + timedelta(minutes=self._config.attacks.ready_grace_minutes)
+                ).timestamp()
+            )
+            attack.score = score
+            attack.state = AttackState.MEETING
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info("kingdoms: score phase opened on %s (meeting)", attack.map_key)
+        return due
+
+    # Score-phase timings moved to config (beta-weekend-v1, Drasah
+    # 17/10): ``attacks.ready_grace_minutes`` (5), ``attacks.
+    # score_reminder_hours`` (3) and ``attacks.
+    # score_dispute_after_reminder_hours`` (12) keep the exact Season
+    # II defaults — a beta preset compresses them without touching
+    # the code.
+
+    async def dispute_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Auto-open a dispute on every result-less meeting past 15h.
+
+        The Score phase where everyone is Prêt but nobody declares a
+        result could hang forever (bug n°2, Check 59). Fifteen hours
+        after the phase opened (3h reminder + 12h, decision Drasah
+        16/10), the meeting is flagged ``disputed`` — the admins
+        arbitrate through ``resolve_dispute`` (the console
+        ``resultat`` command). Idempotent through
+        ``score["auto_dispute"]`` — the tick replays it safely.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score)
+            # Only a DECLARATION-less meeting can hang: the no-show
+            # line (ready_due) forfeits the absent players at T+grace,
+            # the lone declarations confirm (score_confirm_due) and
+            # the disputed ones wait for the admin arbitration.
+            if score.get("declarations") or score.get("disputed"):
+                continue
+            if score.get("auto_dispute"):
+                continue
+            opened_at = int(score.get("opened_at") or 0)
+            if not opened_at:
+                continue
+            deadline = opened_at + int(
+                (self._config.attacks.score_reminder_hours + self._config.attacks.score_dispute_after_reminder_hours)
+                * 3600
+            )
+            if timestamp.timestamp() < deadline:
+                continue
+            # The reminder line passed de facto — never re-fire the DM
+            # on a meeting that now carries a dispute.
+            score["reminded"] = True
+            score["disputed"] = True
+            score["auto_dispute"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.warning(
+                "kingdoms: auto-opened score dispute on %s (no result 15h after opening)",
+                attack.map_key,
+            )
+        return due
+
+    async def mark_ready(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
+        """Record one player's « Prêt » click in the score phase.
+
+        Drasah 18/10 v2: the Prêt is a plain UI confirmation recorded
+        in ``score["ready"]`` — the forfeit line rides the voice
+        presence, not this click. Idempotent — a double click adds
+        nothing. Only the two players of the meeting confirm; the AI
+        defender never does.
+        """
+        attack = await self._require_meeting(attack_id)
+        self._require_score_player(attack, player_id)
+        timestamp = now or _now()
+        ready = list(attack.score.get("ready") or [])
+        score = dict(attack.score)
+        if player_id not in ready:
+            ready.append(player_id)
+            score["ready"] = ready
+        if not score.get("all_ready") and set(ready) >= set(expected_score_players(attack)):
+            if attack.ai_defender:
+                # battle-ai-rdv-v1 (Drasah 22/10): the attacker is the
+                # only human — but the AI "confirms" after a 30-90 s
+                # random delay (same footprint as a human Prêt, the
+                # timing never leaks the bot). The timestamp is
+                # PERSISTED: the tick replays it safely, a restart
+                # never loses it. Idempotent — a re-click never re-arms.
+                if not score.get("ai_ready_at"):
+                    score["ai_ready_at"] = int((timestamp + timedelta(seconds=_rng.randint(30, 90))).timestamp())
+                    logger.info(
+                        "kingdoms: %s is Prêt on %s — the AI confirms shortly",
+                        player_id,
+                        attack.map_key,
+                    )
+            else:
+                score["all_ready"] = int(timestamp.timestamp())
+                logger.info(
+                    "kingdoms: everyone is ready on the meeting of %s — score phase open",
+                    attack.map_key,
+                )
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def ai_ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Play the bot-AI's delayed Prêt confirmation (battle-ai-rdv-v1).
+
+        Drasah 22/10: once the attacker clicked Prêt, the AI confirms
+        at ``ai_ready_at`` (30-90 s random) — the tick flips the
+        ``all_ready`` flag, the panel then refreshes the scoreboard
+        (footer + 🏆) and creates the match event like the human flow.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            if not attack.ai_defender or attack.is_over:
+                continue
+            score = dict(attack.score)
+            if score.get("all_ready") or not score.get("ai_ready_at"):
+                continue
+            if timestamp.timestamp() < float(score["ai_ready_at"]):
+                continue
+            score["all_ready"] = int(timestamp.timestamp())
+            score.pop("ai_ready_at", None)
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info(
+                "kingdoms: the defense AI confirmed on %s — score phase open",
+                attack.map_key,
+            )
+        return due
+
+    async def next_phase_deadline(self, *, now: datetime | None = None) -> datetime | None:
+        """Return the nearest upcoming player-facing phase deadline (attack-phases-tick-v1).
+
+        Drasah 22/10: the phases are driven by the scheduler tick (5
+        minutes stock) — a T-15 reveal, the meeting-time AI flip or the
+        AI's 30-90 s « confirmation » could each land up to 5 minutes
+        late. The loop asks this probe for the NEXT deadline it must
+        wake up for, then sleeps exactly that long (bounded by its stock
+        cadence): the timers are respected to the second instead of the
+        tick's granularity.
+
+        The deadlines tracked are the player-facing ones — the reveal
+        cutoff (T-15), the meeting time T (the AI flip / the
+        anti-blocking default), the AI's ``ai_validate_at`` and
+        ``ai_ready_at`` (30-90 s think-time) and the T+5 no-show line
+        (``_phase_deadlines``). The hour-scale deadlines (score reminder
+        3h, dispute 15h) stay on the stock cadence — 5 minutes of
+        granularity costs nothing there. ``None`` when no live attack
+        carries an upcoming deadline.
+
+        attack-phases-tick-v2 (Drasah 22/10, live beta report): the
+        ACTION-triggered steps (the T flip arming the draft, the
+        attacker's validation, a resolution past T) carry no clock —
+        ``_phase_advance_due`` flags them and the probe returns ``now``
+        so the loop runs its work within the second instead of waiting
+        the base tick. Every urgent step is a service-side state flip,
+        so one pass clears it — the loop never spins.
+        """
+        timestamp = now or _now()
+        nearest: datetime | None = None
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.is_over:
+                continue
+            # attack-phases-tick-v2 (Drasah 22/10): an ACTION-triggered
+            # step (the T flip, the attacker's draft validation, a late
+            # resolution) carries no clock of its own — when the state
+            # machine can advance RIGHT NOW the deadline is NOW and the
+            # loop runs its work within the second.
+            if _phase_advance_due(attack, timestamp):
+                return timestamp
+            for candidate in _phase_deadlines(attack, self._config):
+                if candidate <= timestamp:
+                    continue
+                if nearest is None or candidate < nearest:
+                    nearest = candidate
+        # planification-attaque-v1 (Drasah 23/10): a live plan's
+        # scheduled declaration (T - itinéraire) is a deadline like
+        # any phase — the loop wakes within the second of it.
+        plan_deadline = self._plan_probe_deadline(await self.plans())
+        if plan_deadline is not None and plan_deadline > timestamp:
+            if nearest is None or plan_deadline < nearest:
+                nearest = plan_deadline
+        elif plan_deadline is not None and plan_deadline <= timestamp:
+            # A due plan can execute RIGHT NOW — the loop must not
+            # sleep past its own declaration moment.
+            return timestamp
+        return nearest
+
+    async def _require_sabotage_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:
+        """Fetch the attack and enforce the sabotage-phase window (v4)."""
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER:
+            raise PickBanStateError("la bataille libre n'a pas de phase de sabotage")
+        if attack.state is not AttackState.DEFENDED:
+            raise PickBanStateError("la phase de sabotage n'est pas ouverte sur cette attaque")
+        if not attack.pickban.get("resolved_pickban"):
+            raise PickBanStateError("le draft doit être résolu avant la phase de sabotage")
+        if attack.pickban.get("sabotage_resolved"):
+            raise PickBanStateError("la phase de sabotage est terminée")
+        if attack.ai_defender:
+            # battle-ai-rdv-v1: vs the bot AI the whole draft/sabotage
+            # chain happens AFTER the meeting time — the window closes
+            # when the battle room opens, not at T.
+            if attack.score.get("opened"):
+                raise PickBanStateError("la partie a commencé — la phase de sabotage est fermée")
+        elif timestamp >= attack.expires_at:
+            raise PickBanStateError("l'heure du RDV est atteinte — la phase de sabotage est fermée")
+        return attack
+
+    async def _sabotage_side(self, attack: AttackModel, player_id: str) -> str:
+        """Resolve which side the sabotaging player speaks for (v4)."""
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id == attack.attacker_kingdom_id and lord.id == attack.attacker_lord_id:
+            return "attacker"
+        if lord.kingdom_id == attack.defender_kingdom_id and lord.id == attack.defender_lord_id:
+            return "defender"
+        raise PickBanStateError("seuls les deux joueurs de la rencontre peuvent saboter")
+
+    async def sabotage_techno(self, attack_id: str, player_id: str, civ_key: str) -> AttackModel:
+        """Retire one enemy civ with the bought Sabotage techno (v4).
+
+        Drasah 18/10 v4 (phase de sabotage MP, après le draft): BOTH
+        sides may snipe up to 2 enemy civilizations with the techno
+        bought during the season (the attacker-only rule is gone).
+        Same storage as the Faucon — one shape for the reveal.
+        sabotage-consommable-v1 (Drasah 22/10): one bought charge is
+        CONSUMED at the snipe — like the Embuscade/Traquenard; the
+        2-per-attack side cap is independent of the bought stock.
+        """
+        attack = await self._require_sabotage_attack(attack_id, _now())
+        side = await self._sabotage_side(attack, player_id)
+        kingdom_id = attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
+        state = await self.technology_state(kingdom_id)
+        if state.purchases.get("sabotage", 0) <= 0:
+            raise AttackStateError("le royaume n'a pas acheté la technologie Sabotage")
+        pickban = dict(attack.pickban)
+        enemy = "defender" if side == "attacker" else "attacker"
+        enemy_picks = [str(civ) for civ in (pickban.get(f"{enemy}_picks") or [])]
+        if civ_key not in enemy_picks:
+            raise AttackStateError("cette civilisation ne fait pas partie des picks adverses")
+        sabotages = list(pickban.get(f"{side}_sabotages") or [])
+        if civ_key in sabotages:
+            raise AttackStateError("cette civilisation est déjà sabotée")
+        if len(sabotages) >= 2:
+            raise SabotageError("la limite de sabotage (2) est déjà atteinte")
+        # sabotage-consommable-v1 (Drasah 22/10): the charge is spent
+        # ONLY on a successful snipe (bought - 1, pattern Embuscade) —
+        # a refused pick never consumes a charge.
+        state.purchases["sabotage"] = state.purchases["sabotage"] - 1
+        await self._store.upsert_technology(state.to_mongo())
+        sabotages.append(civ_key)
+        pickban[f"{side}_sabotages"] = sabotages
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: %s sabotaged %s in the sabotage phase of %s",
+            player_id,
+            civ_key,
+            attack.map_key,
+        )
+        return attack
+
+    async def sabotage_settle(self, attack_id: str, player_id: str) -> AttackModel:
+        """Mark one side done with the sabotage phase (v4).
+
+        Drasah 18/10 v4: each camp acts at its own rhythm (Faucon /
+        techno then a Passer click) in its DM; the phase resolves when
+        BOTH camps settled — an AI defender counts as settled from the
+        start. Idempotent — a double click changes nothing.
+        """
+        attack = await self._find_attack(attack_id)
+        side = await self._sabotage_side(attack, player_id)
+        pickban = dict(attack.pickban)
+        if not pickban.get("sabotage_resolved"):
+            # A live settle enforces the window; a replay after the
+            # phase resolved (this side already settled) is a no-op.
+            attack = await self._require_sabotage_attack(attack_id, _now())
+            side = await self._sabotage_side(attack, player_id)
+            pickban = dict(attack.pickban)
+        elif pickban.get(f"sabotage_settled_{side}"):
+            return attack
+        pickban[f"sabotage_settled_{side}"] = True
+        attacker_settled = bool(pickban.get("sabotage_settled_attacker"))
+        defender_settled = bool(pickban.get("sabotage_settled_defender")) or attack.ai_defender
+        if attacker_settled and defender_settled and not pickban.get("sabotage_resolved"):
+            pickban["sabotage_resolved"] = True
+            logger.info(
+                "kingdoms: sabotage phase settled on %s — reveal at the RDV",
+                attack.map_key,
+            )
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def open_meeting_now(self, attack_id: str) -> AttackModel | None:
+        """Open the meeting early once both camps settled the sabotage.
+
+        Drasah 18/10 v4: the vocal is wanted as soon as BOTH players
+        answered the sabotage phase — not at T. Returns the fresh
+        MEETING attack, or None when the phase is not done yet.
+        """
+        timestamp = _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return None
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+            return None
+        if attack.is_over or not attack.pickban.get("resolved_pickban"):
+            return None
+        if attack.score.get("opened"):
+            return attack  # already open — the caller re-runs the room open
+        pickban = dict(attack.pickban)
+        settled = bool(pickban.get("sabotage_settled_attacker")) and (
+            bool(pickban.get("sabotage_settled_defender")) or attack.ai_defender
+        )
+        if not settled:
+            return None
+        score = dict(attack.score)
+        score["opened"] = True
+        score["ready"] = []
+        # The game-start moment, epoch seconds — the 3h reminder base.
+        score["opened_at"] = int(timestamp.timestamp())
+        # The T+5 no-show line, epoch seconds (Mongo-proof) — anchored
+        # on the ACTUAL open for a late opening (battle-ai-rdv-v1).
+        score["ready_deadline"] = int(
+            (
+                max(timestamp, attack.expires_at) + timedelta(minutes=self._config.attacks.ready_grace_minutes)
+            ).timestamp()
+        )
+        attack.score = score
+        attack.state = AttackState.MEETING
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: sabotage phase settled on %s — meeting open before T",
+            attack.map_key,
+        )
+        return attack
+
+    @property
+    def room_cleanup_delay_minutes(self) -> int:
+        """The post-resolution battle-room survival (Drasah 18/10 v4)."""
+        return int(self._config.attacks.room_cleanup_delay_minutes)
+
+    async def ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Apply the T+5 no-show line of every open meeting.
+
+        Drasah 18/10 v2: the forfeit rides the REAL presence — a
+        player who never joined the battle-room voice channel at
+        T+grace loses the meeting (the other camp wins, immediate
+        resolution). Both human players missing → double forfait:
+        the territory stays with the defender (the attack ends
+        ``expired``, no transfer). Vs AI the attacker is the only one
+        who can no-show. The tick replays it safely — resolved
+        meetings leave the MEETING state.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        handled: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            deadline = int(attack.score.get("ready_deadline") or 0)
+            if timestamp.timestamp() < deadline:
+                continue
+            joined = set(attack.score.get("voice_joined") or [])
+            # Drasah 18/10 v4: a Prêt click IS a presence — a pair
+            # playing the game without sitting in the Discord vocal
+            # must never forfeit (the room used to die mid-game).
+            present = joined | set(attack.score.get("ready") or [])
+            attacker_present = str(attack.attacker_lord_id) in present
+            defender_needed = not attack.ai_defender and attack.defender_lord_id is not None
+            defender_present = str(attack.defender_lord_id) in present
+            if attacker_present and (defender_present or not defender_needed):
+                continue  # both present — the game decides
+            if not attacker_present and defender_present:
+                await self._apply_noshow(attack, attack.defender_kingdom_id, "attacker", timestamp)
+            elif attacker_present:
+                await self._apply_noshow(attack, attack.attacker_kingdom_id, "defender", timestamp)
+            elif not defender_needed:
+                # vs AI: only the attacker joins the voice room — he no-showed.
+                await self._apply_noshow(attack, attack.defender_kingdom_id, "attacker", timestamp)
+            else:
+                # double no-show: double forfait, no transfer (Drasah).
+                score = dict(attack.score)
+                score["noshow"] = "both"
+                attack.score = score
+                attack.state = AttackState.EXPIRED
+                attack.resolved_at = timestamp
+                await self._store.upsert_attack(attack.to_mongo())
+                logger.warning(
+                    "kingdoms: double no-show on %s — double forfait, territory kept",
+                    attack.map_key,
+                )
+            handled.append(attack)
+        return handled
+
+    async def _apply_noshow(self, attack: AttackModel, winner: str, noshow_side: str, timestamp: datetime) -> None:
+        """Resolve a meeting by the T+5 no-show of one side."""
+        score = dict(attack.score)
+        score["noshow"] = noshow_side
+        attack.score = score
+        await self._resolve_score(attack, winner, timestamp)
+        logger.warning(
+            "kingdoms: %s no-showed the meeting of %s — %s wins",
+            noshow_side,
+            attack.map_key,
+            winner,
+        )
+
+    async def score_reminder_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Flag every 3h-old result-less meeting for a reminder DM.
+
+        attaques-phases-v2 (Drasah 15/10): three hours after the score
+        phase opened with no declared result, both players get a DM
+        reminder — the panel stays active, there is NO auto-forfeit.
+        Idempotent through ``score["reminded"]`` — the tick replays it
+        safely, the DM leaves only once.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score)
+            opened_at = int(score.get("opened_at") or 0)
+            if not opened_at or score.get("reminded") or score.get("declarations"):
+                continue
+            if timestamp.timestamp() < opened_at + int(self._config.attacks.score_reminder_hours * 3600):
+                continue
+            score["reminded"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info("kingdoms: 3h score reminder due on %s", attack.map_key)
+        return due
+
+    async def declare_score(
+        self,
+        attack_id: str,
+        player_id: str,
+        winner_kingdom_id: str,
+        game_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> tuple[AttackModel, str]:
+        """Declare the game result of a meeting (attaques-score-v1).
+
+        Returns ``(attack, outcome)`` where outcome is ``"resolved"``
+        (consensus, a lone human, or vs AI), ``"pending"`` (a lone
+        declaration of two humans — confirmed by ``score_confirm_due``
+        after ``score_confirm_minutes``, contested before), ``"already"``
+        (the same result of an already resolved attack — idempotent)
+        or ``"disputed"`` (contrary declarations — the admins arbitrate
+        through ``resolve_dispute``).
+        """
+        await self._require_running_season()
+        timestamp = now or _now()
+        if await self._active_lords_day_window(timestamp) is not None and not bypass_guard("lords-day score window"):
+            raise LordsDayAttackError(
+                "the result cannot be declared inside the Lord's Day window (declare it after the window closes)"
+            )
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER:
+            raise AttackStateError("la bataille libre n'a pas de phase de score")
+        game_id = (game_id or "").strip()
+        if not game_id:
+            raise AttackError("l'ID de la game est requis")
+        allowed = {attack.attacker_kingdom_id, attack.defender_kingdom_id}
+        if winner_kingdom_id not in allowed:
+            raise AttackStateError("ce royaume ne prend pas part à l'attaque")
+        if attack.is_over:
+            return await self._declare_after_resolution(attack, player_id, winner_kingdom_id, game_id, timestamp)
+        if attack.state is not AttackState.MEETING:
+            raise AttackStateError("la phase de score n'est pas ouverte sur cette attaque")
+        self._require_score_player(attack, player_id)
+        score = dict(attack.score)
+        declarations = dict(score.get("declarations") or {})
+        declarations[player_id] = {
+            "winner": winner_kingdom_id,
+            "game_id": game_id,
+            "at": int(timestamp.timestamp()),
+        }
+        score["declarations"] = declarations
+        score["game_id"] = game_id
+        attack.score = score
+        # Drasah 18/10 v2 — the result rides the ROOM, not the Prêt
+        # gate: both players may declare from the battle room. Vs AI
+        # (or a single human) the first declaration FAIT FOI. With
+        # two humans: same winner from both → resolved at once; a
+        # contrary declaration → dispute (admins arbitrate); a lone
+        # declaration → pending, confirmed by ``score_confirm_due``
+        # after ``score_confirm_minutes`` unless contested.
+        humans = expected_score_players(attack)
+        if len(humans) <= 1:
+            await self._resolve_score(attack, winner_kingdom_id, timestamp)
+            logger.info(
+                "kingdoms: result declared on %s by %s (game %s) — %s wins",
+                attack.map_key,
+                player_id,
+                game_id,
+                winner_kingdom_id,
+            )
+            return attack, "resolved"
+        return await self._resolve_two_humans_declaration(attack, player_id, winner_kingdom_id, game_id, timestamp)
+
+    async def _declare_after_resolution(
+        self,
+        attack: AttackModel,
+        player_id: str,
+        winner_kingdom_id: str,
+        game_id: str,
+        timestamp: datetime,
+    ) -> tuple[AttackModel, str]:
+        """Answer a late declaration of an already-resolved attack.
+
+        The same winner is idempotent (``already``); a contrary
+        declaration re-opens the dispute for the admins (``disputed``).
+        """
+        score = dict(attack.score)
+        declarations = dict(score.get("declarations") or {})
+        declarations[player_id] = {
+            "winner": winner_kingdom_id,
+            "game_id": game_id,
+            "at": int(timestamp.timestamp()),
+        }
+        score["declarations"] = declarations
+        score["game_id"] = game_id
+        if attack.winner_kingdom_id == winner_kingdom_id:
+            await self._store.upsert_attack(attack.to_mongo())
+            return attack, "already"
+        score["disputed"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.warning(
+            "kingdoms: DISPUTE on %s — %s declares %s after the %s resolution",
+            attack.map_key,
+            player_id,
+            winner_kingdom_id,
+            attack.winner_kingdom_id,
+        )
+        return attack, "disputed"
+
+    async def _resolve_two_humans_declaration(
+        self,
+        attack: AttackModel,
+        player_id: str,
+        winner_kingdom_id: str,
+        game_id: str,
+        timestamp: datetime,
+    ) -> tuple[AttackModel, str]:
+        """Apply the declaration rules of a two-humans meeting."""
+        score = dict(attack.score)
+        declarations = dict(score.get("declarations") or {})
+        winners = {str(declaration["winner"]) for declaration in declarations.values()}
+        if len(winners) > 1:
+            score["disputed"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.warning(
+                "kingdoms: DISPUTE on %s — %s declares %s against %s",
+                attack.map_key,
+                player_id,
+                winner_kingdom_id,
+                ", ".join(sorted(winners)),
+            )
+            return attack, "disputed"
+        if len(declarations) >= 2:
+            # litige-mp-v1 (Drasah 30/10): the players converged — the
+            # dispute flags must not survive the resolution (a stale
+            # « disputed » would freeze the room's 🏆 for nothing).
+            for flag in ("disputed", "dispute_dm_sent", "dispute_admin_sent"):
+                score.pop(flag, None)
+            score.pop("dispute_replies", None)
+            score.pop("dispute_deadline", None)
+            attack.score = score
+            await self._resolve_score(attack, winner_kingdom_id, timestamp)
+            logger.info(
+                "kingdoms: consensus result on %s (game %s) — %s wins",
+                attack.map_key,
+                game_id,
+                winner_kingdom_id,
+            )
+            return attack, "resolved"
+        score["pending_since"] = int(timestamp.timestamp())
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: result declared on %s by %s (game %s) — pending confirmation",
+            attack.map_key,
+            player_id,
+            game_id,
+        )
+        return attack, "pending"
+
+    async def score_confirm_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Confirm every un-contested lone declaration past its delay.
+
+        Drasah 18/10 v2: a single-player declaration holds for
+        ``score_confirm_minutes`` (10 by default) — the other player
+        may contest it (dispute) inside that window; after it the
+        declared result FAIT FOI and resolves the meeting. Idempotent
+        through the MEETING state — the tick replays it safely.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score or {})
+            pending_since = int(score.get("pending_since") or 0)
+            if not pending_since or score.get("disputed"):
+                continue
+            declarations = dict(score.get("declarations") or {})
+            if not declarations:
+                continue
+            if timestamp.timestamp() < pending_since + int(self._config.attacks.score_confirm_minutes * 60):
+                continue
+            winner = next(iter(declarations.values()))["winner"]
+            await self._resolve_score(attack, str(winner), timestamp)
+            due.append(attack)
+            logger.info(
+                "kingdoms: lone result confirmed on %s — %s wins",
+                attack.map_key,
+                winner,
+            )
+        return due
+
+    async def open_dispute_dm_round(
+        self, attack_id: str, *, now: datetime | None = None
+    ) -> AttackModel:
+        """Flag the DM round of a disputed meeting (litige-mp-v1, idempotent).
+
+        Drasah 30/10: a contrary declaration no longer jumps straight
+        to the admins — BOTH players first receive a private DM asking
+        them to modify or confirm their choice. The round is bounded by
+        ``dispute_deadline`` (30 minutes); past it (or when both
+        replied with different winners) the tick hands the dispute
+        over to the admins (``dispute_handover_due``).
+        """
+        timestamp = now or _now()
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score)
+        if score.get("dispute_dm_sent"):
+            return attack
+        score["dispute_dm_sent"] = True
+        score["dispute_replies"] = {}
+        score["dispute_deadline"] = int(timestamp.timestamp()) + DISPUTE_DM_ROUND_SECONDS
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: dispute DM round opened on %s (deadline 30 min)", attack.map_key
+        )
+        return attack
+
+    async def record_dispute_reply(
+        self,
+        attack_id: str,
+        player_id: str,
+        winner_kingdom_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> tuple[AttackModel, bool]:
+        """Record one player's DM-round reply — (attack, both_replied).
+
+        litige-mp-v1: the reply only TRACKS the round (the declaration
+        itself rides ``declare_score``); ``both_replied`` tells the
+        caller the round can close (converged → resolved, still
+        contrary → admin handover).
+        """
+        timestamp = now or _now()
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score)
+        replies = dict(score.get("dispute_replies") or {})
+        replies[player_id] = {
+            "winner": winner_kingdom_id,
+            "at": int(timestamp.timestamp()),
+        }
+        score["dispute_replies"] = replies
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        both = all(str(player) in replies for player in expected_score_players(attack))
+        return attack, both
+
+    async def mark_dispute_admin_sent(self, attack_id: str) -> AttackModel:
+        """Mark the dispute as handed to the admins (idempotent)."""
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score)
+        if score.get("dispute_admin_sent"):
+            return attack
+        score["dispute_admin_sent"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def dispute_handover_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """The disputed meetings to hand over to the admins (litige-mp-v1).
+
+        A DM round closes on the admin side when BOTH players replied
+        with DIFFERENT winners, or when the 30-minute deadline passed
+        with no convergence. A converged meeting resolves itself
+        through ``declare_score`` (the state leaves MEETING and never
+        appears here). Idempotent through ``dispute_admin_sent``.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score or {})
+            if not score.get("disputed") or not score.get("dispute_dm_sent"):
+                continue
+            if score.get("dispute_admin_sent"):
+                continue
+            replies = dict(score.get("dispute_replies") or {})
+            players = expected_score_players(attack)
+            deadline = int(score.get("dispute_deadline") or 0)
+            if all(str(player) in replies for player in players):
+                winners = {str(reply.get("winner")) for reply in replies.values()}
+                if len(winners) <= 1:
+                    continue  # convergence — declare_score already resolved it
+                due.append(attack)
+            elif deadline and timestamp.timestamp() >= deadline:
+                due.append(attack)
+        return due
+
+    async def _resolve_score(self, attack: AttackModel, winner_kingdom_id: str, timestamp: datetime) -> None:
+        """Apply the game result of a meeting (D20), idempotently."""
+        attack.state = AttackState.RESOLVED
+        attack.winner_kingdom_id = winner_kingdom_id
+        attack.resolved_at = timestamp
+        if winner_kingdom_id == attack.attacker_kingdom_id:
+            await self._apply_attacker_win(attack)
+        await self._store.upsert_attack(attack.to_mongo())
+        await self._record_verdicts(attack)
+
+    async def _require_meeting(self, attack_id: str) -> AttackModel:
+        """Fetch the attack and enforce the open score phase."""
+        attack = await self._find_attack(attack_id)
+        if attack.state is not AttackState.MEETING:
+            raise AttackStateError("la phase de score n'est pas ouverte sur cette attaque")
+        return attack
+
+    def _require_score_player(self, attack: AttackModel, player_id: str) -> str:
+        """Resolve which side the declaring player speaks for."""
+        if player_id == attack.attacker_lord_id:
+            return "attacker"
+        if player_id == attack.defender_lord_id and not attack.ai_defender:
+            return "defender"
+        raise AttackStateError("seuls les deux joueurs de la rencontre déclarent un résultat")
+
+    async def resolve_dispute(self, attack_id: str, admin_choice: str, *, now: datetime | None = None) -> AttackModel:
+        """Admin arbitration of a disputed meeting (attaques-score-v1).
+
+        ``admin_choice`` is ``"attacker"``, ``"defender"`` (the side
+        that actually won) or ``"both"`` (double forfait). Best-effort
+        override: a reversed attacker win gives the territory back,
+        a new attacker win applies the usual chantier/sacré rules —
+        the chantier case cannot be undone (logged limitation).
+        """
+        timestamp = now or _now()
+        attack = await self._find_attack(attack_id)
+        if not attack.score.get("disputed"):
+            raise AttackStateError("cette attaque ne porte aucun litige")
+        if admin_choice not in ("attacker", "defender", "both"):
+            raise AttackError("admin_choice doit être attacker, defender ou both")
+        score = dict(attack.score)
+        score["admin_choice"] = admin_choice
+        score["disputed"] = False
+        attack.score = score
+        territory = next(
+            (item for item in await self._territories.territories() if item.id == attack.territory_id),
+            None,
+        )
+        if admin_choice == "both":
+            previous = attack.winner_kingdom_id
+            attack.state = AttackState.EXPIRED
+            attack.winner_kingdom_id = None
+            attack.resolved_at = timestamp
+            if (
+                territory is not None
+                and previous == attack.attacker_kingdom_id
+                and territory.owner_kingdom_id == previous
+            ):
+                await self._territories.transfer(attack.territory_id, attack.defender_kingdom_id)
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.warning(
+                "kingdoms: admin arbitration on %s — double forfait, territory kept",
+                attack.map_key,
+            )
+            return attack
+        winner = attack.attacker_kingdom_id if admin_choice == "attacker" else attack.defender_kingdom_id
+        if attack.winner_kingdom_id == winner:
+            await self._store.upsert_attack(attack.to_mongo())  # confirm the resolution
+            logger.warning(
+                "kingdoms: admin arbitration on %s confirmed the %s win",
+                attack.map_key,
+                winner,
+            )
+            return attack
+        attack.winner_kingdom_id = winner
+        attack.state = AttackState.RESOLVED
+        attack.resolved_at = timestamp
+        if winner == attack.attacker_kingdom_id:
+            if territory is not None and territory.is_chantier_at(timestamp):
+                logger.warning(
+                    "kingdoms: admin arbitration on %s hits a CHANTIER — cannot be undone",
+                    attack.map_key,
+                )
+            await self._apply_attacker_win(attack)
+        else:
+            if territory is not None and territory.owner_kingdom_id == attack.attacker_kingdom_id:
+                await self._territories.transfer(attack.territory_id, attack.defender_kingdom_id)
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.warning(
+            "kingdoms: admin arbitration on %s overrode the result — %s wins",
+            attack.map_key,
+            winner,
+        )
+        return attack
+
+    async def cancel_ongoing(self) -> list[AttackModel]:
+        """Cancel every ongoing attack before the season verdict.
+
+        Drasah's endcycle rule (2026-10-11): at the endcycle's Sunday
+        23:59 the ongoing attacks (declared or defended) are CANCELLED
+        so the verdict counts a clean board — they move to ``expired``
+        and never resolve afterwards.
+        """
+        cancelled: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.state not in (
+                AttackState.DECLARED,
+                AttackState.DEFENDED,
+                AttackState.MEETING,
+            ):
+                continue
+            attack.state = AttackState.EXPIRED
+            await self._store.upsert_attack(attack.to_mongo())
+            cancelled.append(attack)
+            logger.info("kingdoms: attack on %s cancelled (season end)", attack.map_key)
+        return cancelled
+
+    async def resolve(self, attack_id: str, winner_kingdom_id: str) -> AttackModel:
+        """Apply the game result (D20) and transfer on capture, idempotently.
+
+        The winner is either the attacker (capture) or the defender
+        (conservation); Gaïa can also keep its territory in a
+        free-for-all nobody won.
+        """
+        await self._require_running_season()
+        if await self._active_lords_day_window(_now()) is not None and not bypass_guard("lords-day resolve window"):
+            raise LordsDayAttackError(
+                "the attack cannot be played inside the Lord's Day window (resolve it after the window closes)"
+            )
+        attack = await self._find_attack(attack_id)
+        if attack.state is AttackState.RESOLVED:
+            if attack.winner_kingdom_id == winner_kingdom_id:
+                return attack  # idempotent replay of the same result
+            raise AttackStateError("l'attaque est déjà résolue avec un autre vainqueur")
+        # A Gaïa free-for-all has no defending step (D44): it resolves
+        # from DECLARED once the game result comes in. A MEETING (the
+        # RDV, attaques-score-v1) resolves from the score phase.
+        allowed_states: tuple[AttackState, ...] = (
+            AttackState.DEFENDED,
+            AttackState.MEETING,
+            AttackState.EXPIRED,
+        )
+        if attack.kind is AttackKind.GAIA:
+            allowed_states = (AttackState.DECLARED, AttackState.DEFENDED, AttackState.EXPIRED)
+        if attack.state not in allowed_states:
+            raise AttackStateError("l'attaque attend un défenseur ou son expiration")
+        kingdoms = await self._kingdoms.kingdoms()
+        known = {kingdom.id for kingdom in kingdoms}
+        if winner_kingdom_id not in known:
+            raise KingdomNotFoundError("le royaume vainqueur n'existe pas dans la saison")
+        allowed = {attack.attacker_kingdom_id, attack.defender_kingdom_id}
+        if attack.kind is AttackKind.GAIA:
+            allowed.add(
+                next(
+                    (kingdom.id for kingdom in kingdoms if kingdom.is_gaia),
+                    GAIA_KINGDOM_KEY,
+                )
+            )
+        if winner_kingdom_id not in allowed:
+            raise AttackStateError("ce royaume ne prend pas part à l'attaque")
+        attack.state = AttackState.RESOLVED
+        attack.winner_kingdom_id = winner_kingdom_id
+        attack.resolved_at = _now()
+        if winner_kingdom_id == attack.attacker_kingdom_id:
+            await self._apply_attacker_win(attack)
+        await self._store.upsert_attack(attack.to_mongo())
+        await self._record_verdicts(attack)
+        logger.info("kingdoms: attack on %s resolved for %s", attack.map_key, winner_kingdom_id)
+        return attack
+
+    async def _record_verdicts(self, attack: AttackModel) -> None:
+        """Chronicle the verdict on BOTH clickers (Seigneurie V2).
+
+        Drasah's fundamental rule inverted: the RESULT shows on the
+        ATTACKER's and the DEFENDER's own fiches — the attacker
+        clicked « déclarer », the defender clicked « défendre »; the
+        verdict is a fact of those clicked actions, never of the
+        kingdom as a whole.
+        """
+        timestamp = attack.resolved_at or _now()
+        attacker_won = attack.winner_kingdom_id == attack.attacker_kingdom_id
+        lords = await self._kingdoms.lords()
+        attacker = next((one for one in lords if one.id == attack.attacker_lord_id), None)
+        if attacker is not None:
+            await chronicle.record(
+                attacker,
+                chronicle.KIND_ATTACK_RESULT,
+                now=timestamp,
+                store=self._store,
+                map=attack.map_key,
+                outcome="victoire" if attacker_won else "defaite",
+            )
+        if attack.defender_lord_id is not None:
+            defender = next((one for one in lords if one.id == attack.defender_lord_id), None)
+            if defender is not None:
+                await chronicle.record(
+                    defender,
+                    chronicle.KIND_DEFENSE_RESULT,
+                    now=timestamp,
+                    store=self._store,
+                    map=attack.map_key,
+                    outcome="victoire" if not attacker_won else "defaite",
+                )
+
+    async def _apply_attacker_win(self, attack: AttackModel) -> None:
+        """Apply the attacker's verdict on the attacked territory (D20).
+
+        lieu-sacree-v1 (Drasah 14/10): a victory on a CHANTIER
+        territory destroys ONLY the chantier — the territory stays with
+        its defender, the attacker banks 2 ⚙️ and must RE-ATTACK to
+        conquer. A SACRED territory never transfers (defensive — it
+        cannot be attacked at all).
+        """
+        territory = next(
+            (item for item in await self._territories.territories() if item.id == attack.territory_id),
+            None,
+        )
+        resolved_at = attack.resolved_at or _now()
+        if territory is not None and territory.is_chantier_at(resolved_at):
+            await self._destroy_cathedral(attack, territory, resolved_at)
+            return
+        if territory is not None and territory.sacred:
+            logger.info(
+                "kingdoms: %s kept — the territory is SACRED",
+                attack.map_key,
+            )
+            return
+        await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
+
+    async def _destroy_cathedral(
+        self,
+        attack: AttackModel,
+        territory: TerritoryModel,
+        now: datetime,
+    ) -> None:
+        """Destroy the chantier of a defeated Lieu Sacrée (lieu-sacree-v1).
+
+        The territory itself is NOT conquered (Drasah's correction
+        14/10): it stays with the defender, the attacker banks the
+        destroy reward (2 ⚙️), and the cathedral auto-rebuilds on
+        ANOTHER territory of the defender — or is lost when none
+        exists (repurchase 3 ⚙️).
+        """
+        settings = self._config.parish
+        territory.cathedral_until = None
+        await self._store.upsert_territory(territory.to_mongo())
+        attacker = await self._kingdom_by_id(attack.attacker_kingdom_id)
+        attacker.tech_points_bank += settings.cathedral_destroy_reward
+        await self._store.upsert_kingdom(attacker.to_mongo())
+        rebuilt = next(
+            (
+                item
+                for item in await self._territories.territories()
+                if item.owner_kingdom_id == attack.defender_kingdom_id
+                and item.id != territory.id
+                and not item.sacred
+                and not item.is_chantier_at(now)
+            ),
+            None,
+        )
+        if rebuilt is not None:
+            rebuilt.cathedral_until = now + timedelta(hours=settings.cathedral_chantier_hours)
+            await self._store.upsert_territory(rebuilt.to_mongo())
+        logger.info(
+            "kingdoms: chantier of %s destroyed by %s (+%d tech for the attacker, %s)",
+            territory.map_key,
+            attack.attacker_kingdom_id,
+            settings.cathedral_destroy_reward,
+            f"rebuilt on {rebuilt.map_key}" if rebuilt is not None else "cathedral LOST",
+        )
+
+    async def restitute(self, attack_id: str) -> AttackModel:
+        """Admin exception (D17): give the consumed attack budget back."""
+        attack = await self._find_attack(attack_id)
+        if attack.restituted:
+            return attack
+        lord = await self._require_lord(attack.attacker_lord_id)
+        lord.attack_used = max(0, lord.attack_used - 1)
+        await self._store.upsert_lord(lord.to_mongo())
+        attack.restituted = True
+        await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_RESTITUTION,
+            now=_now(),
+            store=self._store,
+            map=attack.map_key,
+        )
+        logger.info("kingdoms: attack budget restituted to %s (admin)", lord.id)
+        return attack
+
+    async def recharge_weekly_budgets(self) -> int:
+        """Recharge every lord's weekly budgets at the cycle switch (D1)."""
+        count = 0
+        for lord in await self._kingdoms.lords():
+            if lord.attack_used or lord.defense_used:
+                lord.attack_used = 0
+                lord.defense_used = 0
+                await self._store.upsert_lord(lord.to_mongo())
+                count += 1
+        logger.info("kingdoms: weekly budgets recharged for %s lords", count)
+        return count
+
+    # ------------------------------------------------------------------
+    # Gaïa free-for-all (§13, D6/D42/D44)
+    # ------------------------------------------------------------------
+    async def declare_gaia_attack(
+        self,
+        player_id: str,
+        map_key: str,
+        lobby_url: str,
+        *,
+        now: datetime | None = None,
+    ) -> AttackModel:
+        """Declare or join the Gaïa free-for-all on a Gaïa territory.
+
+        The first declarer reserves the territory and opens the slot
+        (§13.2); one lord per kingdom (D42), up to the configured
+        maximum participants, everyone for himself (D6), no time limit
+        (D44 — the result comes through the game contract).
+        """
+        season = await self._require_running_season()
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
+        if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
+            f"attack budget of {lord.display_name} ({lord.attack_used})"
+        ):
+            raise NoBudgetError("le budget d'attaque hebdomadaire est épuisé")
+        timestamp = now or _now()
+        # marche-v2 art. 6: an exploring lord can neither attack nor defend.
+        if (
+            lord.exploration_locked_until is not None
+            and lord.exploration_locked_until > int(timestamp.timestamp())
+            and not bypass_guard(f"exploration lock of {lord.display_name}")
+        ):
+            raise LordLockedError("le seigneur est bloqué par l'exploration (marche-v2 art. 6)")
+        self._refuse_ffa_no_show(lord, timestamp)
+        territory = await self._territory_by_map(map_key)
+        owner = await self._kingdom_by_id(territory.owner_kingdom_id)
+        if not owner.is_gaia:
+            raise TerritoryNotAttackableError("la bataille libre vise un territoire Gaïa")
+        if territory.is_protected_at(timestamp):
+            raise TerritoryNotAttackableError("le territoire est protégé (Garde Royale/Corruption)")
+        if territory.sacred:
+            raise TerritoryNotAttackableError("le territoire est SACRÉ — immunisé contre toute attaque")
+        attack = next(
+            (
+                item
+                for item in await self.attacks()
+                if item.kind is AttackKind.GAIA and item.territory_id == territory.id and not item.is_over
+            ),
+            None,
+        )
+        if attack is None:
+            # Volière Corbeau (voliere-v1): a « suivi » lord declares
+            # with the 24h delay — the Gaïa free-for-all follows the
+            # same rule as the player attacks.
+            delay_minutes = self._config.attacks.gaia_attack_delay_minutes
+            if await self._lord_tracked_by_corbeau(lord.id, timestamp):
+                delay_minutes = CORBEAU_TRACK_DELAY_MINUTES
+            # Lord's Day window: the Gaïa free-for-all follows the same
+            # declare-vs-play rule as the player attacks (D44's "no
+            # time limit" stays — the window only refuses an execution
+            # that would land inside it).
+            _refuse_lords_day_execution(
+                await self._active_lords_day_window(timestamp),
+                timestamp,
+                delay_minutes,
+            )
+            lord.attack_used += 1
+            await self._store.upsert_lord(lord.to_mongo())
+            attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp, delay_minutes)
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.info("kingdoms: %s opens the Gaïa free-for-all on %s", lord.id, territory.map_key)
+            return attack
+        return await self._join_gaia_attack(attack, lord, territory)
+
+    def _new_gaia_attack(
+        self,
+        season: SeasonState,
+        territory: TerritoryModel,
+        lord: LordModel,
+        lobby_url: str,
+        timestamp: datetime,
+        delay_minutes: int,
+    ) -> AttackModel:
+        """Build the first declaration of a Gaïa free-for-all."""
+        if lord.kingdom_id is None:
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
+        return AttackModel(
+            _id=f"{season.id}-g-{territory.id}",
+            season_id=season.id,
+            kind=AttackKind.GAIA,
+            territory_id=territory.id,
+            map_key=territory.map_key,
+            defender_kingdom_id=territory.owner_kingdom_id,
+            attacker_lord_id=lord.id,
+            attacker_kingdom_id=lord.kingdom_id,
+            lobby_url=lobby_url.strip(),
+            declared_at=timestamp,
+            expires_at=timestamp + timedelta(minutes=delay_minutes),
+            participants=[lord.id],
+        )
+
+    async def _join_gaia_attack(self, attack: AttackModel, lord: LordModel, territory: TerritoryModel) -> AttackModel:
+        """Add one lord to an open Gaïa free-for-all (D6/D42)."""
+        if attack.state is not AttackState.DECLARED:
+            raise AttackStateError("la bataille libre n'accepte plus de participants")
+        if any(participant == lord.id for participant in attack.participants):
+            raise AttackStateError("le seigneur prend déjà part à cette bataille libre")
+        lords = {item.id: item for item in await self._kingdoms.lords()}
+        for participant in attack.participants:
+            other = lords.get(participant)
+            if other is not None and other.kingdom_id == lord.kingdom_id:
+                raise GaiaAttackFullError("un royaume ne rejoint une bataille libre Gaïa qu'une fois (D42)")
+        if len(attack.participants) >= self._config.attacks.gaia_max_participants:
+            raise GaiaAttackFullError("la bataille libre est complète")
+        lord.attack_used += 1
+        await self._store.upsert_lord(lord.to_mongo())
+        attack.participants = [*attack.participants, lord.id]
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info("kingdoms: %s joins the Gaïa free-for-all on %s", lord.id, territory.map_key)
+        return attack
+
+    # ------------------------------------------------------------------
+    # Combat technologies (§20 combat part, D9-D12/D18/D28/D36/D43)
+    # ------------------------------------------------------------------
+    async def technology_state(self, kingdom_id: str) -> TechnologyState:
+        """Return (creating when absent) the kingdom's technology state."""
+        for doc in await self._store.find_technologies():
+            state = TechnologyState.from_mongo(doc)
+            if state.kingdom_id == kingdom_id:
+                return state
+        return TechnologyState(_id=kingdom_id, season_id=(await self._require_season()).id)
+
+    async def buy_technology(self, kingdom_id: str, technology: str) -> TechnologyState:
+        """Buy one combat technology with tech points (D9/D36)."""
+        if technology not in COMBAT_TECHNOLOGIES:
+            raise UnknownTechnologyError(f"technologie de combat inconnue : {technology}")
+        cost = self._cost(technology)
+        limit = self._config.technologies.limits.get(technology, 0)
+        state = await self.technology_state(kingdom_id)
+        bypass = bypass_guard(
+            f"technology purchase {technology} of {kingdom_id} "
+            f"(bank {state.tech_points}, {state.purchases.get(technology, 0)}/{limit})"
+        )
+        if not state.can_afford(cost) and not bypass:
+            raise InsufficientTechPointsError("le royaume manque de points de technologie")
+        bought = state.purchases.get(technology, 0)
+        if limit > 0 and bought >= limit and not bypass:
+            raise TechnologyLimitReachedError("la limite d'achat par saison est atteinte")
+        if bypass:
+            state.tech_points = max(0, state.tech_points - cost)
+            state.purchases[technology] = bought + 1
+        elif not state.spend(technology, cost, limit):
+            raise TechnologyLimitReachedError("l'achat a été refusé")
+        await self._store.upsert_technology(state.to_mongo())
+        logger.info("kingdoms: %s bought %s for %s tech points", kingdom_id, technology, cost)
+        return state
+
+    async def activate_traquenard(
+        self,
+        player_id: str,
+        target_kingdom_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> KingdomModel:
+        """Activate a Traquenard against a kingdom (Drasah's recâblage v2).
+
+        INDEPENDENT of any declaration (2026-10-14): any lord of the
+        activator kingdom triggers it from the kingdom's own salon. Two
+        effects — (1) one-shot: +2h of lock on every marriage ALREADY
+        sealed in the target kingdom (a later marriage never is); (2)
+        a 6h window (``traquenard_until``): every attack declared
+        against the target while the window is open faces the Facile AI
+        (level 1 whatever the defence bot's real level — the reveal
+        shows 1/5). One bought charge is consumed at the activation;
+        the target learns it only when an attack is actually declared.
+        """
+        await self._require_running_season()
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("le joueur n'appartient à aucun royaume de la saison en cours")
+        if target_kingdom_id == lord.kingdom_id:
+            raise AttackError("le Traquenard vise un autre royaume, jamais le sien")
+        target = await self._kingdom_by_id(target_kingdom_id)
+        if target.is_gaia:
+            raise TerritoryNotAttackableError("le Traquenard vise un royaume joueur")
+        timestamp = now or _now()
+        # Volière Lâcher de faucon (voliere-v1): the Traquenard is an
+        # adverse technology effect — a released target is immune.
+        if _faucon_released(target, timestamp):
+            raise TechnologyError("la cible a relâché le faucon — immunisée aux technologies")
+        state = await self.technology_state(lord.kingdom_id)
+        bought = state.purchases.get("traquenard", 0)
+        if bought <= 0:
+            raise TechnologyLimitReachedError("le royaume n'a pas acheté de Traquenard")
+        state.purchases["traquenard"] = bought - 1
+        await self._store.upsert_technology(state.to_mongo())
+        now_ts = int(timestamp.timestamp())
+        # (1) one-shot: +2h on the target's already-sealed marriages.
+        for victim in await self._kingdoms.lords():
+            if victim.kingdom_id != target_kingdom_id or victim.left or victim.married_civilization is None:
+                continue
+            current = int(victim.marriage_locked_until or 0)
+            victim.marriage_locked_until = max(current, now_ts) + int(TRAQUENARD_LOCK_HOURS * 3600)
+            await self._store.upsert_lord(victim.to_mongo())
+        # (2) the 6h Facile window on the target kingdom.
+        target.traquenard_until = now_ts + int(TRAQUENARD_WINDOW_HOURS * 3600)
+        await self._store.upsert_kingdom(target.to_mongo())
+        logger.info(
+            "kingdoms: %s activated a Traquenard against %s (Facile AI for %sh, +2h locks)",
+            lord.kingdom_id,
+            target_kingdom_id,
+            TRAQUENARD_WINDOW_HOURS,
+        )
+        return target
+
+    async def base_ai_level(self) -> int:
+        """Return the season epoch's base AI level (D18 scale, fallback 1)."""
+        season = await self._kingdoms.current_season()
+        if season is not None:
+            key = str(getattr(season, "current_age_key", "") or "")
+            epoch = next((e for e in self._config.ages if e.key == key), None)
+            if epoch is not None:
+                return int(epoch.gaia_ai_level)
+        return 1
+
+    async def defense_ai_level(self, kingdom_id: str) -> int:
+        """Return the kingdom defence bot's AI level (marche-v2 art. 5).
+
+        The base level is the season epoch's (D18: 1=Facile … 5=Extrême);
+        each permanent Jeu d'armes purchase adds one, ceiling 5. This is
+        the level an ATTACKER faces when the kingdom's bot takes the
+        defense (the old Gaïa-only reading is gone — the defence bot is
+        the kingdom's own, a Traquenard aside).
+        """
+        state = await self.technology_state(kingdom_id)
+        return min(
+            AI_LEVEL_CAP,
+            await self.base_ai_level() + state.purchases.get("jeu_d_armes", 0),
+        )
+
+    async def sabotage_civilizations(
+        self, attack_id: str, attacker_kingdom_id: str, civilizations: list[str]
+    ) -> AttackModel:
+        """Snipe civilizations on a kingdom-vs-kingdom attack (D12/D28).
+
+        Kingdom-vs-kingdom only, at most two sniped civilizations per
+        game; the effect is recorded on the attack for the game setup.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER:
+            raise SabotageError("le sabotage vise uniquement une attaque royaume contre royaume")
+        if attack.attacker_kingdom_id != attacker_kingdom_id:
+            raise SabotageError("seul le royaume attaquant sabote")
+        if attack.is_over:
+            raise AttackStateError("l'attaque est terminée")
+        sniped = list(attack.effects.get("sabotage", []))
+        if len(sniped) + len(civilizations) > 2:
+            raise SabotageError("au plus deux civilisations snipées par game")
+        sniped = [*sniped, *civilizations]
+        attack.effects = {**attack.effects, "sabotage": sniped}
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def counter_espionage(self, attack_id: str, defender_kingdom_id: str) -> AttackModel:
+        """Cancel the sabotage of an incoming attack (D11/D28)."""
+        attack = await self._find_attack(attack_id)
+        if attack.defender_kingdom_id != defender_kingdom_id:
+            raise SabotageError("seul le royaume défenseur contre-attaque")
+        if "sabotage" not in attack.effects:
+            return attack  # nothing to counter — idempotent
+        effects = {key: value for key, value in attack.effects.items() if key != "sabotage"}
+        attack.effects = effects
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+    def _cost(self, technology: str) -> int:
+        """Return the configured cost of one technology (D9)."""
+        return int(getattr(self._config.technologies, technology))
+
+    async def _territory_busy(self, territory_id: str) -> bool:
+        """Whether an ongoing attack targets the territory (D42)."""
+        return any(attack.territory_id == territory_id and not attack.is_over for attack in await self.attacks())
+
+    async def _territory_by_map(self, map_key: str) -> TerritoryModel:
+        """Resolve a territory by its map key."""
+        territory = next(
+            (item for item in await self._territories.territories() if item.map_key == map_key),
+            None,
+        )
+        if territory is None:
+            raise KingdomNotFoundError("aucun territoire tiré avec cette carte")
+        return territory
+
+    async def _kingdom_by_id(self, kingdom_id: str) -> KingdomModel:
+        """Resolve a kingdom by id."""
+        kingdom = next(
+            (item for item in await self._kingdoms.kingdoms() if item.id == kingdom_id),
+            None,
+        )
+        if kingdom is None:
+            raise KingdomNotFoundError("aucun royaume avec cet identifiant")
+        return kingdom
+
+    async def _active_lords_day_window(self, timestamp: datetime) -> tuple[datetime, datetime] | None:
+        """Return the Lord's Day window at ``timestamp``, calendar or forced.
+
+        The real calendar window (Sunday 23:30 → Monday 10:00) applies
+        first — but NEVER on the season's end Sunday (no window before
+        the 23:59 verdict) nor on a finished season; the manual test
+        override stored on the season
+        (``lords_day_forced_start``/``lords_day_forced_end``, Drasah's
+        Paramètres seam) acts as a second window when the timestamp
+        falls inside it (unless the season is finished).
+        """
+        try:
+            season = await self._kingdoms.current_season()
+        except Exception:
+            return None
+        if season is None:
+            return None
+        calendar = active_lords_day_window(self._config, season, timestamp)
+        if calendar is not None:
+            return calendar
+        if season.finished:
+            return None
+        start = season.lords_day_forced_start
+        end = season.lords_day_forced_end
+        if start is None or end is None:
+            return None
+        if start <= timestamp < end:
+            return (start, end)
+        return None
+
+    async def _require_season(self) -> SeasonState:
+        """Return the running season or raise the no-season error."""
+        season = await self._kingdoms.current_season()
+        if season is None:
+            raise NoSeasonError("aucune saison n'est en cours")
+        return season
+
+    async def _require_running_season(self) -> SeasonState:
+        """Return the running season, refusing a finished one.
+
+        Drasah's endcycle rule (2026-10-11): after the 23:59 verdict the
+        season stays frozen — every combat action raises until the next
+        launch.
+        """
+        season = await self._require_season()
+        if season.finished:
+            raise SeasonClosedError("la saison est terminée — aucune action de combat n'est possible")
+        return season
+
+    async def _require_lord(self, player_id: str) -> LordModel:
+        """Return the player's lord document or raise."""
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == player_id),
+            None,
+        )
+        if lord is None:
+            raise NotEnrolledError("le joueur n'est pas inscrit dans la saison en cours")
+        return lord
+
+    async def _find_attack(self, attack_id: str) -> AttackModel:
+        """Return the attack document or raise a not-found error."""
+        attack = next(
+            (item for item in await self.attacks() if item.id == attack_id),
+            None,
+        )
+        if attack is None:
+            raise AttackNotFoundError("aucune attaque avec cet id dans les données actuelles")
+        return attack
