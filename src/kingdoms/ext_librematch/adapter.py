@@ -20,15 +20,26 @@ import httpx
 
 from kingdoms.core.debug import capture
 from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
-from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats, Slot, StatsBlock, StatsEntry
+from kingdoms.core.models.game import (
+    GameMap,
+    MatchDetails,
+    MatchResult,
+    PlayerStats,
+    Slot,
+    StatsBlock,
+    StatsEntry,
+)
 from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
+from kingdoms.core.services.provider_endpoints import provider_url
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
+
+DEFAULT_BASE_URL = provider_url("librematch", "api_url")
 LOBBIES_PATH = "/community/advertisement/findAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
 PERSONAL_STAT_PATH = "/community/leaderboard/GetPersonalStat"
+RECENT_MATCH_PATH = "/community/leaderboard/GetRecentMatchHistory"
 LOBBIES_QUERY_PARAMS = {"title": "age2"}
 LEADERBOARD_KEYS = {"0": "rm_1v1", "1": "rm_team", "2": "unranked", "3": "dm_1v1", "4": "dm_team"}
 
@@ -167,6 +178,87 @@ class LibrematchAdapter:
 
 
 
+
+    async def recent_match_result(
+        self, profile_ids: list[str], since_epoch_s: int
+    ) -> MatchResult | None:
+        """Fetch the latest finished match of the profiles (WorldsEdge).
+
+        ``GetRecentMatchHistory`` lists a profile's recent finished
+        matches with the full outcome (winner, duration, map, elo
+        deltas). The WorldsEdge match id is NOT the aoe2lobby ref:
+        the correlation rides the profiles and the time window —
+        the most recent match whose start follows ``since`` and whose
+        members include one of the ``profile_ids``.
+
+        Returns None on transport failure or when nothing matches
+        (the upstream has not recorded the match yet — the caller
+        retries with a backoff).
+        """
+        if not profile_ids:
+            return None
+        probe = profile_ids[0]
+        if not await self._allowed():
+            logger.warning("librematch call over rate budget; degrading result to None")
+            return None
+        async with httpx.AsyncClient(timeout=self._timeout_s, transport=self._transport) as client:
+            reply = await client.get(
+                urljoin(self._base_url + "/", RECENT_MATCH_PATH.lstrip("/")),
+                params={"title": "age2", "profile_ids": f'["{probe}"]', "count": "5"},
+            )
+            reply.raise_for_status()
+            payload = reply.json()
+        matches = payload.get("matchHistoryStats") or []
+        wanted = {str(pid) for pid in profile_ids}
+        best: dict[str, Any] | None = None
+        for match in matches:
+            members = match.get("matchhistorymember") or []
+            member_ids = {str(m.get("profile_id")) for m in members if isinstance(m, dict)}
+            if not (member_ids & wanted):
+                continue
+            started = int(match.get("startgametime") or 0)
+            if started < since_epoch_s:
+                continue
+            if best is None or started > int(best.get("startgametime") or 0):
+                best = match
+        if best is None:
+            return None
+        return self._to_match_result(best)
+
+    def _to_match_result(self, match: dict[str, Any]) -> MatchResult:
+        """Build the MatchResult from one WorldsEdge history entry."""
+        members = match.get("matchhistorymember") or []
+        winners: list[str] = []
+        losers: list[str] = []
+        teams: dict[str, int] = {}
+        ratings: dict[str, tuple[int, int]] = {}
+        for member in members:
+            if not isinstance(member, dict):
+                continue
+            pid = str(member.get("profile_id", ""))
+            if member.get("outcome") == 1:
+                winners.append(pid)
+            else:
+                losers.append(pid)
+            teams[pid] = int(member.get("teamid") or 0)
+            old = int(member.get("oldrating") or 0)
+            new = int(member.get("newrating") or 0)
+            if old or new:
+                ratings[pid] = (old, new)
+        started = int(match.get("startgametime") or 0)
+        finished = int(match.get("completiontime") or 0)
+        return MatchResult(
+            match_ref=str(match.get("id", "")),
+            winner_profile_id=winners[0] if len(winners) == 1 else ",".join(winners),
+            loser_profile_ids=tuple(losers),
+            map_name=str(match.get("mapname") or "").removesuffix(".rms"),
+            duration_ms=max(0, (finished - started)) * 1000,
+            ended_at=finished * 1000,
+            factions={},
+            found=True,
+            ratings=ratings,
+            teams=teams,
+        )
 
     def _parse_leaderboard_entry(self, payload: dict[str, Any], profile_id: str) -> list[StatsEntry]:
         """Extract one profile's entries from a GetPersonalStat reply.

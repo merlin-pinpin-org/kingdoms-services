@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.player_events</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.player_events</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/player_events.py">SOURCE_ROOT/core/services/player_events.py</a></td></tr></table>
+    <p><span class="code">Player&nbsp;status&nbsp;events:&nbsp;the&nbsp;generic&nbsp;mod&nbsp;notification&nbsp;mechanism.<br>
+&nbsp;<br>
+Game-&nbsp;and&nbsp;provider-agnostic&nbsp;(reference&nbsp;§0):&nbsp;when&nbsp;a&nbsp;player's&nbsp;live&nbsp;status<br>
+changes&nbsp;(enters&nbsp;a&nbsp;lobby,&nbsp;a&nbsp;game&nbsp;starts,&nbsp;a&nbsp;game&nbsp;ends,&nbsp;a&nbsp;lobby&nbsp;closes),<br>
+every&nbsp;mod&nbsp;in&nbsp;which&nbsp;that&nbsp;player&nbsp;is&nbsp;enrolled&nbsp;must&nbsp;be&nbsp;notified.&nbsp;This<br>
+module&nbsp;owns&nbsp;the&nbsp;mechanism&nbsp;once:<br>
+&nbsp;<br>
+-&nbsp;``<a href="#PlayerStatusEvent">PlayerStatusEvent</a>``&nbsp;—&nbsp;one&nbsp;normalized&nbsp;transition&nbsp;(game_key,<br>
+&nbsp;&nbsp;profile_id,&nbsp;user_id,&nbsp;old/new&nbsp;status,&nbsp;match&nbsp;reference&nbsp;and&nbsp;link);<br>
+-&nbsp;``<a href="#PlayerStatusSink">PlayerStatusSink</a>``&nbsp;—&nbsp;what&nbsp;a&nbsp;mod&nbsp;implements&nbsp;to&nbsp;receive&nbsp;transitions;<br>
+-&nbsp;``<a href="#ModMembership">ModMembership</a>``&nbsp;—&nbsp;the&nbsp;seam&nbsp;a&nbsp;mod&nbsp;implements&nbsp;so&nbsp;the&nbsp;router&nbsp;can&nbsp;ask<br>
+&nbsp;&nbsp;"is&nbsp;this&nbsp;user&nbsp;enrolled&nbsp;in&nbsp;your&nbsp;mod?";<br>
+-&nbsp;``<a href="#PlayerStatusRouter">PlayerStatusRouter</a>``&nbsp;—&nbsp;the&nbsp;registry&nbsp;+&nbsp;dispatcher:&nbsp;mods&nbsp;register,<br>
+&nbsp;&nbsp;transitions&nbsp;are&nbsp;dispatched&nbsp;to&nbsp;every&nbsp;mod&nbsp;where&nbsp;the&nbsp;player&nbsp;is<br>
+&nbsp;&nbsp;enrolled,&nbsp;best-effort&nbsp;(one&nbsp;mod's&nbsp;failure&nbsp;never&nbsp;blocks&nbsp;the&nbsp;others).<br>
+&nbsp;<br>
+The&nbsp;router&nbsp;lives&nbsp;in&nbsp;the&nbsp;core&nbsp;so&nbsp;both&nbsp;processes&nbsp;reuse&nbsp;it:&nbsp;svc-core<br>
+dispatches&nbsp;provider-derived&nbsp;transitions&nbsp;to&nbsp;core-registered&nbsp;sinks,&nbsp;and<br>
+the&nbsp;bot&nbsp;feeds&nbsp;the&nbsp;same&nbsp;router&nbsp;from&nbsp;the&nbsp;Live&nbsp;event&nbsp;stream&nbsp;so&nbsp;Discord<br>
+surfaces&nbsp;(mod&nbsp;channels)&nbsp;receive&nbsp;them.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.player_events.html#PlayerStatusEvent">PlayerStatusEvent</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.player_events.html#PlayerStatusRouter">PlayerStatusRouter</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.player_events.html#ModMembership">ModMembership</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.player_events.html#PlayerStatusSink">PlayerStatusSink</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModMembership">class <strong>ModMembership</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModMembership">ModMembership</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+The&nbsp;seam&nbsp;a&nbsp;mod&nbsp;implements&nbsp;for&nbsp;enrollment&nbsp;lookups.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.player_events.html#ModMembership">ModMembership</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ModMembership-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ModMembership-is_enrolled"><strong>is_enrolled</strong></a>(self, game_key: 'str', user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Report&nbsp;whether&nbsp;the&nbsp;user&nbsp;is&nbsp;enrolled&nbsp;in&nbsp;the&nbsp;mod&nbsp;for&nbsp;the&nbsp;game.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ModMembership-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'is_enrolled'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ModMembership-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ModMembership-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PlayerStatusEvent">class <strong>PlayerStatusEvent</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PlayerStatusEvent">PlayerStatusEvent</a>(game_key:&nbsp;'str',&nbsp;profile_id:&nbsp;'str',&nbsp;user_id:&nbsp;'str',&nbsp;old_status:&nbsp;'str',&nbsp;new_status:&nbsp;'str',&nbsp;match_ref:&nbsp;'str',&nbsp;match_url:&nbsp;'str',&nbsp;occurred_at:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;player&nbsp;status&nbsp;transition,&nbsp;normalized&nbsp;and&nbsp;game-agnostic.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PlayerStatusEvent-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__init__"><strong>__init__</strong></a>(self, game_key: 'str', profile_id: 'str', user_id: 'str', old_status: 'str', new_status: 'str', match_ref: 'str', match_url: 'str', occurred_at: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusEvent-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>game_key</strong></dt>
+</dl>
+<dl><dt><strong>match_ref</strong></dt>
+</dl>
+<dl><dt><strong>match_url</strong></dt>
+</dl>
+<dl><dt><strong>new_status</strong></dt>
+</dl>
+<dl><dt><strong>occurred_at</strong></dt>
+</dl>
+<dl><dt><strong>old_status</strong></dt>
+</dl>
+<dl><dt><strong>profile_id</strong></dt>
+</dl>
+<dl><dt><strong>user_id</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'game_key': 'str', 'match_ref': 'str', 'match_url': 'str', 'new_status': 'str', 'occurred_at': 'int', 'old_status': 'str', 'profile_id': 'str', 'user_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'game_key': Field(name='game_key',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'match_ref': Field(name='match_ref',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'match_url': Field(name='match_url',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'new_status': Field(name='new_status',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'occurred_at': Field(name='occurred_at',type='int',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'old_status': Field(name='old_status',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'profile_id': Field(name='profile_id',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'user_id': Field(name='user_id',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('game_key', 'profile_id', 'user_id', 'old_status', 'new_status', 'match_ref', 'match_url', 'occurred_at')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PlayerStatusRouter">class <strong>PlayerStatusRouter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PlayerStatusRouter">PlayerStatusRouter</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Dispatch&nbsp;player&nbsp;status&nbsp;transitions&nbsp;to&nbsp;the&nbsp;enrolled&nbsp;mods'&nbsp;sinks.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PlayerStatusRouter-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Start&nbsp;with&nbsp;no&nbsp;mod&nbsp;registered.</span></dd></dl>
+
+<dl><dt>async <a name="PlayerStatusRouter-dispatch"><strong>dispatch</strong></a>(self, event: 'PlayerStatusEvent') -&gt; 'list[str]'</dt><dd><span class="code">Notify&nbsp;every&nbsp;mod&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled;&nbsp;return&nbsp;their&nbsp;names.<br>
+&nbsp;<br>
+Best-effort&nbsp;per&nbsp;mod:&nbsp;a&nbsp;lookup&nbsp;or&nbsp;sink&nbsp;failure&nbsp;is&nbsp;logged&nbsp;and<br>
+skipped&nbsp;—&nbsp;one&nbsp;mod's&nbsp;outage&nbsp;never&nbsp;blocks&nbsp;the&nbsp;other&nbsp;notifications.</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusRouter-register_mod"><strong>register_mod</strong></a>(self, mod_name: 'str', membership: 'ModMembership', sink: 'PlayerStatusSink') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;one&nbsp;mod's&nbsp;membership&nbsp;seam&nbsp;and&nbsp;notification&nbsp;sink.</span></dd></dl>
+
+<dl><dt><a name="PlayerStatusRouter-unregister_mod"><strong>unregister_mod</strong></a>(self, mod_name: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;mod's&nbsp;registration&nbsp;(idempotent).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>mod_names</strong></dt>
+<dd><span class="code">The&nbsp;registered&nbsp;mod&nbsp;names&nbsp;(stable&nbsp;order:&nbsp;registration&nbsp;order).</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PlayerStatusSink">class <strong>PlayerStatusSink</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PlayerStatusSink">PlayerStatusSink</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+What&nbsp;a&nbsp;mod&nbsp;implements&nbsp;to&nbsp;receive&nbsp;player&nbsp;status&nbsp;transitions.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.player_events.html#PlayerStatusSink">PlayerStatusSink</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PlayerStatusSink-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="PlayerStatusSink-on_player_status"><strong>on_player_status</strong></a>(self, event: 'PlayerStatusEvent') -&gt; 'None'</dt><dd><span class="code">Handle&nbsp;one&nbsp;transition&nbsp;(best-effort:&nbsp;never&nbsp;raises).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="PlayerStatusSink-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'on_player_status'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="PlayerStatusSink-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PlayerStatusSink-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>EVENT_STATUS_CHANGED</strong> = 'player.status_changed'<br>
+<strong>STATUS_IN_GAME</strong> = 'in_game'<br>
+<strong>STATUS_IN_LOBBY</strong> = 'in_lobby'<br>
+<strong>STATUS_OFFLINE</strong> = 'offline'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.player_events (WARNING)&gt;</td></tr></table>
+</body></html>

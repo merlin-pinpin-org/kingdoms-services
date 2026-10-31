@@ -104,24 +104,15 @@ def test_render_dashboard_degraded_and_empty() -> None:
             "degraded": False,
         }
     )
-    assert "🟢 <@10>" in populated
+    assert "🟢" in populated  # the active section header
+    assert "<@10>" in populated
 
 
-def test_snapshot_fingerprint_ignores_generated_at() -> None:
-    """An unchanged roster never triggers an edit: generated_at is excluded."""
-    from kingdoms.discord.live import _snapshot_fingerprint
-
-    base = {"players": [{"profile_id": "A", "state": "in_lobby"}], "degraded": False}
-    first = _snapshot_fingerprint(base)
-    second = _snapshot_fingerprint({**base, "generated_at": 12345})
-    third = _snapshot_fingerprint({**base, "generated_at": 99999})
-    assert first == second == third
 
 
-def test_snapshot_fingerprint_tracks_state_changes() -> None:
-    """A real state change produces a different fingerprint."""
-    from kingdoms.discord.live import _snapshot_fingerprint
+def test_live_keys_are_per_game() -> None:
+    """The live view keys carry the game key — one ephemeral view per game."""
+    from kingdoms.discord.live import live_view_key
 
-    idle = {"players": [{"profile_id": "A", "state": "offline"}], "degraded": False}
-    in_game = {"players": [{"profile_id": "A", "state": "in_game"}], "degraded": False}
-    assert _snapshot_fingerprint(idle) != _snapshot_fingerprint(in_game)
+    assert live_view_key("aoe2") == "view:aoe2:live"
+    assert live_view_key("aoe4") == "view:aoe4:live"

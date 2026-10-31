@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package kingdoms.v1;
+
+
+
+// Game data service (direction développeur, architecture cible):
+// one process per game (game-aoe2), the ONLY consumer of the external
+// providers (ext-librematch, ext-aoe2lobby, ...) for that game. It owns
+// the game domain tables (matches, players, stats), exploits the raw
+// provider data, and serves the consolidated state to svc-core and the
+// bot. svc-core never talks to the providers, and vice versa.
+//
+// The contract is game-generic: the game is a parameter, so a future
+// game-aoe4 process serves the same contract with game_key = "aoe4".
+
+service GameData {
+  // Declare which games this service covers and per-game capabilities.
+  rpc GetCoverage(CoverageRequest) returns (GameCoverage);
+
+  // Server-stream the live dashboard state for a game: linked players,
+  // their status (in_lobby/in_game), and the enriched match summary
+  // (map, civilization, format, join/spectate links).
+  rpc WatchDashboard(WatchGameDataRequest) returns (stream GameDashboard);
+
+  // Server-stream player status transitions for a game (the generic
+  // mod-notification feed): each transition carries the full match
+  // summary so mods render rich notifications without extra calls.
+  rpc WatchPlayerEvents(WatchGameDataRequest) returns (stream GamePlayerEvent);
+
+  // Push the platform's enrolled profile ids for a game. The service
+  // reconciles its providers' subscriptions in place (no teardown).
+  rpc UpdateEnrollments(UpdateEnrollmentsRequest) returns (UpdateEnrollmentsResponse);
+
+
+  // The providers' health-test results for a game: the game service
+  // probes its providers periodically (capabilities ping, live stream
+  // liveness) and serves the last results per provider.
+  rpc GetProviderTests(ProviderTestsRequest) returns (ProviderTests);
+}
+
+message CoverageRequest {}
+
+message GameCoverage {
+  repeated string game_keys = 1;  // e.g. ["aoe2"] for game-aoe2
+  bool realtime = 2;              // at least one realtime provider wired
+  bool degraded = 3;              // true: no provider reachable
+}
+
+message WatchGameDataRequest {
+  string game_key = 1;      // e.g. "aoe2"
+  int64 since = 2;          // ignore events older than this epoch-ms
+}
+
+message GameDashboard {
+  repeated GamePlayerState players = 1;  // every known active player, sorted
+  int64 generated_at = 2;     // epoch ms of this snapshot
+  bool degraded = 3;          // true: provider-less, all states offline
+}
+
+message GamePlayerState {
+  string user_id = 1;        // platform user id, empty when unknown
+  string profile_id = 2;     // game profile id
+  string state = 3;          // offline | in_lobby | in_game
+  string match_ref = 4;     // opaque provider match id, empty when offline
+  int64 since = 5;           // epoch ms of the last state change
+  GameMatchSummary match = 6; // enriched match context, empty when offline
+}
+
+message GameMatchSummary {
+  string match_ref = 1;
+  string map_name = 2;       // human-readable map name
+  string format = 3;         // e.g. "1v1", "2v2", "FFA" (from slots/teams)
+  string status = 4;         // lobby | in_game
+  int32 slots_taken = 5;
+  int32 slots_total = 6;
+  string host_name = 7;      // display name of the host, empty when unknown
+  repeated GamePlayerSlot players = 8; // per-slot summary (civs, avatars, teams)
+  string lobby_url = 9;      // aoe2lobby.com/j/<id> (lobby) — join page
+  string spectate_url = 10;  // aoe2lobby.com/w/<id> (in game) — watch page
+  string deep_link = 11;     // aoe2de:// join deep link when available
+  string match_type = 12;    // the game mode label (RandomMap, FFA, ...)
+}
+
+message GamePlayerSlot {
+  string profile_id = 1;
+  string name = 2;            // in-game display name
+  string civilization = 3;   // human-readable civ (via ws schema), raw id as fallback
+  int32 team = 4;
+  bool filled = 5;
+  string avatar_url = 6;      // the player's steam avatar, may be empty
+  string country = 7;        // country code, may be empty
+}
+
+message GamePlayerEvent {
+  string game_key = 1;
+  string profile_id = 2;
+  string user_id = 3;         // platform user id, empty when unknown
+  string old_status = 4;      // offline | in_lobby | in_game
+  string new_status = 5;
+  int64 occurred_at = 6;      // epoch ms
+  GameMatchSummary match = 7; // enriched match context of the transition
+}
+
+message UpdateEnrollmentsRequest {
+  string game_key = 1;        // the game the profiles belong to
+  repeated string profile_ids = 2; // full current list (idempotent reconciliation)
+  repeated string user_ids = 3;    // parallel to profile_ids: the platform user owning each profile
+}
+
+message UpdateEnrollmentsResponse {
+  int32 subscribed = 1;   // total profile ids subscribed after reconciliation
+  bool applied = 2;       // false: no realtime provider currently reachable
+}
+
+
+message ProviderTestsRequest {
+  string game_key = 1;      // e.g. "aoe2"; empty means every covered game
+}
+
+message ProviderTests {
+  repeated ProviderTest tests = 1;  // one per configured provider
+  int64 checked_at = 2;             // epoch ms of the last probe round
+}
+
+message ProviderTest {
+  string provider_id = 1;    // e.g. "ext-aoe2lobby"
+  string game_key = 2;
+  bool ok = 3;               // the last probe answered
+  int64 latency_ms = 4;     // the last probe's round-trip
+  string detail = 5;         // human-readable outcome (error summary...)
+  int64 checked_at = 6;      // epoch ms of this provider's last probe
+  int32 failures = 7;        // consecutive failures (degradation signal)
+}

@@ -65,6 +65,12 @@ A&nbsp;provider&nbsp;that&nbsp;cannot&nbsp;serve&nbsp;match&nbsp;details&nbsp;(u
 unknown&nbsp;match)&nbsp;yields&nbsp;None:&nbsp;callers&nbsp;fall&nbsp;back&nbsp;to&nbsp;what&nbsp;the&nbsp;match<br>
 already&nbsp;knows&nbsp;instead&nbsp;of&nbsp;failing&nbsp;the&nbsp;workflow.</span></dd></dl>
 
+<dl><dt>async <a name="GameProviderClient-get_match_result"><strong>get_match_result</strong></a>(self, profile_ids: 'list[str]', started_after: 'int') -&gt; 'MatchResult | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;finished&nbsp;match's&nbsp;outcome,&nbsp;degrading&nbsp;to&nbsp;None.<br>
+&nbsp;<br>
+The&nbsp;correlation&nbsp;rides&nbsp;the&nbsp;profile&nbsp;ids&nbsp;and&nbsp;the&nbsp;time&nbsp;window;<br>
+None&nbsp;while&nbsp;the&nbsp;upstream&nbsp;has&nbsp;not&nbsp;recorded&nbsp;the&nbsp;match&nbsp;yet&nbsp;—&nbsp;the<br>
+caller&nbsp;retries&nbsp;with&nbsp;a&nbsp;backoff.</span></dd></dl>
+
 <dl><dt>async <a name="GameProviderClient-get_player_stats"><strong>get_player_stats</strong></a>(self, profile_id: 'str') -&gt; 'PlayerStats | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;stats&nbsp;blocks,&nbsp;degrading&nbsp;to&nbsp;None&nbsp;(no&nbsp;stats).</span></dd></dl>
 
 <dl><dt>async <a name="GameProviderClient-list_maps"><strong>list_maps</strong></a>(self) -&gt; 'list[GameMap]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;map&nbsp;catalog,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
@@ -74,6 +80,13 @@ already&nbsp;knows&nbsp;instead&nbsp;of&nbsp;failing&nbsp;the&nbsp;workflow.</sp
 The&nbsp;generator&nbsp;yields&nbsp;MatchEvent&nbsp;models&nbsp;as&nbsp;they&nbsp;arrive;&nbsp;on&nbsp;a<br>
 lost&nbsp;stream&nbsp;it&nbsp;yields&nbsp;nothing&nbsp;and&nbsp;returns&nbsp;—&nbsp;the&nbsp;caller&nbsp;(the<br>
 live&nbsp;aggregator&nbsp;loop)&nbsp;retries&nbsp;with&nbsp;backoff.</span></dd></dl>
+
+<dl><dt>async <a name="GameProviderClient-update_subscriptions"><strong>update_subscriptions</strong></a>(self, profile_ids: 'list[str]') -&gt; 'bool'</dt><dd><span class="code">Push&nbsp;the&nbsp;subscribed&nbsp;profile&nbsp;ids,&nbsp;degrading&nbsp;to&nbsp;False.<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;reconciles&nbsp;its&nbsp;upstream&nbsp;subscriptions&nbsp;in&nbsp;place;<br>
+False&nbsp;means&nbsp;the&nbsp;push&nbsp;was&nbsp;not&nbsp;applied&nbsp;(provider&nbsp;offline&nbsp;or<br>
+without&nbsp;the&nbsp;capability)&nbsp;and&nbsp;the&nbsp;caller&nbsp;should&nbsp;retry&nbsp;later&nbsp;—<br>
+the&nbsp;provider&nbsp;re-syncs&nbsp;the&nbsp;full&nbsp;list&nbsp;on&nbsp;its&nbsp;next&nbsp;reconnect.</span></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>

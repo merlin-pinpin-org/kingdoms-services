@@ -57,6 +57,8 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         out_dir = Path(tmp)
         generate(out_dir)
+        for pb2 in out_dir.glob("kingdoms/v1/*_pb2.py"):
+            pb2.write_text(pb2.read_text().replace("from kingdoms.v1 import ", "from kingdoms.rpc_generated.kingdoms.v1 import "))
         fresh = descriptors(sorted(out_dir.glob("kingdoms/v1/*_pb2.py")), out_dir)
     committed = descriptors(sorted(COMMITTED.glob("*_pb2.py")), COMMITTED)
     if fresh == committed:

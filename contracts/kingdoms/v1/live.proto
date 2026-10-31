@@ -6,11 +6,18 @@ package kingdoms.v1;
 // provider event streams (ext-aoe2lobby live layer, ext-librematch as the
 // source of truth) and serves the per-player dashboard state to the bot.
 // The bot renders it through /live in a dedicated channel.
+//
+// WatchPlayerEvents streams the generic player status transitions (see
+// kingdoms.core.services.player_events): each transition is dispatched
+// by the consumer to the mods where the player is enrolled.
 
 service Live {
   // Server-stream the current dashboard state: one snapshot immediately,
   // then a new snapshot on every aggregated state change.
   rpc WatchDashboard(WatchDashboardRequest) returns (stream DashboardState);
+
+  // Server-stream player status transitions as they are aggregated.
+  rpc WatchPlayerEvents(WatchPlayerEventsRequest) returns (stream PlayerStatusWireEvent);
 }
 
 message WatchDashboardRequest {
@@ -30,4 +37,21 @@ message PlayerState {
   string state = 3;         // offline | in_lobby | in_game
   string match_ref = 4;    // opaque provider match id, empty when offline
   int64 since = 5;          // epoch ms of the last state change
+  string match_json = 6;   // the full live match payload (map, civs, settings, players) — JSON
+}
+
+message WatchPlayerEventsRequest {
+  string game_key = 1;      // e.g. "aoe2"; empty means every game
+  int64 since = 2;          // ignore transitions older than this epoch-ms
+}
+
+message PlayerStatusWireEvent {
+  string game_key = 1;
+  string profile_id = 2;
+  string user_id = 3;
+  string old_status = 4;    // offline | in_lobby | in_game
+  string new_status = 5;
+  string match_ref = 6;    // opaque provider match id, empty when offline
+  string match_url = 7;    // provider match link, empty when unknown
+  int64 occurred_at = 8;   // epoch ms
 }

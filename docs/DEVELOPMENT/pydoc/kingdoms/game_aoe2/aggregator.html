@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.game_aoe2.aggregator</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.game_aoe2.html" class="white">game_aoe2</a>.aggregator</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/aggregator.py">SOURCE_ROOT/game_aoe2/aggregator.py</a></td></tr></table>
+    <p><span class="code">game-aoe2&nbsp;aggregator:&nbsp;provider&nbsp;events&nbsp;→&nbsp;enriched&nbsp;player&nbsp;states.<br>
+&nbsp;<br>
+The&nbsp;game&nbsp;service&nbsp;consumes&nbsp;the&nbsp;providers'&nbsp;``StreamMatchEvents``<br>
+(ext-aoe2lobby&nbsp;realtime&nbsp;layer;&nbsp;ext-librematch&nbsp;the&nbsp;source&nbsp;of&nbsp;truth),<br>
+folds&nbsp;them&nbsp;into&nbsp;per-profile&nbsp;states,&nbsp;and&nbsp;keeps&nbsp;the&nbsp;full&nbsp;match&nbsp;summary<br>
+carried&nbsp;by&nbsp;the&nbsp;events'&nbsp;metadata&nbsp;(map,&nbsp;format,&nbsp;civs,&nbsp;host,&nbsp;join&nbsp;and<br>
+spectate&nbsp;links,&nbsp;aoe2de&nbsp;deep&nbsp;link)&nbsp;so&nbsp;the&nbsp;dashboard&nbsp;and&nbsp;the&nbsp;mod<br>
+notifications&nbsp;render&nbsp;rich&nbsp;context&nbsp;without&nbsp;any&nbsp;extra&nbsp;provider&nbsp;call.<br>
+&nbsp;<br>
+Ownership&nbsp;(direction&nbsp;développeur):&nbsp;this&nbsp;service&nbsp;owns&nbsp;the&nbsp;AoE2&nbsp;domain<br>
+state;&nbsp;svc-core&nbsp;and&nbsp;the&nbsp;bot&nbsp;only&nbsp;see&nbsp;what&nbsp;the&nbsp;GameData&nbsp;contract&nbsp;serves.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.game_aoe2.aggregator.html#GameAoe2Aggregator">GameAoe2Aggregator</a>
+</dt><dt class="heading-text"><a href="kingdoms.game_aoe2.aggregator.html#ProviderProber">ProviderProber</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.game_aoe2.aggregator.html#ProviderEvents">ProviderEvents</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameAoe2Aggregator">class <strong>GameAoe2Aggregator</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameAoe2Aggregator">GameAoe2Aggregator</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Fold&nbsp;provider&nbsp;events&nbsp;into&nbsp;enriched&nbsp;per-player&nbsp;dashboard&nbsp;states.<br>
+&nbsp;<br>
+The&nbsp;enrolled&nbsp;roster&nbsp;(pushed&nbsp;by&nbsp;svc-core&nbsp;through&nbsp;UpdateEnrollments)<br>
+is&nbsp;the&nbsp;dashboard's&nbsp;baseline:&nbsp;an&nbsp;enrolled&nbsp;player&nbsp;never&nbsp;seen&nbsp;in&nbsp;a<br>
+match&nbsp;renders&nbsp;OFFLINE&nbsp;—&nbsp;the&nbsp;dashboard&nbsp;shows&nbsp;every&nbsp;enrolled&nbsp;player,<br>
+not&nbsp;only&nbsp;those&nbsp;whose&nbsp;transitions&nbsp;already&nbsp;fired.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameAoe2Aggregator-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Start&nbsp;with&nbsp;an&nbsp;empty&nbsp;state;&nbsp;the&nbsp;first&nbsp;snapshot&nbsp;resolves&nbsp;it.</span></dd></dl>
+
+<dl><dt>async <a name="GameAoe2Aggregator-apply_event"><strong>apply_event</strong></a>(self, event: 'Any') -&gt; 'None'</dt><dd><span class="code">Fold&nbsp;one&nbsp;provider&nbsp;MatchEvent&nbsp;into&nbsp;the&nbsp;player&nbsp;states.</span></dd></dl>
+
+<dl><dt><a name="GameAoe2Aggregator-mark_degraded"><strong>mark_degraded</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Flag&nbsp;the&nbsp;state&nbsp;provider-less&nbsp;(all&nbsp;offline).</span></dd></dl>
+
+<dl><dt><a name="GameAoe2Aggregator-mark_healthy"><strong>mark_healthy</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Clear&nbsp;the&nbsp;degraded&nbsp;flag&nbsp;once&nbsp;a&nbsp;provider&nbsp;stream&nbsp;is&nbsp;live.</span></dd></dl>
+
+<dl><dt>async <a name="GameAoe2Aggregator-next_transition"><strong>next_transition</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Await&nbsp;the&nbsp;next&nbsp;normalized&nbsp;transition&nbsp;(WatchPlayerEvents).</span></dd></dl>
+
+<dl><dt><a name="GameAoe2Aggregator-pending_transitions"><strong>pending_transitions</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Report&nbsp;the&nbsp;number&nbsp;of&nbsp;queued&nbsp;transitions&nbsp;(diagnostics,&nbsp;tests).</span></dd></dl>
+
+<dl><dt><a name="GameAoe2Aggregator-set_roster"><strong>set_roster</strong></a>(self, entries: 'list[Any]') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;enrolled&nbsp;roster&nbsp;(the&nbsp;dashboard's&nbsp;baseline).<br>
+&nbsp;<br>
+Entries&nbsp;are&nbsp;the&nbsp;enrollment&nbsp;records&nbsp;—&nbsp;dicts&nbsp;with&nbsp;profile_id&nbsp;and<br>
+user_id&nbsp;(the&nbsp;UpdateEnrollments&nbsp;push),&nbsp;or&nbsp;bare&nbsp;profile&nbsp;id<br>
+strings&nbsp;(tests,&nbsp;degraded&nbsp;paths).</span></dd></dl>
+
+<dl><dt><a name="GameAoe2Aggregator-snapshot"><strong>snapshot</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;(every&nbsp;enrolled&nbsp;player).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderEvents">class <strong>ProviderEvents</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderEvents">ProviderEvents</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+One&nbsp;provider's&nbsp;live&nbsp;event&nbsp;stream&nbsp;(GameProviderClient.stream_match_events).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.game_aoe2.aggregator.html#ProviderEvents">ProviderEvents</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ProviderEvents-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt><a name="ProviderEvents-stream_match_events"><strong>stream_match_events</strong></a>(self, since: 'int') -&gt; 'Any'</dt><dd><span class="code">Async&nbsp;iterator&nbsp;of&nbsp;MatchEvent&nbsp;from&nbsp;the&nbsp;provider.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ProviderEvents-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {'provider_id': 'str'}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'provider_id', 'stream_match_events'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ProviderEvents-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ProviderEvents-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderProber">class <strong>ProviderProber</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderProber">ProviderProber</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Probe&nbsp;the&nbsp;configured&nbsp;providers&nbsp;periodically&nbsp;and&nbsp;keep&nbsp;the&nbsp;results.<br>
+&nbsp;<br>
+One&nbsp;capabilities&nbsp;ping&nbsp;per&nbsp;provider&nbsp;per&nbsp;round,&nbsp;with&nbsp;the&nbsp;round-trip<br>
+latency&nbsp;and&nbsp;the&nbsp;consecutive-failure&nbsp;count&nbsp;(the&nbsp;degradation&nbsp;signal<br>
+the&nbsp;admin&nbsp;dashboard&nbsp;renders);&nbsp;the&nbsp;aggregator's&nbsp;health&nbsp;flags&nbsp;stay<br>
+driven&nbsp;by&nbsp;the&nbsp;stream&nbsp;liveness,&nbsp;this&nbsp;prober&nbsp;is&nbsp;the&nbsp;observability<br>
+layer&nbsp;the&nbsp;GameData&nbsp;contract&nbsp;serves.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProviderProber-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProviderProber-results"><strong>results</strong></a>(self, game_key: 'str' = '') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serve&nbsp;the&nbsp;last&nbsp;probe&nbsp;results&nbsp;(all&nbsp;games,&nbsp;or&nbsp;one).</span></dd></dl>
+
+<dl><dt>async <a name="ProviderProber-run_forever"><strong>run_forever</strong></a>(self, providers: 'list[tuple[str, str]]', game_key: 'str' = 'aoe2') -&gt; 'None'</dt><dd><span class="code">Probe&nbsp;every&nbsp;configured&nbsp;provider&nbsp;forever,&nbsp;one&nbsp;round&nbsp;per&nbsp;interval.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GRACE_MS</strong> = 15000<br>
+<strong>PROBE_INTERVAL_S</strong> = 60.0<br>
+<strong>SNAPSHOT_KEYS</strong> = ('map', 'format', 'status', 'slots_taken', 'slots_total', 'host', 'players', 'lobby_url', 'spectate_url', 'deep_link', 'match_url')<br>
+<strong>STATE_IN_GAME</strong> = 'in_game'<br>
+<strong>STATE_IN_LOBBY</strong> = 'in_lobby'<br>
+<strong>STATE_OFFLINE</strong> = 'offline'<br>
+<strong>STATUS_GAME</strong> = 'game'<br>
+<strong>STATUS_LOBBY</strong> = 'lobby'</td></tr></table>
+</body></html>

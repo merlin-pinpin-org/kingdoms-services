@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.player_status</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.player_status</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/player_status.py">SOURCE_ROOT/discord/player_status.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;bot-side&nbsp;player&nbsp;status&nbsp;bridge:&nbsp;Live&nbsp;stream&nbsp;→&nbsp;mod&nbsp;notifications.<br>
+&nbsp;<br>
+svc-core&nbsp;aggregates&nbsp;the&nbsp;provider&nbsp;events&nbsp;into&nbsp;normalized&nbsp;player<br>
+transitions&nbsp;(``kingdoms.core.services.player_events``)&nbsp;and&nbsp;streams&nbsp;them<br>
+over&nbsp;``WatchPlayerEvents``.&nbsp;This&nbsp;module&nbsp;owns&nbsp;the&nbsp;bot-side&nbsp;half&nbsp;of&nbsp;the<br>
+generic&nbsp;mechanism:<br>
+&nbsp;<br>
+-&nbsp;one&nbsp;module-level&nbsp;``PlayerStatusRouter``&nbsp;(the&nbsp;core,&nbsp;game-agnostic<br>
+&nbsp;&nbsp;dispatcher)&nbsp;—&nbsp;every&nbsp;mod&nbsp;registers&nbsp;its&nbsp;membership&nbsp;seam&nbsp;and&nbsp;sink&nbsp;on&nbsp;it<br>
+&nbsp;&nbsp;at&nbsp;``register(bot,&nbsp;config)``&nbsp;time;<br>
+-&nbsp;one&nbsp;background&nbsp;loop&nbsp;(started&nbsp;with&nbsp;the&nbsp;Live&nbsp;stack)&nbsp;that&nbsp;feeds&nbsp;every<br>
+&nbsp;&nbsp;incoming&nbsp;transition&nbsp;to&nbsp;the&nbsp;router,&nbsp;which&nbsp;notifies&nbsp;exactly&nbsp;the&nbsp;mods<br>
+&nbsp;&nbsp;where&nbsp;the&nbsp;player&nbsp;is&nbsp;enrolled.<br>
+&nbsp;<br>
+The&nbsp;mechanism&nbsp;is&nbsp;independent&nbsp;of&nbsp;the&nbsp;game&nbsp;and&nbsp;of&nbsp;the&nbsp;provider:&nbsp;mods<br>
+never&nbsp;see&nbsp;aoe2lobby,&nbsp;and&nbsp;providers&nbsp;never&nbsp;see&nbsp;mods.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-player_status_router"><strong>player_status_router</strong></a>() -&gt; 'PlayerStatusRouter'</dt><dd><span class="code">Return&nbsp;the&nbsp;process-wide&nbsp;router&nbsp;mods&nbsp;register&nbsp;their&nbsp;sinks&nbsp;onto.</span></dd></dl>
+ <dl><dt><a name="-register_mod_status_listener"><strong>register_mod_status_listener</strong></a>(mod_name: 'str', membership: 'ModMembership', sink: 'PlayerStatusSink') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;one&nbsp;mod's&nbsp;enrollment&nbsp;seam&nbsp;and&nbsp;notification&nbsp;sink.</span></dd></dl>
+ <dl><dt><a name="-start_player_status_stream"><strong>start_player_status_stream</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None] | None'</dt><dd><span class="code">Consume&nbsp;svc-core's&nbsp;player&nbsp;transitions&nbsp;and&nbsp;dispatch&nbsp;them,&nbsp;forever.<br>
+&nbsp;<br>
+Returns&nbsp;None&nbsp;when&nbsp;the&nbsp;core&nbsp;is&nbsp;not&nbsp;configured&nbsp;(``CORE_URI``)&nbsp;—&nbsp;the<br>
+mods&nbsp;simply&nbsp;receive&nbsp;no&nbsp;live&nbsp;transitions,&nbsp;the&nbsp;bot&nbsp;keeps&nbsp;running.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.bot.player_status (WARNING)&gt;</td></tr></table>
+</body></html>

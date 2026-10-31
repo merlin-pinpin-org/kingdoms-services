@@ -21,11 +21,27 @@ def main() -> None:
     from kingdoms.ext_aoe2lobby.adapter import Aoe2LobbyAdapter
 
     adapter = Aoe2LobbyAdapter(
-        ws_url=os.environ.get("AOE2LOBBY_WS_URL", "wss://data.aoe2lobby.com/ws/"),
+        ws_url=os.environ.get("AOE2LOBBY_WS_URL", "") or "wss://data.aoe2lobby.com/ws/",
+        refresh_s=float(os.environ.get("AOE2LOBBY_REFRESH_S", "60")),
     )
 
     async def match_events() -> AsyncIterator[MatchEvent]:
-        """Yield normalized WS frames as core MatchEvent models."""
+        """Yield the current world, then the live frames (MatchEvents).
+
+        The handshake first (owner direction 2026-10-30): a fresh
+        consumer — the game service starting, reconnecting — first
+        receives the CURRENT state (every enrolled profile's live
+        lobby/game), then the live transitions. Without the handshake
+        a restarted consumer stays blind until the next transition.
+        """
+        for frame in adapter.current_state_events():
+            yield MatchEvent(
+                match_ref=frame["match_ref"],
+                type=frame["type"],
+                occurred_at=frame["occurred_at"],
+                profile_ids=tuple(frame["profile_ids"]),
+                metadata=tuple(sorted(frame["metadata"].items())),
+            )
         async for frame in adapter.stream_events():
             yield MatchEvent(
                 match_ref=frame["match_ref"],
@@ -35,11 +51,16 @@ def main() -> None:
                 metadata=tuple(sorted(frame["metadata"].items())),
             )
 
+    async def update_subscriptions(profile_ids: list[str]) -> bool:
+        """Reconcile the upstream players subscription in place (one session)."""
+        return await adapter.set_subscribed_profiles(profile_ids)
+
     asyncio.run(
         serve_game_provider(
             DECLARED_CAPABILITIES,
             PROVIDER_ID,
             match_events=match_events,
+            update_subscriptions=update_subscriptions,
         )
     )
 

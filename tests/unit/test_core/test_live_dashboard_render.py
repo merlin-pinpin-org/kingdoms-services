@@ -55,19 +55,26 @@ def test_render_orders_online_first_then_last_match() -> None:
         },
         now_ms=10_000_000,
     )
-    assert "🟢 <@20>" in body
+    assert "🟢" in body
     assert "— offline —" in body
-    assert body.index("🟢 <@20>") < body.index("— offline —")
+    assert body.index("🟢") < body.index("— offline —")
     assert body.index("— offline —") < body.index("⚫ <@10>")
-    assert "last match" in body
+    assert "dernière partie" in body
 
 
-def test_render_one_line_per_discord_user() -> None:
-    """A user's profiles are fused into one line — no per-profile sub-lines."""
+def test_render_enriched_sublines_per_active_profile() -> None:
+    """Each active profile renders its enriched match context as a sub-line."""
+    match = {
+        "map": "Arabia",
+        "format": "1v1",
+        "players": "Alice(Britons),Bob(Franks)",
+        "spectate_url": "https://www.aoe2lobby.com/w/m1",
+        "deep_link": "aoe2de://1/-m1",
+    }
     body = render_dashboard(
         _snapshot(
             [
-                _player("10", "A", STATE_IN_GAME, "m1", 1_000),
+                {**_player("10", "A", STATE_IN_GAME, "m1", 1_000), "match": match},
                 _player("10", "B", STATE_OFFLINE),
             ]
         ),
@@ -76,8 +83,9 @@ def test_render_one_line_per_discord_user() -> None:
             "B": _stats("Bob", "1200", "1", "5", 2_000),
         },
     )
-    assert "🟢 <@10>" in body
-    assert "Alice" not in body and "Bob" not in body
+    assert "🟢 **1v1** — Arabia" in body  # the section header
+    assert "<@10> · **Alice**" in body
+    assert "[Regarder](https://www.aoe2lobby.com/w/m1)" in body
     assert "RM 1v1" not in body
 
 
@@ -102,3 +110,37 @@ def test_degraded_banner_still_shown() -> None:
     body = render_dashboard({"players": [], "generated_at": 0, "degraded": True})
     assert "Providers unreachable" in body
     assert "No linked players" in body
+
+
+def test_render_enriched_line_with_and_against() -> None:
+    """The active line carries elo, civ, and the enrolled co-players by team."""
+    match = {
+        "map": "Arabia",
+        "format": "2v2",
+        "players": [
+            {"profile_id": "A", "name": "Alice", "civ": "Mayans", "team": 1},
+            {"profile_id": "B", "name": "Bob", "civ": "Goths", "team": 1},
+            {"profile_id": "C", "name": "Carol", "civ": "Franks", "team": 2},
+            {"profile_id": "X", "name": "Stranger", "civ": "Persians", "team": 2},
+        ],
+        "lobby_url": "https://www.aoe2lobby.com/j/111",
+    }
+    body = render_dashboard(
+        _snapshot(
+            [
+                {**_player("10", "A", STATE_IN_LOBBY, "111", 1_000), "match": match},
+                {**_player("20", "B", STATE_IN_LOBBY, "111", 1_000), "match": match},
+                {**_player("30", "C", STATE_IN_LOBBY, "111", 1_000), "match": match},
+            ]
+        ),
+        stats={
+            "A": _stats("Alice", "1650", "10", "4", 0),
+        },
+    )
+    assert "Mayans" in body
+    assert "1650 elo" in body
+    assert "🤝 <@20>" in body
+    assert "⚔️ <@30>" in body
+    assert "Stranger" not in body  # unenrolled players are never rendered
+    assert "[Rejoindre](https://www.aoe2lobby.com/j/111)" in body
+    assert "aoe2de://" not in body  # the scheme does not render in Discord

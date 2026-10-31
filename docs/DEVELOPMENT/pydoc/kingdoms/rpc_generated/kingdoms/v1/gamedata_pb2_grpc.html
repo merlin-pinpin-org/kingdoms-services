@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.rpc_generated.html" class="white">rpc_generated</a>.<a href="kingdoms.rpc_generated.kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.rpc_generated.kingdoms.v1.html" class="white">v1</a>.gamedata_pb2_grpc</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/rpc_generated/kingdoms/v1/gamedata_pb2_grpc.py">SOURCE_ROOT/rpc_generated/kingdoms/v1/gamedata_pb2_grpc.py</a></td></tr></table>
+    <p><span class="code">Client&nbsp;and&nbsp;server&nbsp;classes&nbsp;corresponding&nbsp;to&nbsp;protobuf-defined&nbsp;services.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2.html">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2</a><br>
+</td><td class="multicolumn"><a href="warnings.html">warnings</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameData">GameData</a>
+</dt><dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">GameDataServicer</a>
+</dt><dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataStub">GameDataStub</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameData">class <strong>GameData</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Game&nbsp;data&nbsp;service&nbsp;(direction&nbsp;développeur,&nbsp;architecture&nbsp;cible):<br>
+one&nbsp;process&nbsp;per&nbsp;game&nbsp;(game-aoe2),&nbsp;the&nbsp;ONLY&nbsp;consumer&nbsp;of&nbsp;the&nbsp;external<br>
+providers&nbsp;(ext-librematch,&nbsp;ext-aoe2lobby,&nbsp;...)&nbsp;for&nbsp;that&nbsp;game.&nbsp;It&nbsp;owns<br>
+the&nbsp;game&nbsp;domain&nbsp;tables&nbsp;(matches,&nbsp;players,&nbsp;stats),&nbsp;exploits&nbsp;the&nbsp;raw<br>
+provider&nbsp;data,&nbsp;and&nbsp;serves&nbsp;the&nbsp;consolidated&nbsp;state&nbsp;to&nbsp;svc-core&nbsp;and&nbsp;the<br>
+bot.&nbsp;svc-core&nbsp;never&nbsp;talks&nbsp;to&nbsp;the&nbsp;providers,&nbsp;and&nbsp;vice&nbsp;versa.<br>
+&nbsp;<br>
+The&nbsp;contract&nbsp;is&nbsp;game-generic:&nbsp;the&nbsp;game&nbsp;is&nbsp;a&nbsp;parameter,&nbsp;so&nbsp;a&nbsp;future<br>
+game-aoe4&nbsp;process&nbsp;serves&nbsp;the&nbsp;same&nbsp;contract&nbsp;with&nbsp;game_key&nbsp;=&nbsp;"aoe4".<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="GameData-GetCoverage"><strong>GetCoverage</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="GameData-GetProviderTests"><strong>GetProviderTests</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="GameData-UpdateEnrollments"><strong>UpdateEnrollments</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="GameData-WatchDashboard"><strong>WatchDashboard</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="GameData-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataServicer">class <strong>GameDataServicer</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Game&nbsp;data&nbsp;service&nbsp;(direction&nbsp;développeur,&nbsp;architecture&nbsp;cible):<br>
+one&nbsp;process&nbsp;per&nbsp;game&nbsp;(game-aoe2),&nbsp;the&nbsp;ONLY&nbsp;consumer&nbsp;of&nbsp;the&nbsp;external<br>
+providers&nbsp;(ext-librematch,&nbsp;ext-aoe2lobby,&nbsp;...)&nbsp;for&nbsp;that&nbsp;game.&nbsp;It&nbsp;owns<br>
+the&nbsp;game&nbsp;domain&nbsp;tables&nbsp;(matches,&nbsp;players,&nbsp;stats),&nbsp;exploits&nbsp;the&nbsp;raw<br>
+provider&nbsp;data,&nbsp;and&nbsp;serves&nbsp;the&nbsp;consolidated&nbsp;state&nbsp;to&nbsp;svc-core&nbsp;and&nbsp;the<br>
+bot.&nbsp;svc-core&nbsp;never&nbsp;talks&nbsp;to&nbsp;the&nbsp;providers,&nbsp;and&nbsp;vice&nbsp;versa.<br>
+&nbsp;<br>
+The&nbsp;contract&nbsp;is&nbsp;game-generic:&nbsp;the&nbsp;game&nbsp;is&nbsp;a&nbsp;parameter,&nbsp;so&nbsp;a&nbsp;future<br>
+game-aoe4&nbsp;process&nbsp;serves&nbsp;the&nbsp;same&nbsp;contract&nbsp;with&nbsp;game_key&nbsp;=&nbsp;"aoe4".<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameDataServicer-GetCoverage"><strong>GetCoverage</strong></a>(self, request, context)</dt><dd><span class="code">Declare&nbsp;which&nbsp;games&nbsp;this&nbsp;service&nbsp;covers&nbsp;and&nbsp;per-game&nbsp;capabilities.</span></dd></dl>
+
+<dl><dt><a name="GameDataServicer-GetProviderTests"><strong>GetProviderTests</strong></a>(self, request, context)</dt><dd><span class="code">The&nbsp;providers'&nbsp;health-test&nbsp;results&nbsp;for&nbsp;a&nbsp;game:&nbsp;the&nbsp;game&nbsp;service<br>
+probes&nbsp;its&nbsp;providers&nbsp;periodically&nbsp;(capabilities&nbsp;ping,&nbsp;live&nbsp;stream<br>
+liveness)&nbsp;and&nbsp;serves&nbsp;the&nbsp;last&nbsp;results&nbsp;per&nbsp;provider.</span></dd></dl>
+
+<dl><dt><a name="GameDataServicer-UpdateEnrollments"><strong>UpdateEnrollments</strong></a>(self, request, context)</dt><dd><span class="code">Push&nbsp;the&nbsp;platform's&nbsp;enrolled&nbsp;profile&nbsp;ids&nbsp;for&nbsp;a&nbsp;game.&nbsp;The&nbsp;service<br>
+reconciles&nbsp;its&nbsp;providers'&nbsp;subscriptions&nbsp;in&nbsp;place&nbsp;(no&nbsp;teardown).</span></dd></dl>
+
+<dl><dt><a name="GameDataServicer-WatchDashboard"><strong>WatchDashboard</strong></a>(self, request, context)</dt><dd><span class="code">Server-stream&nbsp;the&nbsp;live&nbsp;dashboard&nbsp;state&nbsp;for&nbsp;a&nbsp;game:&nbsp;linked&nbsp;players,<br>
+their&nbsp;status&nbsp;(in_lobby/in_game),&nbsp;and&nbsp;the&nbsp;enriched&nbsp;match&nbsp;summary<br>
+(map,&nbsp;civilization,&nbsp;format,&nbsp;join/spectate&nbsp;links).</span></dd></dl>
+
+<dl><dt><a name="GameDataServicer-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(self, request, context)</dt><dd><span class="code">Server-stream&nbsp;player&nbsp;status&nbsp;transitions&nbsp;for&nbsp;a&nbsp;game&nbsp;(the&nbsp;generic<br>
+mod-notification&nbsp;feed):&nbsp;each&nbsp;transition&nbsp;carries&nbsp;the&nbsp;full&nbsp;match<br>
+summary&nbsp;so&nbsp;mods&nbsp;render&nbsp;rich&nbsp;notifications&nbsp;without&nbsp;extra&nbsp;calls.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataStub">class <strong>GameDataStub</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataStub">GameDataStub</a>(channel)<br>
+&nbsp;<br>
+Game&nbsp;data&nbsp;service&nbsp;(direction&nbsp;développeur,&nbsp;architecture&nbsp;cible):<br>
+one&nbsp;process&nbsp;per&nbsp;game&nbsp;(game-aoe2),&nbsp;the&nbsp;ONLY&nbsp;consumer&nbsp;of&nbsp;the&nbsp;external<br>
+providers&nbsp;(ext-librematch,&nbsp;ext-aoe2lobby,&nbsp;...)&nbsp;for&nbsp;that&nbsp;game.&nbsp;It&nbsp;owns<br>
+the&nbsp;game&nbsp;domain&nbsp;tables&nbsp;(matches,&nbsp;players,&nbsp;stats),&nbsp;exploits&nbsp;the&nbsp;raw<br>
+provider&nbsp;data,&nbsp;and&nbsp;serves&nbsp;the&nbsp;consolidated&nbsp;state&nbsp;to&nbsp;svc-core&nbsp;and&nbsp;the<br>
+bot.&nbsp;svc-core&nbsp;never&nbsp;talks&nbsp;to&nbsp;the&nbsp;providers,&nbsp;and&nbsp;vice&nbsp;versa.<br>
+&nbsp;<br>
+The&nbsp;contract&nbsp;is&nbsp;game-generic:&nbsp;the&nbsp;game&nbsp;is&nbsp;a&nbsp;parameter,&nbsp;so&nbsp;a&nbsp;future<br>
+game-aoe4&nbsp;process&nbsp;serves&nbsp;the&nbsp;same&nbsp;contract&nbsp;with&nbsp;game_key&nbsp;=&nbsp;"aoe4".<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameDataStub-__init__"><strong>__init__</strong></a>(self, channel)</dt><dd><span class="code">Constructor.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;channel:&nbsp;A&nbsp;grpc.Channel.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_GameDataServicer_to_server"><strong>add_GameDataServicer_to_server</strong></a>(servicer, server)</dt></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GRPC_GENERATED_VERSION</strong> = '1.84.0'<br>
+<strong>GRPC_VERSION</strong> = '1.84.0'</td></tr></table>
+</body></html>

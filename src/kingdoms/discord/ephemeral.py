@@ -6,7 +6,7 @@ Discord exposes it only through the interaction webhook that created
 it. The pattern (the skill rule "an ephemeral view edits itself"):
 
 1. the click that opens the flow captures the pair
-   ``(interaction.webhook, interaction.message.id)`` — the click's
+   ``(interaction.followup, interaction.message.id)`` — the click's
    webhook token lives 15 minutes after the click, plenty for a
    modal round-trip;
 2. the submit (or the deferred callback) edits the ORIGINAL message
@@ -17,7 +17,7 @@ the edit, best-effort. A direct click that answers with
 ``interaction.response.edit_message`` needs none of this — the
 current interaction's own webhook does it. This helper is for the
 two deferred shapes: a modal submit, and a callback that had to
-``defer(thinking=True)`` (whose response is a new ephemeral, not the
+``defer(thinking=False)`` (whose response is a new ephemeral, not the
 menu's).
 """
 
@@ -47,10 +47,17 @@ class EphemeralOrigin:
         to their plain-text answer.
         """
         message = getattr(interaction, "message", None)
-        webhook = getattr(interaction, "webhook", None)
-        if message is None or webhook is None:
+        # Interaction has NO `webhook` attribute — the followup
+        # webhook is `interaction.followup` (discord.py 2.7: the
+        # capture read `webhook`, always None, the origin never
+        # captured, a fresh view on every action — THE bug).
+        try:
+            followup = interaction.followup
+        except Exception:
+            followup = None
+        if message is None or followup is None:
             return None
-        return cls(webhook, int(message.id))
+        return cls(followup, int(message.id))
 
 
 async def edit_ephemeral(origin: EphemeralOrigin | None, view: Any) -> bool:

@@ -84,6 +84,9 @@ views:
     - label: ui.homes.btn_create_pool
       action: create-pool
       emoji: 🧱
+    - target: panel:game:aoe2:providers
+      label: ui.homes.btn_providers
+      emoji: 🔌
     - label: ui.homes.btn_sync
       sync: true
     title_emoji: 🔓
@@ -91,6 +94,8 @@ views:
   panel:game:aoe2:live:
     kind: panel
   panel:game:aoe2:players:
+    kind: panel
+  panel:game:aoe2:providers:
     kind: panel
   menu:mods:home:
     kind: menu
@@ -195,11 +200,6 @@ scopes:
       kind: text
       access: readonly
       description: ui.panels.channels.general_description
-    - key: live
-      label: ui.panels.channels.live
-      kind: text
-      access: readonly
-      description: ui.panels.channels.live_description
     - key: civs
       label: ui.panels.channels.civs
       kind: forum

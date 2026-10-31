@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ui.responsive</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.responsive</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/responsive.py">SOURCE_ROOT/discord/ui/responsive.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;ONE&nbsp;rule&nbsp;for&nbsp;answering&nbsp;an&nbsp;interaction&nbsp;with&nbsp;a&nbsp;view&nbsp;(the&nbsp;view&nbsp;SDK).<br>
+&nbsp;<br>
+Every&nbsp;view-rendering&nbsp;callback&nbsp;MUST&nbsp;answer&nbsp;through<br>
+:func:`respond_with_view`&nbsp;—&nbsp;never&nbsp;``followup.send``/``send_message``<br>
+directly.&nbsp;The&nbsp;rule&nbsp;(owner&nbsp;direction,&nbsp;after&nbsp;the&nbsp;fifty-identical-panels<br>
+incident):<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;click&nbsp;rode&nbsp;a&nbsp;message&nbsp;(a&nbsp;component&nbsp;interaction):&nbsp;the&nbsp;message&nbsp;is<br>
+&nbsp;&nbsp;UPDATED&nbsp;in&nbsp;place&nbsp;with&nbsp;the&nbsp;fresh&nbsp;view&nbsp;—&nbsp;same&nbsp;view&nbsp;id&nbsp;or&nbsp;not,&nbsp;the<br>
+&nbsp;&nbsp;clicked&nbsp;surface&nbsp;never&nbsp;spawns&nbsp;a&nbsp;sibling;&nbsp;an&nbsp;ephemeral&nbsp;origin&nbsp;edits<br>
+&nbsp;&nbsp;through&nbsp;its&nbsp;webhook&nbsp;(the&nbsp;``ephemeral.py``&nbsp;contract),&nbsp;a&nbsp;persistent<br>
+&nbsp;&nbsp;origin&nbsp;through&nbsp;the&nbsp;interaction's&nbsp;own&nbsp;response;<br>
+-&nbsp;the&nbsp;click&nbsp;rode&nbsp;no&nbsp;message&nbsp;(a&nbsp;slash&nbsp;command,&nbsp;a&nbsp;fresh&nbsp;surface):&nbsp;the<br>
+&nbsp;&nbsp;view&nbsp;is&nbsp;sent&nbsp;as&nbsp;an&nbsp;EPHEMERAL&nbsp;—&nbsp;an&nbsp;interaction&nbsp;never&nbsp;posts&nbsp;a<br>
+&nbsp;&nbsp;persistent&nbsp;message.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;the&nbsp;single&nbsp;choke&nbsp;point:&nbsp;the&nbsp;rule&nbsp;lives&nbsp;here,&nbsp;nowhere&nbsp;else.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-ack_view_interaction"><strong>ack_view_interaction</strong></a>(interaction: 'discord.Interaction', *, thinking: 'bool' = True) -&gt; 'None'</dt><dd><span class="code">Ack&nbsp;an&nbsp;interaction&nbsp;before&nbsp;slow&nbsp;work&nbsp;(the&nbsp;3-second&nbsp;rule,&nbsp;one&nbsp;place).<br>
+&nbsp;<br>
+Discord&nbsp;kills&nbsp;an&nbsp;unacked&nbsp;interaction&nbsp;after&nbsp;3&nbsp;s&nbsp;and&nbsp;every&nbsp;later<br>
+response&nbsp;404s&nbsp;(merlin&nbsp;10062).&nbsp;Every&nbsp;view&nbsp;callback&nbsp;doing&nbsp;slow&nbsp;work<br>
+(a&nbsp;provider&nbsp;call,&nbsp;a&nbsp;DB&nbsp;read)&nbsp;acks&nbsp;through&nbsp;this&nbsp;—&nbsp;with<br>
+``thinking=True``&nbsp;the&nbsp;user&nbsp;sees&nbsp;the&nbsp;bot&nbsp;working.</span></dd></dl>
+ <dl><dt>async <a name="-respond_with_view"><strong>respond_with_view</strong></a>(interaction: 'discord.Interaction', view: 'Any', view_id: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;an&nbsp;interaction&nbsp;with&nbsp;a&nbsp;view&nbsp;—&nbsp;update&nbsp;the&nbsp;same&nbsp;id,&nbsp;else&nbsp;ephemeral.<br>
+&nbsp;<br>
+``view_id``&nbsp;is&nbsp;the&nbsp;view's&nbsp;declared&nbsp;id&nbsp;(``panel:game:aoe2:live``):<br>
+logged&nbsp;for&nbsp;tracing;&nbsp;the&nbsp;routing&nbsp;is&nbsp;entirely&nbsp;carried&nbsp;by&nbsp;the&nbsp;message<br>
+the&nbsp;interaction&nbsp;rode.<br>
+&nbsp;<br>
+Rules&nbsp;(see&nbsp;the&nbsp;module&nbsp;docstring):&nbsp;a&nbsp;component&nbsp;click&nbsp;updates&nbsp;the<br>
+message&nbsp;it&nbsp;rode;&nbsp;a&nbsp;message-less&nbsp;interaction&nbsp;gets&nbsp;an&nbsp;ephemeral.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ack_view_interaction', 'respond_with_view']</td></tr></table>
+</body></html>

@@ -1,12 +1,16 @@
 """Live dashboard seam — server side and client (kingdoms.v1.Live, #147).
 
-svc-core serves WatchDashboard (server-streaming snapshots); the bot
-consumes it through ``LiveClient`` to render /live. The seam only
-translates between the wire contract and the aggregator's snapshots.
+svc-core serves WatchDashboard (server-streaming snapshots) and
+WatchPlayerEvents (the normalized player status transitions); the bot
+consumes them through ``LiveClient`` to render /live and to dispatch
+transitions to the enrolled mods. The seam only translates between
+the wire contract and the aggregator's snapshots.
 """
 
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from typing import Any
 
 import grpc
@@ -23,6 +27,7 @@ def state_to_wire(snapshot: dict[str, Any]) -> live_pb2.DashboardState:
             state=p["state"],
             match_ref=p["match_ref"],
             since=p["since"],
+            match_json=json.dumps(p.get("match") or {}, separators=(",", ":"), default=str),
         )
         for p in snapshot["players"]
     ]
@@ -33,6 +38,45 @@ def state_to_wire(snapshot: dict[str, Any]) -> live_pb2.DashboardState:
     )
 
 
+def _decode_match_json(raw: str) -> dict[str, Any]:
+    """Decode a player's match payload (map, civs, settings, players)."""
+    if not raw:
+        return {}
+    try:
+        decoded = json.loads(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+    return decoded if isinstance(decoded, dict) else {}
+
+
+def transition_to_wire(transition: dict[str, Any]) -> live_pb2.PlayerStatusWireEvent:
+    """Translate one normalized player transition into the wire message."""
+    return live_pb2.PlayerStatusWireEvent(
+        game_key=str(transition.get("game_key", "")),
+        profile_id=str(transition.get("profile_id", "")),
+        user_id=str(transition.get("user_id", "")),
+        old_status=str(transition.get("old_status", "")),
+        new_status=str(transition.get("new_status", "")),
+        match_ref=str(transition.get("match_ref", "")),
+        match_url=str(transition.get("match_url", "")),
+        occurred_at=int(transition.get("occurred_at", 0)),
+    )
+
+
+def transition_from_wire(wire: live_pb2.PlayerStatusWireEvent) -> dict[str, Any]:
+    """Translate a wire transition back into the plain dict shape."""
+    return {
+        "game_key": wire.game_key,
+        "profile_id": wire.profile_id,
+        "user_id": wire.user_id,
+        "old_status": wire.old_status,
+        "new_status": wire.new_status,
+        "match_ref": wire.match_ref,
+        "match_url": wire.match_url,
+        "occurred_at": wire.occurred_at,
+    }
+
+
 class LiveServicer(live_pb2_grpc.LiveServicer):
     """Serve WatchDashboard from the live aggregator."""
 
@@ -40,6 +84,25 @@ class LiveServicer(live_pb2_grpc.LiveServicer):
         """Wire the aggregator and the snapshot refresh interval."""
         self._aggregator = aggregator
         self._poll_interval_s = poll_interval_s
+
+    async def WatchPlayerEvents(
+        self,
+        request: live_pb2.WatchPlayerEventsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> AsyncIterator[live_pb2.PlayerStatusWireEvent]:
+        """Stream normalized player transitions as the aggregator queues them.
+
+        The consumer (the bot process) dispatches each transition to the
+        mods where the player is enrolled — the core's generic player
+        events mechanism, served across the process seam.
+        """
+        while True:
+            transition = await self._aggregator.next_transition()
+            if request.game_key and transition.get("game_key") != request.game_key:
+                continue
+            if request.since and transition.get("occurred_at", 0) < request.since:
+                continue
+            yield transition_to_wire(transition)
 
     async def WatchDashboard(
         self,
@@ -96,6 +159,7 @@ class LiveClient:
                             "state": p.state,
                             "match_ref": p.match_ref,
                             "since": p.since,
+                            "match": _decode_match_json(p.match_json),
                         }
                         for p in frame.players
                     ],
@@ -120,9 +184,33 @@ class LiveClient:
                             "state": p.state,
                             "match_ref": p.match_ref,
                             "since": p.since,
+                            "match": _decode_match_json(p.match_json),
                         }
                         for p in frame.players
                     ],
                     "generated_at": frame.generated_at,
                     "degraded": frame.degraded,
                 }
+
+    async def stream_player_events(self, game_key: str = ""):
+        """Yield normalized player transitions continuously, forever.
+
+        The stream reconnects silently on core hiccups (the caller's
+        loop retries); each transition is the plain dict shape of the
+        player_events mechanism, ready for mod dispatch.
+        """
+        from kingdoms.core.rpc.client import build_channel
+
+        while True:
+            try:
+                async with build_channel(self._core_uri) as channel:
+                    stub = live_pb2_grpc.LiveStub(channel)
+                    call = stub.WatchPlayerEvents(
+                        live_pb2.WatchPlayerEventsRequest(game_key=game_key)
+                    )
+                    async for wire in call:
+                        yield transition_from_wire(wire)
+            except grpc.aio.AioRpcError:
+                import asyncio
+
+                await asyncio.sleep(5)

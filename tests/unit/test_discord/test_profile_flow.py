@@ -207,13 +207,22 @@ async def test_remove_account_multiselect_unlinks_and_refreshes(monkeypatch: Any
     object.__setattr__(modal.accounts, "_values", ["aoe2|111", "aoe2|222"])
     await modal.on_submit(interaction)
     assert registration.bindings == [], "every selected account must be unlinked"
+    views = [m.kwargs.get("view") for m in interaction.followup.messages if m.kwargs.get("view")]
+    texts: list[str] = []
+
+    def walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        for child in getattr(component, "children", None) or ():
+            walk(child)
+
+    for v in views:
+        for item in getattr(v, "children", None) or ():
+            walk(item)
     assert any(
-            ("retir" in str(m.content).lower()) or ("removed" in str(m.content).lower())
-            for m in interaction.followup.messages
-        ), (
-        "the removal confirmation must mention what was removed"
-    )
-    assert len(interaction.followup.messages) >= 2, "the profile view must follow the confirmation"
+        ("retir" in t.lower()) or ("removed" in t.lower()) for t in texts
+    ), "the removal result rides the refreshed view's banner (ONE surface)"
 
 
 @pytest.mark.asyncio
@@ -424,9 +433,21 @@ async def test_remove_failure_names_the_entry() -> None:
     modal = home_module.ProfileRemoveAccountModal(options)
     object.__setattr__(modal.accounts, "_values", ["aoe2|ghost"])  # stale value: not bound
     await modal.on_submit(interaction)
-    contents = [str(m.content) for m in interaction.followup.messages]
-    assert any("Retrait échoué pour" in c and "aoe2" in c for c in contents), (
-        "the failure message must name the entry"
+    views = [m.kwargs.get("view") for m in interaction.followup.messages if m.kwargs.get("view")]
+    texts: list[str] = []
+
+    def walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        for child in getattr(component, "children", None) or ():
+            walk(child)
+
+    for v in views:
+        for item in getattr(v, "children", None) or ():
+            walk(item)
+    assert any("Removal failed for" in t and "aoe2" in t for t in texts), (
+        "the failure rides the refreshed view's banner and names the entry"
     )
 
 

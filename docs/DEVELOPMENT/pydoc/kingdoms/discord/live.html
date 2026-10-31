@@ -9,27 +9,25 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.live</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/live.py">SOURCE_ROOT/discord/live.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;/live&nbsp;dashboard&nbsp;command&nbsp;and&nbsp;its&nbsp;dedicated&nbsp;channel&nbsp;(#147).<br>
+    <p><span class="code">The&nbsp;per-game&nbsp;live&nbsp;dashboard&nbsp;(#147):&nbsp;channels,&nbsp;panels,&nbsp;the&nbsp;/live&nbsp;command.<br>
 &nbsp;<br>
-The&nbsp;live&nbsp;test&nbsp;dashboard:&nbsp;a&nbsp;dedicated&nbsp;``live-dashboard``&nbsp;channel&nbsp;hosts&nbsp;one<br>
-persistent&nbsp;message&nbsp;showing&nbsp;every&nbsp;linked&nbsp;player's&nbsp;current&nbsp;state<br>
-(offline&nbsp;/&nbsp;in&nbsp;lobby&nbsp;/&nbsp;in&nbsp;game,&nbsp;match&nbsp;ref,&nbsp;since&nbsp;when).&nbsp;The&nbsp;message&nbsp;is<br>
-edited&nbsp;in&nbsp;place&nbsp;on&nbsp;every&nbsp;update&nbsp;—&nbsp;no&nbsp;spam.&nbsp;``/live``&nbsp;renders&nbsp;the&nbsp;same<br>
-dashboard&nbsp;ephemerally;&nbsp;``/game-link``&nbsp;and&nbsp;``/game-unlink``&nbsp;manage&nbsp;the<br>
-minimal&nbsp;profile&nbsp;links&nbsp;needed&nbsp;to&nbsp;test&nbsp;the&nbsp;providers&nbsp;(test-scoped,&nbsp;kept<br>
-simple&nbsp;per&nbsp;#147).</span></p>
+Generic&nbsp;across&nbsp;games&nbsp;(owner&nbsp;direction,&nbsp;2026-10-23):&nbsp;every&nbsp;game&nbsp;gets&nbsp;its<br>
+own&nbsp;live&nbsp;dashboard&nbsp;channel&nbsp;(the&nbsp;tree&nbsp;folder&nbsp;``games/&lt;game_key&gt;``&nbsp;hosts<br>
+the&nbsp;``live``&nbsp;channel&nbsp;and&nbsp;one&nbsp;pinned&nbsp;message,&nbsp;edited&nbsp;in&nbsp;place&nbsp;on&nbsp;every<br>
+state&nbsp;change);&nbsp;the&nbsp;/live&nbsp;command&nbsp;and&nbsp;the&nbsp;aoe2&nbsp;menu&nbsp;panel&nbsp;render&nbsp;the<br>
+same&nbsp;dashboard&nbsp;ephemerally.&nbsp;A&nbsp;game&nbsp;with&nbsp;no&nbsp;game&nbsp;service&nbsp;configured<br>
+degrades&nbsp;to&nbsp;its&nbsp;empty&nbsp;dashboard&nbsp;—&nbsp;the&nbsp;machinery&nbsp;is&nbsp;game-agnostic.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
-<a href="asyncio.html">asyncio</a><br>
-</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
 <a href="logging.html">logging</a><br>
 </td><td class="multicolumn"><a href="os.html">os</a><br>
-<a href="time.html">time</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
 </td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
@@ -37,12 +35,16 @@ simple&nbsp;per&nbsp;#147).</span></p>
     
 <tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>(<a href="discord.ui.item.html#Item">discord.ui.item.Item</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.live.html#LiveRefreshButton">LiveRefreshButton</a>
+</dt></dl>
+</dd>
 <dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
 </dt><dd>
 <dl>
 <dt class="heading-text"><a href="kingdoms.discord.live.html#LiveClientLike">LiveClientLike</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.live.html#MessageRegistryServiceLike">MessageRegistryServiceLike</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.live.html#RegisteredMessageLike">RegisteredMessageLike</a>
 </dt></dl>
 </dd>
 </dl>
@@ -54,7 +56,7 @@ simple&nbsp;per&nbsp;#147).</span></p>
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#LiveClientLike">LiveClientLike</a>(*args,&nbsp;**kwargs)<br>
 &nbsp;<br>
-The&nbsp;svc-core&nbsp;live&nbsp;client&nbsp;seam&nbsp;(LiveClient).<br>&nbsp;</span></td></tr>
+The&nbsp;dashboard&nbsp;client&nbsp;seam&nbsp;(LiveClient&nbsp;or&nbsp;the&nbsp;GameDataClient).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.live.html#LiveClientLike">LiveClientLike</a></dd>
@@ -65,6 +67,8 @@ The&nbsp;svc-core&nbsp;live&nbsp;client&nbsp;seam&nbsp;(LiveClient).<br>&nbsp;</
 <hr>
 Methods defined here:<br>
 <dl><dt><a name="LiveClientLike-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt><a name="LiveClientLike-stream_snapshots"><strong>stream_snapshots</strong></a>(self, game_key: 'str') -&gt; 'Any'</dt><dd><span class="code">Yield&nbsp;dashboard&nbsp;snapshots&nbsp;continuously&nbsp;(async&nbsp;iterator).</span></dd></dl>
 
 <dl><dt>async <a name="LiveClientLike-watch"><strong>watch</strong></a>(self, game_key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
@@ -88,7 +92,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'watch'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'stream_snapshots', 'watch'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -108,121 +112,142 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="MessageRegistryServiceLike">class <strong>MessageRegistryServiceLike</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="LiveRefreshButton">class <strong>LiveRefreshButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MessageRegistryServiceLike">MessageRegistryServiceLike</a>(*args,&nbsp;**kwargs)<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LiveRefreshButton">LiveRefreshButton</a>(game_key:&nbsp;'str',&nbsp;label:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;message&nbsp;registry&nbsp;seam&nbsp;(MessageRegistryService).<br>&nbsp;</span></td></tr>
+The&nbsp;ephemeral&nbsp;dashboard's&nbsp;refresh&nbsp;button:&nbsp;re-render&nbsp;on&nbsp;demand.<br>
+&nbsp;<br>
+The&nbsp;live&nbsp;view&nbsp;is&nbsp;ephemeral-only&nbsp;(owner&nbsp;direction):&nbsp;the&nbsp;click<br>
+rebuilds&nbsp;the&nbsp;view&nbsp;with&nbsp;a&nbsp;fresh&nbsp;snapshot&nbsp;and&nbsp;the&nbsp;SDK&nbsp;updates&nbsp;the<br>
+message&nbsp;carrying&nbsp;the&nbsp;button&nbsp;—&nbsp;never&nbsp;a&nbsp;sibling&nbsp;message.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
-<dd><a href="kingdoms.discord.live.html#MessageRegistryServiceLike">MessageRegistryServiceLike</a></dd>
-<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="kingdoms.discord.live.html#LiveRefreshButton">LiveRefreshButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
 <dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="MessageRegistryServiceLike-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+<dl><dt><a name="LiveRefreshButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str', label: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#LiveRefreshButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="MessageRegistryServiceLike-register"><strong>register</strong></a>(self, *, platform: 'str', message_key: 'str', entity_id: 'str', channel_id: 'str', message_id: 'str', guild_id: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;(or&nbsp;replace)&nbsp;a&nbsp;registered&nbsp;message.</span></dd></dl>
-
-<dl><dt>async <a name="MessageRegistryServiceLike-resolve"><strong>resolve</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'RegisteredMessageLike | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;registered&nbsp;message;&nbsp;None&nbsp;when&nbsp;never&nbsp;registered.</span></dd></dl>
+<dl><dt>async <a name="LiveRefreshButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Refresh&nbsp;the&nbsp;message&nbsp;carrying&nbsp;the&nbsp;button&nbsp;—&nbsp;never&nbsp;a&nbsp;sibling.<br>
+&nbsp;<br>
+ACK&nbsp;first&nbsp;(the&nbsp;SDK's&nbsp;3-second&nbsp;rule),&nbsp;then&nbsp;rebuild&nbsp;with&nbsp;a&nbsp;fresh<br>
+snapshot;&nbsp;the&nbsp;SDK&nbsp;updates&nbsp;the&nbsp;clicked&nbsp;message&nbsp;in&nbsp;place.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
-<dl><dt><a name="MessageRegistryServiceLike-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+<dl><dt>async <a name="LiveRefreshButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'LiveRefreshButton'</dt><dd><span class="code">Rebuild&nbsp;from&nbsp;the&nbsp;wire;&nbsp;the&nbsp;label&nbsp;rides&nbsp;the&nbsp;original&nbsp;button.</span></dd></dl>
 
 <hr>
-Data descriptors defined here:<br>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('live:refresh:(?P&lt;game_key&gt;[a-z0-9]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="LiveRefreshButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="LiveRefreshButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="LiveRefreshButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="LiveRefreshButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="LiveRefreshButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="LiveRefreshButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="LiveRefreshButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LiveRefreshButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
 <dl><dt><strong>__dict__</strong></dt>
 <dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
 </dl>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
-<hr>
-Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
-
-<dl><dt><strong>__annotations__</strong> = {}</dl>
-
-<dl><dt><strong>__parameters__</strong> = ()</dl>
-
-<dl><dt><strong>__protocol_attrs__</strong> = {'register', 'resolve'}</dl>
-
-<hr>
-Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
-<dl><dt><a name="MessageRegistryServiceLike-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
-
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
 <hr>
 Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
-<dl><dt><a name="MessageRegistryServiceLike-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
-&nbsp;<br>
-At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
-method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
-when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
-&nbsp;<br>
-However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
-classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
-
-</td></tr></table> <p>
-<table class="section">
-<tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="RegisteredMessageLike">class <strong>RegisteredMessageLike</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
-    
-<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#RegisteredMessageLike">RegisteredMessageLike</a>(*args,&nbsp;**kwargs)<br>
-&nbsp;<br>
-A&nbsp;resolved&nbsp;registered&nbsp;message&nbsp;(RegisteredMessageModel).<br>&nbsp;</span></td></tr>
-<tr><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
-<dd><a href="kingdoms.discord.live.html#RegisteredMessageLike">RegisteredMessageLike</a></dd>
-<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
-<dd><a href="typing.html#Generic">typing.Generic</a></dd>
-<dd><a href="builtins.html#object">builtins.object</a></dd>
-</dl>
-<hr>
-Methods defined here:<br>
-<dl><dt><a name="RegisteredMessageLike-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
-
-<hr>
-Class methods defined here:<br>
-<dl><dt><a name="RegisteredMessageLike-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
-
-<hr>
-Readonly properties defined here:<br>
-<dl><dt><strong>channel_id</strong></dt>
-<dd><span class="code">The&nbsp;channel&nbsp;the&nbsp;message&nbsp;lives&nbsp;in.</span></dd>
-</dl>
-<dl><dt><strong>message_id</strong></dt>
-<dd><span class="code">The&nbsp;platform&nbsp;message&nbsp;id.</span></dd>
-</dl>
-<hr>
-Data descriptors defined here:<br>
-<dl><dt><strong>__dict__</strong></dt>
-<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
-</dl>
-<dl><dt><strong>__weakref__</strong></dt>
-<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
-</dl>
-<hr>
-Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
-
-<dl><dt><strong>__annotations__</strong> = {}</dl>
-
-<dl><dt><strong>__parameters__</strong> = ()</dl>
-
-<dl><dt><strong>__protocol_attrs__</strong> = {'channel_id', 'message_id'}</dl>
-
-<hr>
-Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
-<dl><dt><a name="RegisteredMessageLike-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
-
-<hr>
-Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
-<dl><dt><a name="RegisteredMessageLike-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+<dl><dt><a name="LiveRefreshButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
 &nbsp;<br>
 At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
 method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
@@ -237,34 +262,24 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-collect_profile_stats"><strong>collect_profile_stats</strong></a>(profile_ids: 'list[str]', game_key: 'str' = 'aoe2') -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Resolve&nbsp;per-profile&nbsp;enrichment:&nbsp;name,&nbsp;provider&nbsp;stats,&nbsp;last&nbsp;match.<br>
+<td class="singlecolumn"><dl><dt><a name="-build_dashboard_view"><strong>build_dashboard_view</strong></a>(snapshot: 'dict[str, Any]', body: 'str', bot: 'discord.Client | None' = None, locale: 'str' = 'en', game_key: 'str' = 'aoe2', page_index: 'int' = 1, page_count: 'int' = 1) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;THE&nbsp;ephemeral&nbsp;dashboard&nbsp;view&nbsp;—&nbsp;the&nbsp;players-panel&nbsp;look.<br>
+&nbsp;<br>
+A&nbsp;components-v2&nbsp;Container&nbsp;(accent&nbsp;colour,&nbsp;like&nbsp;an&nbsp;embed)&nbsp;holding<br>
+the&nbsp;body&nbsp;and&nbsp;a&nbsp;RELATIVE&nbsp;TIMESTAMP&nbsp;(Discord&nbsp;renders&nbsp;&lt;t:...:R&gt;&nbsp;as<br>
+'2&nbsp;minutes&nbsp;ago'&nbsp;—&nbsp;the&nbsp;reader&nbsp;knows&nbsp;at&nbsp;a&nbsp;glance&nbsp;how&nbsp;fresh&nbsp;the<br>
+snapshot&nbsp;is);&nbsp;the&nbsp;refresh&nbsp;button&nbsp;under&nbsp;it;&nbsp;the&nbsp;view&nbsp;id&nbsp;as&nbsp;the<br>
+last&nbsp;line.&nbsp;Ephemeral-only&nbsp;(owner&nbsp;direction):&nbsp;never&nbsp;pinned,&nbsp;never<br>
+a&nbsp;persistent&nbsp;message.</span></dd></dl>
+ <dl><dt>async <a name="-collect_profile_stats"><strong>collect_profile_stats</strong></a>(profile_ids: 'list[str]', game_key: 'str' = 'aoe2') -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Resolve&nbsp;per-profile&nbsp;enrichment:&nbsp;name,&nbsp;provider&nbsp;stats,&nbsp;last&nbsp;match.<br>
 &nbsp;<br>
 Names&nbsp;come&nbsp;from&nbsp;the&nbsp;profile&nbsp;bindings;&nbsp;ratings/W-L&nbsp;come&nbsp;from&nbsp;the<br>
 provider&nbsp;stats&nbsp;cache&nbsp;(Redis&nbsp;TTL&nbsp;+&nbsp;Mongo,&nbsp;kingdoms.core.profile_stats);<br>
 the&nbsp;last-match&nbsp;time&nbsp;is&nbsp;the&nbsp;latest&nbsp;completed&nbsp;match&nbsp;the&nbsp;profile&nbsp;played.<br>
 All&nbsp;layers&nbsp;degrade&nbsp;—&nbsp;a&nbsp;missing&nbsp;value&nbsp;renders&nbsp;as&nbsp;absent,&nbsp;never&nbsp;errors.</span></dd></dl>
- <dl><dt>async <a name="-ensure_live_dashboard"><strong>ensure_live_dashboard</strong></a>(bot: 'discord.Client', guild_id: 'str', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;dashboard&nbsp;channel&nbsp;holds&nbsp;one&nbsp;up-to-date&nbsp;dashboard&nbsp;message.<br>
-&nbsp;<br>
-The&nbsp;message&nbsp;is&nbsp;addressed&nbsp;by&nbsp;its&nbsp;logical&nbsp;key&nbsp;(``live-dashboard``)<br>
-through&nbsp;the&nbsp;message&nbsp;registry&nbsp;and&nbsp;edited&nbsp;in&nbsp;place&nbsp;on&nbsp;every&nbsp;refresh&nbsp;—<br>
-never&nbsp;re-sent,&nbsp;so&nbsp;the&nbsp;channel&nbsp;never&nbsp;spams.&nbsp;When&nbsp;the&nbsp;registered<br>
-message&nbsp;is&nbsp;gone&nbsp;(deleted,&nbsp;channel&nbsp;wiped),&nbsp;a&nbsp;new&nbsp;one&nbsp;is&nbsp;created&nbsp;and<br>
-registered.&nbsp;Best-effort:&nbsp;a&nbsp;failure&nbsp;never&nbsp;blocks&nbsp;the&nbsp;bot.<br>
-Returns&nbsp;True&nbsp;when&nbsp;a&nbsp;message&nbsp;was&nbsp;created,&nbsp;False&nbsp;when&nbsp;an&nbsp;existing<br>
-one&nbsp;was&nbsp;refreshed&nbsp;(or&nbsp;the&nbsp;step&nbsp;degraded&nbsp;quietly).</span></dd></dl>
- <dl><dt>async <a name="-ensure_live_dashboard_channel"><strong>ensure_live_dashboard_channel</strong></a>(guild: 'discord.Guild') -&gt; 'discord.TextChannel'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;guild's&nbsp;live&nbsp;channel&nbsp;through&nbsp;the&nbsp;tree's&nbsp;stored&nbsp;id.<br>
-&nbsp;<br>
-The&nbsp;channel&nbsp;lives&nbsp;in&nbsp;the&nbsp;``games/aoe2``&nbsp;scope&nbsp;folder&nbsp;(key&nbsp;``live``),<br>
-provisioned&nbsp;and&nbsp;persisted&nbsp;by&nbsp;the&nbsp;Panels&nbsp;SDK;&nbsp;the&nbsp;name&nbsp;never&nbsp;drives<br>
-the&nbsp;resolution.&nbsp;Raises&nbsp;LookupError&nbsp;when&nbsp;the&nbsp;tree&nbsp;has&nbsp;not&nbsp;provided<br>
-it&nbsp;yet&nbsp;(the&nbsp;caller&nbsp;degrades&nbsp;quietly).</span></dd></dl>
+ <dl><dt><a name="-game_label"><strong>game_label</strong></a>(game_key: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;one&nbsp;game&nbsp;key's&nbsp;display&nbsp;label&nbsp;(the&nbsp;game's&nbsp;own&nbsp;name).</span></dd></dl>
  <dl><dt><a name="-group_by_account"><strong>group_by_account</strong></a>(players: 'list[dict[str, Any]]', stats: 'dict[str, dict[str, Any]] | None' = None) -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Fold&nbsp;the&nbsp;flat&nbsp;per-profile&nbsp;list&nbsp;into&nbsp;per-Discord-account&nbsp;records.</span></dd></dl>
- <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;nothing:&nbsp;every&nbsp;live&nbsp;surface&nbsp;is&nbsp;a&nbsp;pinned&nbsp;dashboard.<br>
-&nbsp;<br>
-The&nbsp;live&nbsp;dashboard&nbsp;lives&nbsp;in&nbsp;its&nbsp;autopin&nbsp;channel&nbsp;(games/aoe2/live)&nbsp;and<br>
-the&nbsp;profile&nbsp;link/unlink&nbsp;lives&nbsp;in&nbsp;the&nbsp;home&nbsp;profile&nbsp;menu&nbsp;—&nbsp;/live,<br>
-/game-link&nbsp;and&nbsp;/game-unlink&nbsp;were&nbsp;removed&nbsp;2026-10-16&nbsp;(/home,&nbsp;/admin<br>
-and&nbsp;/status&nbsp;are&nbsp;the&nbsp;platform's&nbsp;only&nbsp;commands).</span></dd></dl>
+ <dl><dt><a name="-live_page_key"><strong>live_page_key</strong></a>(game_key: 'str', page: 'int') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;logical&nbsp;message&nbsp;key&nbsp;of&nbsp;one&nbsp;dashboard&nbsp;page&nbsp;(2..N).</span></dd></dl>
+ <dl><dt><a name="-live_view_key"><strong>live_view_key</strong></a>(game_key: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;logical&nbsp;message&nbsp;key&nbsp;of&nbsp;a&nbsp;game's&nbsp;pinned&nbsp;dashboard&nbsp;message.</span></dd></dl>
  <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None, now_ms: 'int | None' = None, bot: 'Any' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
 &nbsp;<br>
 One&nbsp;line&nbsp;per&nbsp;Discord&nbsp;user:&nbsp;their&nbsp;linked&nbsp;profiles&nbsp;are&nbsp;fused&nbsp;into&nbsp;a<br>
@@ -272,28 +287,19 @@ single&nbsp;record&nbsp;and&nbsp;a&nbsp;user&nbsp;is&nbsp;active&nbsp;when&nbsp;
 Shown:&nbsp;every&nbsp;active&nbsp;user,&nbsp;plus&nbsp;the&nbsp;users&nbsp;offline&nbsp;for&nbsp;less&nbsp;than&nbsp;an<br>
 hour&nbsp;(with&nbsp;their&nbsp;last&nbsp;completed&nbsp;match&nbsp;timestamp);&nbsp;users&nbsp;offline&nbsp;for<br>
 longer&nbsp;are&nbsp;omitted.</span></dd></dl>
- <dl><dt>async <a name="-start_live_dashboard_refresh"><strong>start_live_dashboard_refresh</strong></a>(bot: 'discord.Client', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;guild's&nbsp;dashboard&nbsp;on&nbsp;change:&nbsp;a&nbsp;stream&nbsp;watcher&nbsp;plus&nbsp;a&nbsp;self-healing&nbsp;interval.<br>
+ <dl><dt>async <a name="-scope_snapshot_to_guild"><strong>scope_snapshot_to_guild</strong></a>(snapshot: 'dict[str, Any]', guild: 'Any') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Keep&nbsp;only&nbsp;the&nbsp;players&nbsp;whose&nbsp;platform&nbsp;user&nbsp;is&nbsp;a&nbsp;member&nbsp;of&nbsp;the&nbsp;guild.<br>
 &nbsp;<br>
-The&nbsp;stream&nbsp;consumes&nbsp;WatchDashboard&nbsp;frames&nbsp;—&nbsp;the&nbsp;server&nbsp;emits&nbsp;one&nbsp;per<br>
-player-state&nbsp;change&nbsp;—&nbsp;and&nbsp;every&nbsp;frame&nbsp;lands&nbsp;on&nbsp;the&nbsp;dashboard&nbsp;within<br>
-seconds.&nbsp;The&nbsp;interval&nbsp;pass&nbsp;remains&nbsp;as&nbsp;the&nbsp;safety&nbsp;net&nbsp;(recreating&nbsp;a<br>
-deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd></dl>
+The&nbsp;membership&nbsp;rides&nbsp;the&nbsp;member&nbsp;cache&nbsp;(one&nbsp;chunked&nbsp;fetch&nbsp;per&nbsp;guild<br>
+per&nbsp;hour,&nbsp;kept&nbsp;fresh&nbsp;by&nbsp;the&nbsp;member&nbsp;events)&nbsp;—&nbsp;the&nbsp;dashboard&nbsp;render<br>
+stays&nbsp;fast;&nbsp;a&nbsp;missing&nbsp;membership&nbsp;never&nbsp;crashes&nbsp;it,&nbsp;the&nbsp;player&nbsp;is<br>
+simply&nbsp;out&nbsp;of&nbsp;this&nbsp;guild's&nbsp;dashboard.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DASHBOARD_MIN_EDIT_INTERVAL_S</strong> = 60<br>
-<strong>DASHBOARD_REFRESH_INTERVAL_S</strong> = 15<br>
-<strong>GAME_KEY</strong> = 'aoe2'<br>
-<strong>LIVE_CHANNEL_NAME</strong> = '📡-live-dashboard'<br>
-<strong>LIVE_LEGACY_CHANNEL_NAME</strong> = 'live-dashboard'<br>
-<strong>LIVE_MESSAGE_KEY</strong> = 'view:aoe2:live'<br>
-<strong>LIVE_STATE_SCOPE</strong> = 'live-dashboard'<br>
-<strong>MAX_EMBED_DESCRIPTION</strong> = 4096<br>
+<td class="singlecolumn"><strong>DEFAULT_GAME_KEY</strong> = 'aoe2'<br>
 <strong>OFFLINE_GRACE_MS</strong> = 3600000<br>
-<strong>PLATFORM</strong> = 'discord'<br>
-<strong>__annotations__</strong> = {'_LAST_PUSH': 'dict[str, tuple[float, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.live (WARNING)&gt;</td></tr></table>
 </body></html>

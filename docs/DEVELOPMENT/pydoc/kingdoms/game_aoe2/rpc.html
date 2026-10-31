@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.game_aoe2.rpc</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.game_aoe2.html" class="white">game_aoe2</a>.rpc</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/rpc.py">SOURCE_ROOT/game_aoe2/rpc.py</a></td></tr></table>
+    <p><span class="code">game-aoe2&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;servicer.<br>
+&nbsp;<br>
+Translates&nbsp;between&nbsp;the&nbsp;GameData&nbsp;contract&nbsp;and&nbsp;the&nbsp;aggregator's<br>
+snapshots/transitions.&nbsp;The&nbsp;match&nbsp;summaries&nbsp;ride&nbsp;the&nbsp;wire&nbsp;as&nbsp;the<br>
+``GameMatchSummary``&nbsp;message&nbsp;(map,&nbsp;format,&nbsp;slots,&nbsp;host,&nbsp;players&nbsp;with<br>
+civs,&nbsp;aoe2lobby&nbsp;join/spectate&nbsp;URLs,&nbsp;aoe2de&nbsp;deep&nbsp;link).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2.html">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc</a><br>
+</td><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.GameDataServicer</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.game_aoe2.rpc.html#GameDataServicer">GameDataServicer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataServicer">class <strong>GameDataServicer</strong></a>(<a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.GameDataServicer</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataServicer">GameDataServicer</a>(aggregator:&nbsp;'Any',&nbsp;poll_interval_s:&nbsp;'float'&nbsp;=&nbsp;2.0,&nbsp;enrollments:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;prober:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Serve&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;contract&nbsp;from&nbsp;the&nbsp;aggregator.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.game_aoe2.rpc.html#GameDataServicer">GameDataServicer</a></dd>
+<dd><a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.GameDataServicer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt>async <a name="GameDataServicer-GetCoverage"><strong>GetCoverage</strong></a>(self, request: 'gamedata_pb2.CoverageRequest', context: 'grpc.aio.ServicerContext') -&gt; 'gamedata_pb2.GameCoverage'</dt><dd><span class="code">Serve&nbsp;the&nbsp;games&nbsp;this&nbsp;process&nbsp;covers&nbsp;and&nbsp;its&nbsp;health.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataServicer-GetProviderTests"><strong>GetProviderTests</strong></a>(self, request: 'gamedata_pb2.ProviderTestsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'gamedata_pb2.ProviderTests'</dt><dd><span class="code">Serve&nbsp;the&nbsp;providers'&nbsp;last&nbsp;probe&nbsp;results&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataServicer-UpdateEnrollments"><strong>UpdateEnrollments</strong></a>(self, request: 'gamedata_pb2.UpdateEnrollmentsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'gamedata_pb2.UpdateEnrollmentsResponse'</dt><dd><span class="code">Forward&nbsp;the&nbsp;platform's&nbsp;enrollments&nbsp;to&nbsp;the&nbsp;realtime&nbsp;provider.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataServicer-WatchDashboard"><strong>WatchDashboard</strong></a>(self, request: 'gamedata_pb2.WatchGameDataRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[gamedata_pb2.GameDashboard]'</dt><dd><span class="code">Stream&nbsp;snapshots:&nbsp;one&nbsp;immediately,&nbsp;then&nbsp;one&nbsp;per&nbsp;effective&nbsp;change.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataServicer-WatchPlayerEvents"><strong>WatchPlayerEvents</strong></a>(self, request: 'gamedata_pb2.WatchGameDataRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[gamedata_pb2.GamePlayerEvent]'</dt><dd><span class="code">Stream&nbsp;normalized&nbsp;transitions&nbsp;as&nbsp;the&nbsp;aggregator&nbsp;queues&nbsp;them.</span></dd></dl>
+
+<dl><dt><a name="GameDataServicer-__init__"><strong>__init__</strong></a>(self, aggregator: 'Any', poll_interval_s: 'float' = 2.0, enrollments: 'Any' = None, prober: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;aggregator,&nbsp;the&nbsp;refresh&nbsp;interval,&nbsp;the&nbsp;enrollments&nbsp;pusher&nbsp;and&nbsp;the&nbsp;prober.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.html#GameDataServicer">kingdoms.rpc_generated.kingdoms.v1.gamedata_pb2_grpc.GameDataServicer</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_gamedata_servicer"><strong>add_gamedata_servicer</strong></a>(server: 'grpc.aio.Server', servicer: 'GameDataServicer') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;GameData&nbsp;servicer&nbsp;onto&nbsp;the&nbsp;server.</span></dd></dl>
+ <dl><dt><a name="-dashboard_from_wire"><strong>dashboard_from_wire</strong></a>(wire: 'gamedata_pb2.GameDashboard') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;dashboard&nbsp;back&nbsp;into&nbsp;the&nbsp;plain&nbsp;dict&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-dashboard_to_wire"><strong>dashboard_to_wire</strong></a>(snapshot: 'dict[str, Any]') -&gt; 'gamedata_pb2.GameDashboard'</dt><dd><span class="code">Translate&nbsp;one&nbsp;aggregator&nbsp;snapshot&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-event_from_wire"><strong>event_from_wire</strong></a>(wire: 'gamedata_pb2.GamePlayerEvent') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;player&nbsp;event&nbsp;back&nbsp;into&nbsp;the&nbsp;plain&nbsp;dict&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-event_to_wire"><strong>event_to_wire</strong></a>(transition: 'dict[str, Any]', game_key: 'str' = 'aoe2') -&gt; 'gamedata_pb2.GamePlayerEvent'</dt><dd><span class="code">Translate&nbsp;one&nbsp;normalized&nbsp;transition&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-player_state_to_wire"><strong>player_state_to_wire</strong></a>(state: 'dict[str, Any]') -&gt; 'gamedata_pb2.GamePlayerState'</dt><dd><span class="code">Translate&nbsp;one&nbsp;player&nbsp;state&nbsp;dict&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-summary_from_wire"><strong>summary_from_wire</strong></a>(wire: 'gamedata_pb2.GameMatchSummary') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match&nbsp;summary&nbsp;back&nbsp;into&nbsp;the&nbsp;plain&nbsp;dict&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-summary_to_wire"><strong>summary_to_wire</strong></a>(summary: 'dict[str, Any]') -&gt; 'gamedata_pb2.GameMatchSummary'</dt><dd><span class="code">Translate&nbsp;one&nbsp;match&nbsp;summary&nbsp;dict&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.<br>
+&nbsp;<br>
+The&nbsp;summary's&nbsp;``players``&nbsp;field&nbsp;rides&nbsp;as&nbsp;the&nbsp;compact<br>
+``Name(Civ),Name(Civ)``&nbsp;string&nbsp;(the&nbsp;adapter's&nbsp;metadata&nbsp;shape);&nbsp;it&nbsp;is<br>
+parsed&nbsp;into&nbsp;the&nbsp;structured&nbsp;slots&nbsp;here&nbsp;so&nbsp;the&nbsp;wire&nbsp;stays&nbsp;typed,&nbsp;and<br>
+rejoined&nbsp;on&nbsp;the&nbsp;way&nbsp;back&nbsp;(round-trip&nbsp;stable).</span></dd></dl>
+</td></tr></table>
+</body></html>

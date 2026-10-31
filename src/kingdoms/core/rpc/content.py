@@ -11,6 +11,7 @@ process — the consumers never change.
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import grpc
 
@@ -74,6 +75,7 @@ class ContentServicer(content_pb2_grpc.ContentServicer):
         list_factions: Callable[[], Awaitable[list[str]]],
         faction_content: Callable[[str, str], Awaitable[dict[str, str | bool] | None]],
         map_content: Callable[[str, str], Awaitable[dict[str, str | bool] | None]],
+        map_seed: Callable[[str, str], Awaitable[dict[str, Any] | None]] | None = None,
     ) -> None:
         self._provider_key = provider_key
         self._game_key = game_key
@@ -81,6 +83,7 @@ class ContentServicer(content_pb2_grpc.ContentServicer):
         self._list_factions = list_factions
         self._faction_content = faction_content
         self._map_content = map_content
+        self._map_seed = map_seed
 
     async def GetContentCapabilities(
         self,
@@ -89,6 +92,32 @@ class ContentServicer(content_pb2_grpc.ContentServicer):
     ) -> content_pb2.ContentCapabilities:
         """Serve the provider identity and supported locale surface."""
         return content_capabilities_to_wire(self._provider_key, self._game_key, self._locales)
+
+    async def GetMapSeed(
+        self,
+        request: content_pb2.MapSeedRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> content_pb2.MapSeedReply:
+        """Serve one map's full descriptor (the import flow)."""
+        if self._map_seed is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "map seed not available")
+        seed = await self._map_seed(request.game_key, request.map_key)
+        if seed is None:
+            return content_pb2.MapSeedReply(found=False)
+        licence_ok = bool(seed.get("licence_ok", True))
+        return content_pb2.MapSeedReply(
+            found=True,
+            name=str(seed.get("name", "")),
+            description=str(seed.get("description", "")),
+            resource_url=str(seed.get("resource_url", "")),
+            image_url=str(seed.get("image_url", "")),
+            icon_url=str(seed.get("icon_url", "")),
+            terrain=str(seed.get("terrain", "")),
+            size=str(seed.get("size", "")),
+            map_type=str(seed.get("map_type", "")),
+            licence_ok=licence_ok,
+            licence_note=str(seed.get("licence_note", "")),
+        )
 
     async def ListFactions(
         self,

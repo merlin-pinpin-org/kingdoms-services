@@ -16,11 +16,16 @@ def main() -> None:
     )
     import redis.asyncio as redis
 
-    from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats
+    from kingdoms.core.models.game import (
+        GameMap,
+        MatchDetails,
+        MatchResult,
+        PlayerStats,
+    )
     from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
     from kingdoms.core_process.ext_server import serve_game_provider
     from kingdoms.ext_librematch import DECLARED_CAPABILITIES, PROVIDER_ID
-    from kingdoms.ext_librematch.adapter import LibrematchAdapter
+    from kingdoms.ext_librematch.adapter import DEFAULT_BASE_URL, LibrematchAdapter
 
     # The community leaderboard endpoint is PUBLIC — no API key gates
     # player_stats (the 2026-10-16 lesson: the key gate rejected every
@@ -37,7 +42,7 @@ def main() -> None:
         )
 
     adapter = LibrematchAdapter(
-        base_url=os.environ.get("LIBREMATCH_API_URL", "https://aoe-api.worldsedgelink.com"),
+        base_url=os.environ.get("LIBREMATCH_API_URL", "") or DEFAULT_BASE_URL,
         rate_limiter=rate_limiter,
     )
 
@@ -48,6 +53,12 @@ def main() -> None:
     async def list_maps() -> list[GameMap]:
         """Fetch the map catalog through the live adapter."""
         return await adapter.list_maps()
+
+    async def match_result(
+        profile_ids: list[str], started_after: int
+    ) -> MatchResult | None:
+        """Serve a finished match's outcome (WorldsEdge match history)."""
+        return await adapter.recent_match_result(profile_ids, started_after)
 
     async def player_stats(profile_id: str) -> PlayerStats | None:
         """Fetch a profile's leaderboard blocks (None: degraded transport)."""
@@ -60,6 +71,7 @@ def main() -> None:
             match_details=match_details,
             list_maps=list_maps,
             player_stats=player_stats,
+            match_result=match_result,
         )
     )
 

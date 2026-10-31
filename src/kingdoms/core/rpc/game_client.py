@@ -13,6 +13,7 @@ import grpc
 from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
+    MatchResult,
     PlayerStats,
     ProviderCapabilities,
 )
@@ -128,6 +129,73 @@ class GameProviderClient:
                 raise
         stats = player_stats_from_wire(reply)
         return PlayerStats(profile_id=profile_id, blocks=stats.blocks)
+
+    async def get_match_result(
+        self, profile_ids: list[str], started_after: int
+    ) -> MatchResult | None:
+        """Fetch a finished match's outcome, degrading to None.
+
+        The correlation rides the profile ids and the time window;
+        None while the upstream has not recorded the match yet — the
+        caller retries with a backoff.
+        """
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                reply = await call_with_retry(
+                    stub.GetMatchResult,
+                    game_pb2.GetMatchResultRequest(
+                        profile_ids=profile_ids, started_after=started_after
+                    ),
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in (
+                    grpc.StatusCode.UNIMPLEMENTED,
+                    grpc.StatusCode.NOT_FOUND,
+                ):
+                    return None
+                raise
+        if not reply.found:
+            return None
+        return MatchResult(
+            match_ref="",
+            winner_profile_id=reply.winner_profile_id,
+            loser_profile_ids=tuple(reply.loser_profile_ids),
+            map_name=reply.map_name,
+            duration_ms=reply.duration_ms,
+            ended_at=reply.ended_at,
+            factions=dict(reply.factions),
+            found=True,
+            ratings={
+                pid: (reply.old_rating.get(pid, 0), reply.new_rating.get(pid, 0))
+                for pid in set(reply.old_rating) | set(reply.new_rating)
+            },
+            teams={pid: int(reply.teams.get(pid, 0)) for pid in reply.teams},
+        )
+
+    async def update_subscriptions(self, profile_ids: list[str]) -> bool:
+        """Push the subscribed profile ids, degrading to False.
+
+        The provider reconciles its upstream subscriptions in place;
+        False means the push was not applied (provider offline or
+        without the capability) and the caller should retry later —
+        the provider re-syncs the full list on its next reconnect.
+        """
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                reply = await call_with_retry(
+                    stub.UpdateSubscriptions,
+                    game_pb2.UpdateSubscriptionsRequest(profile_ids=profile_ids),
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in (
+                    grpc.StatusCode.UNIMPLEMENTED,
+                    grpc.StatusCode.UNAVAILABLE,
+                ):
+                    return False
+                raise
+        return bool(reply.applied)
 
     def stream_match_events(self, since: int):
         """Stream live match events from the provider, degrading to silence.

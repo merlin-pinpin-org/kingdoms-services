@@ -99,12 +99,20 @@ async def import_identity_links(
                 rebounds += 1
         if existing is not None and existing.get("bound_at") == bound_at:
             continue
+        # MERGE, never replace (merlin 2026-10-29): the seed must not
+        # wipe the provider-resolved profile_name/aliases the live seam
+        # stored at bind time — the roster links render the stored name.
+        existing_profile = (existing or {}).get("profile") or {}
+        profile = {**existing_profile}
+        if display_name:
+            profile["display_name"] = display_name
+        profile.setdefault("profile_id", profile_id)
         binding = {
             "_id": entry_id,
             "user_id": discord_id,
             "game_key": game_key,
             "profile_id": profile_id,
-            "profile": {"profile_id": profile_id, "display_name": display_name},
+            "profile": profile,
             "bound_at": bound_at,
             "imported": True,
         }

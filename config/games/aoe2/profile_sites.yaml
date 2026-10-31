@@ -1,0 +1,17 @@
+default_site: aoe2insights
+sites:
+  aoe2insights:
+    label: AoE2 Insights
+    id_kind: relic_id
+    url_template: https://www.aoe2insights.com/user/relic/{relic_id}/
+    parse: ^https?://(?:www\.)?aoe2insights\.com/user/(?:relic/)?(?P<id>\d{1,15})
+  aoe2gg:
+    label: AoE2.GG
+    id_kind: relic_id
+    url_template: https://aoe2.gg/profile/{relic_id}
+    parse: ^https?://(?:www\.)?aoe2\.gg/profile/(?P<id>\d{1,15})
+  ageofempires:
+    label: ageofempires.com (official stats)
+    id_kind: relic_id
+    url_template: https://www.ageofempires.com/stats/?profileId={relic_id}&game=age2
+    parse: ^https?://(?:www\.)?ageofempires\.com/stats/.*[?&]profileId=(?P<id>\d{1,15})

@@ -56,6 +56,8 @@ so&nbsp;switching&nbsp;to&nbsp;another&nbsp;API&nbsp;source&nbsp;never&nbsp;touc
 
 <dl><dt><a name="Content-GetMapContent"><strong>GetMapContent</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
+<dl><dt><a name="Content-GetMapSeed"><strong>GetMapSeed</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
 <dl><dt><a name="Content-ListFactions"><strong>ListFactions</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
 <hr>
@@ -86,6 +88,10 @@ so&nbsp;switching&nbsp;to&nbsp;another&nbsp;API&nbsp;source&nbsp;never&nbsp;touc
 <dl><dt><a name="ContentServicer-GetFactionContent"><strong>GetFactionContent</strong></a>(self, request, context)</dt><dd><span class="code">One&nbsp;faction's&nbsp;localized&nbsp;content&nbsp;(name&nbsp;+&nbsp;game-provided&nbsp;help&nbsp;summary).</span></dd></dl>
 
 <dl><dt><a name="ContentServicer-GetMapContent"><strong>GetMapContent</strong></a>(self, request, context)</dt><dd><span class="code">One&nbsp;map's&nbsp;localized&nbsp;content&nbsp;(name-only&nbsp;today).</span></dd></dl>
+
+<dl><dt><a name="ContentServicer-GetMapSeed"><strong>GetMapSeed</strong></a>(self, request, context)</dt><dd><span class="code">One&nbsp;map's&nbsp;full&nbsp;descriptor&nbsp;(the&nbsp;import&nbsp;flow):&nbsp;description,&nbsp;image,<br>
+licence-checked&nbsp;fields&nbsp;—&nbsp;the&nbsp;Liquipedia&nbsp;family&nbsp;of&nbsp;content&nbsp;sources.<br>
+The&nbsp;provider&nbsp;owns&nbsp;the&nbsp;raw&nbsp;data&nbsp;and&nbsp;its&nbsp;terms-of-use&nbsp;compliance.</span></dd></dl>
 
 <dl><dt><a name="ContentServicer-ListFactions"><strong>ListFactions</strong></a>(self, request, context)</dt><dd><span class="code">Every&nbsp;faction&nbsp;key&nbsp;the&nbsp;source&nbsp;knows&nbsp;(catalog&nbsp;reconciliation).</span></dd></dl>
 

@@ -14,6 +14,8 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN:-}
       - BOT_ADMINS=${BOT_ADMINS:-}
       - CORE_URI=kingdoms-core:50051
+      - GAME_AOE2_URI=${GAME_AOE2_URI:-kingdoms-game-aoe2:50071}
+      - EXT_LIQUIPEDIA_URI=${EXT_LIQUIPEDIA_URI:-kingdoms-ext-liquipedia:50064}
     depends_on:
       - kingdoms-mongo
       - kingdoms-redis
@@ -27,6 +29,8 @@ services:
       - KINGDOMS_PROCESS=core
       - MONGO_URI=mongodb://kingdoms-mongo:27017
       - REDIS_URI=redis://kingdoms-redis:6379
+      - GAME_AOE2_URI=${GAME_AOE2_URI:-kingdoms-game-aoe2:50071}
+      - EXT_LIQUIPEDIA_URI=${EXT_LIQUIPEDIA_URI:-kingdoms-ext-liquipedia:50064}
       - CORE_GRPC_PORT=50051
     expose:
       - "50051"
@@ -52,10 +56,34 @@ services:
     profiles: ["all", "providers", "aoe2lobby"]
     environment:
       - KINGDOMS_PROCESS=ext-aoe2lobby
-      - AOE2LOBBY_WS_URL=${AOE2LOBBY_WS_URL:-wss://aoe2lobby.com/ws}
+      - AOE2LOBBY_WS_URL=${AOE2LOBBY_WS_URL:-wss://data.aoe2lobby.com/ws/}
       - EXT_GRPC_PORT=50062
     expose:
       - "50062"
+  kingdoms-ext-liquipedia:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["all", "providers", "liquipedia"]
+    environment:
+      - KINGDOMS_PROCESS=ext-liquipedia
+      - MONGO_URI=${MONGO_URI:-mongodb://kingdoms-mongo:27017}
+      - LIQUIPEDIA_CONTACT=${LIQUIPEDIA_CONTACT:-}
+      - EXT_GRPC_PORT=50064
+    expose:
+      - "50064"
+  kingdoms-game-aoe2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["all", "providers", "aoe2lobby"]
+    environment:
+      - KINGDOMS_PROCESS=game-aoe2
+      - EXT_AOE2LOBBY_URI=${EXT_AOE2LOBBY_URI:-kingdoms-ext-aoe2lobby:50062}
+      - EXT_LIBREMATCH_URI=${EXT_LIBREMATCH_URI:-kingdoms-ext-librematch:50061}
+      - GAME_GRPC_PORT=50071
+    expose:
+      - "50071"
   kingdoms-mongo:
     image: mongo:7.0
     profiles: ["all", "bot", "core"]

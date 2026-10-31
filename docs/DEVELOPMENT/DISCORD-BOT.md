@@ -83,6 +83,27 @@ Un panel épinglé par salon d'admin. Règles projet :
   demandent la guilde via `GuildContextPicker` — helper unique
   `require_guild_context`, jamais de duplication par vue.
 
+### Fil d'activité AoE2 (`live_activity.py`) — les cartes de match
+
+Chaque match impliquant un joueur lié devient UNE carte dans le
+channel **logs** de chaque guild concernée (le joueur y est membre),
+mise à jour en place tant que le match vit — le channel lit comme
+l'historique AoE2 de la guild, un bloc par match dans l'ordre
+d'arrivée :
+
+- **lobby** : `🟡 Partie #N — en lobby` + mode/map/slots, le roster
+  (nom (civ) — équipe), le bouton **🚪 Rejoindre** ;
+- **partie** : `🟢 Partie #N — en partie` + les boutons **👀 Regarder**
+  et **⬇️ Télécharger** (deep link aoe2de) ;
+- **terminé** : `⚪ Partie #N — terminé` + le contexte conservé, la
+  durée, le bouton **📊 Résultats**.
+
+La carte vit par (guild, match_ref) : éditée à chaque transition,
+jamais renvoyée ; le dernier summary connu sert l'état final (l'event
+offline ne porte pas de match). La source : le flux `WatchPlayerEvents`
+du service gamedata ; le transport : le channel logs résolu par le
+logs service ; la boucle est résiliente (stream cassé → reconnexion).
+
 ### Menus d'admin
 
 **Panel épinglé** (`🛡️ Bot admin — cross-guild` en DM, panel par
@@ -156,9 +177,33 @@ canonique renvoyé par la validation.
 
 **Référence libre:match (endpoints publics, sans auth)** :
 https://librematch.github.io/wiki/rlink/community/leaderboard/index.html —
-`getAvailableLeaderboards`, `getLeaderBoard2`, `getPersonalStat`,
-`getAvatarStatForProfile`, `getMatchHistory`, `getRecentMatchHistory`,
-`getReplayFiles` (base : `aoe-api.worldsedgelink.com/community/leaderboard/`).
+(base : `aoe-api.worldsedgelink.com/community/leaderboard/`).
+
+**The libre:match endpoint map (what serves what, where, when)**:
+
+| Endpoint | Data | Current / planned use |
+|---|---|---|
+| `GetAvailableLeaderboards` | leaderboard mappings (id→name), matchTypes (id→1V1/2V2...), races (id→civ), regions | **Not served** — the aoe2 admin sync should load it to calibrate the mappings; `matchTypes` translate a match's `matchtype_id`; `races` translate the `civilization_id`s |
+| `getLeaderBoard2` | rankings (ranks, elo) | **Not served** — a future guild leaderboard (top elo of the linked members) |
+| `getPersonalStat` (`profile_ids` OR **`profile_names`** `["/steam/<id>"]`) | identity (alias, country, clan, XP/level) + per-leaderboard stats (W/L, streak, rank, elo, lastmatchdate) | **Served** (registration validation + the roster/dashboard elos, `profile_ids`); the `profile_names` param resolves by Steam ID (registration without a relic-id) |
+| `getAvatarStatForProfile` | avatar stats | **Not served** — low future value |
+| `getMatchHistory` (`matchIDs`) | one exact match: `matchhistoryreportresults` (resulttype win/loss, civ, team), `matchhistorymember` (oldrating→newrating, outcome), `startgametime`/`completiontime`, `options`/`slotinfo` (zlib blobs) | **Reserved** — the direct lookup when the WE id is known (detailed results) |
+| `getRecentMatchHistory` (`profile_ids` OR `profile_names`, `count`) | a profile's recent history — the same shape as getMatchHistory | **Served** (the `GetMatchResult` RPC): the end-of-match correlation (profiles + time window → winner, duration, map, elo deltas) |
+| `getReplayFiles` | signed replay download URLs | **Not served** — a future "⬇️ Replay" button on the ended match card |
+
+**The end-of-match correlation**: the WorldsEdge id is NOT the
+aoe2lobby match_ref — the join rides the match's profile ids and the
+time window (the WE match whose `startgametime` follows our lobby's
+start and whose members include our profiles). The result appears a
+few seconds after the end notification — the bot retries (2/5/10/20 s
+backoff) then updates the card.
+
+**⚠️ Leaderboard mappings to fix**: the code (the librematch adapter's
+`LEADERBOARD_KEYS`) maps `0→rm_1v1, 1→rm_team, 2→unranked,
+3→dm_1v1, 4→dm_team` — the real API (GetAvailableLeaderboards) gives
+`1→SOLO_DM, 2→TEAM_DM, 3→SOLO_RM, 4→TEAM_RM, 5→SOLO_BR, 13→SOLO_EW,
+14→TEAM_EW...`: the displayed elos may be mislabelled. The aoe2 admin
+sync must load the real mappings and the adapter must read them.
 
 ### i18n
 
@@ -215,7 +260,29 @@ Des mécaniques de la bibliothèque — changent en upgradeant discord.py.
 Des limites de l'API Discord — hors de notre contrôle.
 
 - **Embed description** : 4096 caractères max → pagination
-  multi-messages (dashboard live).
+  dashboard live). The live dashboard is EPHEMERAL-ONLY (owner
+  direction 2026-10-30): never pinned, never a persistent message —
+  rendered on demand (/live, the menu button, the refresh button)
+  as ONE components-v2 view (Container + a relative timestamp
+  `<t:...:R>` + a `live:refresh:<game>` button + the id footer), in
+  the guild's locale with the bot's catalog. The refresh button
+  updates the message that carries it (the view SDK) and ACKs first
+  (defer). The full lobby state (civs, map, settings, slots) travels
+  the chain (match_updated + match_json). No channel, no loop, no
+  registry entry — the 429 storm and the refresh loop are gone with
+  the pinned channel.
+- **View answers (the SDK rule)** (`ui/responsive.py`): every view
+  callback answers through `respond_with_view` — a component click
+  UPDATES the message it rode (an ephemeral through its webhook, a
+  menu message in place; a pinned message answers with an ephemeral,
+  its content updates through its ensure cycle), a message-less
+  interaction (a slash command) always sends an ephemeral. Slow
+  callbacks ack first through `ack_view_interaction` (the 3-second
+  rule). The rule lives in ONE module — no view hand-rolls its
+  transport.
+- **Profile names** (`home._resolve_profile_names`): a link's label
+  is the binding's stored `profile_name`, else the stored alias,
+  else the provider-resolved alias (librematch) — never a bare '?'.
 - **Select** : 25 options max → pagination des catalogues ; une
   option `default=True` pré-remplit le sélecteur.
 - **Custom id** : 100 caractères max → les ids longs sont tronqués

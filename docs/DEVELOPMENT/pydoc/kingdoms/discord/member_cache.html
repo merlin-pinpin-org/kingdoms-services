@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.member_cache</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.member_cache</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/member_cache.py">SOURCE_ROOT/discord/member_cache.py</a></td></tr></table>
+    <p><span class="code">Guild&nbsp;member&nbsp;cache:&nbsp;one&nbsp;chunked&nbsp;fetch&nbsp;per&nbsp;guild,&nbsp;TTL&nbsp;+&nbsp;event-maintained.<br>
+&nbsp;<br>
+The&nbsp;membership&nbsp;checks&nbsp;(the&nbsp;players&nbsp;panel's&nbsp;guild&nbsp;filter,&nbsp;the&nbsp;live<br>
+dashboard's&nbsp;snapshot&nbsp;scope)&nbsp;are&nbsp;per-player;&nbsp;without&nbsp;a&nbsp;cache&nbsp;each&nbsp;check<br>
+hits&nbsp;the&nbsp;Discord&nbsp;API&nbsp;(fetch_member)&nbsp;and&nbsp;the&nbsp;panels&nbsp;take&nbsp;seconds&nbsp;to<br>
+open.&nbsp;The&nbsp;cache&nbsp;resolves&nbsp;the&nbsp;whole&nbsp;roster&nbsp;ONCE&nbsp;per&nbsp;guild&nbsp;(chunked<br>
+fetch),&nbsp;serves&nbsp;every&nbsp;check&nbsp;from&nbsp;memory,&nbsp;and&nbsp;the&nbsp;member&nbsp;events<br>
+(on_member_join/on_member_remove)&nbsp;keep&nbsp;it&nbsp;fresh&nbsp;between&nbsp;TTLs.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-guild_members"><strong>guild_members</strong></a>(guild: 'Any') -&gt; 'dict[int, str]'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;guild's&nbsp;members&nbsp;(id&nbsp;→&nbsp;display&nbsp;name),&nbsp;cached&nbsp;for&nbsp;the&nbsp;TTL.<br>
+&nbsp;<br>
+The&nbsp;first&nbsp;call&nbsp;per&nbsp;guild&nbsp;(or&nbsp;after&nbsp;the&nbsp;TTL&nbsp;elapsed)&nbsp;does&nbsp;one&nbsp;chunked<br>
+fetch&nbsp;of&nbsp;the&nbsp;whole&nbsp;roster;&nbsp;every&nbsp;later&nbsp;call&nbsp;is&nbsp;a&nbsp;memory&nbsp;read.&nbsp;A<br>
+fetch&nbsp;failure&nbsp;serves&nbsp;the&nbsp;stale&nbsp;entry&nbsp;when&nbsp;there&nbsp;is&nbsp;one;&nbsp;an&nbsp;EMPTY<br>
+first&nbsp;fetch&nbsp;is&nbsp;NOT&nbsp;cached&nbsp;(the&nbsp;callers&nbsp;treat&nbsp;'no&nbsp;roster'&nbsp;as&nbsp;'do<br>
+not&nbsp;filter'&nbsp;—&nbsp;fail-open,&nbsp;an&nbsp;unresolvable&nbsp;roster&nbsp;must&nbsp;never&nbsp;blank<br>
+the&nbsp;dashboards).</span></dd></dl>
+ <dl><dt>async <a name="-is_guild_member"><strong>is_guild_member</strong></a>(guild: 'Any', user_id: 'str | int') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;whether&nbsp;one&nbsp;user&nbsp;is&nbsp;a&nbsp;member&nbsp;of&nbsp;the&nbsp;guild&nbsp;(the&nbsp;cached&nbsp;roster).</span></dd></dl>
+ <dl><dt>async <a name="-member_display_name"><strong>member_display_name</strong></a>(guild: 'Any', user_id: 'str | int') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;member's&nbsp;display&nbsp;name&nbsp;(empty&nbsp;when&nbsp;not&nbsp;a&nbsp;member).</span></dd></dl>
+ <dl><dt><a name="-on_member_join"><strong>on_member_join</strong></a>(member: 'Any') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;one&nbsp;join&nbsp;immediately&nbsp;(the&nbsp;cache&nbsp;stays&nbsp;fresh&nbsp;between&nbsp;TTLs).</span></dd></dl>
+ <dl><dt><a name="-on_member_remove"><strong>on_member_remove</strong></a>(member: 'Any') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;leave&nbsp;immediately&nbsp;(the&nbsp;cache&nbsp;stays&nbsp;fresh&nbsp;between&nbsp;TTLs).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MEMBER_CACHE_TTL_S</strong> = 3600.0<br>
+<strong>__annotations__</strong> = {'_cache': 'dict[int, tuple[float, dict[int, str]]]', '_pending': 'dict[int, Any]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.discord.member_cache (WARNING)&gt;</td></tr></table>
+</body></html>
