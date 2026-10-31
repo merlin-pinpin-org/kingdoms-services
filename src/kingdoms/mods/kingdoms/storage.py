@@ -280,6 +280,12 @@ class MongoKingdomsStore:
             ATTACKS_COLLECTION,
             SHOWMATCH_COLLECTION,
             FFA_COLLECTION,
+            # plan-orphan-v1 (Drasah 31/10): a plan is season data —
+            # the prod wipe NEVER dropped this collection, so a resetup
+            # left stale plans whose lords no longer existed; the
+            # first due plan then raised NotEnrolledError at EVERY
+            # tick and killed the whole attack phase pass.
+            PLANS_COLLECTION,
         ):
             await self._database[collection].delete_many({})
 

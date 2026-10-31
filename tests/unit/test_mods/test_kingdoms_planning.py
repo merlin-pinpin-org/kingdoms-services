@@ -357,3 +357,51 @@ class TestPlanMeetingSelections:
         with pytest.raises(ValueError):
             self._compose(1, 12, 15, now)
 
+
+
+async def test_a_stale_plan_whose_lord_is_gone_breaks_instead_of_raising() -> None:
+    """plan-orphan-v1 (Drasah 31/10): a plan whose lord left the season
+    (a resetup wiped the lords) used to raise NotEnrolledError at EVERY
+    tick — the exception killed the whole attack phase pass (reveals,
+    pick & ban DMs, salon openings). The orphan plan now breaks with
+    the dedicated event, and the phase pass survives."""
+    bundle, bourgogne, maps = await _prepared_bundle()
+    meeting = _SAFE_NOW + _TRAVEL * 2
+    plan = await bundle.attacks.plan_attack("king-a", [maps[0]], meeting)
+    # The resetup wiped the lord documents — the plan survives.
+    await bundle.store.delete_lord("king-a")
+    # The tick does NOT raise; the orphan breaks with its event.
+    changed = await bundle.attacks.plan_events(now=meeting - _TRAVEL)
+    after = next(p for p in await bundle.attacks.plans() if p.id == plan.id)
+    assert after.state is PlanState.BROKEN
+    assert after.last_event == "broken_not_enrolled"
+    assert after.id in [p.id for p in changed]
+    assert (await bundle.attacks.attacks()) == []
+    # A second pass never raises either — the orphan stays broken.
+    await bundle.attacks.plan_events(now=meeting)
+    after = next(p for p in await bundle.attacks.plans() if p.id == plan.id)
+    assert after.state is PlanState.BROKEN
+    assert after.last_event == "broken_not_enrolled"
+
+
+async def test_the_mongo_season_wipe_also_drops_the_plans_collection() -> None:
+    """plan-orphan-v1 (Drasah 31/10): the MemoryStore wiped plans since
+    the planning seam exists, but the PROD Mongo wipe never dropped
+    kingdoms_plans — every resetup left stale plans behind. The wipe
+    now drops the collection with the rest of the season data."""
+    from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
+
+    wiped: list[str] = []
+
+    class _Collection:
+        async def delete_many(self, _filter: object) -> None:
+            return None
+
+    class _Database:
+        def __getitem__(self, name: str) -> _Collection:
+            wiped.append(name)
+            return _Collection()
+
+    store = MongoKingdomsStore(_Database())
+    await store.wipe_season_data()
+    assert "kingdoms_plans" in wiped
