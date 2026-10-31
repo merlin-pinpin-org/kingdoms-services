@@ -51,6 +51,8 @@ async def _serve() -> None:
     providers = [
         ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", "")),
         ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", "")),
+        ("ext-aoe2techtree", os.environ.get("EXT_AOE2TECHTREE_URI", "")),
+        ("ext-liquipedia", os.environ.get("EXT_LQUIPEDIA_URI", "")),
     ]
     probe_task = asyncio.ensure_future(prober.run_forever(providers))
 
@@ -118,6 +120,8 @@ async def _consume_providers(aggregator: Any) -> None:
     providers = [
         ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", "")),
         ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", "")),
+        ("ext-aoe2techtree", os.environ.get("EXT_AOE2TECHTREE_URI", "")),
+        ("ext-liquipedia", os.environ.get("EXT_LQUIPEDIA_URI", "")),
     ]
     tasks = [
         _consume_one(aggregator, provider_id, uri)

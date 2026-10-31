@@ -269,26 +269,26 @@ async def _profile_followup(
     from kingdoms.core.ids import footer
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
+    # The modal submit edits the message the modal CAME FROM directly —
+    # interaction.response.edit_message is documented for modal
+    # interactions (no defer, no thinking indicator, no followup
+    # residue: the clicked view updates in place, ONE surface).
     if origin is not None:
-        from kingdoms.discord.ephemeral import edit_ephemeral
-
         logger.info(
-            "PROFILE FOLLOWUP: origin=%s (message_id=%s), editing in place",
-            "captured",
+            "PROFILE FOLLOWUP: origin captured (message_id=%s) — editing in place",
             getattr(origin, "message_id", "?"),
         )
-        if await edit_ephemeral(origin, view):
-            # a modal submit's defer(thinking=False) leaves a followup
-            # message — the edit above refreshed the ORIGINAL view, the
-            # thinking residue is deleted so exactly ONE surface stays
-            await _delete_deferred_followup(interaction)
+        try:
+            await interaction.response.edit_message(view=view)
             return
-        # the origin is gone (an expired token, a superseded view):
-        # NEVER send a copy of the profile view — the ephemeral contract
-        # forbids it. The action's banner answers as plain text instead.
-        note = banner or await reply(interaction, "profile.updated")
-        await interaction.followup.send(note, ephemeral=True)
-        return
+        except Exception:
+            logger.info(
+                "PROFILE FOLLOWUP: edit_message failed — plain-text fallback",
+                exc_info=True,
+            )
+            note = banner or await reply(interaction, "profile.updated")
+            await interaction.followup.send(note, ephemeral=True)
+            return
     logger.info("PROFILE FOLLOWUP: no origin — sending a fresh ephemeral view")
     await interaction.followup.send(view=view, ephemeral=True)
 
@@ -533,7 +533,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = (self.game.values or ["aoe2"])[0]
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        # no defer: the submit's edit_message is the response
         try:
             await registration.bind_profile(
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
@@ -717,7 +717,7 @@ class ProfileRenameModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         user_id = f"discord:{interaction.user.id}"
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        # no defer: the submit's edit_message is the response
         try:
             user = await identity.get_user(user_id)
             if user is None:
@@ -831,7 +831,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = list(self.accounts.values or [])
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        # no defer: the submit's edit_message is the response
         removed: list[str] = []
         failures: list[str] = []
         for entry in chosen:
@@ -1148,9 +1148,13 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
             continue
         by_member[user_id].append(binding)
     member_lines: list[str] = []
+    # the pseudo rides the member cache (the chunked roster — the
+    # guild's internal cache misses members it never saw)
+    from kingdoms.discord.member_cache import guild_members
+
+    cached_members = await guild_members(guild) if guild is not None else {}
     for user_id, bindings in list(by_member.items())[:25]:
-        member = guild.get_member(int(user_id))
-        display = getattr(member, "display_name", None) if member is not None else None
+        display = cached_members.get(int(user_id), "") if cached_members else ""
         header_name = display or f"<@{user_id}>"
         member_lines.append(f"## {header_name} \u2014 @{display or user_id}")
         for binding in bindings:
