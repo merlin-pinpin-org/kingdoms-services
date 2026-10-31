@@ -269,27 +269,20 @@ async def _profile_followup(
     from kingdoms.core.ids import footer
 
     view.add_item(discord.ui.TextDisplay(footer("panel:profile")))
-    # The modal submit edits the message the modal CAME FROM directly —
-    # interaction.response.edit_message is documented for modal
-    # interactions (no defer, no thinking indicator, no followup
-    # residue: the clicked view updates in place, ONE surface).
     if origin is not None:
-        logger.info(
-            "PROFILE FOLLOWUP: origin captured (message_id=%s) — editing in place",
-            getattr(origin, "message_id", "?"),
-        )
-        try:
-            await interaction.response.edit_message(view=view)
+        from kingdoms.discord.ephemeral import edit_ephemeral
+
+        if await edit_ephemeral(origin, view):
+            # the defer(thinking=True) residue goes — the ORIGIN edit
+            # refreshed the clicked view, exactly ONE surface stays
+            await _delete_deferred_followup(interaction)
             return
-        except Exception:
-            logger.info(
-                "PROFILE FOLLOWUP: edit_message failed — plain-text fallback",
-                exc_info=True,
-            )
-            note = banner or await reply(interaction, "profile.updated")
-            await interaction.followup.send(note, ephemeral=True)
-            return
-    logger.info("PROFILE FOLLOWUP: no origin — sending a fresh ephemeral view")
+        # the origin is gone (an expired token, a superseded view):
+        # NEVER send a copy of the profile view — the ephemeral
+        # contract forbids it; the action's banner answers as text.
+        note = banner or await reply(interaction, "profile.updated")
+        await interaction.followup.send(note, ephemeral=True)
+        return
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -533,7 +526,9 @@ class ProfileAddAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = (self.game.values or ["aoe2"])[0]
-        # no defer: the submit's edit_message is the response
+        # the ONLY valid ephemeral modal defer (discord.py): thinking=True —
+        # the bind takes seconds, the 3s window survives it
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             await registration.bind_profile(
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
@@ -717,7 +712,9 @@ class ProfileRenameModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         user_id = f"discord:{interaction.user.id}"
-        # no defer: the submit's edit_message is the response
+        # the ONLY valid ephemeral modal defer (discord.py): thinking=True —
+        # the bind takes seconds, the 3s window survives it
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             user = await identity.get_user(user_id)
             if user is None:
@@ -831,7 +828,9 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = list(self.accounts.values or [])
-        # no defer: the submit's edit_message is the response
+        # the ONLY valid ephemeral modal defer (discord.py): thinking=True —
+        # the bind takes seconds, the 3s window survives it
+        await interaction.response.defer(ephemeral=True, thinking=True)
         removed: list[str] = []
         failures: list[str] = []
         for entry in chosen:
