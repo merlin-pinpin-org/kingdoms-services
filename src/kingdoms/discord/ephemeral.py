@@ -48,6 +48,12 @@ class EphemeralOrigin:
         """
         message = getattr(interaction, "message", None)
         webhook = getattr(interaction, "webhook", None)
+        logger.info(
+            "EPHEMERAL ORIGIN capture: message=%s webhook=%s id=%s",
+            "yes" if message is not None else "NONE",
+            "yes" if webhook is not None else "NONE",
+            getattr(message, "id", "?"),
+        )
         if message is None or webhook is None:
             return None
         return cls(webhook, int(message.id))
