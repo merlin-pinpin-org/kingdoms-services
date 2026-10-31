@@ -465,3 +465,47 @@ def test_season_management_salon_is_retired() -> None:
     # removal comment mentions it).
     assert "season_management" not in text
     assert "display_name: 🗓️" not in text
+
+
+# --------------------------------------- realm-content-selfheal-v1
+
+
+async def test_provisioning_repins_the_realm_views(monkeypatch) -> None:
+    """realm-content-selfheal-v1 (Drasah 31/10, live incident HeN): a
+    realm content deployment that failed at the approval seam (silent
+    best-effort) used to stay lost FOREVER — no seam ever re-tried it.
+    Every provisioning pass (boot, /kingdom, 🚀 Déployer) now re-pins
+    the approved kingdoms' state views, and a failed re-pin never
+    breaks the provisioning itself."""
+    from types import SimpleNamespace
+
+    from kingdoms.mods import kingdom_persistent
+    from kingdoms.mods.kingdoms import kingdom_setup
+    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomsPanelWiring
+
+    guild = MockGuild()
+    calls: list[object] = []
+
+    async def fake_repin(target: object) -> None:
+        calls.append(target)
+
+    async def fake_provision(guild_id: str, mod_name: str) -> SimpleNamespace:
+        return SimpleNamespace(created=[], adopted=[])
+
+    wiring = KingdomsPanelWiring(
+        channel_service=SimpleNamespace(provision_mod_channels=fake_provision)
+    )
+    monkeypatch.setattr(kingdom_persistent, "_WIRING_RESOLVER", lambda: wiring)
+    monkeypatch.setattr(kingdom_persistent, "_repin_realm_views_safe", fake_repin)
+
+    created, adopted = await kingdom_setup.provision_structure(guild)
+
+    assert created == [] and adopted == []
+    assert calls == [guild]  # the pass re-pinned the realm views
+
+    async def broken_repin(target: object) -> None:
+        raise RuntimeError("429 storm")
+
+    monkeypatch.setattr(kingdom_persistent, "_repin_realm_views_safe", broken_repin)
+    created, adopted = await kingdom_setup.provision_structure(guild)
+    assert created == [] and adopted == []  # a crashed re-pin never breaks the pass

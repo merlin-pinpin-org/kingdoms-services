@@ -683,6 +683,21 @@ async def _provision_structure_locked(guild: discord.Guild) -> tuple[list[str], 
         await sweep_departed_member_overwrites(guild, wiring.kingdoms_service)
     except Exception:
         logger.warning("KINGDOM SETUP: departed member sweep failed", exc_info=True)
+    # realm-content-selfheal-v1 (Drasah 31/10): the pass re-pins every
+    # approved kingdom's salon state views. A realm content deployment
+    # that failed at the approval seam (best-effort, SILENT — the admin
+    # still sees « Done ») used to stay lost FOREVER: no seam ever
+    # re-tried it — boot, /kingdom and 🚀 Déployer re-pinned every OTHER
+    # pinned surface but never this perimeter (the 31/10 HeN live
+    # incident). The views' identity guard keeps a converged pass at
+    # ZERO extra API calls — only the missing views re-deploy
+    # (edit-in-place, never a duplicate).
+    try:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _repin_realm_views_safe
+
+        await _repin_realm_views_safe(guild)
+    except Exception:
+        logger.warning("KINGDOM SETUP: realm views self-heal failed", exc_info=True)
     return list(report.created), list(report.adopted)
 
 
