@@ -230,6 +230,43 @@ def _denied_for(target: Any, role: Any) -> bool:
     return overwrite is not None and overwrite.view_channel is False
 
 
+def _overwrite_for(target: Any, key: Any) -> Any:
+    """The target's current overwrite for one role/member (mock- and prod-compatible)."""
+    lookup = getattr(target, "permission_overwrite_for", None)
+    if lookup is not None:
+        return lookup(key)
+    for candidate_key, candidate in (getattr(target, "overwrites", None) or {}).items():
+        if (
+            getattr(candidate_key, "id", None) == getattr(key, "id", None)
+            and candidate is not None
+        ):
+            return candidate
+    return None
+
+
+def _overwrite_satisfied(target: Any, key: Any, desired: discord.PermissionOverwrite) -> bool:
+    """True when every field the DESIRED overwrite sets already matches.
+
+    taverne-429-storm-fix (Drasah 31/10): the events loop runs
+    ``sweep_tavern_state`` on EVERY tick (~15 s), but the sweep re-PUT
+    the category's role and bot overwrites unconditionally — two
+    writes per tick forever, throttled by Discord (channel overwrite
+    edits are capped ~2/10 min) into a permanent 429 livelock that
+    saturated the bot's whole HTTP client (live report: "le bot ne
+    répond pas", panels failing silently). The steady state must cost
+    ZERO API writes: this field-by-field check (only the fields the
+    desired overwrite actually sets, so an overwrite carrying extra
+    fields still converges) skips the call entirely.
+    """
+    existing = _overwrite_for(target, key)
+    if existing is None:
+        return False
+    for name, value in desired:
+        if value is not None and getattr(existing, name, None) != value:
+            return False
+    return True
+
+
 def _immersion_targets(guild: discord.Guild, taverne_category_id: int | None) -> list[Any]:
     """Every hide-able target outside the Taverne: the other categories
     plus the un-synced (or category-less) channels."""
@@ -403,19 +440,25 @@ async def sweep_tavern_state(guild: discord.Guild) -> None:
                 overwrite=discord.PermissionOverwrite(view_channel=False, read_message_history=False),
                 reason="taverne-selfheal-v1: deny @everyone",
             )
-        await category.set_permissions(
-            role,
-            overwrite=discord.PermissionOverwrite(
-                view_channel=True, read_message_history=True, send_messages=True
-            ),
+        desired_role = discord.PermissionOverwrite(
+            view_channel=True, read_message_history=True, send_messages=True
         )
-        if guild.me is not None:
+        if not _overwrite_satisfied(category, role, desired_role):
             await category.set_permissions(
-                guild.me,
-                overwrite=discord.PermissionOverwrite(
-                    view_channel=True, send_messages=True, manage_channels=True
-                ),
+                role,
+                overwrite=desired_role,
+                reason="taverne-429-storm-fix: converge the role allow",
             )
+        if guild.me is not None:
+            desired_me = discord.PermissionOverwrite(
+                view_channel=True, send_messages=True, manage_channels=True
+            )
+            if not _overwrite_satisfied(category, guild.me, desired_me):
+                await category.set_permissions(
+                    guild.me,
+                    overwrite=desired_me,
+                    reason="taverne-429-storm-fix: converge the bot allow",
+                )
     except Exception:
         logger.warning("KINGDOMS TAVERN: sweep category overwrites failed", exc_info=True)
     category_id = getattr(category, "id", None)
@@ -489,17 +532,23 @@ async def ensure_tavern_immersion_structure(guild: discord.Guild, locale: str = 
             overwrite = discord.PermissionOverwrite(
                 view_channel=True, read_message_history=True, send_messages=True
             )
-            await category.set_permissions(role, overwrite=overwrite)
+            # taverne-429-storm-fix (Drasah 31/10): converged-skip — the
+            # provisioning pass re-runs on every boot and every 🚀
+            # Déployer; a converged category must cost zero writes.
+            if not _overwrite_satisfied(category, role, overwrite):
+                await category.set_permissions(role, overwrite=overwrite)
         except Exception:
             logger.warning("KINGDOMS TAVERN: category overwrites failed", exc_info=True)
     if guild.me is not None:
         try:
-            await category.set_permissions(
-                guild.me,
-                overwrite=discord.PermissionOverwrite(
-                    view_channel=True, send_messages=True, manage_channels=True
-                ),
+            desired_me = discord.PermissionOverwrite(
+                view_channel=True, send_messages=True, manage_channels=True
             )
+            if not _overwrite_satisfied(category, guild.me, desired_me):
+                await category.set_permissions(
+                    guild.me,
+                    overwrite=desired_me,
+                )
         except Exception:
             logger.warning("KINGDOMS TAVERN: bot allow on category failed", exc_info=True)
 

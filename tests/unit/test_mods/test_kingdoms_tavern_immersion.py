@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Iterator
 
+import discord
 import pytest
 
 from kingdoms.mods.kingdoms.tavern_art import resolve_art
@@ -550,3 +551,43 @@ async def test_realm_provisioning_keeps_the_tavern_member_deny() -> None:
     await ensure_member_realm_access(guild, _TavernKingdom(), inside.id)
     overwrite = category.permission_overwrite_for(inside)
     assert overwrite is not None and overwrite.view_channel is False
+
+
+async def test_the_sweep_costs_zero_permission_writes_in_steady_state() -> None:
+    """taverne-429-storm-fix (Drasah 31/10): the events loop runs the
+    sweep on EVERY tick (~15 s) — the live sweep re-PUT the category's
+    role and bot overwrites unconditionally, and Discord throttles
+    channel overwrite edits into a permanent 429 livelock that saturated
+    the bot's HTTP ("le bot ne répond pas", panels dying silently). A
+    converged steady state must cost ZERO set_permissions calls."""
+    guild = MockGuild()
+    await _realm(guild)
+    await ensure_tavern_immersion_structure(guild)
+    await sweep_tavern_state(guild)  # converge once (provisioning + heal)
+
+    taverne = next(c for c in guild.categories if c.name == TAVERN_CATEGORY_NAME)
+    calls: list[tuple[int, bool]] = []
+    original = taverne.set_permissions
+
+    async def _spy(target: object, overwrite: object = None, **kwargs: object) -> None:
+        calls.append((getattr(target, "id", 0), isinstance(target, discord.Role)))
+        return await original(target, overwrite=overwrite, **kwargs)  # type: ignore[arg-type]
+
+    taverne.set_permissions = _spy  # type: ignore[method-assign]
+    try:
+        await sweep_tavern_state(guild)
+        await sweep_tavern_state(guild)  # twice — zero even after two ticks
+    finally:
+        taverne.set_permissions = original  # type: ignore[method-assign]
+
+    assert calls == []
+
+    # drift is still healed: the role allow disappears → one write.
+    await taverne.set_permissions(find_tavern_role(guild), overwrite=None)
+    before = len(calls)
+    taverne.set_permissions = _spy  # type: ignore[method-assign]
+    try:
+        await sweep_tavern_state(guild)
+    finally:
+        taverne.set_permissions = original  # type: ignore[method-assign]
+    assert len(calls) > before
