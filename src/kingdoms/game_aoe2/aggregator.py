@@ -220,14 +220,28 @@ class ProviderProber:
         }
         return {"tests": tests, "checked_at": self._checked_at}
 
-    async def run_forever(self, providers: list[tuple[str, str]], game_key: str = "aoe2") -> None:
-        """Probe every configured provider forever, one round per interval."""
+    async def run_forever(
+        self,
+        providers: list[tuple[str, str]],
+        game_key: str = "aoe2",
+        content_providers: list[tuple[str, str]] | None = None,
+    ) -> None:
+        """Probe every configured provider forever, one round per interval.
+
+        Two kinds (the 2026-10-31 owner direction): the GAME providers
+        (their GetCapabilities ping) and the CONTENT providers (their
+        own contract's ListFactions ping — a Game-contract ping answers
+        UNIMPLEMENTED for them, the panel showed a false KO). Every
+        provider the game uses renders in the providers panel.
+        """
         import asyncio
         import time as _time
 
         from kingdoms.core.rpc.game_client import GameProviderClient
 
+        content_providers = content_providers or []
         clients: dict[str, Any] = {}
+        content_clients: dict[str, Any] = {}
         while True:
             for provider_id, uri in providers:
                 if provider_id not in clients and uri:
@@ -251,6 +265,40 @@ class ProviderProber:
                         ),
                         "checked_at": _now_ms(),
                         "failures": 0 if caps.provider_id else 1,
+                    }
+                except Exception as exc:
+                    self._results[provider_id] = {
+                        "provider_id": provider_id,
+                        "game_key": game_key,
+                        "ok": False,
+                        "latency_ms": int((_time.monotonic() - started) * 1000),
+                        "detail": f"{type(exc).__name__}: {exc}"[:200],
+                        "checked_at": _now_ms(),
+                        "failures": int(self._results.get(provider_id, {}).get("failures", 0)) + 1,
+                    }
+            # the CONTENT providers: their own contract's ping
+            # (ListFactions — a real content call; the Game-contract
+            # ping answers UNIMPLEMENTED for them)
+            for provider_id, uri in content_providers:
+                if provider_id not in content_clients and uri:
+                    from kingdoms.core.rpc.content_client import ContentProviderClient
+
+                    content_clients[provider_id] = ContentProviderClient(uri)
+                client = content_clients.get(provider_id)
+                if client is None:
+                    continue
+                started = _time.monotonic()
+                try:
+                    factions = await client.list_factions()
+                    latency_ms = int((_time.monotonic() - started) * 1000)
+                    self._results[provider_id] = {
+                        "provider_id": provider_id,
+                        "game_key": game_key,
+                        "ok": True,
+                        "latency_ms": latency_ms,
+                        "detail": f"content provider — {len(factions)} factions",
+                        "checked_at": _now_ms(),
+                        "failures": 0,
                     }
                 except Exception as exc:
                     self._results[provider_id] = {
