@@ -533,7 +533,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = (self.game.values or ["aoe2"])[0]
-        await interaction.response.defer(ephemeral=True, thinking=False)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             await registration.bind_profile(
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
@@ -717,7 +717,7 @@ class ProfileRenameModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         user_id = f"discord:{interaction.user.id}"
-        await interaction.response.defer(ephemeral=True, thinking=False)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             user = await identity.get_user(user_id)
             if user is None:
@@ -831,7 +831,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = list(self.accounts.values or [])
-        await interaction.response.defer(ephemeral=True, thinking=False)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         removed: list[str] = []
         failures: list[str] = []
         for entry in chosen:
