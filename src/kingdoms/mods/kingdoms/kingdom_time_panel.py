@@ -443,8 +443,11 @@ class KingdomTimeConfirmView(discord.ui.View):
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
         """Wipe (no archive), relaunch in setup, rebuild the salons."""
         from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _delete_season_player_roles_safe,
             _purge_and_reinstall,
+            _reprovision_mod_roles_safe,
             _strip_marriage_livery_for_all_lords_safe,
+            _strip_player_mod_roles_for_all_lords_safe,
             _wiring,
         )
 
@@ -459,7 +462,19 @@ class KingdomTimeConfirmView(discord.ui.View):
             # once the docs are gone — Drasah 2026-10-12).
             guild0 = interaction.guild
             if guild0 is not None:
+                # reset-ghost-roles-v3 (Drasah 31/10): the machine-à-temps
+                # « Retour setup » was the ONE wipe flow never wired to
+                # the v1/v2 seams — blank and the other ex-players kept
+                # their Kingdoms Lord/King after the resetup, so they
+                # still saw every game salon (and NOT Beta/Conscription).
+                # Same sequence as _run_back_to_setup: the season player
+                # ROLES die first (v2, every holder stripped at once —
+                # the doc-driven sweep is blind to ghosts), then the
+                # livery, then the doc-driven strip (v1) while the docs
+                # still resolve the members.
+                await _delete_season_player_roles_safe(guild0)
                 await _strip_marriage_livery_for_all_lords_safe(guild0)
+                await _strip_player_mod_roles_for_all_lords_safe(guild0)
             result = await wiring.time_service.back_to_setup()
         except Exception as exc:
             await interaction.followup.send(
@@ -469,6 +484,10 @@ class KingdomTimeConfirmView(discord.ui.View):
         guild = interaction.guild
         reinstalled, deleted = (False, 0)
         if guild is not None:
+            # reset-ghost-roles-v3: the fresh roles must exist BEFORE the
+            # reinstall — the category gating pass resolves them by name
+            # and acceptance needs a live role (same seam as back-to-setup).
+            await _reprovision_mod_roles_safe(guild)
             reinstalled, deleted = await _purge_and_reinstall(guild)
         await interaction.followup.send(
             self.strings["back_setup_done"].format(

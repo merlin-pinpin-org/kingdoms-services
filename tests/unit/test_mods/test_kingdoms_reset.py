@@ -401,3 +401,79 @@ async def test_reset_strips_member_overwrites_and_the_taverne_door_role() -> Non
 
     # idempotent: a second sweep finds nothing left to clear
     assert await _strip_member_overwrites_safe(guild) == 0
+
+async def test_time_machine_back_to_setup_strips_player_roles(monkeypatch) -> None:
+    """reset-ghost-roles-v3 (Drasah 31/10): the machine-à-temps
+    « ↩ Retour setup » was the one season-wipe flow never wired to the
+    v1/v2 seams — after his resetup blank and the other ex-players kept
+    their Kingdoms Lord/King roles (the whole channel gating rides on
+    them), so they still saw every game salon and NOT Beta/Conscription.
+    The confirm must run the SAME sequence as _run_back_to_setup:
+    role delete → livery strip → doc-driven strip → wipe → reprovision
+    → salon purge/reinstall."""
+    import kingdoms.mods.kingdoms.kingdom_persistent as persistent
+    from kingdoms.mods.kingdoms import kingdom_time_panel as panel_module
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+    from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeConfirmView
+    from tests.mocks.discord_mock import MockGuild, MockInteraction
+
+    calls: list[str] = []
+
+    async def _delete_roles(guild):  # type: ignore[no-untyped-def]
+        calls.append("delete_roles")
+        return 0
+
+    async def _livery(guild):  # type: ignore[no-untyped-def]
+        calls.append("livery")
+        return 0
+
+    async def _strip_v1(guild):  # type: ignore[no-untyped-def]
+        calls.append("strip_v1")
+        return 0
+
+    async def _reprovision(guild):  # type: ignore[no-untyped-def]
+        calls.append("reprovision")
+
+    async def _purge(guild):  # type: ignore[no-untyped-def]
+        calls.append("purge")
+        return (True, 7)
+
+    async def _refresh(interaction):  # type: ignore[no-untyped-def]
+        calls.append("refresh")
+
+    class _TimeService:
+        async def back_to_setup(self) -> dict:
+            calls.append("wipe")
+            return {"season": "s-fresh", "phase": "setup"}
+
+    monkeypatch.setattr(persistent, "_delete_season_player_roles_safe", _delete_roles)
+    monkeypatch.setattr(persistent, "_strip_marriage_livery_for_all_lords_safe", _livery)
+    monkeypatch.setattr(persistent, "_strip_player_mod_roles_for_all_lords_safe", _strip_v1)
+    monkeypatch.setattr(persistent, "_reprovision_mod_roles_safe", _reprovision)
+    monkeypatch.setattr(persistent, "_purge_and_reinstall", _purge)
+    monkeypatch.setattr(panel_module, "_refresh_panel_message_safe", _refresh)
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(time_service=_TimeService()))
+
+    strings = {
+        "no_service": "no service",
+        "failed": "failed {0}",
+        "back_setup_done": "done {season} {deleted}",
+        "back_setup_cancelled": "cancelled",
+    }
+    interaction = MockInteraction(guild=MockGuild())
+    view = KingdomTimeConfirmView(strings)
+    await view.confirm(interaction, None)
+
+    # the seams ride the wipe in the _run_back_to_setup order
+    assert calls == [
+        "delete_roles",
+        "livery",
+        "strip_v1",
+        "wipe",
+        "reprovision",
+        "purge",
+        "refresh",
+    ]
