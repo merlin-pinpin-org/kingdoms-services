@@ -1251,7 +1251,10 @@ def _view_users_for_game(game_key: str) -> Any:
     """
 
     async def _open(interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=False)
+        # thinking=True: the roster read takes seconds (the bindings +
+        # the stats + the member roster) — the user sees the panel
+        # building instead of a dead button (owner ask 2026-10-31)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         bot = interaction.client
         roster = getattr(bot, "_registration_database", None)
         if roster is None:
@@ -1286,7 +1289,7 @@ def _view_users_for_game(game_key: str) -> Any:
         from kingdoms.discord.live import collect_profile_stats
 
         names = await collect_profile_stats(profile_ids, game_key)
-        lines = await _roster_lines(game_key, by_user, guild, names)
+        lines = await _roster_lines(game_key, by_user, guild, names, bot=bot)
         if not lines:
             lines = [await reply(interaction, "profile.no_members_bound")]
         for view in _roster_views(game_key, lines):
@@ -1295,11 +1298,37 @@ def _view_users_for_game(game_key: str) -> Any:
     return _open
 
 
+async def _kingdoms_pseudos(bot: Any, by_user: dict[str, list[dict[str, Any]]]) -> dict[str, str]:
+    """Resolve every user's kingdoms pseudo (the identity service).
+
+    The chosen display name — the owner's ask: the roster shows the
+    PSEUDO ('Merlin'), not the Discord account's display name. Empty
+    map when the identity service is unwired; callers fall back.
+    """
+    identity = getattr(bot, "identity_service", None)
+    pseudos: dict[str, str] = {}
+    if identity is None:
+        return pseudos
+    for user_id in by_user:
+        try:
+            user = await identity.get_user(f"discord:{user_id}")
+        except Exception:
+            logger.debug("identity lookup failed (user %s) — best-effort", user_id, exc_info=True)
+            continue
+        name = str(getattr(user, "display_name", "") or "")
+        if name:
+            pseudos[user_id] = name
+    return pseudos
+
+
+
+
 async def _roster_lines(
     game_key: str,
     by_user: dict[str, list[dict[str, Any]]],
     guild: Any,
     names: dict[str, dict[str, Any]] | None = None,
+    bot: Any = None,
 ) -> list[str]:
     """One line per member (pseudo, mention, profile links), alphabetical by pseudo.
 
@@ -1311,12 +1340,17 @@ async def _roster_lines(
     from kingdoms.discord.member_cache import guild_members
 
     cached_members = await guild_members(guild) if guild is not None else {}
+    kingdoms_pseudos = await _kingdoms_pseudos(bot, by_user)
     entries: list[tuple[str, str, str]] = []
     for user_id, user_bindings in by_user.items():
-        # the pseudo rides the member cache (the guild's own cache can be
-        # incomplete); the RAW user id shows when even the cache misses —
-        # the mention follows, always the same readable shape
-        pseudo = cached_members.get(int(user_id), "") if cached_members else ""
+        # the label: the kingdoms PSEUDO first (the identity service's
+        # chosen name — 'Merlin'), the Discord display name next, the
+        # raw id last; the mention follows, always the same shape
+        pseudo = (
+            kingdoms_pseudos.get(user_id)
+            or (cached_members.get(int(user_id), "") if cached_members else "")
+            or f"user {user_id}"
+        )
         mention = f"<@{user_id}>"
         profiles: list[str] = []
         for binding in user_bindings:

@@ -51,9 +51,13 @@ async def _serve() -> None:
     providers = [
         ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", "")),
         ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", "")),
-        ("ext-aoe2techtree", os.environ.get("EXT_AOE2TECHTREE_URI", "")),
-        ("ext-liquipedia", os.environ.get("EXT_LQUIPEDIA_URI", "")),
     ]
+    # NOTE (the 2026-10-31 lesson): the prober pings the GAME contract's
+    # GetCapabilities — ext-aoe2techtree and ext-liquipedia serve the
+    # CONTENT contract, answering UNIMPLEMENTED (UnsupportedCapabilityError).
+    # They are not game providers; the providers panel is the game
+    # service's surface, the content providers live elsewhere.
+
     probe_task = asyncio.ensure_future(prober.run_forever(providers))
 
     port = os.environ.get("GAME_GRPC_PORT", "50071")
@@ -120,9 +124,13 @@ async def _consume_providers(aggregator: Any) -> None:
     providers = [
         ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", "")),
         ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", "")),
-        ("ext-aoe2techtree", os.environ.get("EXT_AOE2TECHTREE_URI", "")),
-        ("ext-liquipedia", os.environ.get("EXT_LQUIPEDIA_URI", "")),
     ]
+    # NOTE (the 2026-10-31 lesson): the prober pings the GAME contract's
+    # GetCapabilities — ext-aoe2techtree and ext-liquipedia serve the
+    # CONTENT contract, answering UNIMPLEMENTED (UnsupportedCapabilityError).
+    # They are not game providers; the providers panel is the game
+    # service's surface, the content providers live elsewhere.
+
     tasks = [
         _consume_one(aggregator, provider_id, uri)
         for provider_id, uri in providers
