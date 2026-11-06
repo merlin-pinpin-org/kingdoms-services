@@ -65,10 +65,15 @@ Manage&nbsp;channels&nbsp;by&nbsp;category;&nbsp;never&nbsp;by&nbsp;name&nbsp;or
 The&nbsp;platform&nbsp;seam&nbsp;guarantees&nbsp;existence&nbsp;of&nbsp;the&nbsp;returned&nbsp;channel&nbsp;id;<br>
 this&nbsp;method&nbsp;returns&nbsp;the&nbsp;core-side&nbsp;channel&nbsp;view&nbsp;built&nbsp;from&nbsp;it.</span></dd></dl>
 
-<dl><dt>async <a name="ChannelService-setup_mod_channels"><strong>setup_mod_channels</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'dict[str, IChannel]'</dt><dd><span class="code">Provision&nbsp;every&nbsp;channel&nbsp;category&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod.<br>
+<dl><dt>async <a name="ChannelService-setup_mod_channels"><strong>setup_mod_channels</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'dict[str, IChannel]'</dt><dd><span class="code">Provision&nbsp;a&nbsp;mod's&nbsp;declared&nbsp;groups&nbsp;and&nbsp;channels&nbsp;(idempotent).<br>
 &nbsp;<br>
-Generic:&nbsp;reads&nbsp;the&nbsp;mod's&nbsp;declaration&nbsp;via&nbsp;ModRegistry&nbsp;and&nbsp;resolves<br>
-each&nbsp;``mod:key``&nbsp;category&nbsp;with&nbsp;the&nbsp;same&nbsp;flow&nbsp;as&nbsp;any&nbsp;other&nbsp;category.</span></dd></dl>
+Generic:&nbsp;reads&nbsp;the&nbsp;mod's&nbsp;declaration&nbsp;via&nbsp;ModRegistry.&nbsp;The<br>
+declared&nbsp;groups&nbsp;become&nbsp;Discord&nbsp;categories&nbsp;(declaration&nbsp;order&nbsp;=<br>
+display&nbsp;order);&nbsp;each&nbsp;channel&nbsp;lands&nbsp;inside&nbsp;its&nbsp;group&nbsp;(or<br>
+uncategorised),&nbsp;as&nbsp;text/forum/announce&nbsp;per&nbsp;its&nbsp;``kind``.&nbsp;Every<br>
+resolution&nbsp;is&nbsp;persisted&nbsp;under&nbsp;its&nbsp;``mod:key``&nbsp;so&nbsp;the&nbsp;stored&nbsp;ids<br>
+survive&nbsp;renames;&nbsp;the&nbsp;access&nbsp;policies&nbsp;(admin_only,&nbsp;read_only,<br>
+role&nbsp;audiences)&nbsp;are&nbsp;applied&nbsp;as&nbsp;overwrites,&nbsp;best-effort.</span></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>
@@ -235,6 +240,12 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="ChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="ChannelsPlatform-ensure_category"><strong>ensure_category</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;(or&nbsp;create)&nbsp;a&nbsp;Discord&nbsp;category&nbsp;by&nbsp;name;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-ensure_channel"><strong>ensure_channel</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;(or&nbsp;create)&nbsp;a&nbsp;text&nbsp;channel,&nbsp;inside&nbsp;a&nbsp;category;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-ensure_forum"><strong>ensure_forum</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;(or&nbsp;create)&nbsp;a&nbsp;forum&nbsp;channel,&nbsp;inside&nbsp;a&nbsp;category;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
 <dl><dt>async <a name="ChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;channel&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="ChannelsPlatform-get_channel_overwrites"><strong>get_channel_overwrites</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'dict[str, dict[str, bool]] | None'</dt><dd><span class="code">Actual&nbsp;permission&nbsp;overwrites:&nbsp;target&nbsp;id&nbsp;-&gt;&nbsp;{permission:&nbsp;bool}.</span></dd></dl>
@@ -259,7 +270,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_access_policy', 'channel_exists', 'create_channel', 'find_channel_by_name', 'get_channel_overwrites'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_access_policy', 'channel_exists', 'create_channel', 'ensure_category', 'ensure_channel', 'ensure_forum', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -291,5 +302,5 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>CACHE_TTL_SECONDS</strong> = 300<br>
 <strong>CHANNELS_COLLECTION</strong> = 'channels'<br>
-<strong>logger</strong> = &lt;Logger kingdoms.channels (WARNING)&gt;</td></tr></table>
+<strong>logger</strong> = &lt;Logger kingdoms.channels (INFO)&gt;</td></tr></table>
 </body></html>

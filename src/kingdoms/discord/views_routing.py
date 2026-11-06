@@ -34,18 +34,56 @@ BUTTON_TEMPLATE = re.compile(rf"{ROUTER_NS}:(?P<view_id>[a-z0-9:_-]+)")
 Handler = Callable[[discord.Interaction], Awaitable[None]]
 
 
+def mod_visible_to(bot: Any, mod_name: str, user_id: str | None) -> bool:
+    """Whether a mod is visible to one user (the private-mods gate).
+
+    Public mods always are; private mods only to their owners and the
+    bot admins (``private: true`` + ``owner_discord_ids`` in the mod's
+    declaration). Every ``menu:mod:<mod>`` open goes through this check
+    — the gate lives at the router, never in each mod's handler.
+    """
+    registry = getattr(bot, "registry", None)
+    definition = registry.enabled().get(mod_name) if registry is not None else None
+    if definition is None or not definition.is_private():
+        return True
+    if not user_id:
+        return False
+    admins = set(getattr(getattr(bot, "status_service", None), "bot_admins", ()) or ())
+    return str(user_id) in admins or definition.owned_by(str(user_id))
+
+
+def _mod_view_guard(interaction: discord.Interaction, view_id: str) -> bool:
+    """Whether the view id may open for this user (private mods refuse).
+
+    Returns False only for a private mod's view opened by someone who
+    is neither an owner nor a bot admin. Non-mod views always pass.
+    """
+    parts = view_id.split(":")
+    if len(parts) < 3 or parts[0] != "menu" or parts[1] != "mod":
+        return True
+    user_id = str(getattr(interaction.user, "id", "") or "")
+    return mod_visible_to(interaction.client, parts[2], user_id)
+
+
 async def open_declared_view(interaction: discord.Interaction, view_id: str) -> None:
     """Open a declared view by id (ephemeral), unknown ids answered.
 
     A wired panel runs its handler; a menu (no handler — menus only
     navigate) builds from the registry and answers directly. Only
     an id that is neither wired nor declared answers "unknown view".
+    A private mod's view refuses anyone but its owners and the bot
+    admins — answered as unknown, never a silent failure.
     """
     handler = _HANDLERS.get(view_id)
+    declared = get_view(view_id) is not None
+    if (handler is not None or declared) and not _mod_view_guard(interaction, view_id):
+        # a private mod's view: answered as unknown, never opened
+        handler = None
+        declared = False
     if handler is not None:
         await handler(interaction)
         return
-    if get_view(view_id) is not None:
+    if declared:
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         builder = build_declared_menu(interaction.client, view_id)
         await interaction.response.defer(ephemeral=True, thinking=False)

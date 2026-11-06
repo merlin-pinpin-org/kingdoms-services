@@ -60,3 +60,14 @@ def test_private_mod_without_owners_fails_loudly(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="owner_discord_ids"):
         load_mod_definitions(tmp_path)
+
+
+def test_private_mod_declaration_in_modular_layout(tmp_path: Path) -> None:
+    """A modular mod.yaml declares privacy the same way (kingdoms#178)."""
+    mod_dir = tmp_path / "modules" / "mods" / "kingdoms"
+    (mod_dir / "src" / "kingdoms").mkdir(parents=True)
+    (mod_dir / "mod.yaml").write_text(PRIVATE, encoding="utf-8")
+    defs = load_mod_definitions(tmp_path / "config", repo_root=tmp_path)
+    definition = defs["kingdoms"]
+    assert definition.is_private()
+    assert definition.owned_by("111222333444555666")

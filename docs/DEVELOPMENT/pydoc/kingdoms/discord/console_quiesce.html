@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.console_quiesce</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.console_quiesce</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/console_quiesce.py">SOURCE_ROOT/discord/console_quiesce.py</a></td></tr></table>
+    <p><span class="code">Guild&nbsp;quiesce:&nbsp;silence&nbsp;a&nbsp;guild's&nbsp;self-healing&nbsp;surfaces&nbsp;during&nbsp;a&nbsp;nuke.<br>
+&nbsp;<br>
+The&nbsp;nuke&nbsp;deletes&nbsp;every&nbsp;channel&nbsp;and&nbsp;role&nbsp;of&nbsp;a&nbsp;test&nbsp;guild&nbsp;—&nbsp;but&nbsp;the<br>
+running&nbsp;bot&nbsp;keeps&nbsp;healing&nbsp;its&nbsp;surfaces&nbsp;while&nbsp;the&nbsp;deletion&nbsp;is&nbsp;in<br>
+progress:&nbsp;the&nbsp;live&nbsp;dashboard&nbsp;recreates&nbsp;its&nbsp;channel&nbsp;every&nbsp;refresh<br>
+interval&nbsp;(``ensure_live_dashboard_channel``&nbsp;creates&nbsp;when&nbsp;missing),&nbsp;and<br>
+the&nbsp;boot&nbsp;provisioning&nbsp;re-creates&nbsp;the&nbsp;managed&nbsp;channels.&nbsp;A&nbsp;nuke&nbsp;without&nbsp;a<br>
+quiesce&nbsp;therefore&nbsp;leaves&nbsp;``autohealed``&nbsp;channels&nbsp;behind&nbsp;(the&nbsp;live<br>
+dashboard&nbsp;observed&nbsp;on&nbsp;the&nbsp;merlin&nbsp;env).<br>
+&nbsp;<br>
+Contract:&nbsp;a&nbsp;destructive&nbsp;console&nbsp;action&nbsp;sets&nbsp;the&nbsp;quiesce&nbsp;marker&nbsp;first<br>
+(Redis,&nbsp;with&nbsp;a&nbsp;safety&nbsp;TTL&nbsp;so&nbsp;a&nbsp;crash&nbsp;never&nbsp;leaves&nbsp;a&nbsp;guild&nbsp;silenced<br>
+forever),&nbsp;deletes,&nbsp;then&nbsp;clears&nbsp;it.&nbsp;Every&nbsp;self-healing&nbsp;surface&nbsp;checks<br>
+``guild_quiesced``&nbsp;before&nbsp;re-creating&nbsp;anything&nbsp;and&nbsp;skips&nbsp;quietly&nbsp;—<br>
+the&nbsp;channels&nbsp;stay&nbsp;deleted&nbsp;until&nbsp;the&nbsp;marker&nbsp;clears.<br>
+&nbsp;<br>
+The&nbsp;marker&nbsp;lives&nbsp;in&nbsp;Redis&nbsp;(scope&nbsp;``console``,&nbsp;key&nbsp;``quiesce:&lt;guild&gt;``)<br>
+so&nbsp;it&nbsp;is&nbsp;shared&nbsp;by&nbsp;every&nbsp;process&nbsp;of&nbsp;the&nbsp;env&nbsp;and&nbsp;dies&nbsp;with&nbsp;the&nbsp;TTL&nbsp;even<br>
+if&nbsp;the&nbsp;bot&nbsp;crashes&nbsp;mid-nuke.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-guild_quiesced"><strong>guild_quiesced</strong></a>(bot: 'Any', guild_id: 'str | int | None') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;guild&nbsp;is&nbsp;quiesced&nbsp;(a&nbsp;destructive&nbsp;action&nbsp;is&nbsp;in&nbsp;flight).</span></dd></dl>
+ <dl><dt>async <a name="-quiesce_guild"><strong>quiesce_guild</strong></a>(bot: 'Any', guild_id: 'str | int | None') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;guild's&nbsp;quiesce&nbsp;marker&nbsp;(idempotent,&nbsp;safety&nbsp;TTL).</span></dd></dl>
+ <dl><dt>async <a name="-release_guild"><strong>release_guild</strong></a>(bot: 'Any', guild_id: 'str | int | None') -&gt; 'None'</dt><dd><span class="code">Clear&nbsp;the&nbsp;guild's&nbsp;quiesce&nbsp;marker&nbsp;(the&nbsp;guild&nbsp;heals&nbsp;again).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['guild_quiesced', 'quiesce_guild', 'release_guild']</td></tr></table>
+</body></html>

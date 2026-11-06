@@ -10,7 +10,7 @@ import argparse
 import os
 import sys
 
-from kingdoms.cli import doctor, local, remote, runner
+from kingdoms.cli import doctor, local, mod, remote, runner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("local", help="manage the local dev stack (up/down/logs/status/reset/test/lint)")
     sub.add_parser("remote", help="manage a remote server over SSH (key auth only)")
     sub.add_parser("runner", help="guided self-hosted GitHub Actions runner setup")
+    sub.add_parser("mod", help="mod scaffolding: init a new mod, list declared mods")
     return parser
 
 
@@ -41,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
         return remote.main(rest)
     if args.command == "runner":
         return runner.main(rest)
+    if args.command == "mod":
+        return mod.main(rest)
     parser.print_help()
     return 0
 

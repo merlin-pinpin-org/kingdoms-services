@@ -279,6 +279,12 @@ CRUD&nbsp;+&nbsp;lifecycle&nbsp;for&nbsp;the&nbsp;game&nbsp;catalog,&nbsp;pools&
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="GameDataService-__init__"><strong>__init__</strong></a>(self, database: 'GameDataDatabase', audit: 'GameDataAudit | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;persistence&nbsp;and&nbsp;audit&nbsp;seams.</span></dd></dl>
 
+<dl><dt>async <a name="GameDataService-activate_map_pool"><strong>activate_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Force&nbsp;a&nbsp;pool&nbsp;to&nbsp;``used``&nbsp;—&nbsp;usage&nbsp;is&nbsp;a&nbsp;fact,&nbsp;not&nbsp;a&nbsp;choice.<br>
+&nbsp;<br>
+The&nbsp;seasons&nbsp;seam&nbsp;(``SeasonService.activate_season``):&nbsp;a&nbsp;season<br>
+that&nbsp;starts&nbsp;on&nbsp;a&nbsp;pool&nbsp;moves&nbsp;it&nbsp;to&nbsp;``used``&nbsp;whatever&nbsp;its&nbsp;current<br>
+state&nbsp;—&nbsp;a&nbsp;draft&nbsp;pool&nbsp;that&nbsp;gets&nbsp;used&nbsp;is&nbsp;used&nbsp;(and&nbsp;frozen).</span></dd></dl>
+
 <dl><dt>async <a name="GameDataService-archive_faction"><strong>archive_faction</strong></a>(self, entry_id: 'str') -&gt; 'FactionModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;faction&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-archive_map"><strong>archive_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
@@ -628,5 +634,5 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>RULES_COLLECTION</strong> = 'rules'<br>
 <strong>T</strong> = ~T<br>
 <strong>__annotations__</strong> = {'POOL_TRANSITIONS': 'dict[str, tuple[str, ...]]'}<br>
-<strong>logger</strong> = &lt;Logger kingdoms.core.game_data (WARNING)&gt;</td></tr></table>
+<strong>logger</strong> = &lt;Logger kingdoms.core.game_data (INFO)&gt;</td></tr></table>
 </body></html>

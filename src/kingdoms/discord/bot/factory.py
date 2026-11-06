@@ -155,7 +155,9 @@ class KingdomsBot(discord.Client):
         self.logs_service = logs
         if logs is not None:
             logs.set_locale_resolver(self._native_guild_locale)
-        self.messages = MessageCatalog(config.config_dir)
+        # modular mods (kingdoms#178): the catalog also merges each
+        # enabled mod's locales from modules/mods/<mod>/locales
+        self.messages = MessageCatalog(config.config_dir, repo_root=getattr(config, "repo_root", None))
         self.tree = app_commands.CommandTree(self)
         self._synced = False
         self.admin_channel_service: AdminChannelService | None = None
@@ -236,6 +238,9 @@ class KingdomsBot(discord.Client):
 
         register_admin_dm_items(self)
         register_admin_tree_items(self)
+        from kingdoms.discord.console import register_console_items
+
+        register_console_items(self)
         from kingdoms.discord.views_declared import declare_platform_views
         from kingdoms.discord.views_routing import register_view_router
 
@@ -325,6 +330,13 @@ class KingdomsBot(discord.Client):
                 register_maps_forum_sync()
                 register_pools_forum_sync()
                 register_entity_forum_sync(factions_forum_spec(self))
+        # the enabled mods' setup hooks (modular layout, kingdoms#178):
+        # each mod wires its own commands and persistent UI here
+        from kingdoms.core.services.mod_entrypoint import run_mod_hook
+
+        if self.registry is not None:
+            for mod_name in self.registry.enabled():
+                run_mod_hook(self, mod_name, "setup_hook", repo_root=getattr(self.config, "repo_root", None))
         # The live dashboard channel machinery is retired (owner direction
         # 2026-10-23): the live surface is the /live command and the aoe2
         # menu panel — no dedicated autopin channel. The player-events
@@ -383,6 +395,14 @@ class KingdomsBot(discord.Client):
             return
         for guild in list(self.guilds):
             guild_id = str(guild.id)
+            from kingdoms.discord.console_quiesce import guild_nuked, guild_quiesced
+
+            if await guild_quiesced(self, guild_id) or await guild_nuked(guild_id):
+                logger.info(
+                    "BOOT ROUTING skipped (guild %s) — quiesced or nuked by a console action",
+                    guild_id,
+                )
+                continue
             await self._route_managed_channels(guild_id)
             await self._sync_tree_surfaces(guild_id, guild)
             logger.info("BOOT ROUTING done (guild %s) — nothing created", guild_id)
@@ -848,6 +868,11 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
+        from kingdoms.core.services.mod_entrypoint import run_mod_hook
+
+        if self.registry is not None:
+            for mod_name in self.registry.enabled():
+                run_mod_hook(self, mod_name, "close", repo_root=getattr(self.config, "repo_root", None))
         if self.registration_engine is not None:
             await self.registration_engine.stop()
         if self.state_service is not None:
@@ -858,7 +883,8 @@ class KingdomsBot(discord.Client):
 def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     """Build the Kingdoms bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
-    registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir)))
+    repo_root = Path(getattr(resolved, "repo_root", Path(".")))
+    registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir), repo_root=repo_root))
     games_dir = Path(resolved.config_dir) / "games"
     games = tuple(sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())) if games_dir.is_dir() else ()
     status = StatusService(
@@ -980,6 +1006,10 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         tuple(registry.enabled()),
         tuple((name, definition.required_games) for name, definition in registry.enabled().items()),
     )
+    from kingdoms.core.services.mod_entrypoint import register_mod
+
+    for mod_name in registry.enabled():
+        register_mod(bot, resolved, mod_name, repo_root=repo_root)
     return bot
 
 

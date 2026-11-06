@@ -54,6 +54,8 @@ ignore = ["D203", "D213", "D107", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "S101", "SLF"]
+# modular mods own their tests inside modules/mods/<mod>/tests (kingdoms#178)
+"modules/**/tests/**" = ["D", "S101", "SLF"]
 "src/kingdoms/rpc_generated/**" = ["D", "N", "E402", "E501", "I", "Q", "UP", "F401"]
 "src/kingdoms/core/rpc/**" = ["N802"]
 "src/kingdoms/game_aoe2/**" = ["N802"]
@@ -83,6 +85,8 @@ mypy_path = "src"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = [".github/workflows"]
+# modular mods (kingdoms#178): each mod's src/ exposes its package as
+# kingdoms.mods.<name> through a conftest shim (see modules/conftest.py)
 
 [[tool.mypy.overrides]]
 module = ["kingdoms.rpc_generated.*", "kingdoms.core.rpc.*", "kingdoms.core_process.*", "kingdoms.game_aoe2.rpc", "kingdoms.game_aoe2.client"]

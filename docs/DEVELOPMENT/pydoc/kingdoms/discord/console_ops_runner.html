@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.console_ops_runner</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.console_ops_runner</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/console_ops_runner.py">SOURCE_ROOT/discord/console_ops_runner.py</a></td></tr></table>
+    <p><span class="code">Headless&nbsp;install&nbsp;runner:&nbsp;the&nbsp;console's&nbsp;install&nbsp;action&nbsp;without&nbsp;a&nbsp;bot.<br>
+&nbsp;<br>
+The&nbsp;Discord&nbsp;``/console``&nbsp;install&nbsp;modal&nbsp;and&nbsp;this&nbsp;runner&nbsp;are&nbsp;the&nbsp;same<br>
+action&nbsp;(replace&nbsp;the&nbsp;grants,&nbsp;clean&nbsp;the&nbsp;uninstalled&nbsp;mods'&nbsp;channels&nbsp;and<br>
+roles,&nbsp;provision&nbsp;the&nbsp;installed&nbsp;ones&nbsp;through&nbsp;the&nbsp;standard&nbsp;seams).&nbsp;The<br>
+modal&nbsp;rides&nbsp;the&nbsp;running&nbsp;bot's&nbsp;wirings;&nbsp;this&nbsp;runner&nbsp;rebuilds&nbsp;them&nbsp;from&nbsp;a<br>
+bare&nbsp;``discord.Client``&nbsp;\\u2014&nbsp;the&nbsp;CLI&nbsp;(kingdoms.cli.console_ops)&nbsp;and&nbsp;the<br>
+env-console&nbsp;workflow&nbsp;use&nbsp;it&nbsp;on&nbsp;the&nbsp;environment's&nbsp;kingdoms-core<br>
+container,&nbsp;where&nbsp;the&nbsp;code&nbsp;and&nbsp;the&nbsp;Mongo&nbsp;network&nbsp;are&nbsp;both&nbsp;available<br>
+(same&nbsp;execution&nbsp;model&nbsp;as&nbsp;the&nbsp;seed&nbsp;CLIs).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-apply_install_for_guild"><strong>apply_install_for_guild</strong></a>(guild: 'discord.Guild', mods: 'list[str]', games: 'list[str]', propagate: 'bool' = True) -&gt; 'str'</dt><dd><span class="code">Apply&nbsp;the&nbsp;install&nbsp;selection&nbsp;to&nbsp;one&nbsp;guild&nbsp;(grants&nbsp;+&nbsp;clean&nbsp;+&nbsp;provision).</span></dd></dl>
+ <dl><dt><a name="-build_console_wirings"><strong>build_console_wirings</strong></a>(client: 'discord.Client') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;console's&nbsp;wirings&nbsp;from&nbsp;a&nbsp;bare&nbsp;client;&nbsp;None&nbsp;unwired.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['apply_install_for_guild', 'build_console_wirings']</td></tr></table>
+</body></html>

@@ -16,6 +16,7 @@ from typing import Protocol
 
 from kingdoms.core.interfaces.platform import IChannel
 from kingdoms.core.models.channel import ChannelModel
+from kingdoms.core.services.mod_definition import ChannelAccessPolicy
 from kingdoms.core.services.mod_registry import ModRegistry
 
 logger = logging.getLogger("kingdoms.channels")
@@ -57,6 +58,18 @@ class ChannelsPlatform(Protocol):
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the channel still exists on the platform."""
+        ...
+
+    async def ensure_category(self, guild_id: str, name: str) -> str:
+        """Resolve (or create) a Discord category by name; return its id."""
+        ...
+
+    async def ensure_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        """Resolve (or create) a text channel, inside a category; return its id."""
+        ...
+
+    async def ensure_forum(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        """Resolve (or create) a forum channel, inside a category; return its id."""
         ...
 
     async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, object]) -> None:
@@ -183,18 +196,71 @@ class ChannelService:
             logger.warning("CHANNEL CACHE WRITE FAILED (guild %s, category %s)", guild_id, category)
 
     async def setup_mod_channels(self, guild_id: str, mod_name: str) -> dict[str, IChannel]:
-        """Provision every channel category declared by a mod.
+        """Provision a mod's declared groups and channels (idempotent).
 
-        Generic: reads the mod's declaration via ModRegistry and resolves
-        each ``mod:key`` category with the same flow as any other category.
+        Generic: reads the mod's declaration via ModRegistry. The
+        declared groups become Discord categories (declaration order =
+        display order); each channel lands inside its group (or
+        uncategorised), as text/forum/announce per its ``kind``. Every
+        resolution is persisted under its ``mod:key`` so the stored ids
+        survive renames; the access policies (admin_only, read_only,
+        role audiences) are applied as overwrites, best-effort.
         """
         definition = self._registry.require(mod_name)
+        admin_roles = tuple(role.display_name for role in definition.roles if role.admin)
         channels: dict[str, IChannel] = {}
+        group_ids: dict[str, str] = {}
+        for group in definition.channel_groups:
+            try:
+                group_id = await self._platform.ensure_category(guild_id, group.display_name)
+            except Exception:
+                logger.warning(
+                    "CHANNEL GROUP provisioning failed (guild %s, %s:%s) — best-effort",
+                    guild_id,
+                    mod_name,
+                    group.key,
+                    exc_info=True,
+                )
+                continue
+            group_ids[group.key] = group_id
+            await self._persist(guild_id, f"{mod_name}:group:{group.key}", group_id, group.display_name)
+            if group.admin_only:
+                policy = ChannelAccessPolicy(
+                    view=admin_roles,
+                    post=admin_roles,
+                    everyone_view=False,
+                    everyone_post=False,
+                )
+                try:
+                    await self._platform.apply_access_policy(guild_id, group_id, policy.to_dict())
+                except Exception:
+                    logger.warning(
+                        "GROUP ACCESS POLICY application failed (guild %s, %s:%s) — best-effort",
+                        guild_id,
+                        mod_name,
+                        group.key,
+                        exc_info=True,
+                    )
         for category_def in definition.channel_categories:
             category = f"{mod_name}:{category_def.key}"
-            channels[category] = await self.get_channel_for_category(guild_id, category)
+            parent_id = group_ids.get(category_def.group)
             try:
-                await self._platform.apply_access_policy(guild_id, channels[category].id, category_def.access.to_dict())
+                if category_def.kind == "forum":
+                    channel_id = await self._platform.ensure_forum(guild_id, category_def.display_name, parent_id)
+                else:
+                    channel_id = await self._platform.ensure_channel(guild_id, category_def.display_name, parent_id)
+            except Exception:
+                logger.warning(
+                    "CHANNEL provisioning failed (guild %s, %s) — best-effort",
+                    guild_id,
+                    category,
+                    exc_info=True,
+                )
+                continue
+            await self._persist(guild_id, category, channel_id, category_def.display_name)
+            channels[category] = _ResolvedChannel(id=channel_id, name=category_def.display_name)
+            try:
+                await self._platform.apply_access_policy(guild_id, channel_id, category_def.access.to_dict())
             except Exception:
                 logger.warning(
                     "ACCESS POLICY application failed (guild %s, category %s) — best-effort",

@@ -18,6 +18,7 @@ import yaml
 from kingdoms.core.services.mod_definition import (
     ChannelAccessPolicy,
     ChannelCategoryDef,
+    ChannelGroupDef,
     ModDefinition,
     RoleDef,
 )
@@ -34,10 +35,110 @@ def _parse_str_list(declared: object, label: str, source: Path) -> list[str]:
     return list(declared)
 
 
-def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCategoryDef]:
-    """Parse the 'channels' section of a mod declaration."""
+def _parse_channel_groups(declared: object, source: Path) -> list[ChannelGroupDef]:
+    """Parse the 'channel_groups' section (the mod's Discord categories).
+
+    The declaration order is the display order (positions are assigned
+    from it); a group may be ``admin_only`` (only the mod's admin roles
+    and the bot admins see it) or ``read_only`` (nobody writes).
+    """
+    if not isinstance(declared, list):
+        raise ValueError(f"{source}: 'channel_groups' must be a list")
+    groups: list[ChannelGroupDef] = []
+    for position, entry in enumerate(declared):
+        if not isinstance(entry, dict):
+            raise ValueError(f"{source}: each channel group entry must be a mapping")
+        key = entry.get("key")
+        display = entry.get("display_name")
+        if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
+            raise ValueError(f"{source}: channel group entries need 'key' and 'display_name'")
+        groups.append(
+            ChannelGroupDef(
+                key=key,
+                display_name=display,
+                admin_only=bool(entry.get("admin_only", False)),
+                read_only=bool(entry.get("read_only", False)),
+                position=position,
+            )
+        )
+    return groups
+
+
+def _normalize_access(
+    access: ChannelAccessPolicy,
+    admin_only: bool,
+    read_only: bool,
+    admin_role_names: tuple[str, ...],
+    role_keys: dict[str, str],
+    label: str,
+    source: Path,
+) -> ChannelAccessPolicy:
+    """Fold the flags and the role keys into one access policy.
+
+    - ``admin_only`` — the audience becomes the mod's admin roles (and
+      the bot admins, always granted by the platform): @everyone denied;
+    - ``read_only`` — the post policies collapse (nobody writes);
+    - ``view``/``post`` entries that match a declared role **key** are
+      resolved to that role's display name (the platform resolves
+      overwrites by name); unknown keys fail loudly at load time —
+      a typo must never silently grant nothing.
+    """
+    del label
+    view = list(access.view)
+    post = list(access.post)
+    for names in (view, post):
+        for index, entry_name in enumerate(names):
+            if entry_name in role_keys:
+                names[index] = role_keys[entry_name]
+            elif entry_name in role_keys.values():
+                continue  # already a declared role's display name
+    if admin_only:
+        view = list(dict.fromkeys(view + list(admin_role_names)))
+        post = list(dict.fromkeys(post + list(admin_role_names)))
+        return ChannelAccessPolicy(
+            view=tuple(view),
+            post=tuple(post),
+            everyone_view=False,
+            everyone_post=False,
+            bot_overwrite=access.bot_overwrite,
+        )
+    if read_only:
+        return ChannelAccessPolicy(
+            view=tuple(view),
+            post=(),
+            everyone_view=access.everyone_view,
+            everyone_post=False,
+            bot_overwrite=access.bot_overwrite,
+        )
+    return ChannelAccessPolicy(
+        view=tuple(view),
+        post=tuple(post),
+        everyone_view=access.everyone_view,
+        everyone_post=access.everyone_post,
+        bot_overwrite=access.bot_overwrite,
+    )
+
+
+def _parse_channel_categories(
+    declared: object,
+    source: Path,
+    groups: list[ChannelGroupDef],
+    roles: list[RoleDef],
+) -> list[ChannelCategoryDef]:
+    """Parse the 'channels' section of a mod declaration.
+
+    Each channel may declare a ``group`` (a declared channel group's
+    key), a ``kind`` (text/forum/announce) and the ``admin_only`` /
+    ``read_only`` flags; unset flags inherit their group's (an announce
+    channel is read-only by default). The ``access.view``/``access.post``
+    entries are the mod's declared role keys (resolved to names) or
+    literal role names.
+    """
     if not isinstance(declared, list):
         raise ValueError(f"{source}: 'channels' must be a list")
+    known_groups = {group.key: group for group in groups}
+    role_keys = {role.key: role.display_name for role in roles}
+    admin_role_names = tuple(role.display_name for role in roles if role.admin)
     categories: list[ChannelCategoryDef] = []
     for entry in declared:
         if not isinstance(entry, dict):
@@ -46,14 +147,37 @@ def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCat
         display = entry.get("display_name")
         if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
             raise ValueError(f"{source}: channel entries need 'key' and 'display_name'")
+        group = str(entry.get("group", ""))
+        if group and group not in known_groups:
+            raise ValueError(f"{source}: channel '{key}' references undeclared group '{group}'")
+        kind = str(entry.get("kind", "text"))
+        if kind not in ("text", "forum", "announce"):
+            raise ValueError(f"{source}: channel '{key}' has unknown kind '{kind}' (text/forum/announce)")
+        if kind == "announce":
+            read_only_default = True
+        else:
+            read_only_default = known_groups[group].read_only if group else False
+        admin_default = known_groups[group].admin_only if group else False
         access_data = entry.get("access")
         access = ChannelAccessPolicy.from_dict(access_data) if isinstance(access_data, dict) else ChannelAccessPolicy()
+        admin_only = bool(entry.get("admin_only", admin_default))
+        read_only = bool(entry.get("read_only", read_only_default))
+        if admin_only and not admin_role_names:
+            raise ValueError(
+                f"{source}: channel '{key}' is admin_only but the mod declares no admin role "
+                "(a role entry with 'admin: true')"
+            )
+        access = _normalize_access(access, admin_only, read_only, admin_role_names, role_keys, key, source)
         categories.append(
             ChannelCategoryDef(
                 key=key,
                 display_name=display,
                 description=str(entry.get("description", "")),
                 per_instance=bool(entry.get("per_instance", False)),
+                group=group,
+                kind=kind,
+                admin_only=admin_only,
+                read_only=read_only,
                 access=access,
             )
         )
@@ -80,6 +204,7 @@ def _parse_roles(declared: object, source: Path) -> list[RoleDef]:
                 hoisted=bool(entry.get("hoisted", False)),
                 description=str(entry.get("description", "")),
                 per_season=bool(entry.get("per_season", False)),
+                admin=bool(entry.get("admin", False)),
             )
         )
     return roles
@@ -93,8 +218,9 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     if not name.replace("_", "").replace("-", "").isalnum() or ":" in name:
         raise ValueError(f"{source}: mod id '{name}' must be a simple slug (no ':')")
 
-    categories = _parse_channel_categories(data.get("channels", []), source)
     roles = _parse_roles(data.get("roles", []), source)
+    groups = _parse_channel_groups(data.get("channel_groups", []), source)
+    categories = _parse_channel_categories(data.get("channels", []), source, groups, roles)
 
     workflows = _parse_str_list(data.get("workflows", []), "workflows", source)
     commands = _parse_str_list(data.get("commands", []), "commands", source)
@@ -121,6 +247,7 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
         seasonal=seasonal,
         private=private,
         owner_ids=owner_ids,
+        channel_groups=tuple(groups),
         channel_categories=tuple(categories),
         roles=tuple(roles),
         workflows=tuple(workflows),
@@ -130,38 +257,68 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     )
 
 
-def load_mod_definitions(config_dir: Path) -> ModDefs:
-    """Load and validate every mod declaration in a config directory.
+def _load_declaration(path: Path) -> ModDefinition:
+    """Parse and validate one mod YAML declaration."""
+    with open(path, encoding="utf-8") as fh:
+        data = yaml.safe_load(fh)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: declaration must be a mapping")
+    return _parse_mod_yaml(data, path)
+
+
+def load_mod_definitions(config_dir: Path, repo_root: Path | None = None) -> ModDefs:
+    """Load and validate every mod declaration, legacy and modular.
+
+    Legacy: ``<config_dir>/mods/*.yaml``. Modular (kingdoms#178):
+    ``<repo_root>/modules/mods/*/mod.yaml`` — one self-contained dir per
+    mod. Legacy wins on id collision (the moving branch keeps priority
+    until its mechanical move lands).
 
     An invalid declaration raises: a broken mod must fail startup loudly,
     never load half-initialized (docs/architecture/mods.md).
     """
-    mods_dir = config_dir / "mods"
     definitions: ModDefs = {}
-    if not mods_dir.is_dir():
-        return definitions
     max_mods = 20
-    for path in sorted(mods_dir.glob("*.yaml")):
-        if path.name.endswith(".views.yaml"):
-            continue  # a mod's views declaration, not a mod declaration
-        if len(definitions) >= max_mods:
-            raise ValueError(
-                f"the platform carries at most {max_mods} mods ({mods_dir}); "
-                "disable one before declaring another"
+    if repo_root is not None:
+        modular_dir = Path(repo_root) / "modules" / "mods"
+        if modular_dir.is_dir():
+            for mod_dir in sorted(p for p in modular_dir.iterdir() if p.is_dir()):
+                declaration = mod_dir / "mod.yaml"
+                if not declaration.is_file():
+                    continue
+                if len(definitions) >= max_mods:
+                    raise ValueError(
+                        f"the platform carries at most {max_mods} mods ({modular_dir}); "
+                        "disable one before declaring another"
+                    )
+                definition = _load_declaration(declaration)
+                definitions[definition.name] = definition
+                logger.info(
+                    "Mod declared (modular): %s (enabled=%s, %d channels, %d roles)",
+                    definition.name,
+                    definition.enabled,
+                    len(definition.channel_categories),
+                    len(definition.roles),
+                )
+    mods_dir = config_dir / "mods"
+    if mods_dir.is_dir():
+        for path in sorted(mods_dir.glob("*.yaml")):
+            if path.name.endswith(".views.yaml"):
+                continue  # a mod's views declaration, not a mod declaration
+            if len(definitions) >= max_mods:
+                raise ValueError(
+                    f"the platform carries at most {max_mods} mods ({mods_dir}); "
+                    "disable one before declaring another"
+                )
+            definition = _load_declaration(path)
+            definitions[definition.name] = definition
+            logger.info(
+                "Mod declared: %s (enabled=%s, %d channels, %d roles)",
+                definition.name,
+                definition.enabled,
+                len(definition.channel_categories),
+                len(definition.roles),
             )
-        with open(path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
-        if not isinstance(data, dict):
-            raise ValueError(f"{path}: declaration must be a mapping")
-        definition = _parse_mod_yaml(data, path)
-        definitions[definition.name] = definition
-        logger.info(
-            "Mod declared: %s (enabled=%s, %d channels, %d roles)",
-            definition.name,
-            definition.enabled,
-            len(definition.channel_categories),
-            len(definition.roles),
-        )
     return definitions
 
 

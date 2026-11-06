@@ -11,7 +11,7 @@ import pytest
 
 from kingdoms.core.models.channel import ChannelModel
 from kingdoms.core.services.channel import ChannelService
-from kingdoms.core.services.mod_definition import ChannelCategoryDef, ModDefinition
+from kingdoms.core.services.mod_definition import ChannelCategoryDef, ChannelGroupDef, ModDefinition, RoleDef
 from kingdoms.core.services.mod_registry import ModRegistry
 from kingdoms.core.services.state import StateService
 from tests.mocks.state_mock import FakeClock, InMemoryStateStore
@@ -51,6 +51,11 @@ class FakeChannelsPlatform:
         self.adoptable: dict[str, str] = {}
         self.created: list[str] = []
         self.names: dict[str, str] = {}
+        self.policies: dict[tuple[str, str], dict[str, object]] = {}
+        self.parents: dict[str, str | None] = {}
+
+    async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, object]) -> None:
+        self.policies[(guild_id, channel_id)] = policy
 
     async def find_channel_by_name(self, guild_id: str, name: str) -> str | None:
         return self.adoptable.get(name)
@@ -65,6 +70,19 @@ class FakeChannelsPlatform:
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         return channel_id in self.live
+
+    async def ensure_category(self, guild_id: str, name: str) -> str:
+        return await self.create_channel(guild_id, name)
+
+    async def ensure_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        channel_id = await self.create_channel(guild_id, name)
+        self.parents[channel_id] = category_id
+        return channel_id
+
+    async def ensure_forum(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        channel_id = await self.create_channel(guild_id, name)
+        self.parents[channel_id] = category_id
+        return channel_id
 
 
 def make_service() -> tuple[ChannelService, FakeChannelsDatabase, FakeChannelsPlatform, InMemoryStateStore, FakeClock]:
@@ -178,3 +196,44 @@ class TestCacheAsideFlow:
         assert second.id != first.id
         assert f"{GUILD}:logs" in db.deletes
         assert db.channels[f"{GUILD}:logs"].channel_id == second.id
+
+
+class TestChannelGroups:
+    """The groups provisioning: Discord categories, kinds, group policies."""
+
+    async def test_groups_provision_as_categories_and_channels_inside(self) -> None:
+        """A declared group becomes a category; its channels land inside it."""
+        db = FakeChannelsDatabase()
+        platform = FakeChannelsPlatform()
+        registry = ModRegistry()
+        registry.register(
+            ModDefinition(
+                name="grouped",
+                channel_groups=(
+                    ChannelGroupDef(key="kingdoms", display_name="🏰 Kingdoms"),
+                    ChannelGroupDef(key="admin", display_name="⚙️ Admin", admin_only=True),
+                ),
+                roles=(RoleDef(key="admin", display_name="Grouped Admin", admin=True),),
+                channel_categories=(
+                    ChannelCategoryDef(key="market", display_name="marché", group="kingdoms"),
+                    ChannelCategoryDef(key="ops", display_name="opérations", group="admin", admin_only=True),
+                ),
+            )
+        )
+        service = ChannelService(
+            database=db,
+            platform=platform,
+            cache=StateService(InMemoryStateStore(clock=FakeClock())),
+            registry=registry,
+        )
+        channels = await service.setup_mod_channels(GUILD, "grouped")
+        assert list(channels) == ["grouped:market", "grouped:ops"]
+        # the group categories are provisioned and persisted
+        assert f"{GUILD}:grouped:group:kingdoms" in db.channels
+        assert f"{GUILD}:grouped:group:admin" in db.channels
+        # the market channel lives inside its group's category
+        market_id = db.channels[f"{GUILD}:grouped:market"].channel_id
+        assert platform.parents[market_id] == db.channels[f"{GUILD}:grouped:group:kingdoms"].channel_id
+        # the admin group's policy is applied on the category
+        admin_id = db.channels[f"{GUILD}:grouped:group:admin"].channel_id
+        assert platform.policies[(GUILD, admin_id)]["view"] == ["Grouped Admin"]

@@ -70,6 +70,15 @@ class FakeChannelsPlatform:
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         return channel_id in self.live
 
+    async def ensure_category(self, guild_id: str, name: str) -> str:
+        return await self.create_channel(guild_id, name)
+
+    async def ensure_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        return await self.create_channel(guild_id, name)
+
+    async def ensure_forum(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        return await self.create_channel(guild_id, name)
+
     async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, object]) -> None:
         self.applied[channel_id] = policy
         overwrites: dict[str, dict[str, bool]] = {"@everyone": {}}

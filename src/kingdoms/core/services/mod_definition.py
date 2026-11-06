@@ -50,22 +50,62 @@ class ChannelAccessPolicy:
 
 
 @dataclass(frozen=True, slots=True)
+class ChannelGroupDef:
+    """A channel group (a Discord category) declared by a mod.
+
+    Addressed at runtime as ``mod:group:<key>``; channels declare their
+    membership with their ``group`` key. The declaration order is the
+    display order (positions are assigned from it).
+
+    ``admin_only`` — only the mod's admin roles (and the bot admins) see
+    the group: @everyone is denied at provisioning; ``read_only`` —
+    nobody writes in the group's channels (announcements).
+    """
+
+    key: str
+    display_name: str
+    admin_only: bool = False
+    read_only: bool = False
+    position: int = 0
+
+
+@dataclass(frozen=True, slots=True)
 class ChannelCategoryDef:
-    """A channel category declared by a mod.
+    """A channel declared by a mod.
 
     Addressed at runtime as ``mod:key`` (e.g. ``ladder:ladder_rankings``).
+
+    - ``group`` — the parent group's key (a declared ``channel_groups``
+      entry); a channel without a group lives uncategorised;
+    - ``kind`` — ``text``, ``forum`` or ``announce`` (an announce channel
+      is admin-written, everyone-readable);
+    - ``admin_only`` — only the mod's admin roles (and the bot admins)
+      see the channel; inherits the group's flag when unset;
+    - ``read_only`` — nobody writes in the channel (the view/post
+      policies collapse to read); inherits the group's flag when unset;
+    - ``access.view``/``access.post`` — the mod's declared **role keys**
+      (resolved to the declared roles' names at load time), or literal
+      role names for roles the mod does not declare.
     """
 
     key: str
     display_name: str
     description: str = ""
     per_instance: bool = False
+    group: str = ""
+    kind: str = "text"
+    admin_only: bool | None = None
+    read_only: bool | None = None
     access: ChannelAccessPolicy = ChannelAccessPolicy()
 
 
 @dataclass(frozen=True, slots=True)
 class RoleDef:
-    """A role declared by a mod, referenced by logical role key."""
+    """A role declared by a mod, referenced by logical role key.
+
+    ``admin`` — the mod's admin role: an ``admin_only`` channel/group
+    resolves its audience to the mod's admin roles (and the bot admins).
+    """
 
     key: str
     display_name: str
@@ -73,6 +113,7 @@ class RoleDef:
     hoisted: bool = False
     description: str = ""
     per_season: bool = False
+    admin: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +123,7 @@ class ModDefinition:
     name: str
     enabled: bool = True
     seasonal: bool | None = None
+    channel_groups: tuple[ChannelGroupDef, ...] = field(default_factory=tuple)
     channel_categories: tuple[ChannelCategoryDef, ...] = field(default_factory=tuple)
     roles: tuple[RoleDef, ...] = field(default_factory=tuple)
     workflows: tuple[str, ...] = field(default_factory=tuple)

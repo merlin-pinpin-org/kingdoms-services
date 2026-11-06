@@ -1,0 +1,34 @@
+# Ladder mod declaration: seasonal 1v1 ladder (AoE2).
+# Loaded by ModRegistry at startup; /status lists this mod when enabled.
+#
+# REFERENCE EXAMPLE (docs/GUIDES/mod-init.md, kingdoms repo): this is the
+# real declaration of the ladder mod (currently developed on the
+# vibe/merlin/main integration branch) moved as-is into the modular
+# layout — one self-contained directory per mod (kingdoms#178).
+id: ladder
+# false until the code moves from vibe/merlin/main into this directory
+# (kingdoms#178 mechanical move) — flip to true in that same PR.
+enabled: false
+seasonal: true
+settings: {}
+channels: []
+roles:
+  # Mod-level role: ladder staff act as admins within the mod.
+  - key: staff
+    display_name: "Staff ladder"
+    description: "Staff du ladder (agissent comme admin au sein du mod)"
+  # Per-season roles: provisioned at season creation by the core's
+  # SeasonRolesService (player:<season>, staff:<season>), e.g.
+  # "Joueur ladder s1" / "Staff ladder s1".
+  - key: player
+    display_name: "Joueur ladder"
+    description: "Joueur inscrit à la saison en cours (rôle par saison)"
+    per_season: true
+  - key: season_staff
+    display_name: "Staff ladder"
+    description: "Staff de la saison (rôle par saison)"
+    per_season: true
+workflows: []
+commands:
+  - ladder
+dependencies: []
