@@ -156,6 +156,31 @@ def match_result_to_wire(result: MatchResult) -> game_pb2.MatchResult:
     )
 
 
+def match_result_from_wire(wire: game_pb2.MatchResult) -> MatchResult:
+    """Translate a wire match-result message into the core model.
+
+    The ratings ride the wire as two maps (old/new); the model carries
+    the pairs. ``match_ref`` is the platform's own reference and never
+    crosses the provider wire — it stays empty for the caller to fill.
+    """
+    return MatchResult(
+        match_ref="",
+        winner_profile_id=wire.winner_profile_id,
+        loser_profile_ids=tuple(wire.loser_profile_ids),
+        map_name=wire.map_name,
+        duration_ms=wire.duration_ms,
+        ended_at=wire.ended_at,
+        factions=dict(wire.factions),
+        found=wire.found,
+        ratings={
+            pid: (wire.old_rating[pid], wire.new_rating[pid])
+            for pid in wire.old_rating
+            if pid in wire.new_rating
+        },
+        teams=dict(wire.teams),
+    )
+
+
 def player_stats_to_wire(stats: PlayerStats) -> game_pb2.PlayerStats:
     """Translate a core player-stats model into the wire message."""
     return game_pb2.PlayerStats(

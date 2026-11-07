@@ -42,7 +42,11 @@ class EntityCardSpec:
     creator: str = ""
     links_heading: str = ""
     links: tuple[str, ...] = ()
-    action_buttons: tuple[Callable[[], discord.ui.Item[discord.ui.LayoutView]], ...] = field(
+    action_buttons: tuple[
+        Callable[[], discord.ui.Item[discord.ui.LayoutView]]
+        | discord.ui.ActionRow[discord.ui.LayoutView],
+        ...
+    ] = field(
         default_factory=tuple
     )
 
@@ -85,15 +89,19 @@ def _body(view: discord.ui.LayoutView, spec: EntityCardSpec) -> None:
 
 def _actions(
     view: discord.ui.LayoutView,
-    buttons: tuple[Callable[[], discord.ui.Item[discord.ui.LayoutView]], ...],
+    buttons: tuple[
+        Callable[[], discord.ui.Item[discord.ui.LayoutView]]
+        | discord.ui.ActionRow[discord.ui.LayoutView],
+        ...
+    ],
 ) -> None:
     """Add the action row (each factory builds a persistent item)."""
     if not buttons:
         return
     prebuilt = [b for b in buttons if isinstance(b, discord.ui.ActionRow)]
     factories = [b for b in buttons if not isinstance(b, discord.ui.ActionRow)]
-    for row in prebuilt:
-        view.add_item(row)
+    for prebuilt_row in prebuilt:
+        view.add_item(prebuilt_row)
     if factories:
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         for build in factories:
