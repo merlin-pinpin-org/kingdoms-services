@@ -200,11 +200,12 @@ class ContentServicer(content_pb2_grpc.ContentServicer):
         request: content_pb2.MapContentRequest,
         context: grpc.aio.ServicerContext,
     ) -> content_pb2.LocalizedContent:
-        """Serve one map's localized content, NOT_FOUND when unknown."""
-        if not self._game_served(request.game_key, context):
-            import asyncio
+        """Serve one map's localized content, NOT_FOUND when unknown.
 
-            raise asyncio.CancelledError
+        ``MapContentRequest`` carries no game_key (the contract): the provider
+        serves its single declared game by construction, so the game gate
+        runs only where the wire message carries the game (``GetMapSeed``).
+        """
         content = await self._map_content(request.map_key, request.locale)
         if content is None or not content.get("found", True):
             await context.abort(grpc.StatusCode.NOT_FOUND, "unknown map_key")

@@ -62,7 +62,11 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="ContentServicer-GetFactionContent"><strong>GetFactionContent</strong></a>(self, request: 'content_pb2.FactionContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.</span></dd></dl>
 
-<dl><dt>async <a name="ContentServicer-GetMapContent"><strong>GetMapContent</strong></a>(self, request: 'content_pb2.MapContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.</span></dd></dl>
+<dl><dt>async <a name="ContentServicer-GetMapContent"><strong>GetMapContent</strong></a>(self, request: 'content_pb2.MapContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.<br>
+&nbsp;<br>
+``MapContentRequest``&nbsp;carries&nbsp;no&nbsp;game_key&nbsp;(the&nbsp;contract):&nbsp;the&nbsp;provider<br>
+serves&nbsp;its&nbsp;single&nbsp;declared&nbsp;game&nbsp;by&nbsp;construction,&nbsp;so&nbsp;the&nbsp;game&nbsp;gate<br>
+runs&nbsp;only&nbsp;where&nbsp;the&nbsp;wire&nbsp;message&nbsp;carries&nbsp;the&nbsp;game&nbsp;(``GetMapSeed``).</span></dd></dl>
 
 <dl><dt>async <a name="ContentServicer-GetMapSeed"><strong>GetMapSeed</strong></a>(self, request: 'content_pb2.MapSeedRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.MapSeedReply'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;full&nbsp;descriptor&nbsp;(the&nbsp;import&nbsp;flow).</span></dd></dl>
 
