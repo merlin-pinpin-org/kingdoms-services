@@ -19,8 +19,9 @@ the data and the buttons. No game or mod imports here.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 import discord
 
@@ -44,7 +45,8 @@ class EntityCardSpec:
     links: tuple[str, ...] = ()
     action_buttons: tuple[
         Callable[[], discord.ui.Item[discord.ui.LayoutView]]
-        | discord.ui.ActionRow[discord.ui.LayoutView],
+        | discord.ui.ActionRow[discord.ui.LayoutView]
+        | discord.ui.DynamicItem[Any],
         ...
     ] = field(
         default_factory=tuple
@@ -91,22 +93,52 @@ def _actions(
     view: discord.ui.LayoutView,
     buttons: tuple[
         Callable[[], discord.ui.Item[discord.ui.LayoutView]]
-        | discord.ui.ActionRow[discord.ui.LayoutView],
+        | discord.ui.ActionRow[discord.ui.LayoutView]
+        | discord.ui.DynamicItem[Any],
         ...
     ],
 ) -> None:
-    """Add the action row (each factory builds a persistent item)."""
+    """Add the action rows, in the tuple's order.
+
+    Three shapes ride the same seam: a factory builds a persistent
+    item (the posts' persistent buttons), a prebuilt ActionRow lands as
+    its own row (the admin menu's lifecycle row), and a DynamicItem
+    instance joins the current row (the admin menu's persistent
+    buttons — the 2026-11-07 pool-menu crash: they are not callable,
+    and treating them as factories killed the menu render).
+    """
     if not buttons:
         return
-    prebuilt = [b for b in buttons if isinstance(b, discord.ui.ActionRow)]
-    factories = [b for b in buttons if not isinstance(b, discord.ui.ActionRow)]
-    for prebuilt_row in prebuilt:
-        view.add_item(prebuilt_row)
-    if factories:
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        for build in factories:
-            row.add_item(build())
+    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
+    current: list[discord.ui.DynamicItem[Any]] = []
+
+    def _flush() -> None:
+        if current:
+            rows.append(_row_of(current))
+            current.clear()
+
+    for button in buttons:
+        if isinstance(button, discord.ui.ActionRow):
+            _flush()
+            rows.append(button)
+        elif isinstance(button, discord.ui.DynamicItem):
+            current.append(button)
+        else:
+            _flush()
+            rows.append(_row_of([button()]))
+    _flush()
+    for row in rows:
         view.add_item(row)
+
+
+def _row_of(
+    items: Sequence[discord.ui.DynamicItem[Any] | discord.ui.Item[Any]],
+) -> discord.ui.ActionRow[discord.ui.LayoutView]:
+    """One action row carrying these dynamic items."""
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for item in items:
+        row.add_item(item)
+    return row
 
 
 def build_entity_card(spec: EntityCardSpec) -> discord.ui.LayoutView:

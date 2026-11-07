@@ -429,6 +429,17 @@ class ContentRefreshButton(
             _dm_tr(interaction, dm_locale, "new_civs_line", names=", ".join(new_factions))
             if new_factions else ""
         )
+        # the confirmation lands FIRST — the admin sees the counts right
+        # away; the mirror below may create a hundred posts and must
+        # never hold the interaction token past its window.
+        await interaction.followup.send(
+            _dm_tr(
+                interaction, dm_locale, "refresh_done",
+                factions=counts.get("total_factions", 0), new=counts.get("factions", 0),
+                docs=counts.get("content_docs", 0), new_line=new_line,
+            ),
+            ephemeral=True,
+        )
         # best-effort: the refreshed civ content shows up on the civs
         # forum posts right away — the civ sync upserts the content
         # docs, the forum sync creates/refreshes the posts (#330 — the
@@ -443,14 +454,6 @@ class ContentRefreshButton(
                 )
         except Exception:
             logger.warning("DM PANEL: civs forum sync after refresh failed — best-effort")
-        await interaction.followup.send(
-            _dm_tr(
-                interaction, dm_locale, "refresh_done",
-                factions=counts.get("total_factions", 0), new=counts.get("factions", 0),
-                docs=counts.get("content_docs", 0), new_line=new_line,
-            ),
-            ephemeral=True,
-        )
 
 
 # The maps sync cooldown: two clicks minutes apart double the Liquipedia
