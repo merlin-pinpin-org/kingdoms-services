@@ -11,7 +11,7 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_liquipedia/source.py">SOURCE_ROOT/ext_liquipedia/source.py</a></td></tr></table>
     <p><span class="code">ext-liquipedia&nbsp;source:&nbsp;Liquipedia&nbsp;access&nbsp;+&nbsp;the&nbsp;provider's&nbsp;own&nbsp;tables.<br>
 &nbsp;<br>
-The&nbsp;``LiquipediaMapsProvider``&nbsp;(moved&nbsp;from&nbsp;``kingdoms.mapsdata``)<br>
+The&nbsp;``LiquipediaMapsProvider``&nbsp;(the&nbsp;provider-owned&nbsp;HTTP&nbsp;client)<br>
 carries&nbsp;the&nbsp;MediaWiki&nbsp;access&nbsp;with&nbsp;its&nbsp;terms-of-use&nbsp;compliance&nbsp;(custom<br>
 User-Agent,&nbsp;rate&nbsp;limits,&nbsp;licence&nbsp;guard).&nbsp;This&nbsp;module&nbsp;wraps&nbsp;it&nbsp;with&nbsp;the<br>
 provider's&nbsp;persistence:&nbsp;every&nbsp;fetched&nbsp;page&nbsp;is&nbsp;stored&nbsp;raw&nbsp;in&nbsp;Mongo<br>
@@ -30,8 +30,10 @@ module&nbsp;never&nbsp;had.</span></p>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="queue.html">queue</a><br>
+</td><td class="multicolumn"><a href="threading.html">threading</a><br>
 </td><td class="multicolumn"><a href="time.html">time</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -71,10 +73,12 @@ knows&nbsp;who&nbsp;consumes&nbsp;it.</span></dd></dl>
 
 <dl><dt><a name="LiquipediaSource-map_seed"><strong>map_seed</strong></a>(self, game_key: 'str', map_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;map&nbsp;name&nbsp;into&nbsp;its&nbsp;full&nbsp;descriptor.<br>
 &nbsp;<br>
-The&nbsp;persisted&nbsp;descriptor&nbsp;serves&nbsp;first&nbsp;(cache-aside);&nbsp;a&nbsp;miss<br>
-fetches&nbsp;the&nbsp;page&nbsp;upstream,&nbsp;persists&nbsp;raw&nbsp;+&nbsp;descriptor,&nbsp;then<br>
-answers.&nbsp;A&nbsp;page&nbsp;absent&nbsp;upstream&nbsp;answers&nbsp;None&nbsp;(the&nbsp;caller<br>
-falls&nbsp;back&nbsp;to&nbsp;admin-entered&nbsp;fields).</span></dd></dl>
+The&nbsp;persisted&nbsp;descriptor&nbsp;serves&nbsp;first&nbsp;(cache-aside);&nbsp;a&nbsp;miss&nbsp;is<br>
+QUEUED&nbsp;for&nbsp;the&nbsp;seed&nbsp;worker,&nbsp;which&nbsp;coalesces&nbsp;every&nbsp;concurrent<br>
+request&nbsp;into&nbsp;batched&nbsp;``action=query``&nbsp;calls&nbsp;(&lt;=50&nbsp;pages&nbsp;each,<br>
+the&nbsp;light&nbsp;2&nbsp;s&nbsp;pacing&nbsp;—&nbsp;never&nbsp;a&nbsp;burst&nbsp;of&nbsp;single-page&nbsp;``parse``<br>
+calls).&nbsp;A&nbsp;page&nbsp;absent&nbsp;upstream&nbsp;answers&nbsp;None&nbsp;(the&nbsp;caller&nbsp;falls<br>
+back&nbsp;to&nbsp;admin-entered&nbsp;fields).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

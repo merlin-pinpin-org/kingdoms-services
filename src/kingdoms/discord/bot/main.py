@@ -101,7 +101,9 @@ async def run_bot() -> None:
 
         try:
             core_status = await fetch_core_status(core_uri)
-            print(f"CORE_WIRING_OK uri={core_uri} version={core_status.version}")
+            logging.getLogger("kingdoms.bot").info(
+                "CORE_WIRING_OK uri=%s version=%s", core_uri, core_status.version
+            )
         except Exception as exc:
             print(f"CORE_WIRING_FAILED uri={core_uri} error={exc}")
 

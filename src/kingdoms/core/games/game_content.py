@@ -1,7 +1,7 @@
 """Generic game content source seam (game-agnostic).
 
 Every game-specific content provider (aoe2: the vendored techtree dataset
-or the ext-aoe2techtree process) implements **a part** of this generic
+or any content provider process) implements **a part** of this generic
 game data provider contract. The core consumes content through this seam
 only: nothing aoe2-specific (or any other game-specific concern) leaks
 here, so the same seam serves the next game's provider unchanged.
@@ -122,15 +122,18 @@ class RpcContentSource:
         )
 
 
-def resolve_content_source(local: GameContentSource, provider_uri: str) -> GameContentSource:
-    """Pick the source for one game (local dataset default, RPC optional).
+def resolve_content_source(
+    local: GameContentSource | None, provider_uri: str
+) -> GameContentSource:
+    """Pick the source for one game: the provider, required.
 
     A set provider URI routes content through the game's ext provider
-    process; an empty URI keeps the local in-process provider. The game
-    module owns which env/config feeds ``provider_uri`` — this seam stays
-    game-agnostic.
+    process. The local dataset fallback is GONE (owner direction
+    2026-11-05: no vendored data) — the games raise a functional error
+    before reaching here when their provider is not configured, so the
+    empty-URI branch answers a raising stub.
     """
     if provider_uri:
         logger.info("CONTENT SOURCE: rpc provider at %s", provider_uri)
         return RpcContentSource(provider_uri)
-    return local
+    raise RuntimeError("no content provider configured — the game must fail before this seam")

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ratelimit_observability</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.ratelimit_observability</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ratelimit_observability.py">SOURCE_ROOT/discord/ratelimit_observability.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;rate-limit&nbsp;observability&nbsp;—&nbsp;the&nbsp;buckets,&nbsp;logged.<br>
+&nbsp;<br>
+Discord&nbsp;answers&nbsp;every&nbsp;request&nbsp;with&nbsp;rate-limit&nbsp;headers&nbsp;(X-Ratelimit-Limit,<br>
+-Remaining,&nbsp;-Reset-After,&nbsp;-Bucket&nbsp;—&nbsp;see<br>
+<a href="https://docs.discord.com/developers/topics/rate-limits">https://docs.discord.com/developers/topics/rate-limits</a>).&nbsp;discord.py<br>
+consumes&nbsp;them&nbsp;internally&nbsp;(its&nbsp;Ratelimit&nbsp;buckets)&nbsp;but&nbsp;logs&nbsp;almost&nbsp;nothing:<br>
+the&nbsp;2026-11-06&nbsp;channel-creation&nbsp;throttle&nbsp;(~7&nbsp;h)&nbsp;surfaced&nbsp;as&nbsp;a&nbsp;bare<br>
+"see&nbsp;the&nbsp;bot&nbsp;logs".<br>
+&nbsp;<br>
+This&nbsp;module&nbsp;subclasses&nbsp;discord.py's&nbsp;HTTPClient&nbsp;and&nbsp;logs&nbsp;each&nbsp;route's<br>
+bucket&nbsp;state&nbsp;after&nbsp;every&nbsp;request:<br>
+&nbsp;<br>
+-&nbsp;DEBUG:&nbsp;the&nbsp;full&nbsp;bucket&nbsp;line&nbsp;(limit,&nbsp;remaining,&nbsp;reset-after,&nbsp;bucket)<br>
+-&nbsp;INFO:&nbsp;when&nbsp;a&nbsp;bucket&nbsp;is&nbsp;about&nbsp;to&nbsp;exhaust&nbsp;(remaining&nbsp;&lt;=&nbsp;1)<br>
+-&nbsp;WARNING:&nbsp;when&nbsp;discord.py&nbsp;raises&nbsp;RateLimited&nbsp;(the&nbsp;retry-after&nbsp;with&nbsp;the<br>
+&nbsp;&nbsp;bucket)<br>
+&nbsp;<br>
+The&nbsp;install&nbsp;is&nbsp;DEFENSIVE:&nbsp;it&nbsp;patches&nbsp;the&nbsp;class&nbsp;reference&nbsp;discord.Client<br>
+uses,&nbsp;and&nbsp;a&nbsp;discord.py&nbsp;upgrade&nbsp;that&nbsp;changes&nbsp;the&nbsp;internals&nbsp;degrades&nbsp;to<br>
+the&nbsp;stock&nbsp;client&nbsp;with&nbsp;a&nbsp;warning&nbsp;—&nbsp;never&nbsp;a&nbsp;crash.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-install"><strong>install</strong></a>() -&gt; 'None'</dt><dd><span class="code">Patch&nbsp;the&nbsp;bot's&nbsp;HTTPClient&nbsp;with&nbsp;the&nbsp;rate-limit-logging&nbsp;subclass.<br>
+&nbsp;<br>
+Call&nbsp;ONCE,&nbsp;before&nbsp;the&nbsp;discord.Client&nbsp;is&nbsp;instantiated&nbsp;(the&nbsp;bot's<br>
+factory&nbsp;does&nbsp;it&nbsp;at&nbsp;build&nbsp;time).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.discord.ratelimit (WARNING)&gt;</td></tr></table>
+</body></html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.wiki_names</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.wiki_names</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/wiki_names.py">SOURCE_ROOT/core/wiki_names.py</a></td></tr></table>
+    <p><span class="code">Wiki&nbsp;page&nbsp;naming&nbsp;—&nbsp;the&nbsp;shared&nbsp;util&nbsp;for&nbsp;any&nbsp;MediaWiki-style&nbsp;provider.<br>
+&nbsp;<br>
+Page-name&nbsp;extraction&nbsp;from&nbsp;URLs&nbsp;and&nbsp;the&nbsp;title-casing&nbsp;variants&nbsp;a&nbsp;wiki<br>
+resolves&nbsp;case-sensitively.&nbsp;Extracted&nbsp;from&nbsp;the&nbsp;legacy&nbsp;in-process&nbsp;seed<br>
+so&nbsp;the&nbsp;ext&nbsp;providers&nbsp;import&nbsp;a&nbsp;PUBLIC&nbsp;util,&nbsp;never&nbsp;a&nbsp;private&nbsp;symbol<br>
+(architecture&nbsp;rule&nbsp;R1&nbsp;—&nbsp;the&nbsp;audit's&nbsp;wiki&nbsp;provider&nbsp;→&nbsp;mapsdata.seed<br>
+private&nbsp;imports).</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-extract_page_name"><strong>extract_page_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;page&nbsp;title&nbsp;from&nbsp;a&nbsp;name&nbsp;or&nbsp;a&nbsp;full&nbsp;wiki&nbsp;URL.<br>
+&nbsp;<br>
+"<a href="https://&lt;wiki-host&gt;/&lt;segment&gt;/Team_Islands">https://&lt;wiki-host&gt;/&lt;segment&gt;/Team_Islands</a>"&nbsp;-&gt;&nbsp;"Team&nbsp;Islands";<br>
+query&nbsp;strings&nbsp;and&nbsp;trailing&nbsp;paths&nbsp;drop.</span></dd></dl>
+ <dl><dt><a name="-title_variants"><strong>title_variants</strong></a>(name: 'str') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;casings&nbsp;to&nbsp;try,&nbsp;in&nbsp;order:&nbsp;as-given,&nbsp;then&nbsp;title-cased.<br>
+&nbsp;<br>
+MediaWiki&nbsp;resolves&nbsp;page&nbsp;titles&nbsp;case-sensitively;&nbsp;a&nbsp;lowercase&nbsp;catalog<br>
+name&nbsp;("team&nbsp;islands")&nbsp;misses&nbsp;the&nbsp;cased&nbsp;wiki&nbsp;title&nbsp;("Team&nbsp;Islands")<br>
+—&nbsp;both&nbsp;casings&nbsp;are&nbsp;tried,&nbsp;first&nbsp;hit&nbsp;wins.</span></dd></dl>
+ <dl><dt><a name="-wiki_user_agent"><strong>wiki_user_agent</strong></a>() -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;identified&nbsp;User-Agent;&nbsp;the&nbsp;contact&nbsp;comes&nbsp;from&nbsp;config.<br>
+&nbsp;<br>
+The&nbsp;generic&nbsp;``PROVIDER_CONTACT``&nbsp;—&nbsp;every&nbsp;provider's&nbsp;operational<br>
+address&nbsp;(the&nbsp;wiki&nbsp;terms&nbsp;of&nbsp;use&nbsp;demand&nbsp;an&nbsp;identified&nbsp;agent).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_USER_AGENT_TEMPLATE</strong> = 'KingdomsBot/1.0 (https://github.com/merlin-pinpin-org/kingdoms; {contact})'</td></tr></table>
+</body></html>

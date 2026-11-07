@@ -320,6 +320,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="RegistrationDatabase-find_binding_by_profile"><strong>find_binding_by_profile</strong></a>(self, game_key: 'str', profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;binding&nbsp;owning&nbsp;a&nbsp;profile;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
 
+<dl><dt>async <a name="RegistrationDatabase-find_bindings_by_profiles"><strong>find_bindings_by_profiles</strong></a>(self, game_key: 'str', profile_ids: 'list[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;bindings&nbsp;of&nbsp;many&nbsp;profiles&nbsp;in&nbsp;ONE&nbsp;batch&nbsp;(the&nbsp;panels).</span></dd></dl>
+
 <dl><dt>async <a name="RegistrationDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="RegistrationDatabase-find_user_bindings"><strong>find_user_bindings</strong></a>(self, user_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;game-profile&nbsp;bindings&nbsp;of&nbsp;a&nbsp;user&nbsp;(all&nbsp;games).</span></dd></dl>
@@ -346,7 +348,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_binding', 'find_binding_by_profile', 'find_entry', 'find_user_bindings', 'upsert_entry'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_binding', 'find_binding_by_profile', 'find_bindings_by_profiles', 'find_entry', 'find_user_bindings', 'upsert_entry'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -439,6 +441,11 @@ Bind&nbsp;platform&nbsp;users&nbsp;to&nbsp;validated&nbsp;game&nbsp;profiles&nbs
 &nbsp;<br>
 Validation&nbsp;is&nbsp;delegated&nbsp;to&nbsp;the&nbsp;game&nbsp;seam;&nbsp;a&nbsp;profile&nbsp;already&nbsp;bound<br>
 to&nbsp;another&nbsp;user&nbsp;is&nbsp;refused.&nbsp;The&nbsp;binding&nbsp;is&nbsp;stored&nbsp;game-side.</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationService-find_bindings_by_profiles"><strong>find_bindings_by_profiles</strong></a>(self, game_key: 'str', profile_ids: 'list[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Read&nbsp;many&nbsp;profiles'&nbsp;bindings&nbsp;in&nbsp;ONE&nbsp;batch&nbsp;(the&nbsp;panel's&nbsp;path).<br>
+&nbsp;<br>
+Rule&nbsp;5:&nbsp;``profile_bindings``&nbsp;is&nbsp;owned&nbsp;here&nbsp;—&nbsp;the&nbsp;callers&nbsp;(the<br>
+bot's&nbsp;panels)&nbsp;go&nbsp;through&nbsp;the&nbsp;service,&nbsp;never&nbsp;the&nbsp;raw&nbsp;database.</span></dd></dl>
 
 <dl><dt>async <a name="RegistrationService-get_binding"><strong>get_binding</strong></a>(self, user_id: 'str', game_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;first&nbsp;binding&nbsp;for&nbsp;a&nbsp;game;&nbsp;None&nbsp;when&nbsp;unbound.<br>
 &nbsp;<br>

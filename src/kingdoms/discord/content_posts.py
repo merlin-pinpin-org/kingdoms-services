@@ -21,17 +21,20 @@ _CONTENT_READY = False
 
 
 def _build_content_service() -> Any | None:
-    """Build the FactionContentService over the shared Mongo adapter."""
+    """Build the content door over the GAME SERVICE (rule 5).
+
+    The localized content docs are the game's collections — they answer
+    from the owner's process through the catalog gateway's content ops.
+    """
     import os
 
-    from kingdoms.core.services.faction_content import FactionContentService
-
-    if not os.environ.get("MONGO_URI"):
+    game_uri = os.environ.get("GAME_AOE2_URI", "")
+    if not game_uri:
         return None
     try:
-        from kingdoms.core.models.db import get_async_database
+        from kingdoms.game_aoe2.remote_catalog import RemoteGameDataService
 
-        return FactionContentService(get_async_database())
+        return RemoteGameDataService(game_uri)
     except Exception:
         logger.warning("content service unavailable", exc_info=True)
         return None
@@ -64,11 +67,11 @@ async def entity_post_content(entity_id: str, fallback_name: str, guild_id: str,
     if service is None:
         return fallback_name, "", "", ""
     try:
-        doc = await service.get(entity_id, locale)
+        doc = await service.content_get(entity_id, locale)
         if doc is None and locale != "en":
             # The map imports store their content under the "en" locale —
             # a guild reading in another locale still gets the card.
-            doc = await service.get(entity_id, "en")
+            doc = await service.content_get(entity_id, "en")
     except Exception:
         logger.debug("content read failed (%s)", entity_id, exc_info=True)
         doc = None

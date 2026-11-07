@@ -41,8 +41,8 @@ from typing import Any
 
 import websockets
 
-from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S, LobbyClosedGrace
-from kingdoms.core.services.provider_endpoints import provider_url as _provider_url
+from kingdoms.aoe2.timing import GRACE_PERIOD_S, LobbyClosedGrace
+from kingdoms.core_process.provider_endpoints import provider_url as _provider_url
 
 logger = logging.getLogger(__name__)
 

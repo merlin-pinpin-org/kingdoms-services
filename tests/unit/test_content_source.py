@@ -1,67 +1,34 @@
-"""Unit tests for the game content source seam (dataset vs RPC).
+"""Unit tests for the game content source seam: the provider, required.
 
-Covers: env-based source resolution (dataset default, RPC via
-EXT_AOE2TECHTREE_URI), the local dataset adapter, and the clean
-degradation of the RPC source (unknown faction -> None).
+No vendored data (owner direction 2026-11-05): the source is the
+aoe2techtree provider process over the Content contract, or a
+functional error. Covers the RPC source's clean degradation (an
+unknown faction answers None).
 """
 
 from __future__ import annotations
 
-from kingdoms.core.games.aoe2.content_source import resolve_aoe2_content_source
-from kingdoms.core.games.aoe2.faction_content import TechtreeContentProvider
-from kingdoms.core.games.game_content import (
-    LocalProviderSource,
-    RpcContentSource,
-)
+from kingdoms.core.games.game_content import RpcContentSource
+from kingdoms.game_aoe2.content_source import resolve_aoe2_content_source
 
 
-def _provider() -> TechtreeContentProvider:
-    """Build a minimal techtree provider from inline dataset snippets."""
-    data_json = """
-    {"civs": {"Franks": {"name_string_id": 100, "help_string_id": 101}}}
+def test_resolve_without_provider_is_a_functional_error() -> None:
+    """No EXT_AOE2TECHTREE_URI: a FUNCTIONAL error, never a local fallback.
+
+    The vendored dataset is gone (owner direction 2026-11-05): the civs
+    come from the provider process or the sync reports the gap.
     """
-    strings = {
-        "en": '{"100": "Franks", "101": "Cavalry civ<br>Cheap castles"}',
-        "fr": '{"100": "Francs", "101": "Civilisation de cavalerie"}',
-    }
-    return TechtreeContentProvider.from_files(data_json, strings)
+    import pytest
 
+    from kingdoms.game_aoe2.content_source import ProviderUnavailableError
 
-def test_resolve_defaults_to_local_dataset() -> None:
-    """Without EXT_AOE2TECHTREE_URI the vendored dataset serves in-process."""
-    source = resolve_aoe2_content_source(_provider(), env={})
-    assert isinstance(source, LocalProviderSource)
+    with pytest.raises(ProviderUnavailableError):
+        resolve_aoe2_content_source(env={})
 
 
 def test_resolve_env_overrides_to_rpc() -> None:
     """A set EXT_AOE2TECHTREE_URI routes content through the ext process."""
-    source = resolve_aoe2_content_source(_provider(), env={"EXT_AOE2TECHTREE_URI": "kingdoms-ext-aoe2techtree:50063"})
+    source = resolve_aoe2_content_source(env={"EXT_AOE2TECHTREE_URI": "kingdoms-ext-aoe2techtree:50063"})
     assert isinstance(source, RpcContentSource)
 
 
-def test_local_dataset_lists_factions() -> None:
-    """The local adapter exposes the dataset's civ index."""
-    source = LocalProviderSource(_provider())
-    import asyncio
-
-    assert asyncio.run(source.list_factions()) == ["Franks"]
-
-
-def test_local_dataset_faction_content() -> None:
-    """The local adapter extracts the localized descriptor."""
-    import asyncio
-
-    source = LocalProviderSource(_provider())
-    content = asyncio.run(source.faction_content("Franks", "fr"))
-    assert content is not None
-    assert content.name == "Francs"
-    assert content.locale == "fr"
-    assert "cavalerie" in content.summary
-
-
-def test_local_dataset_unknown_faction() -> None:
-    """An unknown catalog name yields None (no partial content)."""
-    import asyncio
-
-    source = LocalProviderSource(_provider())
-    assert asyncio.run(source.faction_content("Huns", "fr")) is None

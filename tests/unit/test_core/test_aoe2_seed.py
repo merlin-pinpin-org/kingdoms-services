@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from kingdoms.core.games.aoe2.seed import seed_aoe2
+from kingdoms.game_aoe2.seed import seed_aoe2
 
 
 class FakeDatabase:

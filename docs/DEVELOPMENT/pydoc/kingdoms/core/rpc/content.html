@@ -11,7 +11,7 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/content.py">SOURCE_ROOT/core/rpc/content.py</a></td></tr></table>
     <p><span class="code">Game&nbsp;content&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;server&nbsp;side&nbsp;(kingdoms.v1.Content).<br>
 &nbsp;<br>
-A&nbsp;game&nbsp;content&nbsp;provider&nbsp;process&nbsp;(ext-aoe2techtree,&nbsp;...)&nbsp;serves&nbsp;localized<br>
+A&nbsp;game&nbsp;content&nbsp;provider&nbsp;process&nbsp;serves&nbsp;localized<br>
 game&nbsp;catalog&nbsp;data&nbsp;(factions,&nbsp;maps)&nbsp;through&nbsp;this&nbsp;servicer.&nbsp;The&nbsp;seam&nbsp;keeps<br>
 the&nbsp;upstream&nbsp;concern&nbsp;out&nbsp;of&nbsp;the&nbsp;core:&nbsp;it&nbsp;only&nbsp;translates&nbsp;between&nbsp;the<br>
 wire&nbsp;contract&nbsp;and&nbsp;the&nbsp;plain&nbsp;content&nbsp;descriptors.&nbsp;The&nbsp;upstream&nbsp;the&nbsp;ext<br>
@@ -26,7 +26,8 @@ process&nbsp;—&nbsp;the&nbsp;consumers&nbsp;never&nbsp;change.</span></p>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2.html">kingdoms.rpc_generated.kingdoms.v1.content_pb2</a><br>
 </td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc</a><br>
 </td><td class="multicolumn"><a href="grpc.html">grpc</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -61,7 +62,11 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="ContentServicer-GetFactionContent"><strong>GetFactionContent</strong></a>(self, request: 'content_pb2.FactionContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.</span></dd></dl>
 
-<dl><dt>async <a name="ContentServicer-GetMapContent"><strong>GetMapContent</strong></a>(self, request: 'content_pb2.MapContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.</span></dd></dl>
+<dl><dt>async <a name="ContentServicer-GetMapContent"><strong>GetMapContent</strong></a>(self, request: 'content_pb2.MapContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.<br>
+&nbsp;<br>
+``MapContentRequest``&nbsp;carries&nbsp;no&nbsp;game_key&nbsp;(the&nbsp;contract):&nbsp;the&nbsp;provider<br>
+serves&nbsp;its&nbsp;single&nbsp;declared&nbsp;game&nbsp;by&nbsp;construction,&nbsp;so&nbsp;the&nbsp;game&nbsp;gate<br>
+runs&nbsp;only&nbsp;where&nbsp;the&nbsp;wire&nbsp;message&nbsp;carries&nbsp;the&nbsp;game&nbsp;(``GetMapSeed``).</span></dd></dl>
 
 <dl><dt>async <a name="ContentServicer-GetMapSeed"><strong>GetMapSeed</strong></a>(self, request: 'content_pb2.MapSeedRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.MapSeedReply'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;full&nbsp;descriptor&nbsp;(the&nbsp;import&nbsp;flow).</span></dd></dl>
 
@@ -88,5 +93,11 @@ Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.cont
  <dl><dt><a name="-content_capabilities_to_wire"><strong>content_capabilities_to_wire</strong></a>(provider_key: 'str', game_key: 'str', locales: 'tuple[str, ...]') -&gt; 'content_pb2.ContentCapabilities'</dt><dd><span class="code">Translate&nbsp;a&nbsp;content&nbsp;capability&nbsp;declaration&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
  <dl><dt><a name="-localized_content_from_wire"><strong>localized_content_from_wire</strong></a>(wire: 'content_pb2.LocalizedContent') -&gt; 'dict[str, str | bool]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;content&nbsp;message&nbsp;into&nbsp;a&nbsp;plain&nbsp;descriptor.</span></dd></dl>
  <dl><dt><a name="-localized_content_to_wire"><strong>localized_content_to_wire</strong></a>(content: 'dict[str, str | bool]') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;plain&nbsp;content&nbsp;descriptor&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
-</td></tr></table>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.core.rpc.content (WARNING)&gt;</td></tr></table>
 </body></html>

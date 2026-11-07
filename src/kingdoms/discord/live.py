@@ -11,6 +11,10 @@ degrades to its empty dashboard — the machinery is game-agnostic.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from kingdoms.core.services.registration import RegistrationService
 import os
 import re
 import time
@@ -404,7 +408,7 @@ def _now_ms() -> int:
 
 
 class LiveClientLike(Protocol):
-    """The dashboard client seam (LiveClient or the GameDataClient)."""
+    """The dashboard client seam (the GameDataClient)."""
 
     async def watch(self, game_key: str) -> dict[str, Any]:
         """Fetch the current dashboard snapshot for a game."""
@@ -432,14 +436,12 @@ async def collect_profile_stats(
         return {}
     database = get_async_database()
     enriched: dict[str, dict[str, Any]] = {}
-    bindings = database["profile_bindings"]
-    matches = database["matches"]
-    provider_uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+    provider_uri = os.environ.get("GAME_AOE2_URI", "")
     provider = None
     if provider_uri:
-        from kingdoms.core.rpc.game_client import GameProviderClient
+        from kingdoms.game_aoe2.client import GameDataClient
 
-        provider = GameProviderClient(provider_uri, "ext-librematch", game_key)
+        provider = GameDataClient(provider_uri)
     redis_client = None
     redis_uri = os.environ.get("REDIS_URI", "")
     if redis_uri:
@@ -460,15 +462,20 @@ async def collect_profile_stats(
     # BATCHED (owner direction: the panel must be immediate): one
     # find($in) for every binding, one aggregation for every
     # last-completed time — no per-profile round-trips.
+    # Rule 5: the bindings ride the registration SERVICE (their owner),
+    # the matches' aggregation rides the GAME SERVICE (its owner) — the
+    # bot never touches a collection it does not own.
     display_names: dict[str, str] = {}
-    cursor: Any = bindings.find({"game_key": game_key, "profile_id": {"$in": profile_ids}})
-    async for raw_binding in cursor:
-        binding: dict[str, Any] = dict(raw_binding)
-        pid = str(binding.get("profile_id", ""))
-        display_names[pid] = str((binding.get("profile") or {}).get("display_name", "")) or str(
-            binding.get("display_name", "")
-        )
-    last_match_ms = await _last_completed_matches_ms(matches, profile_ids)
+    bindings_service = _registration_bindings_service(database)
+    if bindings_service is not None:
+        for binding in await bindings_service.find_bindings_by_profiles(game_key, profile_ids):
+            pid = str(binding.get("profile_id", ""))
+            display_names[pid] = str((binding.get("profile") or {}).get("display_name", "")) or str(
+                binding.get("display_name", "")
+            )
+    last_match_ms: dict[str, int] = {}
+    if provider is not None:
+        last_match_ms = await provider.get_last_completed_times(profile_ids)
     for profile_id in profile_ids:
         stats = provider_stats.get(profile_id)
         enriched[profile_id] = {
@@ -479,45 +486,6 @@ async def collect_profile_stats(
             "last_match_ms": last_match_ms.get(profile_id, 0),
         }
     return enriched
-
-
-async def _last_completed_matches_ms(matches: Any, profile_ids: list[str]) -> dict[str, int]:
-    """Resolve every profile's most recent completed-match time (epoch ms).
-
-    ONE aggregation over the whole batch (owner direction: the panel is
-    immediate): the completed matches group by profile, the max
-    completion time (``completed_at``/``game_completed_at``, the status
-    matched case-insensitively) rides one reply. Zero means no
-    completed match yet.
-    """
-    if not profile_ids:
-        return {}
-    pipeline: list[dict[str, Any]] = [
-        {"$match": {"status": {"$regex": "^completed$", "$options": "i"},
-                    "$or": [{"host_profile_id": {"$in": profile_ids}},
-                            {"guest_profile_id": {"$in": profile_ids}}]}},
-        {"$project": {"host": "$host_profile_id", "guest": "$guest_profile_id",
-                      "times": [{"$ifNull": ["$completed_at", 0]},
-                                 {"$ifNull": ["$game_completed_at", 0]}]}},
-        {"$project": {"sides": ["$host", "$guest"],
-                      "time": {"$max": "$times"}}},
-        {"$unwind": "$sides"},
-        {"$match": {"sides": {"$in": profile_ids}}},
-        {"$group": {"_id": {"$toString": "$sides"}, "last": {"$max": "$time"}}},
-    ]
-    results: dict[str, int] = {}
-    try:
-        cursor: Any = await matches.aggregate(pipeline)
-        async for doc in cursor:
-            value = doc.get("last")
-            if isinstance(value, str) and value.isdigit():
-                value = int(value)
-            if isinstance(value, int) and value > 0:
-                results[str(doc.get("_id", ""))] = value
-    except Exception:
-        logger.warning("collect_profile_stats: last-match aggregation failed", exc_info=True)
-    return results
-
 
 def _interaction_locale(interaction: discord.Interaction) -> str:
     """Return the clicker's own client locale (a one-line ack reads nothing)."""
@@ -618,3 +586,24 @@ def build_dashboard_view(
     return add_view_footer(view, f"panel:game:{game_key}:live")
 
 
+
+
+def _registration_bindings_service(database: Any) -> RegistrationService | None:
+    """Return the registration service (profile_bindings' owner, rule 5).
+
+    TYPED (not Any): the panels' calls on this seam are checked — an
+    AttributeError like the 2026-11-06 find_bindings_by_profiles miss
+    fails the type check instead of the live panel.
+    """
+    try:
+        from kingdoms.core.services.registration import RegistrationService
+        from kingdoms.discord.registration_platform import MongoRegistrationDatabase
+
+        # The service takes the PORT (the storage adapter), never the raw
+        # database: MongoRegistrationDatabase implements the port's methods
+        # (find_bindings_by_profiles included). The 2026-11-06 crash was
+        # exactly this — the raw AsyncDatabase passed instead.
+        return RegistrationService(MongoRegistrationDatabase(database))
+    except Exception:
+        logger.warning("registration service unavailable — the panel's names degrade", exc_info=True)
+        return None

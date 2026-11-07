@@ -180,12 +180,13 @@ async def _resolve_missing_names_from_provider(
 ) -> None:
     """Fill the missing profile names through the librematch provider."""
     try:
-        from kingdoms.core.rpc.game_client import GameProviderClient
+        # Rule 4: the bot asks the GAME SERVICE, never the ext provider.
+        from kingdoms.game_aoe2.client import GameDataClient
 
-        provider_uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+        provider_uri = os.environ.get("GAME_AOE2_URI", "")
         if not provider_uri:
             return
-        client = GameProviderClient(provider_uri, "ext-librematch", game)
+        client = GameDataClient(provider_uri)
         for pid in missing:
             stats = await client.get_player_stats(pid)
             if stats is None:

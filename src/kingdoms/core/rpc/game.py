@@ -1,6 +1,6 @@
 """Game provider RPC seam — server side (kingdoms.v1.Game).
 
-A game provider process (ext-librematch, ext-aoe2lobby) builds its gRPC
+A game provider process builds its gRPC
 server from these servicers, backed by its own adapters to the external
 APIs. The seam keeps provider code out of the core: it only translates
 between the wire contract and plain core models.
@@ -156,6 +156,31 @@ def match_result_to_wire(result: MatchResult) -> game_pb2.MatchResult:
     )
 
 
+def match_result_from_wire(wire: game_pb2.MatchResult) -> MatchResult:
+    """Translate a wire match-result message into the core model.
+
+    The ratings ride the wire as two maps (old/new); the model carries
+    the pairs. ``match_ref`` is the platform's own reference and never
+    crosses the provider wire — it stays empty for the caller to fill.
+    """
+    return MatchResult(
+        match_ref="",
+        winner_profile_id=wire.winner_profile_id,
+        loser_profile_ids=tuple(wire.loser_profile_ids),
+        map_name=wire.map_name,
+        duration_ms=wire.duration_ms,
+        ended_at=wire.ended_at,
+        factions=dict(wire.factions),
+        found=wire.found,
+        ratings={
+            pid: (wire.old_rating[pid], wire.new_rating[pid])
+            for pid in wire.old_rating
+            if pid in wire.new_rating
+        },
+        teams=dict(wire.teams),
+    )
+
+
 def player_stats_to_wire(stats: PlayerStats) -> game_pb2.PlayerStats:
     """Translate a core player-stats model into the wire message."""
     return game_pb2.PlayerStats(
@@ -263,7 +288,7 @@ class GameServicer(game_pb2_grpc.GameServicer):
         """Serve a finished match's outcome when the provider has it.
 
         The correlation rides the profile ids and the time window
-        (the upstream's match id is not the aoe2lobby ref). The
+        (the upstream's match id is not the platform's ref). The
         provider answers None while the upstream has not recorded
         the match yet — ``found=False`` on the wire, the caller
         retries with a backoff.

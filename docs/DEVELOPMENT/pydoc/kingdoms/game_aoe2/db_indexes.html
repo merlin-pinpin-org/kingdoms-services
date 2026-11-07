@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.game_aoe2.db_indexes</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.game_aoe2.html" class="white">game_aoe2</a>.db_indexes</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/db_indexes.py">SOURCE_ROOT/game_aoe2/db_indexes.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;game's&nbsp;own&nbsp;collection&nbsp;indexes&nbsp;(rule&nbsp;5:&nbsp;one&nbsp;owner&nbsp;per&nbsp;collection).<br>
+&nbsp;<br>
+``matches``&nbsp;and&nbsp;``player_state``&nbsp;belong&nbsp;to&nbsp;game:aoe2&nbsp;—&nbsp;the&nbsp;game&nbsp;service<br>
+ensures&nbsp;their&nbsp;indexes&nbsp;at&nbsp;ITS&nbsp;boot&nbsp;(idempotent,&nbsp;best-effort),&nbsp;never&nbsp;the<br>
+core&nbsp;nor&nbsp;the&nbsp;bot.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-ensure_game_indexes"><strong>ensure_game_indexes</strong></a>(database: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;game&nbsp;collections'&nbsp;hot-path&nbsp;indexes&nbsp;(idempotent).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.game_aoe2.db_indexes (WARNING)&gt;</td></tr></table>
+</body></html>

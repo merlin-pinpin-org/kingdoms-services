@@ -608,7 +608,7 @@ class PoolComposeModal(discord.ui.Modal):
                 else:
                     remove_ids.extend(inner.values or [])
             elif isinstance(inner, discord.ui.TextInput):
-                from kingdoms.mapsdata.bulk_import import parse_import_line
+                from kingdoms.aoe2.bulk_import import parse_import_line
 
                 for line in str(inner.value or "").splitlines():
                     parsed = parse_import_line(line.strip())
@@ -706,7 +706,7 @@ class PoolAddBlockModal(discord.ui.Modal):
         if not await _guard_admin(interaction):
             return
         await interaction.response.defer(ephemeral=True)
-        from kingdoms.mapsdata.bulk_import import parse_import_line
+        from kingdoms.aoe2.bulk_import import parse_import_line
 
         add_ids: list[str] = []
         for line in str(self.lines.value or "").splitlines():

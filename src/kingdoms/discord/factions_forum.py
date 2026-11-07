@@ -90,7 +90,7 @@ async def _sorted_by_localized_name(factions: list[Any], guild_id: str, bot: Any
         fallback = str(getattr(faction, "name", faction))
         if service is not None and entry_id:
             try:
-                doc = await service.get(entry_id, locale)
+                doc = await service.content_get(entry_id, locale)
                 if doc and doc.get("name"):
                     return str(doc["name"])
             except Exception:
@@ -128,7 +128,7 @@ async def _localized_faction_name(faction: Any, guild_id: str, bot: Any = None) 
         service = None
     if service is not None and entry_id:
         try:
-            doc = await service.get(entry_id, await guild_locale(guild_id, bot))
+            doc = await service.content_get(entry_id, await guild_locale(guild_id, bot))
             if doc and doc.get("name"):
                 return str(doc["name"])
         except Exception:

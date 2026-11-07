@@ -102,7 +102,7 @@ async def _ensure_scope_pins(bot: Any, guild_id: str, scope: str) -> int:
     return ensured
 
 
-async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
+async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:  # noqa: C901
     """Re-provision the scopes' declared channels, best-effort.
 
     ``scope`` carries a comma-separated list (the button's contract):
@@ -142,6 +142,28 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
         try:
             resolved = await provision_scope(guild, spec, locale, _translate)
             await persist_resolutions(guild_id, spec.scope, resolved)
+        except discord.errors.RateLimited as exc:
+            # Discord throttled the channel creation for THIS bot: the
+            # retry_after is Discord's own word (minutes for a routine
+            # bucket, HOURS when the token earned a hard throttle — e.g.
+            # two instances provisioning in parallel for hours). The
+            # verdict carries a LIVE Discord timestamp (<t:...:R> renders
+            # 'dans 1 heure 38 minutes', self-updating) — no stale
+            # "~98 min" that drifts while the admin reads it.
+            import time as _time
+
+            retry_at = int(_time.time() + exc.retry_after)
+            logger.warning(
+                "ADMIN TREE: channel-creation throttled by Discord (scope %s) "
+                "— retry at <t:%d:R>",
+                spec.scope,
+                retry_at,
+            )
+            return (
+                f"⏳ Discord bloque la création de salons pour ce bot — "
+                f"réessaie <t:{retry_at}:R> (<t:{retry_at}:t>).\n"
+                f"_Ce message disparaîtra à ce moment-là._"
+            )
         except Exception:
             logger.warning("ADMIN TREE: ensure failed (scope %s, guild %s)", spec.scope, guild_id, exc_info=True)
             return "Channel provisioning failed — see the bot logs."
@@ -274,7 +296,38 @@ class TreeEnsureButton(
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         await interaction.response.defer(ephemeral=True, thinking=False)
         answer = await _ensure_scope(interaction.client, guild_id, self.scope)
-        await interaction.followup.send(answer, ephemeral=True)
+        # The throttle verdict carries a LIVE timestamp (<t:...:R>): the
+        # message deletes itself when the throttle lifts — delete_after,
+        # the message's own parameter (owner direction 2026-11-06), not a
+        # manual cleanup task.
+        import time as _time
+
+        delete_after: float | None = None
+        match = re.search(r"<t:(\d+):R>", answer)
+        if match:
+            delete_after = max(1.0, int(match.group(1)) - _time.time() + 2.0)
+        # The provisioning may RECREATE the very channel this interaction
+        # lives in (the admin menu sits in a provisioned scope): the
+        # followup webhook then targets a vanished channel (10003 Unknown
+        # Channel). The provisioning SUCCEEDED — the verdict just cannot
+        # be delivered there; a clean warning, never a traceback.
+        try:
+            message: Any = await interaction.followup.send(answer, ephemeral=True)  # type: ignore[func-returns-value]
+        except discord.HTTPException as exc:
+            if getattr(exc, "code", None) == 10003:
+                logger.warning(
+                    "ADMIN TREE: the invoking channel vanished during the "
+                    "provisioning (scope %s) — the verdict is undeliverable, "
+                    "the channels themselves are in place",
+                    self.scope,
+                )
+                return
+            raise
+        if delete_after is not None:
+            # delete_after rides the message's own delete(delay=...) — the
+            # followup webhook has no delete_after parameter (unlike the
+            # response path); delay IS the parameter, no manual task.
+            await message.delete(delay=delete_after)
 
 
 async def build_admin_menu(

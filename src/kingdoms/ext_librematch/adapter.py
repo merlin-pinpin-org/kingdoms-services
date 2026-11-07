@@ -4,7 +4,7 @@ Source of truth for AoE2 reference data (developer direction): lobby
 listings come from the public Community API endpoint documented by the
 LibreMatch wiki (``GET /community/advertisement/findAdvertisements``).
 The slotinfo/options fields of each lobby are base64+zlib blobs decoded
-by the game module (``kingdoms.core.games.aoe2.blobs``).
+by the game module (``kingdoms.game_aoe2.blobs``).
 
 Conservative by design: on any decode or transport failure the adapter
 serves what it has and degrades — never fails the provider process.
@@ -18,8 +18,8 @@ from urllib.parse import urljoin
 
 import httpx
 
+from kingdoms.aoe2.codecs import BlobDecodeError, decode_blob
 from kingdoms.core.debug import capture
-from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
 from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
@@ -30,7 +30,7 @@ from kingdoms.core.models.game import (
     StatsEntry,
 )
 from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
-from kingdoms.core.services.provider_endpoints import provider_url
+from kingdoms.core_process.provider_endpoints import provider_url
 
 logger = logging.getLogger(__name__)
 

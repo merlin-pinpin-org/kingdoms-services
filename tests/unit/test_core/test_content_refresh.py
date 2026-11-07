@@ -1,13 +1,57 @@
-"""Content refresh tests: catalog reconciliation with the vendored dataset."""
+"""Content refresh tests: catalog reconciliation through the provider seam."""
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
+from kingdoms.game_aoe2.content_refresh import refresh_aoe2_content
 
-DATASET_DIR = Path(__file__).resolve().parents[3] / "data" / "core" / "aoe2techtree"
+# The refresh rides the PROVIDER seam (no vendored data): the tests
+# inject a fake source standing in for the aoe2techtree provider.
+_FAKE_SOURCE = None
+
+
+class _FakeSource:
+    """A stand-in for the aoe2techtree provider over the seam."""
+
+    def __init__(self) -> None:
+        self._data = {
+            "Franks": {
+                "en": {"name": "Franks", "summary": "Cavalry civ", "image_url": "https://x/franks.png"},
+                "fr": {"name": "Francs", "summary": "Civilisation de cavalerie", "image_url": "https://x/franks.png"},
+            },
+            "Dravidians": {
+                "en": {"name": "Dravidians", "summary": "Elephant civ", "image_url": "https://x/dravidians.png"},
+                "fr": {"name": "Dravidiens", "summary": "Civilisation d'elephants", "image_url": "https://x/dravidians.png"},
+            },
+        }
+
+    async def list_factions(self) -> list[str]:
+        return sorted(self._data)
+
+    async def faction_content(self, key: str, locale: str) -> dict[str, Any] | None:
+        entry = self._data.get(key, {}).get(locale)
+        if entry is None:
+            return None
+        from kingdoms.game_aoe2.content_source import LocalizedContent
+
+        return LocalizedContent(
+            entity_id=f"faction:aoe2:{key.lower()}",
+            locale=locale,
+            name=entry["name"],
+            summary=entry["summary"],
+            source_url="https://github.com/SiegeEngineers/aoe2techtree",
+            image_url=entry["image_url"],
+
+        )
+
+
+def _patch_source(monkeypatch: Any) -> None:
+    import kingdoms.game_aoe2.content_source as source_module
+
+    monkeypatch.setattr(
+        source_module, "resolve_aoe2_content_source", lambda *a, **k: _FakeSource()
+    )
 
 
 class FakeCollection:
@@ -43,10 +87,11 @@ async def test_refresh_creates_missing_factions_and_content(monkeypatch: Any) ->
     database = FakeDatabase()
     monkeypatch.setattr(db_module, "get_async_database", lambda: database)
 
-    counts = await refresh_aoe2_content(DATASET_DIR)
+    _patch_source(monkeypatch)
+    counts = await refresh_aoe2_content()
 
-    assert counts["factions"] == 56
-    assert counts["content_docs"] == 112
+    assert counts["factions"] == 2
+    assert counts["content_docs"] == 4
     factions = database.collections["factions"].docs
     assert "faction:aoe2:franks" in factions
     assert "faction:aoe2:dravidians" in factions
@@ -61,8 +106,10 @@ async def test_refresh_is_idempotent(monkeypatch: Any) -> None:
     database = FakeDatabase()
     monkeypatch.setattr(db_module, "get_async_database", lambda: database)
 
-    await refresh_aoe2_content(DATASET_DIR)
-    counts = await refresh_aoe2_content(DATASET_DIR)
+    _patch_source(monkeypatch)
+    await refresh_aoe2_content()
+    _patch_source(monkeypatch)
+    counts = await refresh_aoe2_content()
 
     assert counts["factions"] == 0
-    assert counts["content_docs"] == 112
+    assert counts["content_docs"] == 4

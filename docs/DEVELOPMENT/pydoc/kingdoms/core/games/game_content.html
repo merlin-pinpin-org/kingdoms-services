@@ -12,7 +12,7 @@
     <p><span class="code">Generic&nbsp;game&nbsp;content&nbsp;source&nbsp;seam&nbsp;(game-agnostic).<br>
 &nbsp;<br>
 Every&nbsp;game-specific&nbsp;content&nbsp;provider&nbsp;(aoe2:&nbsp;the&nbsp;vendored&nbsp;techtree&nbsp;dataset<br>
-or&nbsp;the&nbsp;ext-aoe2techtree&nbsp;process)&nbsp;implements&nbsp;**a&nbsp;part**&nbsp;of&nbsp;this&nbsp;generic<br>
+or&nbsp;any&nbsp;content&nbsp;provider&nbsp;process)&nbsp;implements&nbsp;**a&nbsp;part**&nbsp;of&nbsp;this&nbsp;generic<br>
 game&nbsp;data&nbsp;provider&nbsp;contract.&nbsp;The&nbsp;core&nbsp;consumes&nbsp;content&nbsp;through&nbsp;this&nbsp;seam<br>
 only:&nbsp;nothing&nbsp;aoe2-specific&nbsp;(or&nbsp;any&nbsp;other&nbsp;game-specific&nbsp;concern)&nbsp;leaks<br>
 here,&nbsp;so&nbsp;the&nbsp;same&nbsp;seam&nbsp;serves&nbsp;the&nbsp;next&nbsp;game's&nbsp;provider&nbsp;unchanged.<br>
@@ -236,12 +236,13 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-resolve_content_source"><strong>resolve_content_source</strong></a>(local: 'GameContentSource', provider_uri: 'str') -&gt; 'GameContentSource'</dt><dd><span class="code">Pick&nbsp;the&nbsp;source&nbsp;for&nbsp;one&nbsp;game&nbsp;(local&nbsp;dataset&nbsp;default,&nbsp;RPC&nbsp;optional).<br>
+<td class="singlecolumn"><dl><dt><a name="-resolve_content_source"><strong>resolve_content_source</strong></a>(local: 'GameContentSource | None', provider_uri: 'str') -&gt; 'GameContentSource'</dt><dd><span class="code">Pick&nbsp;the&nbsp;source&nbsp;for&nbsp;one&nbsp;game:&nbsp;the&nbsp;provider,&nbsp;required.<br>
 &nbsp;<br>
 A&nbsp;set&nbsp;provider&nbsp;URI&nbsp;routes&nbsp;content&nbsp;through&nbsp;the&nbsp;game's&nbsp;ext&nbsp;provider<br>
-process;&nbsp;an&nbsp;empty&nbsp;URI&nbsp;keeps&nbsp;the&nbsp;local&nbsp;in-process&nbsp;provider.&nbsp;The&nbsp;game<br>
-module&nbsp;owns&nbsp;which&nbsp;env/config&nbsp;feeds&nbsp;``provider_uri``&nbsp;—&nbsp;this&nbsp;seam&nbsp;stays<br>
-game-agnostic.</span></dd></dl>
+process.&nbsp;The&nbsp;local&nbsp;dataset&nbsp;fallback&nbsp;is&nbsp;GONE&nbsp;(owner&nbsp;direction<br>
+2026-11-05:&nbsp;no&nbsp;vendored&nbsp;data)&nbsp;—&nbsp;the&nbsp;games&nbsp;raise&nbsp;a&nbsp;functional&nbsp;error<br>
+before&nbsp;reaching&nbsp;here&nbsp;when&nbsp;their&nbsp;provider&nbsp;is&nbsp;not&nbsp;configured,&nbsp;so&nbsp;the<br>
+empty-URI&nbsp;branch&nbsp;answers&nbsp;a&nbsp;raising&nbsp;stub.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

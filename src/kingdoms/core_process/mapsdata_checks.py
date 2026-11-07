@@ -30,7 +30,7 @@ def _contact() -> str:
 
 
 async def _check_maps_query_shape() -> None:
-    from kingdoms.mapsdata.liquipedia import LiquipediaMapsProvider
+    from kingdoms.ext_liquipedia.liquipedia import LiquipediaMapsProvider
 
     user_agent = f"kingdoms-bot/1.0 (https://github.com/merlin-pinpin-org/kingdoms; {_contact()})"
     provider = LiquipediaMapsProvider(user_agent=user_agent)

@@ -4,7 +4,7 @@ Registered into the /admin panel's Mods select under the ``games`` key:
 the section manages the game catalogs — the maps (archive = disable,
 the maps forum sync picks it up) and the map pools (create, rename,
 edit the map list, archive). Everything goes through
-``GameDataService`` (validated + audited); the section only renders
+the catalog service (validated + audited); the section only renders
 and collects input.
 
 Namespace discipline: every component rides ``admin:pin:modgames:``
@@ -225,7 +225,7 @@ class GamesMapCreateModal(discord.ui.Modal):
         self.add_item(self.filename)
         self.add_item(self.description)
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
+    async def on_submit(self, interaction: discord.Interaction) -> None:  # noqa: C901
         """Create the map through the service, confirm.
 
         Guild admins create guild-local maps (``owner_guild_id``); only
@@ -259,11 +259,11 @@ class GamesMapCreateModal(discord.ui.Modal):
         seed = None
         circuit_note = ""
         if owner_guild_id is not None:
-            from kingdoms.mapsdata.liquipedia import LiquipediaCircuitOpenError
-            from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
+            from kingdoms.aoe2.map_seed import LiquipediaCircuitOpenError, LiquipediaUnconfiguredError
 
             try:
-                seed = await fetch_map_seed(name)
+                client = _game_seed_client()
+                seed = await client.get_map_seed(name) if client is not None else None
             except LiquipediaUnconfiguredError:
                 seed = None
             except LiquipediaCircuitOpenError as exc:
@@ -291,7 +291,7 @@ class GamesMapCreateModal(discord.ui.Modal):
 
                 content = content_service()
                 if content is not None:
-                    await content.store(
+                    await content.content_store(
                         {
                             "entity_id": entry.id,
                             "locale": "en",
@@ -308,10 +308,26 @@ class GamesMapCreateModal(discord.ui.Modal):
                 await reply(interaction, "replies_shared.import_failed"), ephemeral=True
             )
             return
-        await interaction.followup.send(
-            f"Map **{entry.name}** creee - elle apparaitra dans le forum maps.{circuit_note}",
-            ephemeral=True,
-        )
+        # The confirmation IS the post's exact shape (owner direction
+        # 2026-11-06): the admin sees what the forum post looks like.
+        try:
+            from kingdoms.discord.maps_forum import map_post_render
+
+            _content, view = await map_post_render(
+                entry, str(interaction.guild_id or ""), interaction.client, service
+            )
+            await interaction.followup.send(
+                f"✅ Map **{entry.name}** créée — voici son post "
+                f"(il apparaîtra dans le forum maps).{circuit_note}",
+                view=view,
+                ephemeral=True,
+            )
+        except Exception:
+            logger.warning("map post preview failed — the plain confirmation serves", exc_info=True)
+            await interaction.followup.send(
+                f"Map **{entry.name}** creee - elle apparaitra dans le forum maps.{circuit_note}",
+                ephemeral=True,
+            )
 
 
 class GamesPoolCreateButton(
@@ -406,9 +422,29 @@ class GamesPoolCreateModal(discord.ui.Modal):
                 f" — son post : https://discord.com/channels/{interaction.guild_id}/"
                 f"{fresh.forum_thread_id}/{fresh.forum_thread_id}"
             )
-        await interaction.edit_original_response(
-            content=f"Pool **{pool.name}** créé{pool_link or ' — son post est dans le forum des map pools.'}"
-        )
+        # The confirmation carries the pool's post content (owner direction
+        # 2026-11-06): the admin sees the pool exactly as its forum post
+        # renders.
+        try:
+            from kingdoms.discord.pools_forum import _pool_post_content
+
+            maps = [
+                {"name": name}
+                for name in await service.resolve_pool_map_ids(
+                    await service.get_map_pool(pool.id) or pool
+                )
+            ]
+            preview = _pool_post_content(pool, maps)
+            await interaction.edit_original_response(
+                content=(
+                    f"Pool **{pool.name}** créé{pool_link} — son post :\n\n{preview}"
+                )
+            )
+        except Exception:
+            logger.warning("pool post preview failed — the plain confirmation serves", exc_info=True)
+            await interaction.edit_original_response(
+                content=f"Pool **{pool.name}** créé{pool_link or ' — son post est dans le forum des map pools.'}"
+            )
 
 
 
@@ -830,7 +866,7 @@ class PoolHardDeleteModal(discord.ui.Modal):
         self.pool = pool
         # the modal title carries the pool id; the label stays under
         # Discord's 45-char cap
-        super().__init__(title=f"Supprimer {pool.id[:24]}", timeout=300)
+        super().__init__(title=f"Supprimer {str(pool.name)[:32]}", timeout=300)
         self.confirm: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Tape l'id exact du pool",
             max_length=100,
@@ -858,9 +894,9 @@ class PoolHardDeleteModal(discord.ui.Modal):
             )
             return
         typed = str(self.confirm.value or "").strip()
-        if typed != current.id:
+        if typed != current.name:
             await interaction.response.send_message(
-                f"Refus\u00e9 \u2014 l'id ne correspond pas (`{typed}` \u2260 `{current.id}`). "
+                f"Refus\u00e9 \u2014 le nom ne correspond pas (`{typed}` \u2260 `{current.name}`). "
                 "Aucune suppression effectu\u00e9e.",
                 ephemeral=True,
             )
@@ -1169,7 +1205,7 @@ async def _finish_map_import(
 
         content = content_service()
         if content is not None:
-            await content.store(
+            await content.content_store(
                 {
                     "entity_id": entry.id,
                     "locale": "en",
@@ -1181,6 +1217,8 @@ async def _finish_map_import(
                     "walls": seed.walls,
                     "nomad": seed.nomad,
                     "tc": seed.tc,
+                    "player_capacity": seed.player_capacity,
+                    "creator": seed.creator,
                     "provider": "liquipedia",
                     "tags": list(seed.tags or ()),
                 }
@@ -1189,6 +1227,28 @@ async def _finish_map_import(
 
         if interaction.guild_id is not None:
             await sync_maps_forum(str(interaction.guild_id), game_key, interaction.client)
+        # The answer IS the post (owner direction 2026-11-06): the view
+        # plus the created post's link — never a bare "import réussi".
+        try:
+            from kingdoms.discord.maps_forum import map_post_render
+
+            _content, view = await map_post_render(
+                entry, str(interaction.guild_id or ""), interaction.client, service
+            )
+            fresh = await service.get_map(entry.id)
+            thread_id = str(getattr(fresh, "forum_message_id", "") or "")
+            link = (
+                f"\n<https://discord.com/channels/{interaction.guild_id}/{thread_id}/{thread_id}>"
+                if interaction.guild_id and thread_id.isdigit()
+                else ""
+            )
+            await interaction.followup.send(
+                f"\u2705 **{entry.name}** import\u00e9e \u2014 son post :{link}",
+                view=view,
+                ephemeral=True,
+            )
+        except Exception:
+            logger.warning("map import preview failed — best-effort", exc_info=True)
     except Exception as exc:
         logger.exception("GAMES ADMIN: map import tail failed — rolling back %s", entry.id)
         rolled_back = False
@@ -1241,7 +1301,7 @@ class GamesMapImportModal(discord.ui.Modal):
         )
         self.add_item(self.name)
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
+    async def on_submit(self, interaction: discord.Interaction) -> None:  # noqa: C901
         """Import the map by name; Liquipedia fills the public content."""
         service = _games_wiring()
         if service is None:
@@ -1270,9 +1330,10 @@ class GamesMapImportModal(discord.ui.Modal):
             "Le r\u00e9sultat sera post\u00e9 dans ce message.",
             ephemeral=True,
         )
-        from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
+        from kingdoms.aoe2.map_seed import LiquipediaUnconfiguredError
         try:
-            seed = await fetch_map_seed(name)
+            client = _game_seed_client()
+            seed = await client.get_map_seed(name) if client is not None else None
         except LiquipediaUnconfiguredError:
             await interaction.followup.edit_message(
                 progress.id,
@@ -1298,6 +1359,31 @@ class GamesMapImportModal(discord.ui.Modal):
                 map_type=seed.map_type,
             )
         except NameTakenError as error:
+            # The verdict carries the EXISTING map's post (owner direction
+            # 2026-11-06): the admin sees what already exists, exactly as
+            # it renders in the forum.
+            existing = None
+            try:
+                from kingdoms.core.ids import map_entry_id
+
+                existing = await service.get_map(map_entry_id(self.game_key, seed.name, None))
+            except Exception:
+                logger.debug("existing map lookup failed", exc_info=True)
+            if existing is not None:
+                try:
+                    from kingdoms.discord.maps_forum import map_post_render
+
+                    _content, view = await map_post_render(
+                        existing, str(interaction.guild_id or ""), interaction.client, service
+                    )
+                    await interaction.followup.edit_message(
+                        progress.id,
+                        content=f"⚠️ {error} — la map existante :",
+                    )
+                    await interaction.followup.send(view=view, ephemeral=True)
+                    return
+                except Exception:
+                    logger.debug("existing map preview failed", exc_info=True)
             await interaction.followup.edit_message(
                 progress.id,
                 content=f"Import refusé — {error}. Supprime ou archive la map existante d'abord.",
@@ -1337,13 +1423,12 @@ async def _bulk_import_maps(
     is awaited after every line so the caller can stream the batch's
     progress in real time.
     """
-    from kingdoms.mapsdata.seed import fetch_map_seed
 
     async def _report(name: str, ok: bool, reason: str = "") -> None:
         if on_result is not None:
             await on_result(name, ok, reason)
 
-    from kingdoms.mapsdata.liquipedia import LiquipediaCircuitOpenError
+    from kingdoms.aoe2.map_seed import LiquipediaCircuitOpenError
 
     created: list[Any] = []
     failures: list[tuple[str, str]] = []
@@ -1355,7 +1440,8 @@ async def _bulk_import_maps(
             if existing is not None and existing.archived_at is None:
                 await _report(p.page_name, True, "déjà présente")
                 continue
-            seed = await fetch_map_seed(p.page_name)
+            client = _game_seed_client()
+            seed = await client.get_map_seed(p.page_name) if client is not None else None
             if seed is None:
                 failures.append((p.page_name, "aucune page Liquipedia"))
                 await _report(p.page_name, False, "aucune page Liquipedia")
@@ -1373,7 +1459,7 @@ async def _bulk_import_maps(
 
             content = content_service()
             if content is not None:
-                await content.store(
+                await content.content_store(
                     {
                         "entity_id": entry.id,
                         "locale": "en",
@@ -1453,6 +1539,27 @@ async def _finish_bulk_import(
         await final(summary)
     else:
         await interaction.followup.send(summary, ephemeral=True)
+    # One ephemeral PER CREATED map, carrying the post's exact shape (owner
+    # direction 2026-11-06): the admin sees every map as its forum post
+    # renders — the same builder the sync uses.
+    for entry in created:
+        try:
+            from kingdoms.discord.maps_forum import map_post_render
+
+            _content, view = await map_post_render(
+                entry, str(interaction.guild_id or ""), interaction.client, service
+            )
+            await interaction.followup.send(
+                f"\u2705 **{entry.name}** import\u00e9e \u2014 son post :",
+                view=view,
+                ephemeral=True,
+            )
+        except Exception:
+            logger.warning(
+                "bulk import: the per-map preview failed for %s \u2014 best-effort",
+                entry.name,
+                exc_info=True,
+            )
 
 
 async def _bulk_import_live_report(
@@ -1542,7 +1649,7 @@ class GamesBulkImportModal(discord.ui.Modal):
         # rate limits) — the user sees the import working instead of a
         # silent wait.
         await interaction.response.defer(ephemeral=True, thinking=True)
-        from kingdoms.mapsdata.bulk_import import parse_import_line
+        from kingdoms.aoe2.bulk_import import parse_import_line
 
         parsed = [parse_import_line(item) for item in str(self.lines.value or "").splitlines()]
         parsed = [p for p in parsed if p.raw]
@@ -1700,3 +1807,13 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolPublishButton,
         GamesPoolHardDeleteButton,
     )
+
+
+def _game_seed_client() -> Any | None:
+    """Return the game service's client for the map seed lookups (rule 4)."""
+    import os
+
+    from kingdoms.game_aoe2.client import GameDataClient
+
+    uri = os.environ.get("GAME_AOE2_URI", "")
+    return GameDataClient(uri) if uri else None

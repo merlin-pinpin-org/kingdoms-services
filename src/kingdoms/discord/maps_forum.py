@@ -37,12 +37,12 @@ def liquipedia_map_url(name: str) -> str:
 
 
 def maps_forum_wiring_ready() -> bool:
-    """Whether the maps forum wiring can be built (Mongo configured)."""
-    return bool(os.environ.get("MONGO_URI"))
+    """Whether the maps forum wiring can be built (the game service configured)."""
+    return bool(os.environ.get("GAME_AOE2_URI"))
 
 
 def _build_service() -> Any:
-    """Build the GameDataService over the shared Mongo adapter."""
+    """Build the catalog service over the GAME SERVICE (rule 5)."""
     from kingdoms.discord.wiring import build_games_service
 
     return build_games_service()
@@ -99,8 +99,8 @@ async def _sync_maps_forum_locked(guild_id: str, game_key: str, bot: Any, servic
             continue
         from kingdoms.core.ids import footer
 
-        _, summary, source, image, icon, walls, nomad, tc = await _map_content_full(
-            entry.id, guild_id, bot
+        _, summary, source, image, icon, walls, nomad, tc, capacity, creator = (
+            await _map_content_full(entry.id, guild_id, bot)
         )
         source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
@@ -122,6 +122,8 @@ async def _sync_maps_forum_locked(guild_id: str, game_key: str, bot: Any, servic
             walls=walls,
             nomad=nomad,
             tc=tc,
+            player_capacity=capacity,
+            creator=creator,
         )
         display = f"{entry.name[:1].upper()}{entry.name[1:]}"
         tail = f"{source}\n" if source else ""
@@ -205,6 +207,9 @@ def _map_post_view(
     walls: str = "",
     nomad: str = "",
     tc: str = "",
+    player_capacity: str = "",
+    creator: str = "",
+    admin_buttons: tuple[Any, ...] = (),
 ) -> discord.ui.LayoutView:
     """Build the map post on the shared entity-card template.
 
@@ -220,11 +225,13 @@ def _map_post_view(
     def _admin() -> Any:
         return EntityAdminButton("map", map_id, game_key=game_key, owned=owned_by_guild)
 
-    buttons: list[Any] = [_admin]
+    # the admin menu is THE SAME card — only the action row swaps
+    buttons: list[Any] = list(admin_buttons) if admin_buttons else [_admin]
     return map_card(
         map_id=map_id,
         name=name,
-        props=tuple(_map_props_lines(map_type, walls, nomad, tc)),
+        props=tuple(_map_props_lines(map_type, walls, nomad, tc, player_capacity)),
+        creator=creator,
         description=description,
         image_url=image,
         icon_url=icon_url,
@@ -255,11 +262,65 @@ async def _heal_thread_title(platform: Any, guild_id: str, thread_id: str, displ
         logger.debug("maps forum: title heal skipped (%s)", thread_id, exc_info=True)
 
 
+async def map_post_render(
+    entry: Any,
+    guild_id: str,
+    bot: Any,
+    service: Any,
+    admin_buttons: tuple[Any, ...] = (),
+) -> tuple[str, Any]:
+    """Render one map's post (content + view) — THE forum post's shape.
+
+    One builder, three consumers: the forum post (the sync), the
+    admin's ephemeral preview (the creation and the already-exists
+    verdicts show the admin EXACTLY what the post looks like), and the
+    map's admin menu (``admin_buttons`` swaps the action row — the
+    menu IS the card, like the pools).
+    """
+    from kingdoms.core.ids import footer
+
+    _, summary, source, image, icon, walls, nomad, tc, capacity, creator = (
+        await _map_content_full(entry.id, guild_id, bot)
+    )
+    source = source or liquipedia_map_url(entry.name)
+    description = summary or (entry.description or "_Aucune description._")
+    pools = await _map_pools_link(service, entry, guild_id, bot=bot)
+    view = _map_post_view(
+        entry.id,
+        entry.name,
+        description,
+        pools,
+        source,
+        image,
+        entry.resource_url,
+        editable=entry.owner_guild_id == guild_id,
+        map_type=getattr(entry, "map_type", ""),
+        filenames=(),
+        game_key=str(getattr(entry, "game_key", "")),
+        owned_by_guild=entry.owner_guild_id == guild_id,
+        icon_url=icon,
+        walls=walls,
+        nomad=nomad,
+        tc=tc,
+        player_capacity=capacity,
+        creator=creator,
+        admin_buttons=admin_buttons,
+    )
+    display = f"{entry.name[:1].upper()}{entry.name[1:]}"
+    tail = f"{source}\n" if source else ""
+    content = f"## {display}\n{tail}{description}"
+    if pools:
+        content = f"{content}\n\n**Pools**\n" + "\n".join(pools)
+    if entry.resource_url:
+        content = f"{content}\n{entry.resource_url}"
+    content = f"{content}\n\n{footer(entry.id)}"
+    return content, view
+
+
 async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, service: Any) -> None:
     """Keep an existing map post's content and layout in sync (best-effort)."""
     import time
 
-    from kingdoms.core.ids import footer
     from kingdoms.core.services.entity_forum import (
         _content_fingerprint,
         _last_layout_render,
@@ -272,38 +333,8 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
     if _stagger_stale_edit(thread_id, time.monotonic()):
         return
     try:
-        _, summary, source, image, icon, walls, nomad, tc = await _map_content_full(
-            entry.id, guild_id, bot
-        )
-        source = source or liquipedia_map_url(entry.name)
-        description = summary or (entry.description or "_Aucune description._")
-        pools = await _map_pools_link(service, entry, guild_id, bot=bot)
-        view = _map_post_view(
-            entry.id,
-            entry.name,
-            description,
-            pools,
-            source,
-            image,
-            entry.resource_url,
-            editable=entry.owner_guild_id == guild_id,
-            map_type=getattr(entry, "map_type", ""),
-            filenames=(),
-            game_key=str(getattr(entry, "game_key", "")),
-            owned_by_guild=entry.owner_guild_id == guild_id,
-            icon_url=icon,
-            walls=walls,
-            nomad=nomad,
-            tc=tc,
-        )
+        content, view = await map_post_render(entry, guild_id, bot, service)
         display = f"{entry.name[:1].upper()}{entry.name[1:]}"
-        tail = f"{source}\n" if source else ""
-        content = f"## {display}\n{tail}{description}"
-        if pools:
-            content = f"{content}\n\n**Pools**\n" + "\n".join(pools)
-        if entry.resource_url:
-            content = f"{content}\n{entry.resource_url}"
-        content = f"{content}\n\n{footer(entry.id)}"
         fingerprint = _content_fingerprint(content)
         if _last_layout_render(thread_id) == fingerprint:
             return
@@ -339,12 +370,13 @@ def register_maps_forum_sync() -> None:
 
 async def _map_content_full(
     entity_id: str, guild_id: str, bot: Any
-) -> tuple[str, str, str, str, str, str, str, str]:
+) -> tuple[str, str, str, str, str, str, str, str, str, str]:
     """Resolve a map's full stored content for its post.
 
-    ``(name, summary, source, image, icon, walls, nomad, tc)`` — the
-    traits (walls/nomad/tc) live as separate keys next to the summary
-    since the label-line layout split them out of the summary blob.
+    ``(name, summary, source, image, icon, walls, nomad, tc, capacity,
+    creator)`` — the traits (walls/nomad/tc/capacity/creator) live as
+    separate keys next to the summary since the label-line layout
+    split them out of the summary blob.
     """
     from kingdoms.discord.content_posts import content_service, guild_locale
 
@@ -354,13 +386,13 @@ async def _map_content_full(
     if service is not None:
         for candidate in (locale, "en"):
             try:
-                doc = await service.get(entity_id, candidate)
+                doc = await service.content_get(entity_id, candidate)
             except Exception:
                 doc = None
             if doc is not None:
                 break
     if doc is None:
-        return "", "", "", "", "", "", "", ""
+        return "", "", "", "", "", "", "", "", "", ""
     if doc.get("split_keys") or (doc.get("icon_url") and doc.get("walls") is not None):
         image_url = str(doc.get("image_url") or "")
         # a page without a Gallery has no in-game icon — the main image
@@ -374,6 +406,8 @@ async def _map_content_full(
             str(doc.get("walls") or ""),
             str(doc.get("nomad") or ""),
             str(doc.get("tc") or ""),
+            str(doc.get("player_capacity") or ""),
+            str(doc.get("creator") or ""),
         )
     # Stale doc (pre-split import: no icon_url / trait keys, the summary
     # carries the old inline blob) — re-resolve from Liquipedia once and
@@ -390,6 +424,8 @@ async def _map_content_full(
         str(doc.get("walls") or ""),
         str(doc.get("nomad") or ""),
         str(doc.get("tc") or ""),
+        str(doc.get("player_capacity") or ""),
+        str(doc.get("creator") or ""),
     )
 
 
@@ -398,9 +434,18 @@ async def _migrate_stale_map_doc(
 ) -> dict[str, Any] | None:
     """Re-resolve a stale Liquipedia map doc and store the new keys."""
     try:
-        from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
+        import os as _os
 
-        seed = await fetch_map_seed(str(doc.get("name") or entity_id.rsplit(":", 1)[-1]))
+        from kingdoms.aoe2.map_seed import LiquipediaUnconfiguredError
+        from kingdoms.game_aoe2.client import GameDataClient
+
+        _uri = _os.environ.get("GAME_AOE2_URI", "")
+        _client = GameDataClient(_uri) if _uri else None
+        seed = (
+            await _client.get_map_seed(str(doc.get("name") or entity_id.rsplit(":", 1)[-1]))
+            if _client is not None
+            else None
+        )
     except LiquipediaUnconfiguredError:
         return None
     except Exception:
@@ -423,21 +468,34 @@ async def _migrate_stale_map_doc(
         }
     )
     try:
-        await service.store(updated)
+        await service.content_store(updated)
     except Exception:
         logger.warning("stale map doc re-store failed (%s) — best-effort", entity_id, exc_info=True)
         return updated
     logger.info("map doc migrated to the split keys (%s)", entity_id)
     return updated
 
-def _map_props_lines(map_type: str, walls: str, nomad: str, tc: str) -> list[str]:
-    """Render the map's properties as label lines (Type/Walls/Nomad/TC)."""
+def _map_props_lines(
+    map_type: str, walls: str, nomad: str, tc: str, player_capacity: str = ""
+) -> list[str]:
+    """Render the map's properties as label lines (Type/Walls/Nomad/TCs/Capacité)."""
+    def _label(value: str) -> str:
+        """Render a trait's display: the label's word, never the bool garbage.
+
+        'True'/'False' are the amputation era's residue (a bool's str)
+        — they hide, not render.
+        """
+        v = value.strip()
+        return "" if v.lower() in ("true", "false") else v
+
     props = [f"**Type** : {map_type}"] if map_type else []
-    if walls:
-        props.append(f"**Walls** : {walls}")
-    if nomad:
-        shown = "Oui" if nomad.strip().lower() in ("yes", "true") else nomad
+    if _label(walls):
+        props.append(f"**Walls** : {_label(walls)}")
+    if _label(nomad):
+        shown = "Oui" if nomad.strip().lower() == "yes" else _label(nomad)
         props.append(f"**Nomad** : {shown}")
-    if tc and tc.isdigit() and int(tc) > 1:
-        props.append(f"**TC** : {tc}")
+    if _label(tc):
+        props.append(f"**TCs** : {_label(tc)}")
+    if player_capacity:
+        props.append(f"**Capacité** : {player_capacity}")
     return props

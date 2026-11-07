@@ -19,8 +19,9 @@ the data and the buttons. No game or mod imports here.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 import discord
 
@@ -39,9 +40,15 @@ class EntityCardSpec:
     icon_url: str = ""
     source_url: str = ""
     source_label: str = "Liquipedia"
+    creator: str = ""
     links_heading: str = ""
     links: tuple[str, ...] = ()
-    action_buttons: tuple[Callable[[], discord.ui.Item[discord.ui.LayoutView]], ...] = field(
+    action_buttons: tuple[
+        Callable[[], discord.ui.Item[discord.ui.LayoutView]]
+        | discord.ui.ActionRow[discord.ui.LayoutView]
+        | discord.ui.DynamicItem[Any],
+        ...
+    ] = field(
         default_factory=tuple
     )
 
@@ -59,8 +66,8 @@ def _header(view: discord.ui.LayoutView, spec: EntityCardSpec) -> None:
         view.add_item(discord.ui.Container(*blocks))
 
 
-def _body(view: discord.ui.LayoutView, spec: EntityCardSpec, footer: str) -> None:
-    """Add the card body: props, description, media, links, source, id."""
+def _body(view: discord.ui.LayoutView, spec: EntityCardSpec) -> None:
+    """Add the card body: props, description, media, links, source."""
     body: list[discord.ui.Item[discord.ui.LayoutView]] = []
     if spec.props:
         body.append(discord.ui.TextDisplay("\n".join(spec.props)))
@@ -74,24 +81,64 @@ def _body(view: discord.ui.LayoutView, spec: EntityCardSpec, footer: str) -> Non
         body.append(discord.ui.Separator())
         heading = f"**{spec.links_heading}**\n" if spec.links_heading else ""
         body.append(discord.ui.TextDisplay(heading + "\n".join(spec.links)))
+    if spec.creator:
+        body.append(discord.ui.TextDisplay(f"Créateur : {spec.creator}"))
     if spec.source_url:
         body.append(discord.ui.Separator())
         body.append(discord.ui.TextDisplay(f"Source : [{spec.source_label}]({spec.source_url})"))
-    body.append(discord.ui.TextDisplay(footer))
     view.add_item(discord.ui.Container(*body, accent_colour=discord.Colour(ACCENT)))
 
 
 def _actions(
     view: discord.ui.LayoutView,
-    buttons: tuple[Callable[[], discord.ui.Item[discord.ui.LayoutView]], ...],
+    buttons: tuple[
+        Callable[[], discord.ui.Item[discord.ui.LayoutView]]
+        | discord.ui.ActionRow[discord.ui.LayoutView]
+        | discord.ui.DynamicItem[Any],
+        ...
+    ],
 ) -> None:
-    """Add the action row (each factory builds a persistent item)."""
+    """Add the action rows, in the tuple's order.
+
+    Three shapes ride the same seam: a factory builds a persistent
+    item (the posts' persistent buttons), a prebuilt ActionRow lands as
+    its own row (the admin menu's lifecycle row), and a DynamicItem
+    instance joins the current row (the admin menu's persistent
+    buttons — the 2026-11-07 pool-menu crash: they are not callable,
+    and treating them as factories killed the menu render).
+    """
     if not buttons:
         return
+    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
+    current: list[discord.ui.DynamicItem[Any]] = []
+
+    def _flush() -> None:
+        if current:
+            rows.append(_row_of(current))
+            current.clear()
+
+    for button in buttons:
+        if isinstance(button, discord.ui.ActionRow):
+            _flush()
+            rows.append(button)
+        elif isinstance(button, discord.ui.DynamicItem):
+            current.append(button)
+        else:
+            _flush()
+            rows.append(_row_of([button()]))
+    _flush()
+    for row in rows:
+        view.add_item(row)
+
+
+def _row_of(
+    items: Sequence[discord.ui.DynamicItem[Any] | discord.ui.Item[Any]],
+) -> discord.ui.ActionRow[discord.ui.LayoutView]:
+    """One action row carrying these dynamic items."""
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    for build in buttons:
-        row.add_item(build())
-    view.add_item(row)
+    for item in items:
+        row.add_item(item)
+    return row
 
 
 def build_entity_card(spec: EntityCardSpec) -> discord.ui.LayoutView:
@@ -102,8 +149,11 @@ def build_entity_card(spec: EntityCardSpec) -> discord.ui.LayoutView:
     """
     view = discord.ui.LayoutView(timeout=None)
     _header(view, spec)
-    _body(view, spec, f"-# `{spec.entity_id}`")
+    _body(view, spec)
     _actions(view, spec.action_buttons)
+    # the id footer is ALWAYS the last line (owner direction 2026-11-06):
+    # after the buttons, never above them
+    view.add_item(discord.ui.TextDisplay(f"-# `{spec.entity_id}`"))
     return view
 
 
@@ -117,6 +167,7 @@ def map_card(
     source_url: str,
     pool_links: tuple[str, ...],
     buttons: tuple[Callable[[], discord.ui.Item[discord.ui.LayoutView]], ...],
+    creator: str = "",
 ) -> discord.ui.LayoutView:
     """Build a map's forum card on the shared template."""
     return build_entity_card(
@@ -128,6 +179,7 @@ def map_card(
             image_url=image_url,
             icon_url=icon_url,
             source_url=source_url,
+            creator=creator,
             links_heading="Map pools",
             links=pool_links,
             action_buttons=buttons,
@@ -170,8 +222,9 @@ def pool_card(
     overflow = [m[0] for m in member_sections[10:]]
     if overflow:
         view.add_item(discord.ui.TextDisplay("\n".join(f"- {n}" for n in overflow)))
-    view.add_item(discord.ui.TextDisplay(f"-# `{pool_id}`"))
     _actions(view, buttons)
+    # the id footer is ALWAYS the last line — after the buttons
+    view.add_item(discord.ui.TextDisplay(f"-# `{pool_id}`"))
     return view
 
 

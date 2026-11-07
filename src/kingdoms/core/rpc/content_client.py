@@ -1,6 +1,6 @@
 """Game content RPC seam — client side (kingdoms.v1.Content).
 
-svc-core consumes a content provider process (ext-aoe2techtree)
+A consumer talks to a content provider process
 through these typed helpers. Every call degrades cleanly: an
 unreachable provider or an unknown key yields None/empty so the
 caller (content refresh) falls back to the local dataset source.
@@ -84,7 +84,8 @@ class ContentProviderClient:
             stub = content_pb2_grpc.ContentStub(channel)
             try:
                 reply = await stub.GetMapSeed(
-                    content_pb2.MapSeedRequest(game_key=game_key, map_key=map_key)
+                    content_pb2.MapSeedRequest(game_key=game_key, map_key=map_key),
+                    timeout=240.0,  # the provider's backoffs run minutes; never hang the caller
                 )
             except grpc.aio.AioRpcError as exc:
                 if exc.code() in _NOT_FOUND_CODES:
@@ -103,4 +104,18 @@ class ContentProviderClient:
             "map_type": reply.map_type,
             "licence_ok": reply.licence_ok,
             "licence_note": reply.licence_note,
+            "walls": reply.walls,
+            "nomad": reply.nomad,
+            "tc": reply.tc,
+            "walls_label": reply.walls_label,
+            "nomad_label": reply.nomad_label,
+            "tc_label": reply.tc_label,
+            "player_capacity": reply.player_capacity,
+            "creator": reply.creator,
+            "game_versions": list(reply.game_versions),
+            "versions": [
+                {"name": v.name, "description": v.description, "details": list(v.details)}
+                for v in reply.versions
+            ],
+            "tags": list(reply.tags),
         }

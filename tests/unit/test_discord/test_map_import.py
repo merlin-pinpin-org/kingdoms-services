@@ -93,13 +93,23 @@ async def _run_import(interaction: _Interaction) -> None:
     await modal.on_submit(interaction)
 
 
+class _FakeSeedClient:
+    """The game service's client stand-in (the import's seed door)."""
+
+    def __init__(self, seed: Any) -> None:
+        self._seed = seed
+
+    async def get_map_seed(self, map_key: str) -> Any | None:
+        return await self._seed(map_key)
+
+
 async def test_import_success_confirms(monkeypatch: Any) -> None:
     import kingdoms.discord.admin_panel_games as panel
 
     service = _FakeGamesService()
     interaction = _Interaction()
     monkeypatch.setattr(panel, "_games_wiring", lambda: service)
-    monkeypatch.setattr("kingdoms.mapsdata.seed.fetch_map_seed", _fake_seed)
+    monkeypatch.setattr(panel, "_game_seed_client", lambda: _FakeSeedClient(_fake_seed))
 
     async def ok_sync(guild_id: str, game_key: str, client: Any) -> None:
         return None
@@ -117,7 +127,7 @@ async def test_import_rolls_back_on_forum_failure(monkeypatch: Any) -> None:
     service = _FakeGamesService()
     interaction = _Interaction()
     monkeypatch.setattr(panel, "_games_wiring", lambda: service)
-    monkeypatch.setattr("kingdoms.mapsdata.seed.fetch_map_seed", _fake_seed)
+    monkeypatch.setattr(panel, "_game_seed_client", lambda: _FakeSeedClient(_fake_seed))
     monkeypatch.setattr("kingdoms.discord.maps_forum.sync_maps_forum", _FailingForumSync())
     await _run_import(interaction)
     assert "supprimée" in interaction.followup.messages[-1]
@@ -130,7 +140,7 @@ async def test_import_orphan_message_when_rollback_fails(monkeypatch: Any) -> No
     service = _FakeGamesService()
     interaction = _Interaction()
     monkeypatch.setattr(panel, "_games_wiring", lambda: service)
-    monkeypatch.setattr("kingdoms.mapsdata.seed.fetch_map_seed", _fake_seed)
+    monkeypatch.setattr(panel, "_game_seed_client", lambda: _FakeSeedClient(_fake_seed))
     monkeypatch.setattr("kingdoms.discord.maps_forum.sync_maps_forum", _FailingForumSync())
 
     async def failing_delete(entry_id: str) -> bool:

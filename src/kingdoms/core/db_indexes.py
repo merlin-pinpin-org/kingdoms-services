@@ -29,16 +29,9 @@ async def ensure_live_indexes(database: Any) -> None:
         await database["profile_bindings"].create_index(
             [("game_key", 1), ("user_id", 1)]
         )
-        # matches: the last-completed aggregation filters by profile
-        # side first — one index per side, the status filtered after.
-        await database["matches"].create_index([("host_profile_id", 1)])
-        await database["matches"].create_index([("guest_profile_id", 1)])
-        await database["matches"].create_index(
-            [("status", 1), ("completed_at", -1)]
-        )
-        # player_state: the subscriptions-maintained live truth — the
-        # panels' snapshot reads ride the profile id.
-        await database["player_state"].create_index([("profile_id", 1)], unique=True)
+        # The GAME collections' indexes moved to the game service
+        # (rule 5: every collection has ONE owner — matches and
+        # player_state belong to game:aoe2, ensured at ITS boot).
         logger.info("live indexes ensured")
     except Exception:
         logger.warning("live index creation failed — best-effort", exc_info=True)

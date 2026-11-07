@@ -133,6 +133,13 @@ depth**:
   token, no network, no sleeps — `env.advance_time()` fires timeouts.
 - Never use `MagicMock` as a substitute for Discord permissions or cache
   state; never call `bot.run()` in a test.
+- **A flow tested with a fake service is not tested — the seam must have
+  its own test** (#322): every caller-to-remote seam (gRPC clients,
+  remotes, proxies) is held by a signature contract
+  (`tests/architecture/test_rpc_seam_contracts.py`) plus one end-to-end
+  seam test over loopback gRPC
+  (`tests/integration/test_rpc_seam_journeys.py`,
+  `test_catalog_gateway.py`).
 - Anything that cannot run in the dev sandbox (Docker Compose boot, image
   build, real MongoDB/Redis, entrypoint/preflight paths) is exercised by
   CI workflows instead.

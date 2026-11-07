@@ -30,6 +30,12 @@ message MapSeedRequest {
   string map_key = 2;     // the map name or page title the admin typed
 }
 
+message MapSeedVersion {
+  string name = 1;
+  string description = 2;
+  repeated string details = 3;
+}
+
 message MapSeedReply {
   bool found = 1;              // false: no page under this name
   string name = 2;             // canonical display name
@@ -42,6 +48,21 @@ message MapSeedReply {
   string map_type = 9;
   bool licence_ok = 10;        // true: the image passed the licence guard
   string licence_note = 11;    // the refusal reason when licence_ok is false
+  // The enrichment surface (the maps sync rides the provider too —
+  // one Liquipedia client per env, never a second in the bot):
+  bool walls = 12;
+  bool nomad = 13;
+  bool tc = 14;
+  repeated string game_versions = 15;
+  repeated MapSeedVersion versions = 16;
+  repeated string tags = 17;
+  // The RAW infobox labels (owner direction 2026-11-06): the infobox's
+  // own words — never amputated into the bools above
+  string walls_label = 18;     // "No", "Partial", "Yes"
+  string nomad_label = 19;
+  string tc_label = 20;        // the starting TC count, "1" / "2"
+  string player_capacity = 21;  // "Up to 8"
+  string creator = 22;          // "Forgotten Empires"
 }
 
 message ContentCapabilitiesRequest {}

@@ -18,6 +18,7 @@ click has exactly one dispatch path.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Any, ClassVar
 
@@ -399,20 +400,38 @@ class ContentRefreshButton(
             return
         dm_locale = await _dm_locale(interaction)
         await interaction.response.defer(ephemeral=True)
+        # The civs sync rides the GAME SERVICE (the provider isolation:
+        # the bot asks the service, the service asks its providers).
         try:
-            from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
+            from kingdoms.game_aoe2.client import GameDataClient
 
-            counts = await refresh_aoe2_content()
-        except Exception:
+            game_uri = os.environ.get("GAME_AOE2_URI", "")
+            if not game_uri:
+                raise RuntimeError("GAME_AOE2_URI is not configured")
+            result = await GameDataClient(game_uri).sync_content("aoe2", "factions")
+        except Exception as exc:
             logger.exception("DM PANEL: content refresh failed")
-            await interaction.followup.send(_dm_tr(interaction, dm_locale, "refresh_failed"), ephemeral=True)
+            await interaction.followup.send(
+                f"{_dm_tr(interaction, dm_locale, 'refresh_failed')}\n`{exc}`",
+                ephemeral=True,
+            )
             return
-        raw_new_factions = counts.get("new_factions") or []
-        new_factions: list[str] = raw_new_factions if isinstance(raw_new_factions, list) else []
+        if not result.get("ok"):
+            # a FUNCTIONAL provider error: shown as-is, never a crash
+            await interaction.followup.send(
+                f"⚠️ {result.get('error', 'unknown error')}",
+                ephemeral=True,
+            )
+            return
+        counts = result.get("counts") or {}
+        new_factions = [str(n) for n in result.get("new_factions") or []]
         new_line = (
             _dm_tr(interaction, dm_locale, "new_civs_line", names=", ".join(new_factions))
             if new_factions else ""
         )
+        # the confirmation lands FIRST — the admin sees the counts right
+        # away; the mirror below may create a hundred posts and must
+        # never hold the interaction token past its window.
         await interaction.followup.send(
             _dm_tr(
                 interaction, dm_locale, "refresh_done",
@@ -421,6 +440,20 @@ class ContentRefreshButton(
             ),
             ephemeral=True,
         )
+        # best-effort: the refreshed civ content shows up on the civs
+        # forum posts right away — the civ sync upserts the content
+        # docs, the forum sync creates/refreshes the posts (#330 — the
+        # maps button already had its mirror, the civs button had none).
+        try:
+            from kingdoms.core.services.entity_forum import sync_entity_forum
+            from kingdoms.discord.factions_forum import factions_forum_spec
+
+            for guild in interaction.client.guilds:
+                await sync_entity_forum(
+                    str(guild.id), interaction.client, factions_forum_spec(interaction.client)
+                )
+        except Exception:
+            logger.warning("DM PANEL: civs forum sync after refresh failed — best-effort")
 
 
 # The maps sync cooldown: two clicks minutes apart double the Liquipedia
@@ -499,9 +532,15 @@ class MapsSyncButton(
             _dm_tr(interaction, dm_locale, "maps_sync_started"), ephemeral=True
         )
         try:
-            from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_maps
+            from kingdoms.game_aoe2.client import GameDataClient
 
-            counts = await refresh_aoe2_maps()
+            game_uri = os.environ.get("GAME_AOE2_URI", "")
+            if not game_uri:
+                raise RuntimeError("GAME_AOE2_URI is not configured")
+            result = await GameDataClient(game_uri).sync_content("aoe2", "maps")
+            if not result.get("ok"):
+                raise RuntimeError(str(result.get("error", "unknown error")))
+            counts = result.get("counts") or {}
         except Exception:
             logger.exception("DM PANEL: maps sync failed")
             _MAPS_SYNC_LAST_DONE = _time.monotonic()

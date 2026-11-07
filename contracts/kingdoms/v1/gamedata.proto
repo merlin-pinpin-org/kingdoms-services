@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+import "kingdoms/v1/game.proto";
+import "kingdoms/v1/content.proto";
+
 package kingdoms.v1;
 
 
@@ -13,6 +16,48 @@ package kingdoms.v1;
 //
 // The contract is game-generic: the game is a parameter, so a future
 // game-aoe4 process serves the same contract with game_key = "aoe4".
+
+// The content sync: "factions" (the civs catalog + content docs) or
+// "maps" (the Liquipedia enrichment). The reply carries the counts, the
+// newly created factions, or a FUNCTIONAL error the UI shows as-is
+// (a provider is down, rate-limited, or not configured).
+message SyncContentRequest {
+  string game_key = 1;
+  string what = 2;  // "factions" | "maps"
+}
+
+message SyncContentReply {
+  bool ok = 1;
+  string error = 2;  // the functional error, empty when ok
+  map<string, int64> counts = 3;
+  repeated string new_factions = 4;
+}
+
+// The last-completed times: one answer for the whole batch (the panel
+// is immediate). Zero means no completed match yet.
+message GetLastCompletedTimesRequest {
+  string game_key = 1;
+  repeated string profile_ids = 2;
+}
+
+message GetLastCompletedTimesReply {
+  map<string, int64> times_ms = 1;  // profile_id -> epoch ms (0: none)
+}
+
+// One catalog operation: the op name (a GameDataService method), the
+// kwargs as JSON. The reply carries the result as JSON, or a functional
+// error with its kind (the caller re-raises the typed exception).
+message GameDataCallRequest {
+  string op = 1;
+  string payload_json = 2;
+}
+
+message GameDataCallReply {
+  bool ok = 1;
+  string error_kind = 2;  // the exception class name ("" when ok)
+  string error = 3;       // the functional message
+  string result_json = 4;
+}
 
 service GameData {
   // Declare which games this service covers and per-game capabilities.
@@ -31,6 +76,26 @@ service GameData {
   // Push the platform's enrolled profile ids for a game. The service
   // reconciles its providers' subscriptions in place (no teardown).
   rpc UpdateEnrollments(UpdateEnrollmentsRequest) returns (UpdateEnrollmentsResponse);
+  // The content sync (civs, maps): the game service runs it against ITS
+  // providers — the bot never touches a provider, it asks the service.
+  rpc SyncContent(SyncContentRequest) returns (SyncContentReply);
+
+  // The provider surfaces, PROXIED by the game service (rule 4: the
+  // mods and the bot talk to the game service, never to an ext). The
+  // wire messages are the Game contract's own — one shape, no copy.
+  rpc GetProfileStats(kingdoms.v1.GetPlayerStatsRequest) returns (kingdoms.v1.PlayerStats);
+  rpc GetMatchResult(kingdoms.v1.GetMatchResultRequest) returns (kingdoms.v1.MatchResult);
+  rpc GetProviderCapabilities(kingdoms.v1.CapabilitiesRequest) returns (kingdoms.v1.Capabilities);
+  // The profiles' most recent completed-match times (epoch ms) — the
+  // game's OWN matches collection answers, never the caller's raw read.
+  rpc GetLastCompletedTimes(GetLastCompletedTimesRequest) returns (GetLastCompletedTimesReply);
+  // The map seed lookup (the import flow): the game service proxies its
+  // liquipedia content provider — the Content contract's own wire.
+  rpc GetMapSeed(kingdoms.v1.MapSeedRequest) returns (kingdoms.v1.MapSeedReply);
+  // The catalog gateway: one op dispatch (rule 5 — the game's collections
+  // answer from the owner's process). The payload/result are JSON; the
+  // service's validation, audit and lifecycle logic stay THE logic.
+  rpc Call(GameDataCallRequest) returns (GameDataCallReply);
 
 
   // The providers' health-test results for a game: the game service

@@ -1,7 +1,7 @@
 """Shared wiring seams: one builder per cross-cutting dependency.
 
 Every Discord surface (games admin, maps forum, pools forum, pool
-flow) rebuilds the same wirings — the GameDataService over the shared
+flow) rebuilds the same wirings — the catalog service over the game
 Mongo adapter, the admin guard, the guild-category resolution. Those
 live here once so the surfaces stay thin (the core/mods rule: the mod
 code minimal, the shared machinery in core).
@@ -85,19 +85,20 @@ def games_wiring_ready() -> bool:
 
 
 def build_games_service() -> Any | None:
-    """Build (and memoize) the GameDataService; None when Mongo is absent."""
+    """Build (and memoize) the remote catalog; None without the game service."""
     global _GAMES_SERVICE, _GAMES_SERVICE_READY
     if _GAMES_SERVICE_READY:
         return _GAMES_SERVICE
     _GAMES_SERVICE_READY = True
-    if not os.environ.get("MONGO_URI"):
+    game_uri = os.environ.get("GAME_AOE2_URI", "")
+    if not game_uri:
+        # Rule 5: the game's collections answer from the game service —
+        # no URI means no games surfaces, never a direct Mongo fallback.
         return None
     try:
-        from kingdoms.core.games.aoe2.seed import MongoAoE2Database
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.game_data import GameDataService
+        from kingdoms.game_aoe2.remote_catalog import RemoteGameDataService
 
-        _GAMES_SERVICE = GameDataService(MongoAoE2Database(get_async_database()))
+        _GAMES_SERVICE = RemoteGameDataService(game_uri)
     except Exception:
         logger.warning("GAMES WIRING build failed", exc_info=True)
         _GAMES_SERVICE = None

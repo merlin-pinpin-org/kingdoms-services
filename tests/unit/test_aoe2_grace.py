@@ -7,7 +7,7 @@ any downgrade — a game_started arriving in between cancels it.
 
 from __future__ import annotations
 
-from kingdoms.core.games.aoe2.grace import GRACE_PERIOD_S, LobbyClosedGrace
+from kingdoms.aoe2.timing import GRACE_PERIOD_S, LobbyClosedGrace
 
 
 def test_no_lobby_closed_never_downgrades() -> None:

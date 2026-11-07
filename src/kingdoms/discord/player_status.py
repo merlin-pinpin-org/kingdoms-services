@@ -55,17 +55,11 @@ def start_player_status_stream(bot: Any) -> asyncio.Task[None] | None:
     mods simply receive no live transitions, the bot keeps running.
     """
     game_uri = os.environ.get("GAME_AOE2_URI", "")
-    core_uri = os.environ.get("CORE_URI", "")
-    if game_uri:
-        from kingdoms.game_aoe2.client import GameDataClient
-
-        client: Any = GameDataClient(game_uri)
-    elif core_uri:
-        from kingdoms.core.rpc.live import LiveClient
-
-        client = LiveClient(core_uri)
-    else:
+    if not game_uri:
         return None
+    from kingdoms.game_aoe2.client import GameDataClient
+
+    client: Any = GameDataClient(game_uri)
 
     async def _run() -> None:
         while True:

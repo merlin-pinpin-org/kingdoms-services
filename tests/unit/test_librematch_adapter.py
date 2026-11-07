@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 import pytest
 
-from kingdoms.core.games.aoe2.blobs import decode_blob, decode_options, decode_slotinfo  # noqa: F401
+from kingdoms.aoe2.codecs import decode_blob, decode_options, decode_slotinfo  # noqa: F401
 from kingdoms.core.models.game import MatchDetails, Slot
 from kingdoms.ext_librematch.adapter import LibrematchAdapter
 

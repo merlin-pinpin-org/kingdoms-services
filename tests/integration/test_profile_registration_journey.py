@@ -175,6 +175,28 @@ async def _start_provider_server(player_stats: Any, capabilities: ProviderCapabi
     return server, port
 
 
+async def _start_game_service(stats_uri: str) -> tuple[Any, int]:
+    """Start the true GameDataServicer in-process — the stats proxy.
+
+    The registration seam asks the GAME SERVICE (rule 4); the service
+    proxies its stats provider — the harness mirrors the real wiring
+    (the same servicer the game-aoe2 process binds).
+    """
+    from kingdoms.core.rpc.game_client import GameProviderClient
+    from kingdoms.game_aoe2.rpc import GameDataServicer
+    from kingdoms.rpc_generated.kingdoms.v1 import gamedata_pb2_grpc
+
+    server = grpc.aio.server()
+    servicer = GameDataServicer(
+        aggregator=None,
+        stats_provider=GameProviderClient(stats_uri, "ext-librematch", "aoe2"),
+    )
+    gamedata_pb2_grpc.add_GameDataServicer_to_server(servicer, server)
+    port = server.add_insecure_port("127.0.0.1:0")
+    await server.start()
+    return server, port
+
+
 async def test_registration_end_to_end_with_the_real_wire(monkeypatch: Any) -> None:
     """The full chain: WorldsEdge reply → adapter → gRPC → seam → binding."""
     from kingdoms.discord.registration_platform import Aoe2ProfileValidationSeam
@@ -211,7 +233,8 @@ async def test_registration_end_to_end_with_the_real_wire(monkeypatch: Any) -> N
 
         # The real seam against the real server.
         monkeypatch.delenv("EXT_LIBREMATCH_URI", raising=False)
-        monkeypatch.setenv("EXT_LIBREMATCH_URI", f"127.0.0.1:{port}")
+        _game_server, _game_port = await _start_game_service(f"127.0.0.1:{port}")
+        monkeypatch.setenv("GAME_AOE2_URI", f"127.0.0.1:{_game_port}")
         seam = Aoe2ProfileValidationSeam()
         validated = await seam.validate_profile("123456")
         assert validated is not None, "the seam must validate through the running provider"
@@ -252,7 +275,8 @@ async def test_registration_refused_when_the_provider_declares_no_stats(monkeypa
         ProviderCapabilities(provider_id="ext-librematch", game_key="aoe2", player_stats=False),
     )
     try:
-        monkeypatch.setenv("EXT_LIBREMATCH_URI", f"127.0.0.1:{port}")
+        _game_server, _game_port = await _start_game_service(f"127.0.0.1:{port}")
+        monkeypatch.setenv("GAME_AOE2_URI", f"127.0.0.1:{_game_port}")
         seam = Aoe2ProfileValidationSeam()
         with pytest.raises(ProviderStatsUnavailableError):
             await seam.validate_profile("123456")
@@ -283,7 +307,8 @@ async def test_registration_rejects_an_unknown_profile(monkeypatch: Any) -> None
         ProviderCapabilities(provider_id="ext-librematch", game_key="aoe2", player_stats=True),
     )
     try:
-        monkeypatch.setenv("EXT_LIBREMATCH_URI", f"127.0.0.1:{port}")
+        _game_server, _game_port = await _start_game_service(f"127.0.0.1:{port}")
+        monkeypatch.setenv("GAME_AOE2_URI", f"127.0.0.1:{_game_port}")
 
         async def _no_resolve(typed_id: str, transport: Any = None) -> str | None:
             return None
@@ -351,7 +376,8 @@ async def test_registration_resolves_the_insights_user_id_to_the_relic_id(monkey
         ProviderCapabilities(provider_id="ext-librematch", game_key="aoe2", player_stats=True),
     )
     try:
-        monkeypatch.setenv("EXT_LIBREMATCH_URI", f"127.0.0.1:{port}")
+        _game_server, _game_port = await _start_game_service(f"127.0.0.1:{port}")
+        monkeypatch.setenv("GAME_AOE2_URI", f"127.0.0.1:{_game_port}")
 
         # patch the resolver's transport at the seam level: the seam uses
         # resolve_relic_id with the default (real) transport — inject the

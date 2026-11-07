@@ -1,7 +1,7 @@
 """Provider-backed profile stats with a Redis-TTL + Mongo cache (kingdoms #147).
 
 The dashboard needs each bound profile's name and stats (rating, W/L).
-The source of truth is the provider (ext-librematch leaderboards); calling
+The source of truth is the stats provider (the leaderboards); calling
 it per render is both slow and rate-limited, so the values are cached:
 
 - Redis first (``stats:<game_key>:<profile_id>``, TTL, the hot path);

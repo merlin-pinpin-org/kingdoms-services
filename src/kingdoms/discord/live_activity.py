@@ -378,12 +378,12 @@ async def _fetch_result_then_update(
         return
     import os
 
-    uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+    uri = os.environ.get("GAME_AOE2_URI", "")
     if not uri:
         return
-    from kingdoms.core.rpc.game_client import GameProviderClient
+    from kingdoms.game_aoe2.client import GameDataClient
 
-    client = GameProviderClient(uri, "ext-librematch", "aoe2")
+    client = GameDataClient(uri)
     result = None
     for delay in _RESULT_BACKOFF_S:
         await asyncio.sleep(delay)

@@ -41,7 +41,14 @@ admin&nbsp;surface&nbsp;lives&nbsp;in&nbsp;the&nbsp;games&nbsp;admin&nbsp;sectio
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-liquipedia_map_url"><strong>liquipedia_map_url</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;map's&nbsp;Liquipedia&nbsp;page&nbsp;URL&nbsp;(the&nbsp;post's&nbsp;default&nbsp;source&nbsp;link).</span></dd></dl>
- <dl><dt><a name="-maps_forum_wiring_ready"><strong>maps_forum_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;maps&nbsp;forum&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+ <dl><dt>async <a name="-map_post_render"><strong>map_post_render</strong></a>(entry: 'Any', guild_id: 'str', bot: 'Any', service: 'Any', admin_buttons: 'tuple[Any, ...]' = ()) -&gt; 'tuple[str, Any]'</dt><dd><span class="code">Render&nbsp;one&nbsp;map's&nbsp;post&nbsp;(content&nbsp;+&nbsp;view)&nbsp;—&nbsp;THE&nbsp;forum&nbsp;post's&nbsp;shape.<br>
+&nbsp;<br>
+One&nbsp;builder,&nbsp;three&nbsp;consumers:&nbsp;the&nbsp;forum&nbsp;post&nbsp;(the&nbsp;sync),&nbsp;the<br>
+admin's&nbsp;ephemeral&nbsp;preview&nbsp;(the&nbsp;creation&nbsp;and&nbsp;the&nbsp;already-exists<br>
+verdicts&nbsp;show&nbsp;the&nbsp;admin&nbsp;EXACTLY&nbsp;what&nbsp;the&nbsp;post&nbsp;looks&nbsp;like),&nbsp;and&nbsp;the<br>
+map's&nbsp;admin&nbsp;menu&nbsp;(``admin_buttons``&nbsp;swaps&nbsp;the&nbsp;action&nbsp;row&nbsp;—&nbsp;the<br>
+menu&nbsp;IS&nbsp;the&nbsp;card,&nbsp;like&nbsp;the&nbsp;pools).</span></dd></dl>
+ <dl><dt><a name="-maps_forum_wiring_ready"><strong>maps_forum_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;maps&nbsp;forum&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(the&nbsp;game&nbsp;service&nbsp;configured).</span></dd></dl>
  <dl><dt>async <a name="-refresh_map_posts"><strong>refresh_map_posts</strong></a>(bot: 'Any', guild_id: 'str', map_ids: 'tuple[str, ...] | list[str]') -&gt; 'None'</dt><dd><span class="code">Re-edit&nbsp;the&nbsp;given&nbsp;maps'&nbsp;forum&nbsp;posts&nbsp;(best-effort).<br>
 &nbsp;<br>
 A&nbsp;pool&nbsp;composition&nbsp;change&nbsp;rewrites&nbsp;the&nbsp;pool-link&nbsp;lines&nbsp;on&nbsp;every<br>

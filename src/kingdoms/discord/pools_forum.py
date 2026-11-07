@@ -58,13 +58,15 @@ def _pool_post_layout(
     pool: Any,
     maps: list[dict[str, Any]],
     editable: bool = False,
+    admin_buttons: tuple[Any, ...] = (),
 ) -> discord.ui.LayoutView:
     """Build the pool post on the shared pool-card template.
 
     State header (accent container), then one Section per member map
     (the name links to the map's post, the map image is the accessory
-    thumbnail), the overflow as text lines, the id footer and the
-    action row (add map when in edition, transition, delete).
+    thumbnail), the overflow as text lines, the action row and the id
+    footer (ALWAYS the last line). ``admin_buttons`` swaps the action
+    row (the admin menu is THE SAME card, only the buttons change).
     """
     from kingdoms.discord.entity_admin_menu import EntityAdminButton
     from kingdoms.discord.ui.entity_cards import pool_card
@@ -85,9 +87,14 @@ def _pool_post_layout(
             name += f" — *{m['map_type']}*"
         sections.append((name, link, image))
 
-    buttons: list[Any] = [
-        lambda: EntityAdminButton("pool", pool.id, game_key=str(getattr(pool, "game_key", "")), owned=editable)
-    ]
+    if admin_buttons:
+        buttons: list[Any] = list(admin_buttons)
+    else:
+        buttons = [
+            lambda: EntityAdminButton(
+                "pool", pool.id, game_key=str(getattr(pool, "game_key", "")), owned=editable
+            )
+        ]
     return pool_card(
         pool_id=pool.id,
         name=pool.name,
@@ -114,7 +121,7 @@ async def _map_image_url(entry: Any) -> str:
         if service is None:
             return ""
         for locale in ("fr", "en"):
-            doc = await service.get(entry.id, locale)
+            doc = await service.content_get(entry.id, locale)
             if doc and doc.get("image_url"):
                 return str(doc["image_url"])
     except Exception:

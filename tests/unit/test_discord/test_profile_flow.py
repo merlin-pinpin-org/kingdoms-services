@@ -359,8 +359,8 @@ async def test_validation_seam_says_not_configured_without_stats() -> None:
     )
 
     class _Client:
-        def __init__(self, uri: str, provider: str, game: str) -> None:
-            del uri, provider, game
+        def __init__(self, uri: str) -> None:
+            del uri
 
         async def get_capabilities(self) -> ProviderCapabilities:
             return ProviderCapabilities.none("ext-librematch", "aoe2")
@@ -368,12 +368,12 @@ async def test_validation_seam_says_not_configured_without_stats() -> None:
         async def get_player_stats(self, profile_id: str) -> None:
             return None
 
-    import kingdoms.discord.registration_platform as platform
+    import kingdoms.game_aoe2.client as client_module
 
-    original = platform.__dict__.get("GameProviderClient")
-    platform.GameProviderClient = _Client  # type: ignore[assignment]
+    original = client_module.__dict__.get("GameDataClient")
+    client_module.GameDataClient = _Client  # type: ignore[assignment]
     try:
-        seam = Aoe2ProfileValidationSeam("kingdoms-ext-librematch:50061")
+        seam = Aoe2ProfileValidationSeam("kingdoms-game-aoe2:50071")
         try:
             await seam.validate_profile("123456")
             raised = False
@@ -383,7 +383,7 @@ async def test_validation_seam_says_not_configured_without_stats() -> None:
         assert raised, "a stats-less provider must raise the explicit config error"
     finally:
         if original is not None:
-            platform.GameProviderClient = original  # type: ignore[assignment]
+            client_module.GameDataClient = original  # type: ignore[assignment]
 
 
 def test_add_modal_payload_shape_is_the_proven_one() -> None:

@@ -1,6 +1,6 @@
 """Provider mapping service: each provider's own ids, remapped (core).
 
-Every provider speaks its own dialect — aoe2techtree keys civs as
+Every provider speaks its own dialect — the content provider keys civs as
 ``Franks``, a match API may key them ``1`` or ``franks``; a patch can
 renumber them. The catalog's stable ids never move; the provider's ids
 can. This service holds the per-provider remapping tables (catalog

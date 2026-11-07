@@ -38,6 +38,12 @@ class RegistrationDatabase(Protocol):
         """Return the binding owning a profile; None when unbound."""
         ...
 
+    async def find_bindings_by_profiles(
+        self, game_key: str, profile_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        """Return the bindings of many profiles in ONE batch (the panels)."""
+        ...
+
     async def delete_binding(self, game_key: str, user_id: str, profile_id: str) -> bool:
         """Drop one profile binding; True when one existed."""
         ...
@@ -121,6 +127,18 @@ class RegistrationService:
         await self._db.upsert_entry(PROFILE_BINDINGS_COLLECTION, binding)
         await self._audit_record("profile.bind", {"user_id": user_id, "game_key": game_key, "profile_id": canonical_id})
         return binding
+
+    async def find_bindings_by_profiles(
+        self, game_key: str, profile_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        """Read many profiles' bindings in ONE batch (the panel's path).
+
+        Rule 5: ``profile_bindings`` is owned here — the callers (the
+        bot's panels) go through the service, never the raw database.
+        """
+        if not profile_ids:
+            return []
+        return await self._db.find_bindings_by_profiles(game_key, profile_ids)
 
     async def get_binding(self, user_id: str, game_key: str) -> dict[str, Any] | None:
         """Return the user's first binding for a game; None when unbound.

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.game_aoe2.remote_catalog</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.game_aoe2.html" class="white">game_aoe2</a>.remote_catalog</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/remote_catalog.py">SOURCE_ROOT/game_aoe2/remote_catalog.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;remote&nbsp;catalog&nbsp;service:&nbsp;the&nbsp;game&nbsp;service's&nbsp;catalog,&nbsp;proxied.<br>
+&nbsp;<br>
+Rule&nbsp;5&nbsp;(ADR-0021):&nbsp;the&nbsp;game's&nbsp;collections&nbsp;(maps,&nbsp;pools,&nbsp;packs,<br>
+factions,&nbsp;content)&nbsp;answer&nbsp;from&nbsp;the&nbsp;OWNER's&nbsp;process&nbsp;—&nbsp;the&nbsp;game&nbsp;service.<br>
+This&nbsp;proxy&nbsp;exposes&nbsp;the&nbsp;GameDataService's&nbsp;method&nbsp;surface&nbsp;over&nbsp;the<br>
+GameData.Call&nbsp;gateway,&nbsp;rebuilding&nbsp;the&nbsp;same&nbsp;pydantic&nbsp;models,&nbsp;so&nbsp;the<br>
+bot's&nbsp;views&nbsp;keep&nbsp;their&nbsp;objects&nbsp;and&nbsp;their&nbsp;logic&nbsp;untouched.<br>
+&nbsp;<br>
+A&nbsp;functional&nbsp;error&nbsp;crosses&nbsp;the&nbsp;wire&nbsp;with&nbsp;its&nbsp;kind&nbsp;(NameTakenError,<br>
+ValueError...)&nbsp;and&nbsp;re-raises&nbsp;as&nbsp;the&nbsp;SAME&nbsp;exception&nbsp;type&nbsp;—&nbsp;the&nbsp;callers'<br>
+except-clauses&nbsp;keep&nbsp;working.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.game_aoe2.remote_catalog.html#RemoteGameDataService">RemoteGameDataService</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RemoteGameDataService">class <strong>RemoteGameDataService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RemoteGameDataService">RemoteGameDataService</a>(uri:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;GameDataService&nbsp;surface,&nbsp;served&nbsp;by&nbsp;the&nbsp;game&nbsp;service.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RemoteGameDataService-__init__"><strong>__init__</strong></a>(self, uri: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-archive_map"><strong>archive_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;(the&nbsp;catalog's&nbsp;soft&nbsp;delete).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-archive_map_pack"><strong>archive_map_pack</strong></a>(self, entry_id: 'str') -&gt; 'MapPackModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;pack.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-archive_map_pool"><strong>archive_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;pool.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-content_get"><strong>content_get</strong></a>(self, entity_id: 'str', locale: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;localized&nbsp;content&nbsp;doc&nbsp;(the&nbsp;enrichment's&nbsp;read).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-content_store"><strong>content_store</strong></a>(self, content: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;one&nbsp;localized&nbsp;content&nbsp;doc&nbsp;(the&nbsp;enrichment's&nbsp;write).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None, map_type: 'str' = '', filenames: 'tuple[str, ...]' = (), is_public: 'bool' = True) -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;a&nbsp;taken&nbsp;name&nbsp;raises&nbsp;NameTakenError.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-create_map_pack"><strong>create_map_pack</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]' = (), description: 'str' = '') -&gt; 'MapPackModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map&nbsp;pack&nbsp;(positional&nbsp;shape,&nbsp;like&nbsp;the&nbsp;real&nbsp;service).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-create_map_pool"><strong>create_map_pool</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]' = (), map_pack_ids: 'tuple[str, ...]' = (), description: 'str' = '', owner_guild_id: 'str | None' = None, is_public: 'bool' = False) -&gt; 'MapPoolModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;pool;&nbsp;a&nbsp;taken&nbsp;name&nbsp;raises&nbsp;NameTakenError.<br>
+&nbsp;<br>
+The&nbsp;signature&nbsp;mirrors&nbsp;the&nbsp;REAL&nbsp;service's&nbsp;positional&nbsp;shape&nbsp;—<br>
+the&nbsp;callers&nbsp;pass&nbsp;positionals&nbsp;(the&nbsp;2026-11-06&nbsp;crash:&nbsp;a<br>
+**kwargs-only&nbsp;remote&nbsp;raised&nbsp;'takes&nbsp;1&nbsp;positional&nbsp;argument').</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-delete_map"><strong>delete_map</strong></a>(self, entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Hard-delete&nbsp;a&nbsp;map&nbsp;(the&nbsp;import&nbsp;rollback's&nbsp;path).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-duplicate_map_pool"><strong>duplicate_map_pool</strong></a>(self, entry_id: 'str', new_name: 'str', owner_guild_id: 'str | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Duplicate&nbsp;a&nbsp;pool&nbsp;under&nbsp;a&nbsp;new&nbsp;name.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-get_map"><strong>get_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;map;&nbsp;None&nbsp;when&nbsp;it&nbsp;does&nbsp;not&nbsp;exist.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-get_map_pack"><strong>get_map_pack</strong></a>(self, entry_id: 'str') -&gt; 'MapPackModel | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;map&nbsp;pack;&nbsp;None&nbsp;when&nbsp;it&nbsp;does&nbsp;not&nbsp;exist.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-get_map_pool"><strong>get_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'MapPoolModel | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;pool;&nbsp;None&nbsp;when&nbsp;it&nbsp;does&nbsp;not&nbsp;exist.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-hard_delete_map_pool"><strong>hard_delete_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Hard-delete&nbsp;a&nbsp;pool&nbsp;(the&nbsp;admin's&nbsp;destructive&nbsp;path).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-list_all_map_pools"><strong>list_all_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapPoolModel]'</dt><dd><span class="code">List&nbsp;every&nbsp;pool,&nbsp;archived&nbsp;included&nbsp;(the&nbsp;admin's&nbsp;view).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-list_factions"><strong>list_factions</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[Any]'</dt><dd><span class="code">List&nbsp;the&nbsp;game's&nbsp;factions&nbsp;(the&nbsp;civs'&nbsp;catalog).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-list_game_keys"><strong>list_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;implemented&nbsp;games.</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-list_map_pools"><strong>list_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapPoolModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;active&nbsp;pools&nbsp;(guild-scoped&nbsp;when&nbsp;a&nbsp;guild&nbsp;is&nbsp;given).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-list_maps"><strong>list_maps</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;game's&nbsp;maps&nbsp;(guild-scoped&nbsp;when&nbsp;a&nbsp;guild&nbsp;is&nbsp;given).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-resolve_pool_map_ids"><strong>resolve_pool_map_ids</strong></a>(self, pool: 'MapPoolModel') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;pool's&nbsp;composition&nbsp;into&nbsp;its&nbsp;map&nbsp;ids&nbsp;(packs&nbsp;expanded).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-send_map_pool_to_guild"><strong>send_map_pool_to_guild</strong></a>(self, entry_id: 'str', target_guild_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Send&nbsp;a&nbsp;pool&nbsp;to&nbsp;another&nbsp;guild&nbsp;(the&nbsp;sharing&nbsp;flow).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-set_map_forum_message"><strong>set_map_forum_message</strong></a>(self, entry_id: 'str', forum_message_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;map's&nbsp;forum&nbsp;post&nbsp;id&nbsp;(the&nbsp;provisioning's&nbsp;bookkeeping).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-set_pool_forum_thread"><strong>set_pool_forum_thread</strong></a>(self, entry_id: 'str', forum_thread_id: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;pool's&nbsp;forum&nbsp;thread&nbsp;id&nbsp;(the&nbsp;provisioning's&nbsp;bookkeeping).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-transition_map_pool"><strong>transition_map_pool</strong></a>(self, entry_id: 'str', new_state: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Move&nbsp;a&nbsp;pool&nbsp;along&nbsp;its&nbsp;lifecycle&nbsp;(draft-&gt;published-&gt;used-&gt;closed).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-update_map"><strong>update_map</strong></a>(self, entry_id: 'str', name: 'str | None' = None, filename: 'str | None' = None, description: 'str | None' = None, resource_url: 'str | None' = None, map_type: 'str | None' = None, filenames: 'tuple[str, ...] | None' = None) -&gt; 'MapModel'</dt><dd><span class="code">Update&nbsp;a&nbsp;map's&nbsp;mutable&nbsp;fields&nbsp;(positional&nbsp;shape,&nbsp;like&nbsp;the&nbsp;real&nbsp;service).</span></dd></dl>
+
+<dl><dt>async <a name="RemoteGameDataService-update_map_pool"><strong>update_map_pool</strong></a>(self, entry_id: 'str', name: 'str | None' = None, map_ids: 'tuple[str, ...] | None' = None, description: 'str | None' = None, fav_quota: 'int | None' = None, ban_quota: 'int | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Update&nbsp;a&nbsp;pool's&nbsp;mutable&nbsp;fields&nbsp;(positional&nbsp;shape,&nbsp;like&nbsp;the&nbsp;real&nbsp;service).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>

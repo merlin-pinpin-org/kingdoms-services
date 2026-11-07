@@ -11,7 +11,7 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/game_aoe2/client.py">SOURCE_ROOT/game_aoe2/client.py</a></td></tr></table>
     <p><span class="code">game-aoe2&nbsp;client&nbsp;(bot&nbsp;side):&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;consumer.<br>
 &nbsp;<br>
-Same&nbsp;shape&nbsp;as&nbsp;the&nbsp;LiveClient&nbsp;seam&nbsp;(``watch``&nbsp;+&nbsp;``stream_snapshots``&nbsp;+<br>
+Same&nbsp;shape&nbsp;as&nbsp;the&nbsp;dashboard&nbsp;client&nbsp;seam&nbsp;(``watch``&nbsp;+&nbsp;``stream_snapshots``&nbsp;+<br>
 ``stream_player_events``)&nbsp;so&nbsp;the&nbsp;bot&nbsp;wiring&nbsp;picks&nbsp;whichever&nbsp;process&nbsp;is<br>
 configured:&nbsp;the&nbsp;enriched&nbsp;GameData&nbsp;feed&nbsp;when&nbsp;``GAME_AOE2_URI``&nbsp;is&nbsp;set,<br>
 the&nbsp;plain&nbsp;Live&nbsp;feed&nbsp;otherwise.&nbsp;The&nbsp;GameData&nbsp;feed&nbsp;carries&nbsp;the&nbsp;full<br>
@@ -44,9 +44,34 @@ Typed&nbsp;client&nbsp;for&nbsp;the&nbsp;kingdoms.v1.GameData&nbsp;service&nbsp;
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="GameDataClient-__init__"><strong>__init__</strong></a>(self, uri: 'str') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;service&nbsp;address;&nbsp;channels&nbsp;are&nbsp;per-call&nbsp;(ADR-0020).</span></dd></dl>
 
+<dl><dt>async <a name="GameDataClient-get_capabilities"><strong>get_capabilities</strong></a>(self) -&gt; 'Any'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;stats&nbsp;provider's&nbsp;declared&nbsp;capabilities&nbsp;(proxied).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-get_last_completed_times"><strong>get_last_completed_times</strong></a>(self, profile_ids: 'list[str]', timeout_s: 'float' = 15.0) -&gt; 'dict[str, int]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;profiles'&nbsp;last&nbsp;completed-match&nbsp;times&nbsp;(the&nbsp;game's&nbsp;matches).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-get_map_seed"><strong>get_map_seed</strong></a>(self, map_key: 'str', timeout_s: 'float' = 120.0) -&gt; 'Any | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;map's&nbsp;seed&nbsp;through&nbsp;the&nbsp;game&nbsp;service&nbsp;(the&nbsp;import&nbsp;flow).<br>
+&nbsp;<br>
+The&nbsp;service&nbsp;proxies&nbsp;its&nbsp;liquipedia&nbsp;provider&nbsp;—&nbsp;the&nbsp;seed&nbsp;worker's<br>
+coalescing,&nbsp;pacing&nbsp;and&nbsp;circuit&nbsp;breaker&nbsp;apply.&nbsp;The&nbsp;timeout&nbsp;is<br>
+long&nbsp;BY&nbsp;DESIGN&nbsp;(the&nbsp;provider&nbsp;may&nbsp;back&nbsp;off&nbsp;on&nbsp;a&nbsp;rate-limited<br>
+upstream);&nbsp;a&nbsp;circuit-open&nbsp;provider&nbsp;raises&nbsp;the&nbsp;functional&nbsp;error.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-get_match_result"><strong>get_match_result</strong></a>(self, profile_ids: 'list[str]', started_after: 'int') -&gt; 'Any | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;finished&nbsp;match's&nbsp;outcome&nbsp;through&nbsp;the&nbsp;game&nbsp;service.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-get_player_stats"><strong>get_player_stats</strong></a>(self, profile_id: 'str') -&gt; 'Any | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;stats&nbsp;blocks&nbsp;through&nbsp;the&nbsp;game&nbsp;service.<br>
+&nbsp;<br>
+The&nbsp;service&nbsp;proxies&nbsp;its&nbsp;stats&nbsp;provider&nbsp;—&nbsp;the&nbsp;caller&nbsp;never&nbsp;sees<br>
+one&nbsp;(rule&nbsp;4).&nbsp;Degrades&nbsp;to&nbsp;None&nbsp;when&nbsp;the&nbsp;profile&nbsp;has&nbsp;no&nbsp;stats.</span></dd></dl>
+
 <dl><dt>async <a name="GameDataClient-stream_player_events"><strong>stream_player_events</strong></a>(self, game_key: 'str' = '')</dt><dd><span class="code">Yield&nbsp;normalized&nbsp;player&nbsp;transitions&nbsp;continuously,&nbsp;forever.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataClient-stream_snapshots"><strong>stream_snapshots</strong></a>(self, game_key: 'str')</dt><dd><span class="code">Yield&nbsp;dashboard&nbsp;snapshots&nbsp;continuously:&nbsp;one&nbsp;per&nbsp;effective&nbsp;change.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataClient-sync_content"><strong>sync_content</strong></a>(self, game_key: 'str', what: 'str', timeout_s: 'float' = 900.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Ask&nbsp;the&nbsp;game&nbsp;service&nbsp;to&nbsp;run&nbsp;a&nbsp;content&nbsp;sync&nbsp;(civs,&nbsp;maps).<br>
+&nbsp;<br>
+The&nbsp;service&nbsp;runs&nbsp;it&nbsp;against&nbsp;ITS&nbsp;providers&nbsp;—&nbsp;the&nbsp;caller&nbsp;never<br>
+touches&nbsp;one.&nbsp;The&nbsp;reply&nbsp;carries&nbsp;the&nbsp;counts&nbsp;or&nbsp;a&nbsp;FUNCTIONAL&nbsp;error<br>
+the&nbsp;UI&nbsp;shows&nbsp;as-is.&nbsp;The&nbsp;timeout&nbsp;is&nbsp;long&nbsp;BY&nbsp;DESIGN:&nbsp;the&nbsp;maps<br>
+enrichment&nbsp;rides&nbsp;the&nbsp;Liquipedia&nbsp;pacing&nbsp;(minutes).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataClient-watch"><strong>watch</strong></a>(self, game_key: 'str', timeout_s: 'float' = 5.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;(first&nbsp;stream&nbsp;frame).</span></dd></dl>
 

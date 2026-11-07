@@ -11,7 +11,7 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/game.py">SOURCE_ROOT/core/rpc/game.py</a></td></tr></table>
     <p><span class="code">Game&nbsp;provider&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;server&nbsp;side&nbsp;(kingdoms.v1.Game).<br>
 &nbsp;<br>
-A&nbsp;game&nbsp;provider&nbsp;process&nbsp;(ext-librematch,&nbsp;ext-aoe2lobby)&nbsp;builds&nbsp;its&nbsp;gRPC<br>
+A&nbsp;game&nbsp;provider&nbsp;process&nbsp;builds&nbsp;its&nbsp;gRPC<br>
 server&nbsp;from&nbsp;these&nbsp;servicers,&nbsp;backed&nbsp;by&nbsp;its&nbsp;own&nbsp;adapters&nbsp;to&nbsp;the&nbsp;external<br>
 APIs.&nbsp;The&nbsp;seam&nbsp;keeps&nbsp;provider&nbsp;code&nbsp;out&nbsp;of&nbsp;the&nbsp;core:&nbsp;it&nbsp;only&nbsp;translates<br>
 between&nbsp;the&nbsp;wire&nbsp;contract&nbsp;and&nbsp;plain&nbsp;core&nbsp;models.</span></p>
@@ -67,7 +67,7 @@ Methods defined here:<br>
 <dl><dt>async <a name="GameServicer-GetMatchResult"><strong>GetMatchResult</strong></a>(self, request: 'game_pb2.GetMatchResultRequest', context: 'grpc.aio.ServicerContext') -&gt; 'game_pb2.MatchResult'</dt><dd><span class="code">Serve&nbsp;a&nbsp;finished&nbsp;match's&nbsp;outcome&nbsp;when&nbsp;the&nbsp;provider&nbsp;has&nbsp;it.<br>
 &nbsp;<br>
 The&nbsp;correlation&nbsp;rides&nbsp;the&nbsp;profile&nbsp;ids&nbsp;and&nbsp;the&nbsp;time&nbsp;window<br>
-(the&nbsp;upstream's&nbsp;match&nbsp;id&nbsp;is&nbsp;not&nbsp;the&nbsp;aoe2lobby&nbsp;ref).&nbsp;The<br>
+(the&nbsp;upstream's&nbsp;match&nbsp;id&nbsp;is&nbsp;not&nbsp;the&nbsp;platform's&nbsp;ref).&nbsp;The<br>
 provider&nbsp;answers&nbsp;None&nbsp;while&nbsp;the&nbsp;upstream&nbsp;has&nbsp;not&nbsp;recorded<br>
 the&nbsp;match&nbsp;yet&nbsp;—&nbsp;``found=False``&nbsp;on&nbsp;the&nbsp;wire,&nbsp;the&nbsp;caller<br>
 retries&nbsp;with&nbsp;a&nbsp;backoff.</span></dd></dl>
@@ -111,6 +111,11 @@ Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.game
  <dl><dt><a name="-match_details_to_wire"><strong>match_details_to_wire</strong></a>(details: 'MatchDetails') -&gt; 'game_pb2.MatchDetails'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;match-details&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
  <dl><dt><a name="-match_event_from_wire"><strong>match_event_from_wire</strong></a>(wire: 'game_pb2.MatchEvent') -&gt; 'MatchEvent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match-event&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
  <dl><dt><a name="-match_event_to_wire"><strong>match_event_to_wire</strong></a>(event: 'MatchEvent') -&gt; 'game_pb2.MatchEvent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;match-event&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-match_result_from_wire"><strong>match_result_from_wire</strong></a>(wire: 'game_pb2.MatchResult') -&gt; 'MatchResult'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match-result&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.<br>
+&nbsp;<br>
+The&nbsp;ratings&nbsp;ride&nbsp;the&nbsp;wire&nbsp;as&nbsp;two&nbsp;maps&nbsp;(old/new);&nbsp;the&nbsp;model&nbsp;carries<br>
+the&nbsp;pairs.&nbsp;``match_ref``&nbsp;is&nbsp;the&nbsp;platform's&nbsp;own&nbsp;reference&nbsp;and&nbsp;never<br>
+crosses&nbsp;the&nbsp;provider&nbsp;wire&nbsp;—&nbsp;it&nbsp;stays&nbsp;empty&nbsp;for&nbsp;the&nbsp;caller&nbsp;to&nbsp;fill.</span></dd></dl>
  <dl><dt><a name="-match_result_to_wire"><strong>match_result_to_wire</strong></a>(result: 'MatchResult') -&gt; 'game_pb2.MatchResult'</dt><dd><span class="code">Translate&nbsp;a&nbsp;finished&nbsp;match's&nbsp;outcome&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
  <dl><dt><a name="-player_stats_from_wire"><strong>player_stats_from_wire</strong></a>(wire: 'game_pb2.PlayerStats') -&gt; 'PlayerStats'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;player-stats&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
  <dl><dt><a name="-player_stats_to_wire"><strong>player_stats_to_wire</strong></a>(stats: 'PlayerStats') -&gt; 'game_pb2.PlayerStats'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;player-stats&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>

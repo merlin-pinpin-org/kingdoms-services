@@ -435,10 +435,16 @@ class KingdomsBot(discord.Client):
             await self._ensure_all_pins(guild_id)
             if not maps_forum_wiring_ready():
                 return
-            from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
-
+            # The civs sync rides the GAME SERVICE (the bot never runs
+            # game code nor touches a provider): best-effort at boot, the
+            # DM panel's button re-runs it on demand.
             try:
-                await refresh_aoe2_content()
+                from kingdoms.game_aoe2.client import GameDataClient
+
+                game_uri = os.environ.get("GAME_AOE2_URI", "")
+                if game_uri:
+                    client = GameDataClient(game_uri)
+                    await client.sync_content("aoe2", "factions", timeout_s=300.0)
             except Exception:
                 logger.warning("CONTENT REFRESH at boot failed — best-effort", exc_info=True)
             await sync_maps_forum(guild_id, "aoe2", self)
@@ -887,6 +893,14 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_ci_run_ts=resolved.deploy_ci_run_ts,
     )
     shared_state = _build_shared_state(resolved)
+    # Discord rate-limit observability (owner direction 2026-11-06): the
+    # buckets logged — DEBUG per request, INFO when tight, WARNING when
+    # raised. Installed BEFORE the client exists (it patches the class
+    # discord.Client instantiates); a discord.py upgrade degrades to
+    # the stock client, never a crash.
+    from kingdoms.discord.ratelimit_observability import install as _install_observability
+
+    _install_observability()
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
     bot.games = games
     bot.state_service = shared_state
@@ -939,19 +953,16 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
     bot.home_service = HomeService(registry, _DiscordModHomeViews(bot.mod_home_builders))
     bot._registration_database = _build_registration_database(resolved)
-    bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
+    bot._home_providers = {}
     import os as _os
 
-    _core_uri = _os.environ.get("CORE_URI", "")
+    # The GAME SERVICE is the one live source (the core's duplicate
+    # aggregator is gone): no GAME_AOE2_URI means no live surfaces.
     _game_uri = _os.environ.get("GAME_AOE2_URI", "")
     if _game_uri:
         from kingdoms.game_aoe2.client import GameDataClient
 
         bot.live_client = GameDataClient(_game_uri)
-    elif _core_uri:
-        from kingdoms.core.rpc.live import LiveClient
-
-        bot.live_client = LiveClient(_core_uri)
     else:
         bot.live_client = None
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
@@ -1022,18 +1033,6 @@ def _build_registration_database(config: BotConfig) -> Any | None:
         from kingdoms.discord.registration_platform import MongoRegistrationDatabase
 
         return MongoRegistrationDatabase(get_async_database())
-    except Exception:
-        return None
-
-
-def _build_home_provider(config: BotConfig) -> Any | None:
-    """Return the AoE2 live adapter for the games view, None unwired."""
-    if not config.redis_uri:
-        return None
-    try:
-        from kingdoms.ext_librematch.adapter import LibrematchAdapter
-
-        return LibrematchAdapter(api_key=os.environ.get("AOE2_API_KEY", ""))
     except Exception:
         return None
 

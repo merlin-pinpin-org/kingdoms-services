@@ -39,10 +39,56 @@ async def _serve() -> None:
 
     aggregator = GameAoe2Aggregator()
     enrollments = _EnrollmentPusher(aggregator)
+    # The stats proxy: the game service owns its librematch provider
+    # (rule 4 — the bot and the mods ask the service, never the ext).
+    stats_provider = None
+    stats_uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+    if stats_uri:
+        from kingdoms.core.rpc.game_client import GameProviderClient
+
+        stats_provider = GameProviderClient(stats_uri, "ext-librematch", GAME_KEY)
+    # The map seed door: the game's liquipedia content provider (the
+    # import flow's enrichment rides it through the GetMapSeed proxy).
+    map_seeds = None
+    seeds_uri = os.environ.get("EXT_LIQUIPEDIA_URI", "")
+    if seeds_uri:
+        from kingdoms.core.rpc.content_client import ContentProviderClient
+
+        map_seeds = ContentProviderClient(seeds_uri)
+    # The catalog gateway (rule 5): the game's collections answer from
+    # the owner's process — the service + the content store, composed.
+    from kingdoms.core.models.db import get_async_database as _get_db
+    from kingdoms.core.services.faction_content import FactionContentService
+    from kingdoms.core.services.game_data import GameDataService
+
+    from .seed import MongoAoE2Database
+
+    _database = _get_db()
+    catalog = _CatalogGateway(
+        GameDataService(MongoAoE2Database(_database)), FactionContentService(_database)
+    )
+
     server = build_status_server(
         lambda: CoreStatus(version=__version__, process=PROCESS_LABEL),
     )
-    add_gamedata_servicer(server, GameDataServicer(aggregator, enrollments=enrollments))
+    add_gamedata_servicer(
+        server,
+        GameDataServicer(
+            aggregator,
+            enrollments=enrollments,
+            stats_provider=stats_provider,
+            map_seeds=map_seeds,
+            catalog=catalog,
+        ),
+    )
+
+    # The game's collections are ITS OWN (rule 5): the indexes are
+    # ensured here, at the game service's boot.
+    from kingdoms.core.models.db import get_async_database
+
+    from .db_indexes import ensure_game_indexes
+
+    await ensure_game_indexes(get_async_database())
 
     consumer = asyncio.ensure_future(_consume_providers(aggregator))
     # No synthetic probe (owner direction 2026-11-05): a probe every
@@ -154,6 +200,33 @@ async def _watch_provider_health(aggregator: Any, client: Any) -> None:
         except Exception:
             aggregator.mark_degraded()
         await asyncio.sleep(interval_s)
+
+
+class _CatalogGateway:
+    """The game's catalog + content, composed for the gateway dispatch.
+
+    The GameDataService owns the game's collections (maps, pools,
+    packs, factions); the FactionContentService owns the localized
+    content docs. The gateway dispatches to either — one door, two
+    owners, both in the owner's process (rule 5).
+    """
+
+    def __init__(self, service: Any, content: Any) -> None:
+        self._service = service
+        self._content = content
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._service, name)
+
+    async def content_store(self, content: dict[str, Any]) -> None:
+        """Store one localized content doc (the enrichment's write)."""
+        await self._content.store(content)
+
+    async def content_get(self, entity_id: str, locale: str) -> dict[str, Any] | None:
+        """Read one localized content doc (the enrichment's read)."""
+        result: dict[str, Any] | None = await self._content.get(entity_id, locale)
+        return result
+
 
 if __name__ == "__main__":
     main()

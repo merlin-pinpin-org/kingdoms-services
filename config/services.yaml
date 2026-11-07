@@ -12,3 +12,13 @@ providers:
     schema_ws_url: wss://data.aoe2lobby.com/ws/lobby/
   librematch:
     api_url: https://aoe-api.worldsedgelink.com
+
+# The Discord HTTP admission policy (owner direction 2026-11-06): the
+# buckets' remaining tokens are OUR budget — a request goes through
+# while remaining > margin; when remaining hits the margin, the NEXT
+# request blocks until the bucket resets (the margin absorbs the races
+# between concurrent requests, no lock needed). 5 leaves headroom for
+# the heartbeat-ish calls (commands sync, presence) that must never
+# starve.
+discord:
+  rate_limit_margin: 5

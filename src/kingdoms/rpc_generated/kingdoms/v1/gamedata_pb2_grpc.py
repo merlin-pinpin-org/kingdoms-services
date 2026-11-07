@@ -3,6 +3,8 @@
 import grpc
 import warnings
 
+from kingdoms.rpc_generated.kingdoms.v1 import content_pb2 as kingdoms_dot_v1_dot_content__pb2
+from kingdoms.rpc_generated.kingdoms.v1 import game_pb2 as kingdoms_dot_v1_dot_game__pb2
 from kingdoms.rpc_generated.kingdoms.v1 import gamedata_pb2 as kingdoms_dot_v1_dot_gamedata__pb2
 
 GRPC_GENERATED_VERSION = '1.84.0'
@@ -26,17 +28,7 @@ if _version_not_supported:
 
 
 class GameDataStub:
-    """Game data service (direction développeur, architecture cible):
-    one process per game (game-aoe2), the ONLY consumer of the external
-    providers (ext-librematch, ext-aoe2lobby, ...) for that game. It owns
-    the game domain tables (matches, players, stats), exploits the raw
-    provider data, and serves the consolidated state to svc-core and the
-    bot. svc-core never talks to the providers, and vice versa.
-
-    The contract is game-generic: the game is a parameter, so a future
-    game-aoe4 process serves the same contract with game_key = "aoe4".
-
-    """
+    """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
@@ -64,20 +56,45 @@ class GameDataStub:
                 request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsRequest.SerializeToString,
                 response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsResponse.FromString,
                 _registered_method=True)
+        self.SyncContent = channel.unary_unary(
+                '/kingdoms.v1.GameData/SyncContent',
+                request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.SyncContentRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.SyncContentReply.FromString,
+                _registered_method=True)
+        self.GetProfileStats = channel.unary_unary(
+                '/kingdoms.v1.GameData/GetProfileStats',
+                request_serializer=kingdoms_dot_v1_dot_game__pb2.GetPlayerStatsRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_game__pb2.PlayerStats.FromString,
+                _registered_method=True)
+        self.GetMatchResult = channel.unary_unary(
+                '/kingdoms.v1.GameData/GetMatchResult',
+                request_serializer=kingdoms_dot_v1_dot_game__pb2.GetMatchResultRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_game__pb2.MatchResult.FromString,
+                _registered_method=True)
+        self.GetProviderCapabilities = channel.unary_unary(
+                '/kingdoms.v1.GameData/GetProviderCapabilities',
+                request_serializer=kingdoms_dot_v1_dot_game__pb2.CapabilitiesRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_game__pb2.Capabilities.FromString,
+                _registered_method=True)
+        self.GetLastCompletedTimes = channel.unary_unary(
+                '/kingdoms.v1.GameData/GetLastCompletedTimes',
+                request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GetLastCompletedTimesRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GetLastCompletedTimesReply.FromString,
+                _registered_method=True)
+        self.GetMapSeed = channel.unary_unary(
+                '/kingdoms.v1.GameData/GetMapSeed',
+                request_serializer=kingdoms_dot_v1_dot_content__pb2.MapSeedRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_content__pb2.MapSeedReply.FromString,
+                _registered_method=True)
+        self.Call = channel.unary_unary(
+                '/kingdoms.v1.GameData/Call',
+                request_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GameDataCallRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GameDataCallReply.FromString,
+                _registered_method=True)
 
 
 class GameDataServicer:
-    """Game data service (direction développeur, architecture cible):
-    one process per game (game-aoe2), the ONLY consumer of the external
-    providers (ext-librematch, ext-aoe2lobby, ...) for that game. It owns
-    the game domain tables (matches, players, stats), exploits the raw
-    provider data, and serves the consolidated state to svc-core and the
-    bot. svc-core never talks to the providers, and vice versa.
-
-    The contract is game-generic: the game is a parameter, so a future
-    game-aoe4 process serves the same contract with game_key = "aoe4".
-
-    """
+    """Missing associated documentation comment in .proto file."""
 
     def GetCoverage(self, request, context):
         """Declare which games this service covers and per-game capabilities.
@@ -112,6 +129,60 @@ class GameDataServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SyncContent(self, request, context):
+        """The content sync (civs, maps): the game service runs it against ITS
+        providers — the bot never touches a provider, it asks the service.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetProfileStats(self, request, context):
+        """The provider surfaces, PROXIED by the game service (rule 4: the
+        mods and the bot talk to the game service, never to an ext). The
+        wire messages are the Game contract's own — one shape, no copy.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMatchResult(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetProviderCapabilities(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetLastCompletedTimes(self, request, context):
+        """The profiles' most recent completed-match times (epoch ms) — the
+        game's OWN matches collection answers, never the caller's raw read.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMapSeed(self, request, context):
+        """The map seed lookup (the import flow): the game service proxies its
+        liquipedia content provider — the Content contract's own wire.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Call(self, request, context):
+        """The catalog gateway: one op dispatch (rule 5 — the game's collections
+        answer from the owner's process). The payload/result are JSON; the
+        service's validation, audit and lifecycle logic stay THE logic.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_GameDataServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -135,6 +206,41 @@ def add_GameDataServicer_to_server(servicer, server):
                     request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsRequest.FromString,
                     response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsResponse.SerializeToString,
             ),
+            'SyncContent': grpc.unary_unary_rpc_method_handler(
+                    servicer.SyncContent,
+                    request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.SyncContentRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.SyncContentReply.SerializeToString,
+            ),
+            'GetProfileStats': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProfileStats,
+                    request_deserializer=kingdoms_dot_v1_dot_game__pb2.GetPlayerStatsRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_game__pb2.PlayerStats.SerializeToString,
+            ),
+            'GetMatchResult': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMatchResult,
+                    request_deserializer=kingdoms_dot_v1_dot_game__pb2.GetMatchResultRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_game__pb2.MatchResult.SerializeToString,
+            ),
+            'GetProviderCapabilities': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProviderCapabilities,
+                    request_deserializer=kingdoms_dot_v1_dot_game__pb2.CapabilitiesRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_game__pb2.Capabilities.SerializeToString,
+            ),
+            'GetLastCompletedTimes': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetLastCompletedTimes,
+                    request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GetLastCompletedTimesRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GetLastCompletedTimesReply.SerializeToString,
+            ),
+            'GetMapSeed': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMapSeed,
+                    request_deserializer=kingdoms_dot_v1_dot_content__pb2.MapSeedRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_content__pb2.MapSeedReply.SerializeToString,
+            ),
+            'Call': grpc.unary_unary_rpc_method_handler(
+                    servicer.Call,
+                    request_deserializer=kingdoms_dot_v1_dot_gamedata__pb2.GameDataCallRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_gamedata__pb2.GameDataCallReply.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'kingdoms.v1.GameData', rpc_method_handlers)
@@ -144,17 +250,7 @@ def add_GameDataServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class GameData:
-    """Game data service (direction développeur, architecture cible):
-    one process per game (game-aoe2), the ONLY consumer of the external
-    providers (ext-librematch, ext-aoe2lobby, ...) for that game. It owns
-    the game domain tables (matches, players, stats), exploits the raw
-    provider data, and serves the consolidated state to svc-core and the
-    bot. svc-core never talks to the providers, and vice versa.
-
-    The contract is game-generic: the game is a parameter, so a future
-    game-aoe4 process serves the same contract with game_key = "aoe4".
-
-    """
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
     def GetCoverage(request,
@@ -254,6 +350,195 @@ class GameData:
             '/kingdoms.v1.GameData/UpdateEnrollments',
             kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsRequest.SerializeToString,
             kingdoms_dot_v1_dot_gamedata__pb2.UpdateEnrollmentsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SyncContent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/SyncContent',
+            kingdoms_dot_v1_dot_gamedata__pb2.SyncContentRequest.SerializeToString,
+            kingdoms_dot_v1_dot_gamedata__pb2.SyncContentReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetProfileStats(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/GetProfileStats',
+            kingdoms_dot_v1_dot_game__pb2.GetPlayerStatsRequest.SerializeToString,
+            kingdoms_dot_v1_dot_game__pb2.PlayerStats.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetMatchResult(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/GetMatchResult',
+            kingdoms_dot_v1_dot_game__pb2.GetMatchResultRequest.SerializeToString,
+            kingdoms_dot_v1_dot_game__pb2.MatchResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetProviderCapabilities(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/GetProviderCapabilities',
+            kingdoms_dot_v1_dot_game__pb2.CapabilitiesRequest.SerializeToString,
+            kingdoms_dot_v1_dot_game__pb2.Capabilities.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetLastCompletedTimes(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/GetLastCompletedTimes',
+            kingdoms_dot_v1_dot_gamedata__pb2.GetLastCompletedTimesRequest.SerializeToString,
+            kingdoms_dot_v1_dot_gamedata__pb2.GetLastCompletedTimesReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetMapSeed(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/GetMapSeed',
+            kingdoms_dot_v1_dot_content__pb2.MapSeedRequest.SerializeToString,
+            kingdoms_dot_v1_dot_content__pb2.MapSeedReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Call(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kingdoms.v1.GameData/Call',
+            kingdoms_dot_v1_dot_gamedata__pb2.GameDataCallRequest.SerializeToString,
+            kingdoms_dot_v1_dot_gamedata__pb2.GameDataCallReply.FromString,
             options,
             channel_credentials,
             insecure,

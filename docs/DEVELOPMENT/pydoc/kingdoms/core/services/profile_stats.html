@@ -12,7 +12,7 @@
     <p><span class="code">Provider-backed&nbsp;profile&nbsp;stats&nbsp;with&nbsp;a&nbsp;Redis-TTL&nbsp;+&nbsp;Mongo&nbsp;cache&nbsp;(kingdoms&nbsp;#147).<br>
 &nbsp;<br>
 The&nbsp;dashboard&nbsp;needs&nbsp;each&nbsp;bound&nbsp;profile's&nbsp;name&nbsp;and&nbsp;stats&nbsp;(rating,&nbsp;W/L).<br>
-The&nbsp;source&nbsp;of&nbsp;truth&nbsp;is&nbsp;the&nbsp;provider&nbsp;(ext-librematch&nbsp;leaderboards);&nbsp;calling<br>
+The&nbsp;source&nbsp;of&nbsp;truth&nbsp;is&nbsp;the&nbsp;stats&nbsp;provider&nbsp;(the&nbsp;leaderboards);&nbsp;calling<br>
 it&nbsp;per&nbsp;render&nbsp;is&nbsp;both&nbsp;slow&nbsp;and&nbsp;rate-limited,&nbsp;so&nbsp;the&nbsp;values&nbsp;are&nbsp;cached:<br>
 &nbsp;<br>
 -&nbsp;Redis&nbsp;first&nbsp;(``stats:&lt;game_key&gt;:&lt;profile_id&gt;``,&nbsp;TTL,&nbsp;the&nbsp;hot&nbsp;path);<br>

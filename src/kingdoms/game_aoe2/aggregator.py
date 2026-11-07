@@ -18,6 +18,8 @@ import logging
 import time
 from typing import Any, Protocol
 
+from kingdoms.game_aoe2 import GAME_KEY
+
 logger = logging.getLogger("kingdoms.game_aoe2.aggregator")
 
 STATE_OFFLINE = "offline"
@@ -72,6 +74,10 @@ class GameAoe2Aggregator:
     def __init__(self) -> None:
         """Start with an empty state; the first snapshot resolves it."""
         self._players: dict[str, dict[str, Any]] = {}
+        # WatchPlayerEvents subscribers: every stream gets its OWN queue
+        # (a fan-out — one consumer must never starve another), cleaned
+        # up when the stream ends.
+        self._subscribers: set[Any] = set()
         self._roster: dict[str, str] = {}
         self._degraded = True
         self._transitions: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
@@ -178,20 +184,41 @@ class GameAoe2Aggregator:
             # the providers — the subscriptions maintain the truth.
             await self._persist_player_state(profile_id, new_state)
             if old_state != target_state:
-                self._transitions.put_nowait(
-                    {
-                        "profile_id": profile_id,
-                        "old_status": old_state,
-                        "new_status": target_state,
-                        "match_ref": new_state["match_ref"],
-                        "occurred_at": event.occurred_at,
-                        "match": summary,
-                    }
-                )
+                transition = {
+                    "game_key": GAME_KEY,
+                    "profile_id": profile_id,
+                    "user_id": self._roster.get(profile_id, ""),
+                    "old_status": old_state,
+                    "new_status": target_state,
+                    "match_ref": new_state["match_ref"],
+                    "occurred_at": event.occurred_at,
+                    "match": summary,
+                }
+                self._transitions.put_nowait(transition)
+                # the fan-out: every subscriber's queue gets its own copy
+                for queue in list(self._subscribers):
+                    queue.put_nowait(transition)
 
     async def next_transition(self) -> dict[str, Any]:
         """Await the next normalized transition (WatchPlayerEvents)."""
         return await self._transitions.get()
+
+    def subscribe(self) -> Any:
+        """Register a WatchPlayerEvents subscriber; it gets its own queue.
+
+        The service maintains the state (this aggregator) and streams
+        every transition to ALL its subscribers (a mod, the bot) — a
+        fan-out, never a competition for one queue.
+        """
+        import asyncio
+
+        queue: Any = asyncio.Queue()
+        self._subscribers.add(queue)
+        return queue
+
+    def unsubscribe(self, queue: Any) -> None:
+        """Drop a subscriber (its stream ended); its queue goes with it."""
+        self._subscribers.discard(queue)
 
     def pending_transitions(self) -> int:
         """Report the number of queued transitions (diagnostics, tests)."""
