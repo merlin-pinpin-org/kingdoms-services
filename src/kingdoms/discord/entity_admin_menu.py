@@ -69,7 +69,14 @@ class EntityAdminButton(
         await interaction.response.defer(ephemeral=True, thinking=False)
         if not await _guard_admin(interaction):
             return
-        view = await build_entity_admin_menu(self.kind, self.entity_id, self.game_key, self.owned)
+        view = await build_entity_admin_menu(
+            self.kind,
+            self.entity_id,
+            self.game_key,
+            self.owned,
+            guild_id=str(interaction.guild_id) if interaction.guild_id is not None else "",
+            bot=interaction.client,
+        )
         await interaction.edit_original_response(view=view)
 
 
@@ -109,7 +116,12 @@ def _pool_lifecycle_row(entity_id: str, pool: Any, state: str) -> Any:
 
 
 async def build_entity_admin_menu(
-    kind: str, entity_id: str, game_key: str, owned: bool
+    kind: str,
+    entity_id: str,
+    game_key: str,
+    owned: bool,
+    guild_id: str = "",
+    bot: Any = None,
 ) -> discord.ui.LayoutView:
     """Build the ephemeral management menu of one entity (state-greyed)."""
     from kingdoms.core.services.game_data import (
@@ -121,10 +133,28 @@ async def build_entity_admin_menu(
         MapDeleteButton,
         MapEditButton,
         PoolMapsButton,
+        _games_wiring,
     )
     from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
 
     if kind == "map":
+        # the admin menu IS the map card (owner direction, like the
+        # pools): the same post shape, only the action row swaps. The
+        # bare title-and-buttons menu lost the whole body — the
+        # 2026-11-07 merlin report.
+        service = _games_wiring()
+        entry = await service.get_map(entity_id) if service is not None else None
+        if entry is not None and guild_id and bot is not None:
+            from kingdoms.discord.maps_forum import map_post_render
+
+            buttons: list[Any] = [MapAddToPoolButton(entity_id)]
+            if owned:
+                buttons.append(MapEditButton(entity_id))
+            buttons.append(MapDeleteButton(entity_id, game_key=game_key, owned_by_guild=owned))
+            _, view = await map_post_render(
+                entry, guild_id, bot, service, admin_buttons=tuple(buttons)
+            )
+            return view  # type: ignore[no-any-return]
         menu = build_menu(
             MenuSpec(
                 title="⚙️ Gestion de la map",

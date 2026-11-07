@@ -85,3 +85,34 @@ def test_faction_surface_is_empty() -> None:
     source = LiquipediaSource({"aoe2": _FakeUpstream()}, _FakeDB())  # type: ignore[arg-type]
     assert source.faction_keys() == []
     assert source.faction_content("Franks", "en") is None
+
+
+def test_gallery_icon_accepts_the_file_prefix_form() -> None:
+    """A gallery entry with the File: prefix parses (the historical form)."""
+    from kingdoms.ext_liquipedia.liquipedia import LiquipediaMapsProvider
+
+    wikitext = "== Gallery ==\n<gallery>\nFile:Arabiade icon.png|In-game icon\nFile:Arabia map.png|Overview\n</gallery>"
+    assert LiquipediaMapsProvider._parse_gallery_icon(wikitext) == "Arabiade icon.png"
+
+
+def test_gallery_icon_accepts_the_bare_mediawiki_form() -> None:
+    """A gallery entry WITHOUT the File: prefix parses (Arena's form)."""
+    from kingdoms.ext_liquipedia.liquipedia import LiquipediaMapsProvider
+
+    wikitext = "== Gallery ==\n<gallery>\nArenaicon.png|In-game icon\nArena aoe2de map.png|AoE2:DE map\n</gallery>"
+    assert LiquipediaMapsProvider._parse_gallery_icon(wikitext) == "Arenaicon.png"
+
+
+def test_gallery_icon_prefers_the_captioned_icon_entry() -> None:
+    """The entry captioned 'icon' wins over the first entry."""
+    from kingdoms.ext_liquipedia.liquipedia import LiquipediaMapsProvider
+
+    wikitext = "<gallery>\nArena minimap.png|Minimap\nArenaicon.png|In-game icon\n</gallery>"
+    assert LiquipediaMapsProvider._parse_gallery_icon(wikitext) == "Arenaicon.png"
+
+
+def test_gallery_icon_is_empty_without_a_gallery() -> None:
+    """A page without a Gallery yields no icon (the main image takes over)."""
+    from kingdoms.ext_liquipedia.liquipedia import LiquipediaMapsProvider
+
+    assert LiquipediaMapsProvider._parse_gallery_icon("No gallery here.") == ""

@@ -580,14 +580,25 @@ class LiquipediaMapsProvider:
 
     @staticmethod
     def _parse_gallery_icon(wikitext: str) -> str:
-        """Extract the in-game icon File: name from the Gallery.
+        """Extract the in-game icon file name from the Gallery.
 
-        The section lists "<gallery>File:Name.png|in-game icon...</gallery>"
-        — the first File: entry is the map's in-game icon (the post's
-        thumbnail). Empty when the page has no Gallery.
+        The gallery lists one entry per line, in either form:
+        "File:Name.png|caption" or the MediaWiki bare "Name.png|caption"
+        (Arena's page uses the bare form — the 2026-11-07 merlin report:
+        the icon never landed because the parser required the File:
+        prefix). The entry captioned as the icon wins; otherwise the
+        first entry. Empty when the page has no Gallery.
         """
-        match = re.search(r"<gallery[^>]*>\s*File:([^|\n<]+)", wikitext)
-        return match.group(1).strip() if match else ""
+        block = re.search(r"<gallery[^>]*>(.*?)</gallery>", wikitext, re.S)
+        if block is None:
+            return ""
+        entries = re.findall(
+            r"^\s*(?:File:)?([^|\n<]+?)\s*\|([^\n]*)$", block.group(1), re.M
+        )
+        for filename, caption in entries:
+            if "icon" in caption.lower():
+                return str(filename.strip())
+        return str(entries[0][0].strip()) if entries else ""
 
     @classmethod
     def _parse_game_tabs(cls, wikitext: str) -> tuple[str, ...]:

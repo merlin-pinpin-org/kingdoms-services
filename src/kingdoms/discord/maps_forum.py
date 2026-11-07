@@ -209,6 +209,7 @@ def _map_post_view(
     tc: str = "",
     player_capacity: str = "",
     creator: str = "",
+    admin_buttons: tuple[Any, ...] = (),
 ) -> discord.ui.LayoutView:
     """Build the map post on the shared entity-card template.
 
@@ -224,7 +225,8 @@ def _map_post_view(
     def _admin() -> Any:
         return EntityAdminButton("map", map_id, game_key=game_key, owned=owned_by_guild)
 
-    buttons: list[Any] = [_admin]
+    # the admin menu is THE SAME card — only the action row swaps
+    buttons: list[Any] = list(admin_buttons) if admin_buttons else [_admin]
     return map_card(
         map_id=map_id,
         name=name,
@@ -260,12 +262,20 @@ async def _heal_thread_title(platform: Any, guild_id: str, thread_id: str, displ
         logger.debug("maps forum: title heal skipped (%s)", thread_id, exc_info=True)
 
 
-async def map_post_render(entry: Any, guild_id: str, bot: Any, service: Any) -> tuple[str, Any]:
+async def map_post_render(
+    entry: Any,
+    guild_id: str,
+    bot: Any,
+    service: Any,
+    admin_buttons: tuple[Any, ...] = (),
+) -> tuple[str, Any]:
     """Render one map's post (content + view) — THE forum post's shape.
 
-    One builder, two consumers: the forum post (the sync) and the
+    One builder, three consumers: the forum post (the sync), the
     admin's ephemeral preview (the creation and the already-exists
-    verdicts show the admin EXACTLY what the post looks like).
+    verdicts show the admin EXACTLY what the post looks like), and the
+    map's admin menu (``admin_buttons`` swaps the action row — the
+    menu IS the card, like the pools).
     """
     from kingdoms.core.ids import footer
 
@@ -294,6 +304,7 @@ async def map_post_render(entry: Any, guild_id: str, bot: Any, service: Any) -> 
         tc=tc,
         player_capacity=capacity,
         creator=creator,
+        admin_buttons=admin_buttons,
     )
     display = f"{entry.name[:1].upper()}{entry.name[1:]}"
     tail = f"{source}\n" if source else ""
