@@ -429,7 +429,11 @@ class GameDataServicer(gamedata_pb2_grpc.GameDataServicer):
             raise AssertionError
         op = request.op
         if op not in _CATALOG_OPS:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"unknown op {op!r}")
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                f"unknown op {op!r} — the gateway routes only: "
+                f"{', '.join(sorted(_CATALOG_OPS))}",
+            )
             raise AssertionError
         method = getattr(self._catalog, op)
         try:

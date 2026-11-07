@@ -429,6 +429,20 @@ class ContentRefreshButton(
             _dm_tr(interaction, dm_locale, "new_civs_line", names=", ".join(new_factions))
             if new_factions else ""
         )
+        # best-effort: the refreshed civ content shows up on the civs
+        # forum posts right away — the civ sync upserts the content
+        # docs, the forum sync creates/refreshes the posts (#330 — the
+        # maps button already had its mirror, the civs button had none).
+        try:
+            from kingdoms.core.services.entity_forum import sync_entity_forum
+            from kingdoms.discord.factions_forum import factions_forum_spec
+
+            for guild in interaction.client.guilds:
+                await sync_entity_forum(
+                    str(guild.id), interaction.client, factions_forum_spec(interaction.client)
+                )
+        except Exception:
+            logger.warning("DM PANEL: civs forum sync after refresh failed — best-effort")
         await interaction.followup.send(
             _dm_tr(
                 interaction, dm_locale, "refresh_done",
