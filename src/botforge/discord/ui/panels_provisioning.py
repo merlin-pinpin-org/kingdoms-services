@@ -218,6 +218,60 @@ def _kind_matches(channel: Any, kind: str) -> bool:
     return True
 
 
+async def _decl_category(
+    guild: discord.Guild,
+    platform: _Platform,
+    spec: ScopeSpec,
+    decl: ChannelDecl,
+    category_id: str,
+    group_categories: dict[str, str],
+    resolved: dict[str, str],
+) -> str:
+    """Resolve one channel's category: its declared group's, or the scope's.
+
+    The group categories are created lazily (once per group) and ride
+    the resolved dict — ``persist_resolutions`` stores them under
+    ``tree:<scope>:cat:<group>``.
+    """
+    group_name = str(getattr(decl, "group", "") or "")
+    if not group_name:
+        return category_id
+    channel_category = group_categories.get(group_name, "")
+    if not channel_category:
+        channel_category = await _ensure_group_category(guild, platform, spec.scope, group_name)
+        group_categories[group_name] = channel_category
+        resolved[f"cat:{group_name}"] = channel_category
+    return channel_category
+
+
+async def _ensure_group_category(
+    guild: discord.Guild,
+    platform: _Platform,
+    scope: str,
+    group_name: str,
+) -> str:
+    """Resolve (or create) one GROUP category of a scope (the mods' structure).
+
+    Stored under ``cat:<group>`` inside the scope — the group's
+    channels keep their own resolution keys; a label refresh renames
+    in place, never a duplicate.
+    """
+    storage_key = f"cat:{group_name}"
+    stored = await stored_channel_id(str(guild.id), scope, storage_key)
+    if stored and stored.isdigit():
+        category = guild.get_channel(int(stored))
+        if isinstance(category, discord.CategoryChannel):
+            if category.name != group_name:
+                await category.edit(
+                    name=group_name, reason="botforge: panels provisioning (label refresh)"
+                )
+            return stored
+    for category in guild.categories:
+        if category.name == group_name:
+            return str(category.id)
+    return await platform.ensure_category(group_name)
+
+
 async def provision_scope(
     guild: discord.Guild,
     spec: ScopeSpec,
@@ -236,9 +290,23 @@ async def provision_scope(
         category_name = translate(spec.category_key, locale)
         category_id = await _ensure_scope_category(guild, platform, spec.scope, category_name)
         resolved["category"] = category_id
+    # the GROUP categories (the mods' salons-as-data structure, #216
+    # tranche I): a channel declaring a group lives in the group's own
+    # category — created lazily, stored under cat:<group>, the channel
+    # resolution keys stay tree:<scope>:<key> (the doors keep working)
+    group_categories: dict[str, str] = {}
     # an empty category_key is the guild root: its channels live uncategorised
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
+        channel_category = await _decl_category(
+            guild,
+            platform,
+            spec,
+            decl,
+            category_id,
+            group_categories,
+            resolved,
+        )
         try:
             stored = await stored_channel_id(str(guild.id), spec.scope, decl.key)
             if stored and stored.isdigit():
@@ -246,7 +314,7 @@ async def provision_scope(
                 if (
                     channel is not None
                     and _kind_matches(channel, decl.kind)
-                    and _category_matches(channel, category_id)
+                    and _category_matches(channel, channel_category)
                 ):
                     existing = getattr(channel, "name", "")
                     if existing != name:
@@ -270,9 +338,9 @@ async def provision_scope(
                         type(channel).__name__,
                     )
             if decl.kind == "forum":
-                channel_id = await platform.ensure_forum(name, category_id)
+                channel_id = await platform.ensure_forum(name, channel_category)
             else:
-                channel_id = await platform.ensure_channel(name, category_id)
+                channel_id = await platform.ensure_channel(name, channel_category)
         except discord.HTTPException:
             logger.warning(
                 "panels provisioning: channel %s/%s failed — best-effort, skipped",

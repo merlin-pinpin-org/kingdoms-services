@@ -53,6 +53,10 @@ class ChannelDecl:
     key: str
     label_key: str
     kind: str = "text"
+    # the channel's declared GROUP (a category of its own inside the
+    # scope — the mods' salons-as-data structure, #216 tranche I): the
+    # group's display name rides here, resolved from the declaration
+    group: str = ""
     access: str = "public"
     position: int | None = None
 

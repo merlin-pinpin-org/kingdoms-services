@@ -527,6 +527,7 @@ async def provision_mod_channels(bot: Any, guild_id: str, mod_name: str) -> int:
                 label_key=channel.display_name,
                 kind="text",
                 access="public",
+                group=str(getattr(channel, "group", "") or ""),
             )
             for channel in declared
         ),

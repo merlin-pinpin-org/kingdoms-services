@@ -61,6 +61,10 @@ class ChannelCategoryDef:
     description: str = ""
     per_instance: bool = False
     access: ChannelAccessPolicy = ChannelAccessPolicy()
+    # the channel's declared GROUP — the group's display name resolved
+    # from the declaration's channel_groups (the salons-as-data
+    # structure, #216 tranche I); empty = the mod's root folder
+    group: str = ""
 
 
 @dataclass(frozen=True, slots=True)

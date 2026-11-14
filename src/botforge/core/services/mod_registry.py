@@ -34,8 +34,21 @@ def _parse_str_list(declared: object, label: str, source: Path) -> list[str]:
     return list(declared)
 
 
-def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCategoryDef]:
-    """Parse the 'channels' section of a mod declaration."""
+def _group_display(declared: object, group_ref: str, source: Path) -> str:
+    """Resolve one channel's group ref to the group's display name."""
+    if not group_ref or not isinstance(declared, list):
+        return ""
+    for group in declared:
+        if isinstance(group, dict) and str(group.get("key", "")) == group_ref:
+            display = group.get("display_name")
+            return str(display) if isinstance(display, str) else ""
+    raise ValueError(f"{source}: the channel's group {group_ref!r} is not declared in channel_groups")
+
+
+def _parse_channel_categories(
+    declared: object, groups: object, source: Path
+) -> list[ChannelCategoryDef]:
+    """Parse the 'channels' section of a mod declaration (its groups ride along)."""
     if not isinstance(declared, list):
         raise ValueError(f"{source}: 'channels' must be a list")
     categories: list[ChannelCategoryDef] = []
@@ -48,8 +61,13 @@ def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCat
             raise ValueError(f"{source}: channel entries need 'key' and 'display_name'")
         access_data = entry.get("access")
         access = ChannelAccessPolicy.from_dict(access_data) if isinstance(access_data, dict) else ChannelAccessPolicy()
+        # the group ref resolves to the group's display name (the
+        # channel_groups section is the source of truth of the structure)
+        group_ref = str(entry.get("group", "") or "")
+        group_display = _group_display(groups, group_ref, source)
         categories.append(
             ChannelCategoryDef(
+                group=group_display,
                 key=key,
                 display_name=display,
                 description=str(entry.get("description", "")),
@@ -93,7 +111,9 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     if not name.replace("_", "").replace("-", "").isalnum() or ":" in name:
         raise ValueError(f"{source}: mod id '{name}' must be a simple slug (no ':')")
 
-    categories = _parse_channel_categories(data.get("channels", []), source)
+    categories = _parse_channel_categories(
+        data.get("channels", []), data.get("channel_groups"), source
+    )
     roles = _parse_roles(data.get("roles", []), source)
     # the SDK's standard role trio rides EVERY mod (owner direction
     # 2026-11-13): candidate (the signup needs validation), member (the

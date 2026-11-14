@@ -99,3 +99,19 @@ def test_load_mod_definitions_rejects_mod_scoped_slugs(tmp_path: Path) -> None:
 
 def test_load_mod_definitions_empty_dir(tmp_path: Path) -> None:
     assert load_mod_definitions(tmp_path) == {}
+
+
+def test_the_channel_groups_resolve_to_display_names() -> None:
+    """The salons-as-data structure (#216 tranche I): a channel's group
+    ref resolves to the group's display name; an undeclared ref fails
+    loudly (the declaration is the source of truth)."""
+    from pathlib import Path
+
+    from botforge.core.services.mod_registry import load_mod_definitions
+
+    defs = load_mod_definitions(Path("config"), repo_root=Path("."))
+    kingdom = defs.get("kingdom")
+    assert kingdom is not None
+    grouped = {c.key: c.group for c in kingdom.channel_categories if c.group}
+    assert grouped, "the real declaration carries grouped channels"
+    assert all(isinstance(name, str) and name for name in grouped.values())
