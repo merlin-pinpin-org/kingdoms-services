@@ -17,6 +17,7 @@ dependencies = [
     "grpcio>=1.62.0",
     "grpcio-status>=1.62.0",
     "websockets>=12.0",
+    "jinja2>=3.1.6",
 ]
 
 [project.scripts]
@@ -54,6 +55,8 @@ ignore = ["D203", "D213", "D107", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "S101", "SLF"]
+# modular mods own their tests inside modules/mods/<mod>/tests (botforge-services#178)
+"modules/**/tests/**" = ["D", "S101", "SLF"]
 "src/botforge/rpc_generated/**" = ["D", "N", "E402", "E501", "I", "Q", "UP", "F401"]
 "src/botforge/core/rpc/**" = ["N802"]
 "src/botforge/game_aoe2/**" = ["N802"]

@@ -61,6 +61,13 @@ class ChannelCategoryDef:
     description: str = ""
     per_instance: bool = False
     access: ChannelAccessPolicy = ChannelAccessPolicy()
+    # the channel's declared GROUP — the group's display name resolved
+    # from the declaration's channel_groups (the salons-as-data
+    # structure, #216 tranche I); empty = the mod's root folder
+    group: str = ""
+    # the channel is admin-only (the declaration's flag): @everyone is
+    # gated, the mod's admin role carries the grant
+    admin_only: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +97,8 @@ class ModDefinition:
     required_games: tuple[str, ...] = field(default_factory=tuple)
     private: bool = False
     owner_ids: tuple[str, ...] = field(default_factory=tuple)
+    default_active: bool = False
+    emoji: str = ""
 
     def is_private(self) -> bool:
         """Whether the mod is reserved (bot admins + declared owners)."""

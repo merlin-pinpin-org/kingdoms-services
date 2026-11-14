@@ -65,7 +65,7 @@ def test_a_clamped_card_marks_the_truncation() -> None:
         return out
 
     joined = "\n".join(_texts(view))
-    assert "description tronquée" in joined, "a clamped card states that it was shortened"
+    assert "description truncated" in joined, "a clamped card states that it was shortened"
 
 
 def test_a_small_card_is_untouched() -> None:

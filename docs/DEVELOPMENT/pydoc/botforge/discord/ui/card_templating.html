@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: botforge.discord.ui.card_templating</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="botforge.html" class="white">botforge</a>.<a href="botforge.discord.html" class="white">discord</a>.<a href="botforge.discord.ui.html" class="white">ui</a>.card_templating</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/card_templating.py">SOURCE_ROOT/discord/ui/card_templating.py</a></td></tr></table>
+    <p><span class="code">Jinja&nbsp;card&nbsp;templating:&nbsp;declared&nbsp;balises,&nbsp;obj&nbsp;+&nbsp;helpers,&nbsp;missing-data&nbsp;notices.<br>
+&nbsp;<br>
+Every&nbsp;card&nbsp;template&nbsp;declares&nbsp;its&nbsp;**balises**&nbsp;—&nbsp;the&nbsp;injection&nbsp;points&nbsp;a<br>
+developer&nbsp;(human&nbsp;or&nbsp;agent)&nbsp;fills&nbsp;with&nbsp;data.&nbsp;A&nbsp;balise&nbsp;value&nbsp;is&nbsp;a&nbsp;Jinja<br>
+template&nbsp;rendered&nbsp;with&nbsp;the&nbsp;model&nbsp;<a href="builtins.html#object">object</a>&nbsp;(``obj``)&nbsp;and&nbsp;the&nbsp;platform<br>
+helpers&nbsp;in&nbsp;scope,&nbsp;so&nbsp;a&nbsp;plain&nbsp;string&nbsp;rides&nbsp;as-is&nbsp;and&nbsp;a&nbsp;dynamic&nbsp;value<br>
+composes&nbsp;the&nbsp;helpers::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;values&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"state":&nbsp;"**État**&nbsp;:&nbsp;✅&nbsp;**Publié**",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"summary":&nbsp;"Mod&nbsp;à&nbsp;installer&nbsp;:&nbsp;{{&nbsp;link.post(obj.guild_id,&nbsp;obj.mod_post_id)&nbsp;}}",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"deadline":&nbsp;"{{&nbsp;date.at(obj.deadline)&nbsp;}}",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;<br>
+The&nbsp;rules&nbsp;(owner&nbsp;direction,&nbsp;2026-11-13):<br>
+&nbsp;<br>
+*&nbsp;a&nbsp;balise&nbsp;the&nbsp;caller&nbsp;does&nbsp;not&nbsp;fill&nbsp;renders&nbsp;the&nbsp;missing-data&nbsp;notice,<br>
+&nbsp;&nbsp;naming&nbsp;EVERY&nbsp;missing&nbsp;key&nbsp;(the&nbsp;dev&nbsp;sees&nbsp;where&nbsp;the&nbsp;gaps&nbsp;are);<br>
+*&nbsp;a&nbsp;balise&nbsp;explicitly&nbsp;set&nbsp;to&nbsp;``None``&nbsp;is&nbsp;skipped&nbsp;silently&nbsp;—&nbsp;opted&nbsp;out,<br>
+&nbsp;&nbsp;never&nbsp;alerted;<br>
+*&nbsp;the&nbsp;helpers&nbsp;cover&nbsp;Discord&nbsp;links&nbsp;(message,&nbsp;post,&nbsp;channel),&nbsp;mentions<br>
+&nbsp;&nbsp;(user,&nbsp;channel,&nbsp;role)&nbsp;and&nbsp;dates&nbsp;(Discord&nbsp;timestamps,&nbsp;relative&nbsp;by<br>
+&nbsp;&nbsp;default,&nbsp;customizable&nbsp;style).<br>
+&nbsp;<br>
+The&nbsp;templates&nbsp;live&nbsp;close&nbsp;to&nbsp;their&nbsp;card&nbsp;family&nbsp;(``MAP_CARD_TEMPLATE``,<br>
+``POOL_CARD_TEMPLATE``,&nbsp;``CIV_CARD_TEMPLATE``);&nbsp;the&nbsp;entity&nbsp;card<br>
+consumes&nbsp;the&nbsp;rendered&nbsp;zones&nbsp;through<br>
+``templated_entity_card``&nbsp;—&nbsp;the&nbsp;wrappers&nbsp;(``map_card``/``pool_card``/<br>
+``civ_card``)&nbsp;ride&nbsp;it,&nbsp;so&nbsp;every&nbsp;current&nbsp;post&nbsp;is&nbsp;built&nbsp;by&nbsp;this&nbsp;tool.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="botforge.discord.ui.card_templating.html#BaliseDecl">BaliseDecl</a>
+</dt><dt class="heading-text"><a href="botforge.discord.ui.card_templating.html#CardTemplate">CardTemplate</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#tuple">builtins.tuple</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="botforge.discord.ui.card_templating.html#DateHelpers">DateHelpers</a>
+</dt><dt class="heading-text"><a href="botforge.discord.ui.card_templating.html#LinkHelpers">LinkHelpers</a>
+</dt><dt class="heading-text"><a href="botforge.discord.ui.card_templating.html#MentionHelpers">MentionHelpers</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="BaliseDecl">class <strong>BaliseDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BaliseDecl">BaliseDecl</a>(key:&nbsp;'str',&nbsp;zone:&nbsp;'str',&nbsp;description:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;declared&nbsp;injection&nbsp;point:&nbsp;its&nbsp;key,&nbsp;its&nbsp;zone,&nbsp;its&nbsp;contract.<br>
+&nbsp;<br>
+The&nbsp;``description``&nbsp;is&nbsp;the&nbsp;dev's&nbsp;injection&nbsp;doc&nbsp;—&nbsp;a&nbsp;developer<br>
+(human&nbsp;or&nbsp;agent)&nbsp;must&nbsp;know&nbsp;WHAT&nbsp;belongs&nbsp;in&nbsp;a&nbsp;balise&nbsp;without<br>
+reading&nbsp;the&nbsp;renderer.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="BaliseDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="BaliseDecl-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="BaliseDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="BaliseDecl-__init__"><strong>__init__</strong></a>(self, key: 'str', zone: 'str', description: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="BaliseDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="BaliseDecl-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'description': 'str', 'key': 'str', 'zone': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'description': Field(name='description',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'zone': Field(name='zone',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'zone', 'description')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="CardTemplate">class <strong>CardTemplate</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#CardTemplate">CardTemplate</a>(name:&nbsp;'str',&nbsp;balises:&nbsp;'<a href="builtins.html#tuple">tuple</a>[<a href="#BaliseDecl">BaliseDecl</a>,&nbsp;...]')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;card&nbsp;family's&nbsp;template:&nbsp;the&nbsp;declared&nbsp;balises,&nbsp;in&nbsp;order.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="CardTemplate-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="CardTemplate-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="CardTemplate-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="CardTemplate-__init__"><strong>__init__</strong></a>(self, name: 'str', balises: 'tuple[BaliseDecl, ...]') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="CardTemplate-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="CardTemplate-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="CardTemplate-balise"><strong>balise</strong></a>(self, key: 'str') -&gt; 'BaliseDecl'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;balise's&nbsp;declaration.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'balises': 'tuple[BaliseDecl, ...]', 'name': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'balises': Field(name='balises',type='tuple[BaliseDecl, ......appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('name', 'balises')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DateHelpers">class <strong>DateHelpers</strong></a>(<a href="builtins.html#tuple">builtins.tuple</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;Discord&nbsp;timestamp&nbsp;formatters&nbsp;—&nbsp;relative&nbsp;by&nbsp;default.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="botforge.discord.ui.card_templating.html#DateHelpers">DateHelpers</a></dd>
+<dd><a href="builtins.html#tuple">builtins.tuple</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DateHelpers-__getnewargs__"><strong>__getnewargs__</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.DateHelpers</span></span></dt><dd><span class="code">Return&nbsp;self&nbsp;as&nbsp;a&nbsp;plain&nbsp;<a href="builtins.html#tuple">tuple</a>.&nbsp;&nbsp;Used&nbsp;by&nbsp;copy&nbsp;and&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__repr__"><strong>__repr__</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.DateHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;nicely&nbsp;formatted&nbsp;representation&nbsp;string</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-_asdict"><strong>_asdict</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.DateHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;new&nbsp;dict&nbsp;which&nbsp;maps&nbsp;field&nbsp;names&nbsp;to&nbsp;their&nbsp;values.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-_replace"><strong>_replace</strong></a>(self, /, **kwds)<span class="grey"><span class="heading-text"> from collections.DateHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;new&nbsp;<a href="#DateHelpers">DateHelpers</a>&nbsp;<a href="builtins.html#object">object</a>&nbsp;replacing&nbsp;specified&nbsp;fields&nbsp;with&nbsp;new&nbsp;values</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="DateHelpers-_make"><strong>_make</strong></a>(iterable)<span class="grey"><span class="heading-text"> from collections.DateHelpers</span></span></dt><dd><span class="code">Make&nbsp;a&nbsp;new&nbsp;<a href="#DateHelpers">DateHelpers</a>&nbsp;<a href="builtins.html#object">object</a>&nbsp;from&nbsp;a&nbsp;sequence&nbsp;or&nbsp;iterable</span></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="DateHelpers-__new__"><strong>__new__</strong></a>(_cls)<span class="grey"><span class="heading-text"> from namedtuple_DateHelpers.DateHelpers</span></span></dt><dd><span class="code">Create&nbsp;new&nbsp;instance&nbsp;of&nbsp;<a href="#DateHelpers">DateHelpers</a>()</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-at"><strong>at</strong></a>(epoch: 'Any', style: 'str' = 'R') -&gt; 'str'</dt><dd><span class="code">Format&nbsp;an&nbsp;instant&nbsp;as&nbsp;a&nbsp;Discord&nbsp;timestamp&nbsp;(R&nbsp;by&nbsp;default).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__match_args__</strong> = ()</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (&lt;function NamedTuple&gt;,)</dl>
+
+<dl><dt><strong>_field_defaults</strong> = {}</dl>
+
+<dl><dt><strong>_fields</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#tuple">builtins.tuple</a>:<br>
+<dl><dt><a name="DateHelpers-__add__"><strong>__add__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self+value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__contains__"><strong>__contains__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;bool(key&nbsp;in&nbsp;self).</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__eq__"><strong>__eq__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__ge__"><strong>__ge__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;=value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__getitem__"><strong>__getitem__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;self[key].</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__gt__"><strong>__gt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__hash__"><strong>__hash__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__iter__"><strong>__iter__</strong></a>(self, /)</dt><dd><span class="code">Implement&nbsp;iter(self).</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__le__"><strong>__le__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;=value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__len__"><strong>__len__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;len(self).</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__lt__"><strong>__lt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__mul__"><strong>__mul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self*value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__ne__"><strong>__ne__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self!=value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-__rmul__"><strong>__rmul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;value*self.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-count"><strong>count</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;number&nbsp;of&nbsp;occurrences&nbsp;of&nbsp;value.</span></dd></dl>
+
+<dl><dt><a name="DateHelpers-index"><strong>index</strong></a>(self, value, start=0, stop=0xMEMORY_ADDRESS, /)</dt><dd><span class="code">Return&nbsp;first&nbsp;index&nbsp;of&nbsp;value.<br>
+&nbsp;<br>
+Raises&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;value&nbsp;is&nbsp;not&nbsp;present.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="builtins.html#tuple">builtins.tuple</a>:<br>
+<dl><dt><a name="DateHelpers-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">See&nbsp;<a href="https://peps.python.org/pep-0585/">PEP&nbsp;585</a></span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LinkHelpers">class <strong>LinkHelpers</strong></a>(<a href="builtins.html#tuple">builtins.tuple</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;Discord&nbsp;link&nbsp;helpers&nbsp;every&nbsp;balise&nbsp;value&nbsp;can&nbsp;compose.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="botforge.discord.ui.card_templating.html#LinkHelpers">LinkHelpers</a></dd>
+<dd><a href="builtins.html#tuple">builtins.tuple</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="LinkHelpers-__getnewargs__"><strong>__getnewargs__</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.LinkHelpers</span></span></dt><dd><span class="code">Return&nbsp;self&nbsp;as&nbsp;a&nbsp;plain&nbsp;<a href="builtins.html#tuple">tuple</a>.&nbsp;&nbsp;Used&nbsp;by&nbsp;copy&nbsp;and&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__repr__"><strong>__repr__</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.LinkHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;nicely&nbsp;formatted&nbsp;representation&nbsp;string</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-_asdict"><strong>_asdict</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.LinkHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;new&nbsp;dict&nbsp;which&nbsp;maps&nbsp;field&nbsp;names&nbsp;to&nbsp;their&nbsp;values.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-_replace"><strong>_replace</strong></a>(self, /, **kwds)<span class="grey"><span class="heading-text"> from collections.LinkHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;new&nbsp;<a href="#LinkHelpers">LinkHelpers</a>&nbsp;<a href="builtins.html#object">object</a>&nbsp;replacing&nbsp;specified&nbsp;fields&nbsp;with&nbsp;new&nbsp;values</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="LinkHelpers-_make"><strong>_make</strong></a>(iterable)<span class="grey"><span class="heading-text"> from collections.LinkHelpers</span></span></dt><dd><span class="code">Make&nbsp;a&nbsp;new&nbsp;<a href="#LinkHelpers">LinkHelpers</a>&nbsp;<a href="builtins.html#object">object</a>&nbsp;from&nbsp;a&nbsp;sequence&nbsp;or&nbsp;iterable</span></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="LinkHelpers-__new__"><strong>__new__</strong></a>(_cls)<span class="grey"><span class="heading-text"> from namedtuple_LinkHelpers.LinkHelpers</span></span></dt><dd><span class="code">Create&nbsp;new&nbsp;instance&nbsp;of&nbsp;<a href="#LinkHelpers">LinkHelpers</a>()</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-channel"><strong>channel</strong></a>(channel_id: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;channel's&nbsp;browser&nbsp;link.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-message"><strong>message</strong></a>(guild_id: 'Any', channel_id: 'Any', message_id: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;canonical&nbsp;link&nbsp;to&nbsp;one&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-post"><strong>post</strong></a>(guild_id: 'Any', message_id: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;forum&nbsp;post's&nbsp;link&nbsp;(the&nbsp;thread's&nbsp;starter&nbsp;message&nbsp;shape).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__match_args__</strong> = ()</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (&lt;function NamedTuple&gt;,)</dl>
+
+<dl><dt><strong>_field_defaults</strong> = {}</dl>
+
+<dl><dt><strong>_fields</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#tuple">builtins.tuple</a>:<br>
+<dl><dt><a name="LinkHelpers-__add__"><strong>__add__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self+value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__contains__"><strong>__contains__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;bool(key&nbsp;in&nbsp;self).</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__eq__"><strong>__eq__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__ge__"><strong>__ge__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;=value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__getitem__"><strong>__getitem__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;self[key].</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__gt__"><strong>__gt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__hash__"><strong>__hash__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__iter__"><strong>__iter__</strong></a>(self, /)</dt><dd><span class="code">Implement&nbsp;iter(self).</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__le__"><strong>__le__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;=value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__len__"><strong>__len__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;len(self).</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__lt__"><strong>__lt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__mul__"><strong>__mul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self*value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__ne__"><strong>__ne__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self!=value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-__rmul__"><strong>__rmul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;value*self.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-count"><strong>count</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;number&nbsp;of&nbsp;occurrences&nbsp;of&nbsp;value.</span></dd></dl>
+
+<dl><dt><a name="LinkHelpers-index"><strong>index</strong></a>(self, value, start=0, stop=0xMEMORY_ADDRESS, /)</dt><dd><span class="code">Return&nbsp;first&nbsp;index&nbsp;of&nbsp;value.<br>
+&nbsp;<br>
+Raises&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;value&nbsp;is&nbsp;not&nbsp;present.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="builtins.html#tuple">builtins.tuple</a>:<br>
+<dl><dt><a name="LinkHelpers-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">See&nbsp;<a href="https://peps.python.org/pep-0585/">PEP&nbsp;585</a></span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MentionHelpers">class <strong>MentionHelpers</strong></a>(<a href="builtins.html#tuple">builtins.tuple</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;Discord&nbsp;mention&nbsp;formatters&nbsp;(client-rendered,&nbsp;locale-free).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="botforge.discord.ui.card_templating.html#MentionHelpers">MentionHelpers</a></dd>
+<dd><a href="builtins.html#tuple">builtins.tuple</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MentionHelpers-__getnewargs__"><strong>__getnewargs__</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.MentionHelpers</span></span></dt><dd><span class="code">Return&nbsp;self&nbsp;as&nbsp;a&nbsp;plain&nbsp;<a href="builtins.html#tuple">tuple</a>.&nbsp;&nbsp;Used&nbsp;by&nbsp;copy&nbsp;and&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__repr__"><strong>__repr__</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.MentionHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;nicely&nbsp;formatted&nbsp;representation&nbsp;string</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-_asdict"><strong>_asdict</strong></a>(self)<span class="grey"><span class="heading-text"> from collections.MentionHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;new&nbsp;dict&nbsp;which&nbsp;maps&nbsp;field&nbsp;names&nbsp;to&nbsp;their&nbsp;values.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-_replace"><strong>_replace</strong></a>(self, /, **kwds)<span class="grey"><span class="heading-text"> from collections.MentionHelpers</span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;new&nbsp;<a href="#MentionHelpers">MentionHelpers</a>&nbsp;<a href="builtins.html#object">object</a>&nbsp;replacing&nbsp;specified&nbsp;fields&nbsp;with&nbsp;new&nbsp;values</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="MentionHelpers-_make"><strong>_make</strong></a>(iterable)<span class="grey"><span class="heading-text"> from collections.MentionHelpers</span></span></dt><dd><span class="code">Make&nbsp;a&nbsp;new&nbsp;<a href="#MentionHelpers">MentionHelpers</a>&nbsp;<a href="builtins.html#object">object</a>&nbsp;from&nbsp;a&nbsp;sequence&nbsp;or&nbsp;iterable</span></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="MentionHelpers-__new__"><strong>__new__</strong></a>(_cls)<span class="grey"><span class="heading-text"> from namedtuple_MentionHelpers.MentionHelpers</span></span></dt><dd><span class="code">Create&nbsp;new&nbsp;instance&nbsp;of&nbsp;<a href="#MentionHelpers">MentionHelpers</a>()</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-channel"><strong>channel</strong></a>(channel_id: 'Any') -&gt; 'str'</dt><dd><span class="code">Mention&nbsp;one&nbsp;channel&nbsp;(renders&nbsp;as&nbsp;#name).</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-role"><strong>role</strong></a>(role_id: 'Any') -&gt; 'str'</dt><dd><span class="code">Mention&nbsp;one&nbsp;role.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-user"><strong>user</strong></a>(user_id: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;mention&nbsp;of&nbsp;one&nbsp;user.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__match_args__</strong> = ()</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (&lt;function NamedTuple&gt;,)</dl>
+
+<dl><dt><strong>_field_defaults</strong> = {}</dl>
+
+<dl><dt><strong>_fields</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#tuple">builtins.tuple</a>:<br>
+<dl><dt><a name="MentionHelpers-__add__"><strong>__add__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self+value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__contains__"><strong>__contains__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;bool(key&nbsp;in&nbsp;self).</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__eq__"><strong>__eq__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__ge__"><strong>__ge__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;=value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__getitem__"><strong>__getitem__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;self[key].</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__gt__"><strong>__gt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__hash__"><strong>__hash__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__iter__"><strong>__iter__</strong></a>(self, /)</dt><dd><span class="code">Implement&nbsp;iter(self).</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__le__"><strong>__le__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;=value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__len__"><strong>__len__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;len(self).</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__lt__"><strong>__lt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__mul__"><strong>__mul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self*value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__ne__"><strong>__ne__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self!=value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-__rmul__"><strong>__rmul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;value*self.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-count"><strong>count</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;number&nbsp;of&nbsp;occurrences&nbsp;of&nbsp;value.</span></dd></dl>
+
+<dl><dt><a name="MentionHelpers-index"><strong>index</strong></a>(self, value, start=0, stop=0xMEMORY_ADDRESS, /)</dt><dd><span class="code">Return&nbsp;first&nbsp;index&nbsp;of&nbsp;value.<br>
+&nbsp;<br>
+Raises&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;value&nbsp;is&nbsp;not&nbsp;present.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="builtins.html#tuple">builtins.tuple</a>:<br>
+<dl><dt><a name="MentionHelpers-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">See&nbsp;<a href="https://peps.python.org/pep-0585/">PEP&nbsp;585</a></span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-render_balises"><strong>render_balises</strong></a>(template: 'CardTemplate', obj: 'Any', values: 'Mapping[str, str | None]', *, locale: 'str' = 'en') -&gt; 'dict[str, list[str]]'</dt><dd><span class="code">Render&nbsp;every&nbsp;declared&nbsp;balise&nbsp;into&nbsp;its&nbsp;zone's&nbsp;lines.<br>
+&nbsp;<br>
+A&nbsp;balise&nbsp;set&nbsp;to&nbsp;``None``&nbsp;is&nbsp;skipped&nbsp;silently&nbsp;(opted&nbsp;out);&nbsp;a<br>
+balise&nbsp;missing&nbsp;from&nbsp;``values``&nbsp;renders&nbsp;the&nbsp;missing-data&nbsp;notice<br>
+naming&nbsp;EVERY&nbsp;missing&nbsp;key&nbsp;—&nbsp;the&nbsp;dev&nbsp;sees&nbsp;the&nbsp;gaps&nbsp;in&nbsp;place.</span></dd></dl>
+ <dl><dt><a name="-templated_entity_card"><strong>templated_entity_card</strong></a>(template: 'CardTemplate', obj: 'Any', values: 'Mapping[str, str | None]', *, title: 'str', entity_id: 'str', locale: 'str' = 'en', view_id: 'str' = '', icon_url: 'str' = '', member_sections: 'tuple[tuple[str, str, str], ...]' = (), buttons: 'tuple[Any, ...]' = (), image_url: 'str' = '', gallery_images: 'tuple[str, ...]' = (), source_url: 'str' = '', source_label: 'str' = 'Liquipedia', creator: 'str' = '', creator_url: 'str' = '', versions: 'tuple[dict[str, str], ...]' = ()) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;one&nbsp;card&nbsp;from&nbsp;its&nbsp;template's&nbsp;rendered&nbsp;zones.<br>
+&nbsp;<br>
+The&nbsp;declared&nbsp;balises&nbsp;carry&nbsp;the&nbsp;data&nbsp;zones&nbsp;(subtitle,&nbsp;props,<br>
+body);&nbsp;the&nbsp;structured&nbsp;zones&nbsp;(media,&nbsp;source,&nbsp;credits,&nbsp;versions,<br>
+members,&nbsp;buttons,&nbsp;the&nbsp;two&nbsp;ids)&nbsp;ride&nbsp;the&nbsp;builder&nbsp;—&nbsp;one&nbsp;path&nbsp;for<br>
+every&nbsp;post.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CIV_CARD_TEMPLATE</strong> = CardTemplate(name='civ', balises=(BaliseDecl(key...ections, paragraphs split on double newlines.")))<br>
+<strong>MAP_CARD_TEMPLATE</strong> = CardTemplate(name='map', balises=(BaliseDecl(key...ription, paragraphs split on double newlines.")))<br>
+<strong>POOL_CARD_TEMPLATE</strong> = CardTemplate(name='pool', balises=(BaliseDecl(ke...='body', description="The pool's description.")))<br>
+<strong>ZONE_BODY</strong> = 'body'<br>
+<strong>ZONE_PROPS</strong> = 'props'<br>
+<strong>ZONE_SUBTITLE</strong> = 'subtitle'<br>
+<strong>__all__</strong> = ['CIV_CARD_TEMPLATE', 'MAP_CARD_TEMPLATE', 'POOL_CARD_TEMPLATE', 'ZONE_BODY', 'ZONE_PROPS', 'ZONE_SUBTITLE', 'BaliseDecl', 'CardTemplate', 'DateHelpers', 'LinkHelpers', 'MentionHelpers', 'render_balises', 'templated_entity_card']</td></tr></table>
+</body></html>

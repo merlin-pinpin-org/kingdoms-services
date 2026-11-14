@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from typing import Any
 
 import discord
 
@@ -76,7 +77,15 @@ class _Platform:
     async def ensure_channel(self, name: str, category_id: str) -> str:
         """Return the text channel id, creating it when missing."""
         category = self._category(category_id)
-        channel = discord.utils.get(self._guild.text_channels, name=name)
+        # category-scoped FIRST (two scopes may declare the same channel
+        # NAME — the games and mods catalogs are both "catalogue": a
+        # name match in ANOTHER folder is not this channel); a stray
+        # channel with no folder is still ADOPTED (moved into place)
+        channel = discord.utils.get(
+            self._guild.text_channels, name=name, category=(category or None)
+        ) or discord.utils.get(
+            self._guild.text_channels, name=name, category=None
+        )
         if channel is not None:
             if category is not None and channel.category_id != category.id:
                 try:
@@ -96,7 +105,11 @@ class _Platform:
     async def ensure_forum(self, name: str, category_id: str) -> str:
         """Return the forum id, creating it when missing."""
         category = self._category(category_id)
-        forum = discord.utils.get(self._guild.forums, name=name)
+        # category-scoped first (see ensure_channel); a stray forum is
+        # still adopted (moved into its folder)
+        forum = discord.utils.get(
+            self._guild.forums, name=name, category=(category or None)
+        ) or discord.utils.get(self._guild.forums, name=name, category=None)
         if forum is not None:
             if category is not None and forum.category_id != category.id:
                 try:
@@ -141,7 +154,40 @@ async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl
                 ),
                 reason="botforge: the bot operates its own channel",
             )
-        if decl.access == "readonly":
+        policy = getattr(decl, "policy", None)
+        if policy is not None:
+            # the DECLARED policy (the salons-as-data gating, #216
+            # tranche I): @everyone's view is data, the view roles are
+            # data — the roles resolve by their provisioned display
+            # name (the mod's roles are provisioned from the same
+            # declaration)
+            if not getattr(policy, "everyone_view", True):
+                await channel.set_permissions(
+                    guild.default_role,
+                    overwrite=discord.PermissionOverwrite(view_channel=False),
+                    reason="botforge: the declared policy gates @everyone",
+                )
+            # the view roles ride as RESOLVED IDS (the persisted
+            # mapping is the resolver — a renamed role keeps its grant;
+            # never a name lookup at apply time)
+            for role_id in getattr(decl, "view_role_ids", ()) or ():
+                role = guild.get_role(int(role_id)) if str(role_id).isdigit() else None
+                if role is None:
+                    logger.warning(
+                        "panels provisioning: the view role id %r is not resolved — skipped",
+                        role_id,
+                    )
+                    continue
+                await channel.set_permissions(
+                    role,
+                    overwrite=discord.PermissionOverwrite(
+                        view_channel=True,
+                        send_messages=not getattr(policy, "everyone_post", False),
+                        read_message_history=True,
+                    ),
+                    reason="botforge: the declared policy grants the view role",
+                )
+        elif decl.access == "readonly":
             overwrite = discord.PermissionOverwrite(send_messages=False, add_reactions=True)
             await channel.set_permissions(
                 guild.default_role, overwrite=overwrite, reason="botforge: readonly menu channel"
@@ -181,6 +227,84 @@ async def _ensure_scope_category(
     return await platform.ensure_category(name)
 
 
+def _category_matches(channel: Any, category_id: str) -> bool:
+    """Whether a live channel lives in the scope's declared folder.
+
+    A scope without a category (the guild root) accepts anything; a
+    scoped channel found in ANOTHER folder is not this scope's channel
+    (the merlin case: the mods catalog's stored id pointed at the
+    games forum — a valid forum, in the wrong folder).
+    """
+    if not category_id:
+        return True
+    return str(getattr(channel, "category_id", "") or "") == category_id
+
+
+def _kind_matches(channel: Any, kind: str) -> bool:
+    """Whether a live channel's Discord type matches the declared kind."""
+    import discord
+
+    if kind == "forum":
+        return isinstance(channel, discord.ForumChannel)
+    if kind == "text":
+        return isinstance(channel, discord.TextChannel) and not isinstance(channel, discord.ForumChannel)
+    return True
+
+
+async def _decl_category(
+    guild: discord.Guild,
+    platform: _Platform,
+    spec: ScopeSpec,
+    decl: ChannelDecl,
+    category_id: str,
+    group_categories: dict[str, str],
+    resolved: dict[str, str],
+) -> str:
+    """Resolve one channel's category: its declared group's, or the scope's.
+
+    The group categories are created lazily (once per group) and ride
+    the resolved dict — ``persist_resolutions`` stores them under
+    ``tree:<scope>:cat:<group>``.
+    """
+    group_name = str(getattr(decl, "group", "") or "")
+    if not group_name:
+        return category_id
+    channel_category = group_categories.get(group_name, "")
+    if not channel_category:
+        channel_category = await _ensure_group_category(guild, platform, spec.scope, group_name)
+        group_categories[group_name] = channel_category
+        resolved[f"cat:{group_name}"] = channel_category
+    return channel_category
+
+
+async def _ensure_group_category(
+    guild: discord.Guild,
+    platform: _Platform,
+    scope: str,
+    group_name: str,
+) -> str:
+    """Resolve (or create) one GROUP category of a scope (the mods' structure).
+
+    Stored under ``cat:<group>`` inside the scope — the group's
+    channels keep their own resolution keys; a label refresh renames
+    in place, never a duplicate.
+    """
+    storage_key = f"cat:{group_name}"
+    stored = await stored_channel_id(str(guild.id), scope, storage_key)
+    if stored and stored.isdigit():
+        category = guild.get_channel(int(stored))
+        if isinstance(category, discord.CategoryChannel):
+            if category.name != group_name:
+                await category.edit(
+                    name=group_name, reason="botforge: panels provisioning (label refresh)"
+                )
+            return stored
+    for category in guild.categories:
+        if category.name == group_name:
+            return str(category.id)
+    return await platform.ensure_category(group_name)
+
+
 async def provision_scope(
     guild: discord.Guild,
     spec: ScopeSpec,
@@ -199,14 +323,32 @@ async def provision_scope(
         category_name = translate(spec.category_key, locale)
         category_id = await _ensure_scope_category(guild, platform, spec.scope, category_name)
         resolved["category"] = category_id
+    # the GROUP categories (the mods' salons-as-data structure, #216
+    # tranche I): a channel declaring a group lives in the group's own
+    # category — created lazily, stored under cat:<group>, the channel
+    # resolution keys stay tree:<scope>:<key> (the doors keep working)
+    group_categories: dict[str, str] = {}
     # an empty category_key is the guild root: its channels live uncategorised
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
+        channel_category = await _decl_category(
+            guild,
+            platform,
+            spec,
+            decl,
+            category_id,
+            group_categories,
+            resolved,
+        )
         try:
             stored = await stored_channel_id(str(guild.id), spec.scope, decl.key)
             if stored and stored.isdigit():
                 channel = guild.get_channel(int(stored))
-                if channel is not None:
+                if (
+                    channel is not None
+                    and _kind_matches(channel, decl.kind)
+                    and _category_matches(channel, channel_category)
+                ):
                     existing = getattr(channel, "name", "")
                     if existing != name:
                         await channel.edit(
@@ -215,10 +357,23 @@ async def provision_scope(
                     await _apply_access(guild, stored, decl)
                     resolved[decl.key] = stored
                     continue
+                # a stored channel of the WRONG kind (a corrupted
+                # provisioning, a manual conversion): it is treated as
+                # absent — a fresh channel of the declared kind replaces
+                # it and its stored id is overwritten (self-healing)
+                if channel is not None:
+                    logger.warning(
+                        "panels provisioning: stored channel %s/%s has the wrong kind "
+                        "(declared %s, found %s) — recreating",
+                        spec.scope,
+                        decl.key,
+                        decl.kind,
+                        type(channel).__name__,
+                    )
             if decl.kind == "forum":
-                channel_id = await platform.ensure_forum(name, category_id)
+                channel_id = await platform.ensure_forum(name, channel_category)
             else:
-                channel_id = await platform.ensure_channel(name, category_id)
+                channel_id = await platform.ensure_channel(name, channel_category)
         except discord.HTTPException:
             logger.warning(
                 "panels provisioning: channel %s/%s failed — best-effort, skipped",

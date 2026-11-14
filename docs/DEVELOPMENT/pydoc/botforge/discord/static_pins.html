@@ -125,7 +125,16 @@ Re-registering&nbsp;the&nbsp;same&nbsp;key&nbsp;returns&nbsp;the&nbsp;already-re
 the&nbsp;memory&nbsp;fallback&nbsp;store&nbsp;is&nbsp;module-level,&nbsp;so&nbsp;the&nbsp;pin&nbsp;ids&nbsp;survive<br>
 a&nbsp;re-declaration&nbsp;(the&nbsp;builders&nbsp;are&nbsp;rebuilt&nbsp;at&nbsp;each&nbsp;wiring&nbsp;pass).</span></dd></dl>
  <dl><dt><a name="-registered_static_pins"><strong>registered_static_pins</strong></a>() -&gt; 'tuple[StaticPinnedView, ...]'</dt><dd><span class="code">List&nbsp;every&nbsp;registered&nbsp;static&nbsp;pinned&nbsp;view.</span></dd></dl>
+ <dl><dt>async <a name="-remove_static_pin"><strong>remove_static_pin</strong></a>(bot: 'discord.Client', spec: 'StaticPinnedView', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;one&nbsp;static&nbsp;pin:&nbsp;unpin,&nbsp;delete&nbsp;the&nbsp;message,&nbsp;forget&nbsp;the&nbsp;id.<br>
+&nbsp;<br>
+The&nbsp;uninstall&nbsp;path:&nbsp;the&nbsp;surface&nbsp;goes&nbsp;away&nbsp;with&nbsp;its&nbsp;mod&nbsp;—&nbsp;the&nbsp;pin<br>
+must&nbsp;not&nbsp;survive&nbsp;the&nbsp;item&nbsp;it&nbsp;presents&nbsp;(nor&nbsp;be&nbsp;healed&nbsp;back).</span></dd></dl>
  <dl><dt><a name="-reset_static_pins"><strong>reset_static_pins</strong></a>() -&gt; 'None'</dt><dd><span class="code">Clear&nbsp;the&nbsp;registry&nbsp;(test&nbsp;isolation:&nbsp;each&nbsp;suite&nbsp;starts&nbsp;clean).</span></dd></dl>
+ <dl><dt><a name="-unregister_static_pin"><strong>unregister_static_pin</strong></a>(key: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;spec&nbsp;from&nbsp;the&nbsp;registry&nbsp;(an&nbsp;uninstalled&nbsp;surface).<br>
+&nbsp;<br>
+The&nbsp;pin&nbsp;ids&nbsp;stay&nbsp;in&nbsp;the&nbsp;message&nbsp;registry&nbsp;until&nbsp;``remove_static_pin``<br>
+forgets&nbsp;them;&nbsp;unregistering&nbsp;only&nbsp;stops&nbsp;the&nbsp;ensure&nbsp;cycle&nbsp;from<br>
+re-creating&nbsp;the&nbsp;surface.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

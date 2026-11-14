@@ -68,11 +68,13 @@ def test_sync_buttons_exist_only_in_admin_menus() -> None:
                 assert not button.target, f"{decl.id}: a sync button never navigates"
 
 
-def test_the_placeholder_mods_are_disabled() -> None:
+def test_the_home_menus_carry_no_hand_written_mod_entries() -> None:
+    """The mods home declares NO per-mod buttons: the entries are AUTO-injected
+    at render time with the live install state (#377 — the dev declares
+    nothing, the platform lists)."""
     mods_home = get_view("menu:mods:home")
     assert mods_home is not None
-    placeholders = [b for b in mods_home.buttons if b.disabled]
-    assert len(placeholders) == 3, "ladder, tournament, kingdom: the three placeholders"
+    assert all(not b.target.startswith("menu:mod:") for b in mods_home.buttons)
 
 
 def test_the_game_admin_menu_declares_its_actions() -> None:

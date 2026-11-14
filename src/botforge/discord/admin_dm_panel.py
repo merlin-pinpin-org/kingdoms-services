@@ -24,6 +24,7 @@ from typing import Any, ClassVar
 
 import discord
 
+from botforge.discord.ui.emoji import EMOJI
 from botforge.discord.ui.view_footer import add_view_footer
 
 logger = logging.getLogger("botforge.admin_dm")
@@ -241,16 +242,16 @@ def track_admin_menu(message: Any) -> None:
 
 class DmOpenButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:open:(?P<section>[a-z]+)",
+    template=rf"{_NS}:open:(?P<section>[a-z-]+)",
 ):
     """One DM menu opener: opens its section's ephemeral sub-view."""
 
-    SECTIONS = ("language", "servers", "sync")
+    SECTIONS = ("language", "servers", "sync-aoe2")
 
     EMOJIS: ClassVar[dict[str, str]] = {
         "language": "\U0001F310",
         "servers": "\U0001F30D",
-        "sync": "\U0001F527",
+        "sync-aoe2": EMOJI.WRENCH,
     }
 
     def __init__(self, section: str, label: str, disabled: bool = False) -> None:
@@ -275,13 +276,17 @@ class DmOpenButton(
     ) -> DmOpenButton:
         """Rebuild from the wire (labels via the admin's DM locale)."""
         section = match.group("section")
+        if section == "sync":
+            # the pre-aoe2 wire (an older DM menu still carries it): the
+            # legacy button opens the same aoe2 sync, never the language modal
+            section = "sync-aoe2"
         if section not in cls.SECTIONS:
             section = "language"
         dm_locale = await _dm_locale(interaction)
         labels = {
             "language": "menu_btn_language",
             "servers": "menu_btn_servers",
-            "sync": "menu_btn_sync",
+            "sync-aoe2": "menu_btn_sync",
         }
         return cls(section, _dm_tr(interaction, dm_locale, labels[section]))
 
@@ -299,7 +304,7 @@ class DmOpenButton(
             )
         elif self.section == "servers":
             await _open_servers(interaction)
-        elif self.section == "sync":
+        elif self.section == "sync-aoe2":
             await _open_sync(interaction)
         else:
             await interaction.response.defer(ephemeral=True)
@@ -362,7 +367,7 @@ async def _open_sync(interaction: discord.Interaction) -> None:
     row.add_item(ContentRefreshButton(label=_dm_tr(interaction, dm_locale, "btn_sync_civs")))
     row.add_item(MapsSyncButton(label=_dm_tr(interaction, dm_locale, "btn_sync_maps")))
     view.add_item(row)
-    await interaction.response.send_message(view=add_view_footer(view, "panel:dm:sync"), ephemeral=True)
+    await interaction.response.send_message(view=add_view_footer(view, "panel:dm:sync-aoe2"), ephemeral=True)
 
 
 class ContentRefreshButton(

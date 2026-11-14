@@ -76,10 +76,14 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-load_mod_definitions"><strong>load_mod_definitions</strong></a>(config_dir: 'Path') -&gt; 'ModDefs'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;every&nbsp;mod&nbsp;declaration&nbsp;in&nbsp;a&nbsp;config&nbsp;directory.<br>
+<td class="singlecolumn"><dl><dt><a name="-load_mod_definitions"><strong>load_mod_definitions</strong></a>(config_dir: 'Path', repo_root: 'Path | None' = None) -&gt; 'ModDefs'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;every&nbsp;mod&nbsp;declaration&nbsp;—&nbsp;legacy&nbsp;config,&nbsp;then&nbsp;modular.<br>
 &nbsp;<br>
-An&nbsp;invalid&nbsp;declaration&nbsp;raises:&nbsp;a&nbsp;broken&nbsp;mod&nbsp;must&nbsp;fail&nbsp;startup&nbsp;loudly,<br>
-never&nbsp;load&nbsp;half-initialized&nbsp;(docs/architecture/mods.md).</span></dd></dl>
+The&nbsp;legacy&nbsp;declarations&nbsp;(config/mods/*.yaml)&nbsp;come&nbsp;first&nbsp;and&nbsp;win&nbsp;on<br>
+id&nbsp;collision;&nbsp;the&nbsp;modular&nbsp;§7&nbsp;layout&nbsp;(modules/mods/&lt;mod&gt;/conf/mod.yaml,<br>
+pre-§7&nbsp;root&nbsp;mod.yaml)&nbsp;is&nbsp;discovered&nbsp;through&nbsp;mod_layout&nbsp;when&nbsp;a&nbsp;repo<br>
+root&nbsp;is&nbsp;given.&nbsp;An&nbsp;invalid&nbsp;declaration&nbsp;raises:&nbsp;a&nbsp;broken&nbsp;mod&nbsp;must<br>
+fail&nbsp;startup&nbsp;loudly,&nbsp;never&nbsp;load&nbsp;half-initialized<br>
+(docs/architecture/mods.md).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

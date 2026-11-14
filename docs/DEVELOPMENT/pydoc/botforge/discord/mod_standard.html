@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: botforge.discord.mod_standard</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="botforge.html" class="white">botforge</a>.<a href="botforge.discord.html" class="white">discord</a>.mod_standard</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/mod_standard.py">SOURCE_ROOT/discord/mod_standard.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;mod&nbsp;menus'&nbsp;STANDARD&nbsp;content&nbsp;(botforge-services#378,&nbsp;#379).<br>
+&nbsp;<br>
+Every&nbsp;mod's&nbsp;home&nbsp;and&nbsp;admin&nbsp;surfaces&nbsp;render&nbsp;their&nbsp;declaration's<br>
+presentation&nbsp;—&nbsp;a&nbsp;mod&nbsp;gets&nbsp;its&nbsp;surfaces&nbsp;FOR&nbsp;FREE&nbsp;(the&nbsp;pattern&nbsp;is<br>
+binding,&nbsp;documented&nbsp;on&nbsp;#378/#379):<br>
+&nbsp;<br>
+-&nbsp;**The&nbsp;home**&nbsp;(`menu:mod:&lt;name&gt;`):&nbsp;the&nbsp;mod's&nbsp;type&nbsp;(seasonal&nbsp;or<br>
+&nbsp;&nbsp;permanent)&nbsp;and&nbsp;the&nbsp;declared&nbsp;commands&nbsp;—&nbsp;the&nbsp;player&nbsp;sees&nbsp;what&nbsp;the&nbsp;mod<br>
+&nbsp;&nbsp;is.&nbsp;The&nbsp;installed&nbsp;state&nbsp;never&nbsp;rides&nbsp;the&nbsp;blocks:&nbsp;a&nbsp;mod&nbsp;menu&nbsp;renders<br>
+&nbsp;&nbsp;in&nbsp;the&nbsp;mod's&nbsp;own&nbsp;channel,&nbsp;the&nbsp;install&nbsp;is&nbsp;obvious&nbsp;(owner&nbsp;direction<br>
+&nbsp;&nbsp;2026-11-13).<br>
+-&nbsp;**The&nbsp;admin**&nbsp;(`menu:mod:&lt;name&gt;:admin`):&nbsp;the&nbsp;same&nbsp;identity&nbsp;plus&nbsp;the<br>
+&nbsp;&nbsp;declared&nbsp;workflows&nbsp;—&nbsp;the&nbsp;operator&nbsp;sees&nbsp;what&nbsp;they&nbsp;operate.&nbsp;The&nbsp;season<br>
+&nbsp;&nbsp;lifecycle&nbsp;panel&nbsp;and&nbsp;the&nbsp;candidates&nbsp;join&nbsp;here&nbsp;with&nbsp;the&nbsp;portage&nbsp;(P3).<br>
+&nbsp;<br>
+The&nbsp;blocks&nbsp;are&nbsp;DATA&nbsp;rendered&nbsp;in&nbsp;the&nbsp;guild's&nbsp;locale;&nbsp;the&nbsp;declared<br>
+buttons&nbsp;(the&nbsp;admin&nbsp;flip,&nbsp;the&nbsp;mod's&nbsp;own&nbsp;actions)&nbsp;stay&nbsp;the&nbsp;declared<br>
+views'&nbsp;business.&nbsp;The&nbsp;norm:&nbsp;no&nbsp;hardcoded&nbsp;ids,&nbsp;no&nbsp;discord&nbsp;imports&nbsp;in&nbsp;the<br>
+mod's&nbsp;service&nbsp;—&nbsp;this&nbsp;is&nbsp;the&nbsp;PLATFORM's&nbsp;gift&nbsp;to&nbsp;every&nbsp;mod.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-mod_standard_blocks"><strong>mod_standard_blocks</strong></a>(bot: 'Any', guild_id: 'str', view_id: 'str', tr: 'Any') -&gt; 'list[Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;standard&nbsp;blocks&nbsp;of&nbsp;one&nbsp;mod&nbsp;menu&nbsp;(empty&nbsp;for&nbsp;non-mod&nbsp;views).<br>
+&nbsp;<br>
+``tr``&nbsp;renders&nbsp;a&nbsp;locale&nbsp;key&nbsp;in&nbsp;the&nbsp;guild's&nbsp;language&nbsp;(the<br>
+scope_pins&nbsp;``_tr``&nbsp;shape:&nbsp;key,&nbsp;locale,&nbsp;fallback).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['mod_standard_blocks']</td></tr></table>
+</body></html>

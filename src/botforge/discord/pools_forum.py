@@ -59,20 +59,24 @@ def _pool_post_layout(
     maps: list[dict[str, Any]],
     editable: bool = False,
     admin_buttons: tuple[Any, ...] = (),
+    locale: str = "en",
 ) -> discord.ui.LayoutView:
-    """Build the pool post on the shared pool-card template.
+    """Build the pool post on the shared entity-card template (#321).
 
-    State header (accent container), then one Section per member map
-    (the name links to the map's post, the map image is the accessory
-    thumbnail), the overflow as text lines, the action row and the id
-    footer (ALWAYS the last line). ``admin_buttons`` swaps the action
-    row (the admin menu is THE SAME card, only the buttons change).
+    The id rides the subtitle (the template's first backticked line)
+    whatever the pool's state; the state badge and the member count
+    ride the props (the body's first group), then one Section per
+    member map (the name links to the map's post, the map image is
+    the accessory thumbnail), the overflow as text lines, the action
+    row and the id footer (ALWAYS the last line). ``admin_buttons``
+    swaps the action row (the admin menu is THE SAME card, only the
+    buttons change).
     """
     from botforge.discord.entity_admin_menu import EntityAdminButton
     from botforge.discord.ui.entity_cards import pool_card
 
     state_line = _pool_state_badge(getattr(pool, "state", "draft"))
-    # the subtitle carries the status AND the member count (owner
+    # the props carry the status AND the member count (owner
     # direction 2026-11-08 — like the maps' tags + pools subtitle)
     state_line += f" · {len(maps)} map(s)"
     mod_link = getattr(pool, "mod_link", "")
@@ -105,6 +109,7 @@ def _pool_post_layout(
         description=pool.description or "",
         member_sections=tuple(sections),
         buttons=tuple(buttons),
+        locale=locale,
     )
 
 
@@ -222,6 +227,9 @@ async def _sync_game_pools(
         forum = channel if channel is not None and channel.type == discord.ChannelType.forum else None
     if forum is None:
         return 0  # the provisioning owns creation; nothing stored yet
+    from botforge.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot) if bot is not None else "en"
     pools = await service.list_all_map_pools(game_key, guild_id=guild_id)
     wanted: dict[str, Any] = {pool.id: pool for pool in pools}
     existing = {t.name: t for t in forum.threads}
@@ -241,10 +249,10 @@ async def _sync_game_pools(
             except Exception:
                 logger.debug("pools forum: thread link store skipped (%s)", pool_id, exc_info=True)
         if thread is None:
-            await _create_pool_post(platform, guild_id, forum, service, pool, maps, editable)
+            await _create_pool_post(platform, guild_id, forum, service, pool, maps, editable, locale=locale)
             actions += 1
         else:
-            await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable)
+            await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable, locale=locale)
     actions += await _delete_orphan_pool_posts(wanted, existing)
     if actions:
         await _refresh_member_map_posts(bot, guild_id, wanted)
@@ -286,7 +294,10 @@ async def refresh_pool_post(
         return
     maps = await _pool_maps(service, pool, guild_id)
     editable = pool.edition_mode and pool.owner_guild_id == guild_id
-    await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable)
+    from botforge.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot)
+    await _refresh_pool_post(guild, guild_id, thread, pool, maps, editable, locale=locale)
     if sync_members:
         await _refresh_member_map_posts(bot, guild_id, {pool.id: pool})
 
@@ -322,13 +333,14 @@ async def _create_pool_post(
     pool: Any,
     maps: list[dict[str, Any]],
     editable: bool = False,
+    locale: str = "en",
 ) -> None:
     thread_id = await platform.create_map_post(
         guild_id,
         str(forum.id),
         _pool_thread_title(pool),
         _pool_post_content(pool, maps),
-        view=_pool_post_layout(pool, maps, editable),
+        view=_pool_post_layout(pool, maps, editable, locale=locale),
     )
     try:
         await service.set_pool_forum_thread(pool.id, str(thread_id))
@@ -343,6 +355,7 @@ async def _refresh_pool_post(
     pool: Any,
     maps: list[dict[str, Any]],
     editable: bool = False,
+    locale: str = "en",
 ) -> None:
     """Edit one pool post, only when its content actually changed."""
     import time
@@ -391,7 +404,7 @@ async def _refresh_pool_post(
         if _last_layout_render(str(thread.id)) == fingerprint:
             return
         await pace_channel_edit(_edit_pacing_key(thread))
-        await starter.edit(view=_pool_post_layout(pool, maps, editable))
+        await starter.edit(view=_pool_post_layout(pool, maps, editable, locale=locale))
         # The fingerprint is remembered ONLY on success: a failed edit
         # must not mark the post as rendered — the next pass retries
         # (a remembered-but-failed fingerprint froze the maps).

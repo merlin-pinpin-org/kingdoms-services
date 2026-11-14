@@ -16,6 +16,20 @@ from botforge.discord.pools_forum import (
 )
 
 
+def _walk(view: Any) -> list[Any]:
+    """Every item of a layout, containers included (top-down)."""
+    items: list[Any] = []
+
+    def _visit(item: Any) -> None:
+        items.append(item)
+        for child in getattr(item, "children", ()) or ():
+            _visit(child)
+
+    for child in view.children:
+        _visit(child)
+    return items
+
+
 @dataclass
 class _FakeForum:
     name: str
@@ -97,9 +111,15 @@ def test_pool_post_layout_has_section_per_map_and_add_button() -> None:
         editable=True,
     )
     assert isinstance(view, discord.ui.LayoutView)
-    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    items = _walk(view)
+    sections = [i for i in items if isinstance(i, discord.ui.Section)]
     assert len(sections) == 1  # the imaged member rides a Section; Plain is a text line
     assert sections[0].accessory is not None
+    # the #321 contract: the id in backticks in the subtitle, the id
+    # footer ALWAYS the last text block — whatever the pool's state
+    texts = [i for i in items if isinstance(i, discord.ui.TextDisplay)]
+    assert f"`{_POOL.id}`" in texts[1].content or any(f"`{_POOL.id}`" in t.content for t in texts[:2])
+    assert texts[-1].content == f"-# `panel:{_POOL.id}`"
     from botforge.discord.entity_admin_menu import EntityAdminButton
 
     rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
@@ -111,7 +131,7 @@ def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
     import discord
 
     view = _pool_post_layout(_POOL, [], editable=False)
-    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    sections = [i for i in _walk(view) if isinstance(i, discord.ui.Section)]
     assert sections == []  # a locked pool is read-only: no add entry point
 
 
@@ -131,7 +151,7 @@ def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
         ],
         editable=True,
     )
-    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    sections = [i for i in _walk(view) if isinstance(i, discord.ui.Section)]
     assert len(sections) == 0  # imageless member = text line, no section
     rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
     buttons = [b for row in rows for b in row.children]

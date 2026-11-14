@@ -1,15 +1,23 @@
 """GuildAccessService: which guild may use which games and mods (core).
 
 A bot admin is cross-guild: they administer the platform from DMs,
-not from any single guild's panel. By default **everything is active**:
-a guild with no access document gets the whole platform catalog. An
-access doc only ever *restricts* — the future private-mod seam (a mod
-needing explicit activation, like kingdoms).
+not from any single guild's panel. By default the **default-active**
+items are on: a guild with no access document gets the declarations'
+default-active sets (games active, mods not — the future private-mod
+seam is a mod needing explicit activation, like kingdoms). A stored
+access doc is the whole truth, even empty: an uninstall sticks.
 
 Storage: the ``guild_access`` Mongo collection, one document per guild
 (``guild:<id>``) carrying ``games`` and ``mods`` (lists of granted
 keys) plus ``pending`` requests. Requests and grants are auditable
 state, not config: they survive restarts and deployments.
+
+Semantics: a guild with NO document gets the default-active sets (the
+declarations' ``default_active`` flags — games default active, mods
+default inactive). Once a document exists its lists are the whole
+truth, EVEN EMPTY: uninstalling the last item sticks (the catalog's
+Install button brings it back), it does not silently re-open the
+defaults.
 """
 
 from __future__ import annotations
@@ -51,6 +59,8 @@ class GuildAccessService:
         database: GuildAccessDatabase,
         games: tuple[str, ...] = (),
         mods: tuple[str, ...] = (),
+        default_games: tuple[str, ...] | None = None,
+        default_mods: tuple[str, ...] | None = None,
     ) -> None:
         """Store the seams and the platform's known games and mods.
 
@@ -60,31 +70,47 @@ class GuildAccessService:
         self._db = database
         self._games = tuple(games)
         self._mods = tuple(mods)
+        # the default-active sets (per-declaration flags): what a guild
+        # with NO access document gets — games default active, mods
+        # default inactive (owner direction 2026-11-11)
+        self._default_games = tuple(default_games) if default_games is not None else tuple(games)
+        self._default_mods = tuple(default_mods) if default_mods is not None else ()
 
     async def get(self, guild_id: str) -> dict[str, Any]:
-        """Return one guild's access state (default: nothing active)."""
+        """Return one guild's access state.
+
+        No document: the synthetic default state — the default-active
+        sets materialized — so the write paths (request/grant/approve)
+        persist a complete document on first touch.
+        """
         doc = await self._db.get_guild_access(guild_id)
         if doc is None:
-            return {"guild_id": guild_id, "games": [], "mods": [], "pending": {}}
+            return {
+                "guild_id": guild_id,
+                "games": list(self._default_games),
+                "mods": list(self._default_mods),
+                "pending": {},
+            }
         return doc
 
     async def enabled_games(self, guild_id: str) -> tuple[str, ...]:
-        """List the games granted to one guild.
+        """List the games active for one guild.
 
-        Default open: a guild with no access document (or no granted
-        game) gets the whole platform catalog \u2014 access docs only ever
-        *restrict* (the future private-mod seam). A stored non-empty
-        list keeps its meaning: exactly those games.
+        No access document: the default-active games. A stored document
+        is the whole truth — an empty list means NONE active (an
+        uninstall sticks; the catalog's Install button reinstalls).
         """
-        access = await self.get(guild_id)
-        granted = tuple(access.get("games") or ())
-        return granted or self._games
+        doc = await self._db.get_guild_access(guild_id)
+        if doc is None:
+            return self._default_games
+        return tuple(doc.get("games") or ())
 
     async def enabled_mods(self, guild_id: str) -> tuple[str, ...]:
-        """List the mods granted to one guild (default: the whole catalog)."""
-        access = await self.get(guild_id)
-        granted = tuple(access.get("mods") or ())
-        return granted or self._mods
+        """List the mods active for one guild (default: none active)."""
+        doc = await self._db.get_guild_access(guild_id)
+        if doc is None:
+            return self._default_mods
+        return tuple(doc.get("mods") or ())
 
     async def request_access(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
         """Record a guild's request for games/mods (pending approval).
@@ -238,14 +264,20 @@ class GuildAccessService:
         only ever written by a request or a grant \u2014 a database reset
         showed 0 servers while the bot kept interacting with its guilds.
         The boot (and every guild join) re-creates the default document
-        (no grants: the default-open catalog, semantically identical to
-        no document at all), so the stored list and the bot's guilds stay
-        coherent. An existing document is returned untouched.
+        (the default-active sets materialized — semantically identical
+        to no document at all), so the stored list and the bot's guilds
+        stay coherent. An existing document is returned untouched.
         """
         doc = await self._db.get_guild_access(guild_id)
         if doc is not None:
             return doc
-        fresh = {"guild_id": guild_id, "games": [], "mods": [], "pending": {}, "updated_at": int(time.time())}
+        fresh = {
+            "guild_id": guild_id,
+            "games": sorted(self._default_games),
+            "mods": sorted(self._default_mods),
+            "pending": {},
+            "updated_at": int(time.time()),
+        }
         await self._db.upsert_guild_access(self._to_mongo(fresh))
         return fresh
 

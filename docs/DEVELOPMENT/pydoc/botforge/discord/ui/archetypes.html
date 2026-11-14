@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: botforge.discord.ui.archetypes</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="botforge.html" class="white">botforge</a>.<a href="botforge.discord.html" class="white">discord</a>.<a href="botforge.discord.ui.html" class="white">ui</a>.archetypes</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/archetypes.py">SOURCE_ROOT/discord/ui/archetypes.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;menu/panel&nbsp;archetype&nbsp;set&nbsp;—&nbsp;the&nbsp;SDK's&nbsp;reusable&nbsp;shapes&nbsp;(#380).<br>
+&nbsp;<br>
+The&nbsp;first&nbsp;client's&nbsp;shapes&nbsp;(kingdoms),&nbsp;generalized&nbsp;from&nbsp;good&nbsp;bases&nbsp;—<br>
+not&nbsp;an&nbsp;absolute&nbsp;model&nbsp;of&nbsp;good&nbsp;ideas.&nbsp;Each&nbsp;archetype&nbsp;is&nbsp;a&nbsp;thin&nbsp;builder<br>
+over&nbsp;the&nbsp;platform's&nbsp;seams&nbsp;(the&nbsp;uniform&nbsp;card&nbsp;contract&nbsp;#321,&nbsp;the&nbsp;view<br>
+footer,&nbsp;the&nbsp;declared&nbsp;views)&nbsp;and&nbsp;carries&nbsp;its&nbsp;budget&nbsp;traps&nbsp;in&nbsp;the&nbsp;unit<br>
+tests:&nbsp;the&nbsp;4000-char&nbsp;text&nbsp;budget,&nbsp;the&nbsp;modal&nbsp;selects<br>
+(``required=False``&nbsp;+&nbsp;``min_values=0``),&nbsp;the&nbsp;10003&nbsp;vanished&nbsp;channel,<br>
+and&nbsp;the&nbsp;5-top-level-components-per-modal&nbsp;cap.<br>
+&nbsp;<br>
+-&nbsp;**list&nbsp;panel**:&nbsp;a&nbsp;header,&nbsp;one&nbsp;block&nbsp;per&nbsp;entry,&nbsp;the&nbsp;id&nbsp;footer&nbsp;—&nbsp;the<br>
+&nbsp;&nbsp;catalog/forum&nbsp;shape&nbsp;(a&nbsp;list&nbsp;of&nbsp;cards&nbsp;rides&nbsp;the&nbsp;uniform&nbsp;card&nbsp;contract)<br>
+-&nbsp;**candidates&nbsp;table**:&nbsp;a&nbsp;markdown&nbsp;table&nbsp;—&nbsp;the&nbsp;dashboard&nbsp;shape&nbsp;(rows&nbsp;x<br>
+&nbsp;&nbsp;columns,&nbsp;clamped&nbsp;to&nbsp;the&nbsp;text&nbsp;budget)<br>
+-&nbsp;**detail&nbsp;card**:&nbsp;the&nbsp;uniform&nbsp;card&nbsp;contract&nbsp;(``entity_cards``)&nbsp;—&nbsp;the<br>
+&nbsp;&nbsp;archetype&nbsp;IS&nbsp;the&nbsp;existing&nbsp;seam,&nbsp;documented&nbsp;here<br>
+-&nbsp;**admin&nbsp;panel**:&nbsp;the&nbsp;admin&nbsp;bar&nbsp;(``entity_admin``)&nbsp;+&nbsp;the&nbsp;panel&nbsp;content<br>
+-&nbsp;**wizard/modal&nbsp;picker**:&nbsp;the&nbsp;wizard&nbsp;engine&nbsp;(``ui.wizard``)<br>
+-&nbsp;**navigation&nbsp;footer**:&nbsp;``add_view_footer``&nbsp;—&nbsp;every&nbsp;declared&nbsp;view's<br>
+&nbsp;&nbsp;signature,&nbsp;one&nbsp;line</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_view_footer"><strong>add_view_footer</strong></a>(view: 'discord.ui.LayoutView', view_id: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Append&nbsp;the&nbsp;id&nbsp;footer&nbsp;line&nbsp;to&nbsp;a&nbsp;LayoutView,&nbsp;outside&nbsp;the&nbsp;containers.</span></dd></dl>
+ <dl><dt><a name="-candidates_table"><strong>candidates_table</strong></a>(title: 'str', columns: 'list[str]', rows: 'list[list[str]]', view_id: 'str', *, description: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;CANDIDATES&nbsp;TABLE&nbsp;archetype:&nbsp;a&nbsp;markdown&nbsp;table,&nbsp;the&nbsp;dashboard&nbsp;shape.<br>
+&nbsp;<br>
+Rows&nbsp;x&nbsp;columns&nbsp;as&nbsp;a&nbsp;Discord&nbsp;markdown&nbsp;table,&nbsp;clamped&nbsp;to&nbsp;the&nbsp;text<br>
+budget&nbsp;(a&nbsp;wide&nbsp;table&nbsp;cuts&nbsp;at&nbsp;the&nbsp;last&nbsp;full&nbsp;row,&nbsp;the&nbsp;tail&nbsp;marked);<br>
+the&nbsp;id&nbsp;footer&nbsp;rides&nbsp;the&nbsp;declared-views&nbsp;contract.</span></dd></dl>
+ <dl><dt><a name="-list_panel"><strong>list_panel</strong></a>(title: 'str', entries: 'list[str]', view_id: 'str', *, description: 'str' = '', accent: 'int | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;LIST&nbsp;PANEL&nbsp;archetype:&nbsp;a&nbsp;header,&nbsp;one&nbsp;block&nbsp;per&nbsp;entry,&nbsp;the&nbsp;id&nbsp;footer.<br>
+&nbsp;<br>
+The&nbsp;catalog/forum&nbsp;shape&nbsp;—&nbsp;a&nbsp;list&nbsp;of&nbsp;things,&nbsp;each&nbsp;visible&nbsp;at&nbsp;a<br>
+glance,&nbsp;the&nbsp;view's&nbsp;identity&nbsp;in&nbsp;the&nbsp;footer&nbsp;(the&nbsp;declared-views<br>
+contract).&nbsp;The&nbsp;text&nbsp;budget&nbsp;is&nbsp;clamped&nbsp;per&nbsp;block,&nbsp;never&nbsp;raised.</span></dd></dl>
+ <dl><dt><a name="-wizard_picker_note"><strong>wizard_picker_note</strong></a>() -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;modal-picker&nbsp;trap&nbsp;reminder&nbsp;(documented,&nbsp;tested&nbsp;at&nbsp;the&nbsp;seam).<br>
+&nbsp;<br>
+A&nbsp;select&nbsp;inside&nbsp;a&nbsp;MODAL&nbsp;must&nbsp;ride&nbsp;``required=False``&nbsp;+<br>
+``min_values=0``&nbsp;(a&nbsp;required&nbsp;select&nbsp;the&nbsp;user&nbsp;cannot&nbsp;satisfy<br>
+blocks&nbsp;the&nbsp;submit);&nbsp;the&nbsp;wizard&nbsp;engine's&nbsp;selects&nbsp;live&nbsp;in&nbsp;VIEWS,<br>
+where&nbsp;the&nbsp;trap&nbsp;does&nbsp;not&nbsp;apply&nbsp;—&nbsp;the&nbsp;modal&nbsp;form&nbsp;carries&nbsp;it.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['add_view_footer', 'candidates_table', 'list_panel', 'wizard_picker_note']</td></tr></table>
+</body></html>

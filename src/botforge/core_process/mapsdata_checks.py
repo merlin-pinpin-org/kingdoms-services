@@ -3,7 +3,7 @@
 Liquipedia is a ToS-constrained upstream (custom identifying
 User-Agent with contact information, 2 s between light requests):
 the battery runs the REAL batched ``action=query`` path — the very
-one the maps sync uses — on a couple of well-known pages, in ONE
+one the maps sync uses — on ONE well-known page, in ONE
 paced batch (a handful of light requests, never a crawl).
 
 The battery needs ``PROVIDER_CONTACT`` (the generic provider
@@ -18,7 +18,10 @@ from __future__ import annotations
 from botforge.core_process.external_checks import CheckResult, _run_check, register_battery
 
 PROVIDER = "liquipedia"
-KNOWN_PAGES = ("Arabia", "Dry River")
+# ONE page only (#397): the shape check needs one representative
+# payload — two titles double the throttle risk on every CI run for
+# no extra signal (the batch path itself is covered by the unit tests)
+KNOWN_PAGES = ("Arabia",)
 KNOWN_PRESENT = "Arabia"
 SKIP_DETAIL = "PROVIDER_CONTACT unset — set the repo variable to enable the battery"
 

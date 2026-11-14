@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: botforge.discord.mod_views</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="botforge.html" class="white">botforge</a>.<a href="botforge.discord.html" class="white">discord</a>.mod_views</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/mod_views.py">SOURCE_ROOT/discord/mod_views.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;mod&nbsp;menus'&nbsp;AUTOMATION&nbsp;(botforge-services#377):&nbsp;the&nbsp;dev&nbsp;is&nbsp;constrained,&nbsp;not&nbsp;trusted.<br>
+&nbsp;<br>
+A&nbsp;mod&nbsp;developer&nbsp;declares&nbsp;NOTHING&nbsp;for&nbsp;their&nbsp;menus:&nbsp;the&nbsp;platform<br>
+GENERATES&nbsp;them&nbsp;at&nbsp;boot,&nbsp;for&nbsp;every&nbsp;enabled&nbsp;mod&nbsp;(botforge-services#378,<br>
+#379&nbsp;—&nbsp;the&nbsp;pattern&nbsp;is&nbsp;enforced&nbsp;by&nbsp;construction):<br>
+&nbsp;<br>
+-&nbsp;``menu:mod:&lt;name&gt;``&nbsp;—&nbsp;the&nbsp;home:&nbsp;the&nbsp;standard&nbsp;content&nbsp;(the<br>
+&nbsp;&nbsp;declaration's&nbsp;presentation,&nbsp;mod_standard)&nbsp;+&nbsp;the&nbsp;**Admin&nbsp;button**<br>
+&nbsp;&nbsp;(admin-only&nbsp;flip&nbsp;to&nbsp;the&nbsp;admin&nbsp;surface)<br>
+-&nbsp;``menu:mod:&lt;name&gt;:admin``&nbsp;—&nbsp;the&nbsp;admin:&nbsp;the&nbsp;standard&nbsp;content&nbsp;+&nbsp;the<br>
+&nbsp;&nbsp;**repair&nbsp;button**&nbsp;(the&nbsp;declared&nbsp;channels&nbsp;and&nbsp;roles&nbsp;re-provision,<br>
+&nbsp;&nbsp;#384's&nbsp;label)<br>
+&nbsp;<br>
+The&nbsp;mods'&nbsp;home/admin&nbsp;menus&nbsp;(menu:mods:home,&nbsp;menu:mods:admin)&nbsp;list&nbsp;the<br>
+entries&nbsp;automatically&nbsp;—&nbsp;installed&nbsp;ones&nbsp;enabled,&nbsp;the&nbsp;not-installed<br>
+grayed&nbsp;(#377)&nbsp;—&nbsp;injected&nbsp;at&nbsp;render&nbsp;time&nbsp;with&nbsp;the&nbsp;guild's&nbsp;live&nbsp;state.<br>
+&nbsp;<br>
+The&nbsp;games&nbsp;mirror&nbsp;the&nbsp;same&nbsp;automation&nbsp;(menu:games:home&nbsp;lists&nbsp;the&nbsp;games<br>
+with&nbsp;their&nbsp;install&nbsp;state).</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-declare_mod_views"><strong>declare_mod_views</strong></a>(registry: 'Any') -&gt; 'int'</dt><dd><span class="code">Generate&nbsp;every&nbsp;enabled&nbsp;mod's&nbsp;home&nbsp;and&nbsp;admin&nbsp;views&nbsp;(boot-time).<br>
+&nbsp;<br>
+Idempotent:&nbsp;the&nbsp;auto-generated&nbsp;ids&nbsp;are&nbsp;stable&nbsp;(menu:mod:&lt;name&gt;&nbsp;and<br>
+menu:mod:&lt;name&gt;:admin),&nbsp;the&nbsp;last&nbsp;declaration&nbsp;wins.&nbsp;Returns&nbsp;how&nbsp;many<br>
+views&nbsp;were&nbsp;generated.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['declare_mod_views']</td></tr></table>
+</body></html>

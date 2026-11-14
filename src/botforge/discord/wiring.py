@@ -25,6 +25,8 @@ _GUILD_ACCESS_SERVICE: Any | None = None
 _GUILD_ACCESS_READY = False
 _GUILD_ACCESS_PLATFORM: tuple[str, ...] = ()
 _GUILD_ACCESS_MODS: tuple[str, ...] = ()
+_GUILD_ACCESS_DEFAULT_GAMES: tuple[str, ...] = ()
+_GUILD_ACCESS_DEFAULT_MODS: tuple[str, ...] = ()
 _MOD_REQUIRED_GAMES: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
@@ -32,12 +34,22 @@ def set_guild_access_platform(
     games: tuple[str, ...],
     mods: tuple[str, ...],
     mod_required_games: tuple[tuple[str, tuple[str, ...]], ...] = (),
+    default_games: tuple[str, ...] | None = None,
+    default_mods: tuple[str, ...] | None = None,
 ) -> None:
-    """Record the platform's known games and mods (bot build time)."""
+    """Record the platform's known games and mods (bot build time).
+
+    The default sets are the per-declaration ``default_active`` flags:
+    what a guild with NO access document gets — games default active,
+    mods default inactive.
+    """
     global _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS, _MOD_REQUIRED_GAMES
+    global _GUILD_ACCESS_DEFAULT_GAMES, _GUILD_ACCESS_DEFAULT_MODS
     _GUILD_ACCESS_PLATFORM = tuple(games)
     _GUILD_ACCESS_MODS = tuple(mods)
     _MOD_REQUIRED_GAMES = tuple(mod_required_games)
+    _GUILD_ACCESS_DEFAULT_GAMES = tuple(default_games) if default_games is not None else tuple(games)
+    _GUILD_ACCESS_DEFAULT_MODS = tuple(default_mods) if default_mods is not None else ()
 
 
 def guild_access_platform() -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -72,6 +84,8 @@ def build_guild_access_service() -> Any | None:
             MongoGuildAccessDatabase(get_async_database()),
             games=_GUILD_ACCESS_PLATFORM,
             mods=_GUILD_ACCESS_MODS,
+            default_games=_GUILD_ACCESS_DEFAULT_GAMES,
+            default_mods=_GUILD_ACCESS_DEFAULT_MODS,
         )
     except Exception:
         logger.warning("GUILD ACCESS wiring build failed", exc_info=True)
@@ -179,14 +193,16 @@ async def granted_game_keys(guild_id: str, catalog_keys: tuple[str, ...] = ()) -
     The granted keys drive the channel provisioning: forums are created
     on the grant even when the catalog is still empty, and fill up as
     the content arrives. When the access service is unwired the
-    catalog's keys stand in (the open-degradation seam).
+    catalog's keys stand in (the open-degradation seam). When it IS
+    wired, its answer is the truth — an explicitly uninstalled game
+    (an empty grants list) is NOT re-provisioned.
     """
     service = build_guild_access_service()
     if service is None:
         return catalog_keys
     try:
-        granted = await service.enabled_games(guild_id)
-        return granted if granted else catalog_keys
+        granted: tuple[str, ...] = await service.enabled_games(guild_id)
+        return granted
     except Exception:
         logger.warning("GUILD ACCESS keys read failed (guild %s)", guild_id, exc_info=True)
         return catalog_keys

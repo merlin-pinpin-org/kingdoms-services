@@ -30,40 +30,36 @@ def _civ_post_layout(
     image: str,
     source: str,
     entry_id: str,
+    locale: str = "en",
 ) -> discord.ui.LayoutView:
-    """Build the civ post's Components V2 layout.
+    """Build the civ post on the shared entity-card template (#321).
 
-    Title with the civilization type as its subtitle, one section per
-    parsed block separated by dividers, the civ image on the side
-    (section accessory), and a disabled TODO action row — the civ's
-    future actions (build orders, counters...) land there.
+    The civ post carries NO admin button: its data is cross-guild
+    (the DM panel's sync owns it) and the generic menu had nothing
+    useful — the template's action row seam stays free for the civ's
+    real future actions (owner direction 2026-11-13).
+
+    The id rides the subtitle (the template's first backticked line),
+    the civilization type rides the subtitle's second line, one
+    description paragraph per parsed block (the template's dividers
+    separate them), the civ image as the header thumbnail, the source
+    link and the id footer — ALWAYS the last line. The civ's future
+    actions (build orders, counters...) land in the template's action
+    row seam when they exist.
     """
-    from botforge.core.ids import footer
+    from botforge.discord.ui.entity_cards import civ_card
 
-    view = discord.ui.LayoutView(timeout=None)
-    name = f"{name[:1].upper()}{name[1:]}" if name else name
-    header = f"## {name}\n" + (f"_{civ_type}_" if civ_type else "")
-    blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header), discord.ui.Separator()]
-    for index, (label, items) in enumerate(sections):
-        if index:
-            blocks.append(discord.ui.Separator())
-        body = f"**{label}**\n" + "\n".join("\u2022 " + item for item in items)
-        if image and index == 0:
-            blocks.append(
-                discord.ui.Section(
-                    discord.ui.TextDisplay(body),
-                    accessory=discord.ui.Thumbnail(image),
-                )
-            )
-        else:
-            blocks.append(discord.ui.TextDisplay(body))
-    blocks.append(discord.ui.Separator())
-    if source:
-        source_label = "aoe2techtree" if "aoe2techtree" in source else "source"
-        blocks.append(discord.ui.TextDisplay(f"Source : [{source_label}]({source})"))
-    blocks.append(discord.ui.TextDisplay(footer(entry_id)))
-    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    return view
+    source_label = "aoe2techtree" if "aoe2techtree" in source else "source" if source else ""
+    return civ_card(
+        civ_id=entry_id,
+        name=name,
+        civ_type=civ_type,
+        sections=tuple((label, tuple(items)) for label, items in sections),
+        image_url=image,
+        source_url=source,
+        source_label=source_label,
+        locale=locale,
+    )
 
 
 async def _sorted_by_localized_name(factions: list[Any], guild_id: str, bot: Any) -> list[Any]:
@@ -171,7 +167,10 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         parsed = parse_civ_help(summary) if summary else None
         sections = civ_section_lines(parsed) if parsed else []
         civ_type = str(getattr(parsed, "civ_type", "") or "") if parsed else ""
-        view = _civ_post_layout(name, civ_type, sections, image, source, entry_id)
+        from botforge.discord.content_posts import guild_locale
+
+        locale = await guild_locale(guild_id, bot)
+        view = _civ_post_layout(name, civ_type, sections, image, source, entry_id, locale=locale)
         from botforge.core.ids import footer as id_footer
 
         content = f"## {name}\n" + (f"_{civ_type}_\n" if civ_type else "")

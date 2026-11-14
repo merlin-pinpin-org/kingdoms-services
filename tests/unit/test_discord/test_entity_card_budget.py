@@ -72,7 +72,21 @@ def test_long_description_is_clamped_into_the_budget() -> None:
         buttons=(_button,),
     )
     assert _displayable_text(view) <= 4000
-    assert "tronquée" in _description_text(view)
+    assert "truncated" in _description_text(view)
+    assert "tronquée" in _description_text(
+        map_card(
+            map_id="map:aoe2:arena",
+            name="Arena",
+            props=("land", "stone-walls"),
+            description=description,
+            image_url="",
+            icon_url="",
+            source_url="https://liquipedia.net/aoe2/Arena",
+            pool_links=("Pool 1",),
+            buttons=(_button,),
+            locale="fr",
+        )
+    )
 
 
 def test_clamp_keeps_paragraph_boundaries() -> None:
@@ -91,4 +105,4 @@ def test_clamp_keeps_paragraph_boundaries() -> None:
     assert _displayable_text(view) <= 4000
     text = _description_text(view)
     assert "Paragraphe 0." in text
-    assert "tronquée" in text
+    assert "truncated" in text

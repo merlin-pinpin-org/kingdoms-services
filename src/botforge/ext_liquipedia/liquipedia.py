@@ -320,6 +320,11 @@ class LiquipediaMapsProvider:
             #   with more traffic, the exact opposite of what it asked for.
             global _shared_last_request_at, _shared_last_parse_at
             retry_after = float(response.headers.get("Retry-After") or 0.0)
+            # The rate-limit headers ride EVERY 429 branch (backoff and
+            # circuit alike) at WARNING: the CI battery must see which
+            # bucket throttled the request — a DEBUG line never shows
+            # in the run's log (the 2026-11-13 CI 429s were blind).
+            logger.warning("LIQUIPEDIA 429 response headers: %s", dict(response.headers))
             if retry_after >= _429_RETRY_AFTER_CIRCUIT_S or attempt >= _429_MAX_RETRIES:
                 self._open_circuit(retry_after)
                 break
@@ -331,17 +336,13 @@ class LiquipediaMapsProvider:
                 _429_MAX_RETRIES,
             )
             # DEBUG diagnostics: the full request (URL + params + headers —
-            # is the User-Agent right?) and the response's rate-limit
-            # headers (which bucket, which scope) to diagnose the 429s.
+            # is the User-Agent right?) stays DEBUG (the response's
+            # rate-limit headers ride the WARNING above).
             logger.debug(
                 "LIQUIPEDIA 429 request: GET %s params=%s headers=%s",
                 self._api_url,
                 params,
                 dict(self._client.headers),
-            )
-            logger.debug(
-                "LIQUIPEDIA 429 response headers: %s",
-                dict(response.headers),
             )
             self._sleep(wait)
             marker = time.monotonic()

@@ -266,8 +266,11 @@ class TreeEnsureButton(
     sub-scope).
     """
 
-    def __init__(self, scope: str, label: str = "Sync now", emoji: str = "\U0001F527") -> None:
+    def __init__(self, scope: str, label: str = "Sync now", emoji: str = "") -> None:
+        from botforge.discord.ui.emoji import EMOJI
+
         self.scope = scope
+        emoji = emoji or EMOJI.WRENCH
         super().__init__(
             discord.ui.Button(
                 custom_id=f"{_NS}:ensure:{scope}"[:100],

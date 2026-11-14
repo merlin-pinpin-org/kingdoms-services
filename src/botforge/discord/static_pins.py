@@ -100,6 +100,10 @@ def _layout_fingerprint(layout: Any) -> str:
             return {
                 "id": getattr(component, "custom_id", None),
                 "label": getattr(component, "label", None),
+                # the disabled state is part of the change: the
+                # auto-injected entries flip enabled/grayed with the
+                # guild's install state (a stale pin is a stale state)
+                "disabled": bool(getattr(component, "disabled", False)),
                 "children": walk(getattr(component, "children", []) or []),
             }
         if hasattr(component, "options"):
@@ -144,6 +148,51 @@ def reset_static_pins() -> None:
 def registered_static_pins() -> tuple[StaticPinnedView, ...]:
     """List every registered static pinned view."""
     return tuple(_SPEC_STORE.values())
+
+
+def unregister_static_pin(key: str) -> None:
+    """Drop one spec from the registry (an uninstalled surface).
+
+    The pin ids stay in the message registry until ``remove_static_pin``
+    forgets them; unregistering only stops the ensure cycle from
+    re-creating the surface.
+    """
+    _SPEC_STORE.pop(key, None)
+
+
+async def remove_static_pin(bot: discord.Client, spec: StaticPinnedView, guild_id: str) -> bool:
+    """Remove one static pin: unpin, delete the message, forget the id.
+
+    The uninstall path: the surface goes away with its mod — the pin
+    must not survive the item it presents (nor be healed back).
+    """
+    message_id = await spec.resolve_message_id(guild_id)
+    channel_id = await spec.resolve_channel(guild_id)
+    removed = False
+    if message_id and channel_id and guild_id.isdigit() and channel_id.isdigit():
+        guild = bot.get_guild(int(guild_id))
+        channel = guild.get_channel(int(channel_id)) if guild else None
+        if channel is not None and hasattr(channel, "fetch_message"):
+            try:
+                message = await channel.fetch_message(int(message_id))
+                try:
+                    await message.unpin(reason=f"botforge: unpinned {spec.key}")
+                except Exception:
+                    logger.debug("%s unpin skipped \u2014 best-effort", spec.key, exc_info=True)
+                await message.delete()
+                removed = True
+            except discord.NotFound:
+                removed = True
+            except Exception:
+                logger.info("%s removal degraded \u2014 best-effort", spec.key, exc_info=True)
+    if spec.registry is not None:
+        try:
+            await spec.registry.forget("discord", spec.key, guild_id)
+        except Exception:
+            logger.warning("%s registry forget failed \u2014 best-effort", spec.key)
+    _MEMORY_STORE.pop((spec.key, guild_id), None)
+    _LAST_RENDER.pop((spec.key, guild_id), None)
+    return removed
 
 
 async def _refresh_existing_pin(

@@ -8,8 +8,8 @@ click guard is bot-admin (the catalog is platform-wide data).
 
 - map: [Ajouter à un pool] [Modifier] [Supprimer]
 - pool: [Ajouter une map] [Changer d'état] [Supprimer]
-- civ: a disabled placeholder (cross-guild data lives in the DM
-  panel's refresh) — the design's todo action bar.
+- civ: NO admin button — its data is cross-guild (the DM panel's
+  sync owns it), the generic menu carried nothing useful.
 """
 
 from __future__ import annotations
@@ -91,39 +91,40 @@ class EntityAdminButton(
             await interaction.response.send_message(view=view, ephemeral=True)
 
 
-def _pool_lifecycle_row(entity_id: str, pool: Any, state: str) -> Any:
-    """Build the pool's lifecycle row per the designer's visibility matrix.
+def _pool_lifecycle_spec(entity_id: str, pool: Any, state: str) -> Any:
+    """Build the pool's admin spec on the SDK's default lifecycle.
 
-    Each button shows ONLY on its status (hidden otherwise, never
-    greyed): edition -> publier, archiver; published -> editer,
-    archiver; archived -> editer, publier, supprimer (never used only).
+    The designer's visibility matrix rides the SDK (hidden, never
+    greyed): the buttons are handed in, the SDK composes — and the
+    hard delete is DISABLED BY DATA for an ever-used pool (a delete
+    on a pool a real run consumed would orphan history).
     """
-    from botforge.core.services.game_data import (
-        POOL_STATE_CLOSED,
-        POOL_STATE_DRAFT,
-        POOL_STATE_PUBLISHED,
-    )
     from botforge.discord.admin_panel_games import (
         GamesPoolArchiveButton,
         GamesPoolHardDeleteButton,
         GamesPoolPublishButton,
         GamesPoolToDraftButton,
     )
+    from botforge.discord.ui.entity_admin import (
+        ARCHIVE,
+        DELETE,
+        EDIT,
+        PUBLISH,
+        EntityAdminSpec,
+    )
 
-    lifecycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     ever_used = pool is not None and bool(pool.ever_activated)
-    if state == POOL_STATE_PUBLISHED:
-        lifecycle.add_item(GamesPoolToDraftButton(entity_id))
-    if state == POOL_STATE_DRAFT:
-        lifecycle.add_item(GamesPoolPublishButton(entity_id))
-    if state in (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED):
-        lifecycle.add_item(GamesPoolArchiveButton(entity_id))
-    if state == POOL_STATE_CLOSED:
-        lifecycle.add_item(GamesPoolToDraftButton(entity_id))
-        lifecycle.add_item(GamesPoolPublishButton(entity_id))
-        if not ever_used:
-            lifecycle.add_item(GamesPoolHardDeleteButton(entity_id))
-    return lifecycle
+    return EntityAdminSpec(
+        entity_id=entity_id,
+        state=state,
+        actions={
+            EDIT: GamesPoolToDraftButton(entity_id),
+            PUBLISH: GamesPoolPublishButton(entity_id),
+            ARCHIVE: GamesPoolArchiveButton(entity_id),
+            DELETE: GamesPoolHardDeleteButton(entity_id),
+        },
+        disabled=frozenset({DELETE}) if ever_used else frozenset(),
+    )
 
 
 async def build_entity_admin_bar(
@@ -138,18 +139,18 @@ async def build_entity_admin_bar(
 
     The ⚙️ Admin click answers with the entity's admin BUTTON BAR (never
     a re-render of the post — the post re-renders only when its content
-    changed; owner direction 2026-11-08). The bar carries the entity's
-    admin id: ``map:aoe2:public:arabia:admin``.
+    changed; owner direction 2026-11-08). The bar rides the SDK's
+    entity-admin seam (``ui/entity_admin.py``): the caller hands the
+    buttons in, the SDK composes the rows and the
+    ``panel:<entity_id>:admin`` footer — ALWAYS the last line.
     """
     from botforge.discord.maps_pool_flow import (
         MapAddToPoolButton,
         MapDeleteButton,
         MapEditButton,
     )
+    from botforge.discord.ui.entity_admin import EntityAdminSpec, admin_panel_id, build_admin_bar
     from botforge.discord.ui.menu_template import MenuSpec, build_menu
-
-    view = discord.ui.LayoutView(timeout=None)
-    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
 
     if kind == "map":
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -157,36 +158,34 @@ async def build_entity_admin_bar(
         if owned:
             row.add_item(MapEditButton(entity_id))
         row.add_item(MapDeleteButton(entity_id, game_key=game_key, owned_by_guild=owned))
-        rows.append(row)
-    elif kind == "pool":
-        bar = await _pool_admin_rows(entity_id)
-        if isinstance(bar, discord.ui.LayoutView):
-            return bar  # the not-found / note menus
-        rows.extend(bar)
+        return build_admin_bar(EntityAdminSpec(entity_id=entity_id, extra_rows=(row,)))
+    if kind == "pool":
+        spec = await _pool_admin_spec(entity_id)
+        if isinstance(spec, discord.ui.LayoutView):
+            return spec  # the not-found / note menus
+        return build_admin_bar(spec)
 
-    for row in rows:
-        view.add_item(row)
-    if rows:
-        view.add_item(discord.ui.TextDisplay(f"-# `{entity_id}:admin`"))
-        return view
-    # civ (and any future kind): the cross-guild data is managed through
-    # the DM panel — a plain note keeps the surface honest
+    # any other kind (a stale wire from a superseded surface): the
+    # honest answer is that this entity carries no admin bar — the
+    # civ posts dropped theirs (the menu had nothing useful)
     return build_menu(
         MenuSpec(
-            title="⚙️ Gestion",
-            description=(
-                f"`{entity_id}`\n\nCette donnée est cross-guild : "
-                "elle se met à jour via le bouton de synchronisation du "
-                "panel admin DM (raffraichir le contenu)."
-            ),
-            view_id=f"{entity_id}:admin",
+            title="⚙️ Admin",
+            description=f"`{entity_id}`",
+            view_id=admin_panel_id(entity_id),
             sections=(),
         )
     )
 
 
-async def _pool_admin_rows(entity_id: str) -> list[Any] | discord.ui.LayoutView:
-    """Build the pool's admin rows: the compose row (drafts) + the lifecycle."""
+async def _pool_admin_spec(entity_id: str) -> Any | discord.ui.LayoutView:
+    """Build the pool's admin spec: its own compose rows + the lifecycle.
+
+    The per-entity override, clean: the pool's OWN actions (manage the
+    maps, rename — drafts only) ride the spec's ``compose_rows``, the
+    shared lifecycle rides the spec's ``actions`` — the SDK composes
+    both, the consumer never touches the bar's shape.
+    """
     from botforge.core.services.game_data import MAX_POOL_MAPS, POOL_STATE_DRAFT
     from botforge.discord.admin_panel_games import GamesPoolRenameButton
     from botforge.discord.maps_pool_flow import PoolMapsButton
@@ -205,7 +204,7 @@ async def _pool_admin_rows(entity_id: str) -> list[Any] | discord.ui.LayoutView:
                 sections=(),
             )
         )
-    rows: list[Any] = []
+    spec = _pool_lifecycle_spec(entity_id, pool, pool.state)
     if pool.state == POOL_STATE_DRAFT:
         compose: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         maps_button = PoolMapsButton(entity_id)
@@ -213,9 +212,8 @@ async def _pool_admin_rows(entity_id: str) -> list[Any] | discord.ui.LayoutView:
             maps_button.item.disabled = True
         compose.add_item(maps_button)
         compose.add_item(GamesPoolRenameButton(entity_id))
-        rows.append(compose)
-    rows.append(_pool_lifecycle_row(entity_id, pool, pool.state))
-    return rows
+        return spec.with_compose((compose,))
+    return spec
 
 
 async def _pool_maps_lines(pool: Any) -> list[str]:

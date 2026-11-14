@@ -39,7 +39,9 @@ code&nbsp;minimal,&nbsp;the&nbsp;shared&nbsp;machinery&nbsp;in&nbsp;core).</span
 The&nbsp;granted&nbsp;keys&nbsp;drive&nbsp;the&nbsp;channel&nbsp;provisioning:&nbsp;forums&nbsp;are&nbsp;created<br>
 on&nbsp;the&nbsp;grant&nbsp;even&nbsp;when&nbsp;the&nbsp;catalog&nbsp;is&nbsp;still&nbsp;empty,&nbsp;and&nbsp;fill&nbsp;up&nbsp;as<br>
 the&nbsp;content&nbsp;arrives.&nbsp;When&nbsp;the&nbsp;access&nbsp;service&nbsp;is&nbsp;unwired&nbsp;the<br>
-catalog's&nbsp;keys&nbsp;stand&nbsp;in&nbsp;(the&nbsp;open-degradation&nbsp;seam).</span></dd></dl>
+catalog's&nbsp;keys&nbsp;stand&nbsp;in&nbsp;(the&nbsp;open-degradation&nbsp;seam).&nbsp;When&nbsp;it&nbsp;IS<br>
+wired,&nbsp;its&nbsp;answer&nbsp;is&nbsp;the&nbsp;truth&nbsp;—&nbsp;an&nbsp;explicitly&nbsp;uninstalled&nbsp;game<br>
+(an&nbsp;empty&nbsp;grants&nbsp;list)&nbsp;is&nbsp;NOT&nbsp;re-provisioned.</span></dd></dl>
  <dl><dt>async <a name="-guard_admin"><strong>guard_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.</span></dd></dl>
  <dl><dt>async <a name="-guard_bot_admin"><strong>guard_bot_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux bot admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-bot-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.<br>
 &nbsp;<br>
@@ -61,7 +63,11 @@ while&nbsp;mod&nbsp;provisioning&nbsp;is&nbsp;the&nbsp;strict&nbsp;seam&nbsp;(no
 Recorded&nbsp;at&nbsp;bot&nbsp;build&nbsp;time&nbsp;from&nbsp;the&nbsp;mod&nbsp;registry,&nbsp;next&nbsp;to&nbsp;the<br>
 platform's&nbsp;games/mods&nbsp;—&nbsp;the&nbsp;request&nbsp;picker&nbsp;uses&nbsp;it&nbsp;to&nbsp;add&nbsp;a&nbsp;mod's<br>
 games&nbsp;to&nbsp;the&nbsp;guild's&nbsp;request&nbsp;automatically.</span></dd></dl>
- <dl><dt><a name="-set_guild_access_platform"><strong>set_guild_access_platform</strong></a>(games: 'tuple[str, ...]', mods: 'tuple[str, ...]', mod_required_games: 'tuple[tuple[str, tuple[str, ...]], ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(bot&nbsp;build&nbsp;time).</span></dd></dl>
+ <dl><dt><a name="-set_guild_access_platform"><strong>set_guild_access_platform</strong></a>(games: 'tuple[str, ...]', mods: 'tuple[str, ...]', mod_required_games: 'tuple[tuple[str, tuple[str, ...]], ...]' = (), default_games: 'tuple[str, ...] | None' = None, default_mods: 'tuple[str, ...] | None' = None) -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(bot&nbsp;build&nbsp;time).<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;sets&nbsp;are&nbsp;the&nbsp;per-declaration&nbsp;``default_active``&nbsp;flags:<br>
+what&nbsp;a&nbsp;guild&nbsp;with&nbsp;NO&nbsp;access&nbsp;document&nbsp;gets&nbsp;—&nbsp;games&nbsp;default&nbsp;active,<br>
+mods&nbsp;default&nbsp;inactive.</span></dd></dl>
  <dl><dt>async <a name="-sync_known_guilds"><strong>sync_known_guilds</strong></a>(guild_ids: 'Any') -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;guild&nbsp;the&nbsp;bot&nbsp;sits&nbsp;in&nbsp;has&nbsp;its&nbsp;access&nbsp;document.<br>
 &nbsp;<br>
 The&nbsp;admin&nbsp;DM&nbsp;panel's&nbsp;server&nbsp;count&nbsp;reads&nbsp;the&nbsp;``guild_access``<br>
@@ -77,6 +83,6 @@ ensured;&nbsp;best-effort,&nbsp;never&nbsp;raises.</span></dd></dl>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None', '_GUILD_ACCESS_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_PLATFORM': 'tuple[str, ...]', '_GUILD_ACCESS_SERVICE': 'Any | None', '_MOD_REQUIRED_GAMES': 'tuple[tuple[str, tuple[str, ...]], ...]'}<br>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None', '_GUILD_ACCESS_DEFAULT_GAMES': 'tuple[str, ...]', '_GUILD_ACCESS_DEFAULT_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_PLATFORM': 'tuple[str, ...]', '_GUILD_ACCESS_SERVICE': 'Any | None', '_MOD_REQUIRED_GAMES': 'tuple[tuple[str, tuple[str, ...]], ...]'}<br>
 <strong>logger</strong> = &lt;Logger botforge.wiring (INFO)&gt;</td></tr></table>
 </body></html>

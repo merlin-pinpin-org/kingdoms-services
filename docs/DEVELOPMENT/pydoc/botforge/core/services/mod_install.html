@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: botforge.core.services.mod_install</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="botforge.html" class="white">botforge</a>.<a href="botforge.core.html" class="white">core</a>.<a href="botforge.core.services.html" class="white">services</a>.mod_install</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/mod_install.py">SOURCE_ROOT/core/services/mod_install.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;install/uninstall&nbsp;service:&nbsp;a&nbsp;guild's&nbsp;mods&nbsp;and&nbsp;games&nbsp;(botforge-services#374).<br>
+&nbsp;<br>
+The&nbsp;forum's&nbsp;one-post-per-mod&nbsp;surface&nbsp;and&nbsp;the&nbsp;console's&nbsp;headless&nbsp;CLI<br>
+both&nbsp;ride&nbsp;THIS&nbsp;service&nbsp;—&nbsp;the&nbsp;rules&nbsp;live&nbsp;in&nbsp;one&nbsp;place:<br>
+&nbsp;<br>
+-&nbsp;**Install**&nbsp;a&nbsp;mod:&nbsp;it&nbsp;joins&nbsp;the&nbsp;guild's&nbsp;active&nbsp;set,&nbsp;and&nbsp;its&nbsp;declared<br>
+&nbsp;&nbsp;``required_games``&nbsp;ride&nbsp;along&nbsp;(a&nbsp;mod&nbsp;is&nbsp;never&nbsp;installed&nbsp;unusable).<br>
+-&nbsp;**Uninstall**&nbsp;a&nbsp;game:&nbsp;refused&nbsp;while&nbsp;an&nbsp;active&nbsp;mod&nbsp;requires&nbsp;it&nbsp;(the<br>
+&nbsp;&nbsp;dependents&nbsp;are&nbsp;named&nbsp;in&nbsp;the&nbsp;refusal&nbsp;—&nbsp;cascading&nbsp;is&nbsp;an&nbsp;explicit<br>
+&nbsp;&nbsp;operator&nbsp;choice,&nbsp;never&nbsp;a&nbsp;side&nbsp;effect).<br>
+-&nbsp;**Uninstall&nbsp;a&nbsp;mod**:&nbsp;optional&nbsp;data&nbsp;wipe&nbsp;—&nbsp;the&nbsp;mod's&nbsp;namespaced<br>
+&nbsp;&nbsp;collections&nbsp;(``ModStorage.wipe``,&nbsp;the&nbsp;``&lt;mod&gt;:``&nbsp;prefix),&nbsp;never<br>
+&nbsp;&nbsp;another&nbsp;mod's,&nbsp;never&nbsp;the&nbsp;platform's.<br>
+&nbsp;<br>
+The&nbsp;access&nbsp;model&nbsp;(guild_access):&nbsp;a&nbsp;guild&nbsp;with&nbsp;no&nbsp;access&nbsp;document&nbsp;gets<br>
+the&nbsp;default-active&nbsp;sets&nbsp;(games&nbsp;active,&nbsp;mods&nbsp;not);&nbsp;installing&nbsp;into&nbsp;such<br>
+a&nbsp;guild&nbsp;materializes&nbsp;the&nbsp;document&nbsp;(the&nbsp;active&nbsp;set,&nbsp;explicit).&nbsp;Once&nbsp;a<br>
+document&nbsp;exists&nbsp;its&nbsp;lists&nbsp;are&nbsp;the&nbsp;whole&nbsp;truth,&nbsp;even&nbsp;empty&nbsp;—&nbsp;so&nbsp;an<br>
+uninstall&nbsp;sticks&nbsp;and&nbsp;the&nbsp;catalog's&nbsp;Install&nbsp;button&nbsp;brings&nbsp;the&nbsp;item&nbsp;back<br>
+(a&nbsp;reinstall&nbsp;restores&nbsp;the&nbsp;state&nbsp;when&nbsp;the&nbsp;data&nbsp;was&nbsp;kept).<br>
+&nbsp;<br>
+Results&nbsp;are&nbsp;data&nbsp;(``<a href="#ModInstallResult">ModInstallResult</a>``):&nbsp;the&nbsp;surface&nbsp;renders&nbsp;them&nbsp;in<br>
+the&nbsp;guild's&nbsp;locale&nbsp;—&nbsp;this&nbsp;service&nbsp;never&nbsp;formats&nbsp;a&nbsp;user-facing&nbsp;string.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="botforge.core.services.mod_install.html#ModInstallResult">ModInstallResult</a>
+</dt><dt class="heading-text"><a href="botforge.core.services.mod_install.html#ModInstallService">ModInstallService</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModInstallResult">class <strong>ModInstallResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModInstallResult">ModInstallResult</a>(ok:&nbsp;'bool',&nbsp;summary:&nbsp;'str',&nbsp;active_games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;active_mods:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;wiped_collections:&nbsp;'int'&nbsp;=&nbsp;0,&nbsp;refused_by:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+What&nbsp;one&nbsp;install/uninstall&nbsp;did&nbsp;(the&nbsp;surface&nbsp;renders&nbsp;it).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModInstallResult-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__init__"><strong>__init__</strong></a>(self, ok: 'bool', summary: 'str', active_games: 'tuple[str, ...]' = (), active_mods: 'tuple[str, ...]' = (), wiped_collections: 'int' = 0, refused_by: 'tuple[str, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ModInstallResult-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>active_games</strong></dt>
+</dl>
+<dl><dt><strong>active_mods</strong></dt>
+</dl>
+<dl><dt><strong>ok</strong></dt>
+</dl>
+<dl><dt><strong>refused_by</strong></dt>
+</dl>
+<dl><dt><strong>summary</strong></dt>
+</dl>
+<dl><dt><strong>wiped_collections</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'active_games': 'tuple[str, ...]', 'active_mods': 'tuple[str, ...]', 'ok': 'bool', 'refused_by': 'tuple[str, ...]', 'summary': 'str', 'wiped_collections': 'int'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'active_games': Field(name='active_games',type='tuple[str, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'active_mods': Field(name='active_mods',type='tuple[str, ...]',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'ok': Field(name='ok',type='bool',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'refused_by': Field(name='refused_by',type='tuple[str, ...]',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'summary': Field(name='summary',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'wiped_collections': Field(name='wiped_collections',type='int',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('ok', 'summary', 'active_games', 'active_mods', 'wiped_collections', 'refused_by')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModInstallService">class <strong>ModInstallService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModInstallService">ModInstallService</a>(access:&nbsp;'GuildAccessService',&nbsp;registry:&nbsp;'Any',&nbsp;database:&nbsp;'Any&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Install/uninstall&nbsp;the&nbsp;mods&nbsp;and&nbsp;games&nbsp;of&nbsp;one&nbsp;guild&nbsp;(the&nbsp;forum's&nbsp;engine).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModInstallService-__init__"><strong>__init__</strong></a>(self, access: 'GuildAccessService', registry: 'Any', database: 'Any | None' = None) -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;access&nbsp;service,&nbsp;the&nbsp;mod&nbsp;registry&nbsp;and&nbsp;the&nbsp;shared&nbsp;database.</span></dd></dl>
+
+<dl><dt>async <a name="ModInstallService-install"><strong>install</strong></a>(self, guild_id: 'str', *, mods: 'tuple[str, ...]' = (), games: 'tuple[str, ...]' = ()) -&gt; 'ModInstallResult'</dt><dd><span class="code">Install&nbsp;mods/games:&nbsp;the&nbsp;active&nbsp;set&nbsp;grows,&nbsp;requirements&nbsp;ride&nbsp;along.</span></dd></dl>
+
+<dl><dt>async <a name="ModInstallService-status"><strong>status</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, tuple[str, ...]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;active&nbsp;sets&nbsp;(the&nbsp;forum&nbsp;posts&nbsp;render&nbsp;them).</span></dd></dl>
+
+<dl><dt>async <a name="ModInstallService-uninstall"><strong>uninstall</strong></a>(self, guild_id: 'str', *, mods: 'tuple[str, ...]' = (), games: 'tuple[str, ...]' = (), wipe_data: 'bool' = False) -&gt; 'ModInstallResult'</dt><dd><span class="code">Uninstall&nbsp;mods/games:&nbsp;the&nbsp;active&nbsp;set&nbsp;shrinks;&nbsp;dependents&nbsp;refuse.<br>
+&nbsp;<br>
+A&nbsp;game&nbsp;an&nbsp;active&nbsp;mod&nbsp;requires&nbsp;is&nbsp;refused&nbsp;(the&nbsp;dependents&nbsp;are<br>
+named);&nbsp;a&nbsp;mod's&nbsp;data&nbsp;wipe&nbsp;rides&nbsp;``ModStorage``&nbsp;—&nbsp;the&nbsp;``&lt;mod&gt;:``<br>
+prefix,&nbsp;nothing&nbsp;else.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ModInstallResult', 'ModInstallService']</td></tr></table>
+</body></html>

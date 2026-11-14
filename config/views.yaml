@@ -36,7 +36,6 @@ views:
       emoji: 🧩
     - label: ui.homes.btn_sync
       sync: true
-    title_emoji: 🔓
     admin_surface: true
   menu:console:
     kind: menu
@@ -49,9 +48,6 @@ views:
     kind: menu
     scope: games/general
     buttons:
-    - target: menu:games:aoe2
-      label: ui.games.homes.aoe2
-      emoji: ⚔️
     - target: menu:games:admin
       label: ui.homes.btn_admin
       admin: true
@@ -59,12 +55,8 @@ views:
     kind: menu
     scope: games/admin
     buttons:
-    - target: menu:game:aoe2:admin
-      label: ui.games.homes.aoe2
-      emoji: ⚔️
     - label: ui.homes.btn_sync
       sync: true
-    title_emoji: 🔓
     admin_surface: true
   menu:games:aoe2:
     kind: menu
@@ -76,6 +68,12 @@ views:
     - target: panel:game:aoe2:players
       label: ui.homes.btn_users
       emoji: 👥
+    # the GENERIC Profile button (#333/#363): the panel is game-agnostic
+    # (the user's linked accounts; the game's details ride its enricher —
+    # data, never code); every game menu declares the same target
+    - target: panel:profile
+      label: ui.homes.btn_profile
+      emoji: 👤🏼
     - target: menu:game:aoe2:admin
       label: ui.homes.btn_admin
       admin: true
@@ -91,7 +89,6 @@ views:
       emoji: 🧱
     - label: ui.homes.btn_sync
       sync: true
-    title_emoji: 🔓
     admin_surface: true
   panel:game:aoe2:live:
     kind: panel
@@ -101,53 +98,18 @@ views:
     kind: menu
     scope: mods/general
     buttons:
-    - target: menu:mod:ladder
-      label: ui.mods.homes.ladder
-      disabled: true
-      emoji: 🏆
-    - target: menu:mod:tournament
-      label: ui.mods.homes.tournament
-      disabled: true
-      emoji: 🎯
-    - target: menu:mod:kingdom
-      label: ui.mods.homes.kingdom
-      disabled: true
-      emoji: 👑
     - target: menu:mods:admin
       label: ui.homes.btn_admin
       admin: true
+
   menu:mods:admin:
     kind: menu
     scope: mods/admin
+    admin_surface: true
     buttons:
-    - target: menu:mod:ladder:admin
-      label: ui.mods.homes.ladder
-      disabled: true
-      emoji: 🏆
-    - target: menu:mod:tournament:admin
-      label: ui.mods.homes.tournament
-      disabled: true
-      emoji: 🎯
-    - target: menu:mod:kingdom:admin
-      label: ui.mods.homes.kingdom
-      disabled: true
-      emoji: 👑
     - label: ui.homes.btn_sync
       sync: true
-    title_emoji: 🔓
-    admin_surface: true
-  menu:mod:ladder:
-    kind: menu
-  menu:mod:tournament:
-    kind: menu
-  menu:mod:kingdom:
-    kind: menu
-  menu:mod:ladder:admin:
-    kind: menu
-  menu:mod:tournament:admin:
-    kind: menu
-  menu:mod:kingdom:admin:
-    kind: menu
+
 scopes:
   root:
     channels:
@@ -192,6 +154,11 @@ scopes:
       kind: text
       access: admin
       description: ui.panels.channels.admin_description
+    - key: catalog
+      label: ui.panels.channels.catalog
+      kind: forum
+      access: readonly
+      description: ui.panels.channels.catalog_description
   games/aoe2:
     category: ui.panels.categories.games_aoe2
     channels:
@@ -233,3 +200,8 @@ scopes:
       kind: text
       access: admin
       description: ui.panels.channels.admin_description
+    - key: catalog
+      label: ui.panels.channels.catalog
+      kind: forum
+      access: readonly
+      description: ui.panels.channels.mods_catalog_description

@@ -32,7 +32,11 @@ CACHE_SCOPE = "roles"
 
 
 class RolesPlatform(Protocol):
-    """Narrow platform seam: role lookup and creation."""
+    """Narrow platform seam: role lookup, creation and deletion."""
+
+    async def delete_role(self, guild_id: str, role_id: str, reason: str) -> None:
+        """Delete one role; missing roles are a no-op."""
+        ...
 
     async def find_role_by_name(self, guild_id: str, name: str) -> str | None:
         """Find a guild role id by its exact name; None when absent."""
@@ -228,6 +232,31 @@ class ModRolesService:
             resolved[role_def.key] = role_id
         return resolved
 
+    async def teardown_mod_roles(self, guild_id: str, mod_name: str) -> int:
+        """Delete every role a mod provisioned (uninstall with the choice).
+
+        The persisted mappings go with the roles: a reinstall provisions
+        fresh (the roles are the mod's, the mappings are its ledger).
+        Best-effort per role; returns how many were deleted.
+        """
+        deleted = 0
+        for mapping in await self._db.list_role_mappings(guild_id, mod_name):
+            try:
+                await self._delete_platform_role(guild_id, mapping.role_id, mod_name)
+                deleted += 1
+            except Exception:
+                logger.warning(
+                    "mod roles teardown: deleting %s failed — best-effort", mapping.role_id, exc_info=True
+                )
+            await self._db.delete_role_mapping(guild_id, mod_name, mapping.role_key)
+        return deleted
+
+    async def _delete_platform_role(self, guild_id: str, role_id: str, mod_name: str) -> None:
+        """Delete one platform role (the platform seam owns the how)."""
+        await self._platform.delete_role(
+            guild_id, role_id, reason=f"botforge: uninstall the {mod_name} mod"
+        )
+
     async def _resolve_or_provision(self, guild_id: str, mod_name: str, role_def: RoleDef) -> str:
         """Resolve one declared role to a platform role id, creating it when missing."""
         existing = await self._db.find_role_mapping(guild_id, mod_name, role_def.key)
@@ -260,6 +289,15 @@ class ModRolesService:
             )
         )
         await self._cache_set(self._cache_key(guild_id, mod_name, role_key), role_id)
+
+    async def find_role_mapping(self, guild_id: str, mod: str, role_key: str) -> RoleMappingModel | None:
+        """Return the persisted mapping for one logical role key (ledger only).
+
+        The render-side resolver (owner rule 2026-11-13: never a name
+        match): None means the ledger holds no entry — the caller shows
+        the honest state, the repair provisions and persists.
+        """
+        return await self._db.find_role_mapping(guild_id, mod, role_key)
 
     async def bind_role(self, guild_id: str, mod: str, role_key: str, role_id: str) -> None:
         """Create or update the mapping between a logical role key and a platform role.

@@ -12,15 +12,23 @@
     <p><span class="code"><a href="#GuildAccessService">GuildAccessService</a>:&nbsp;which&nbsp;guild&nbsp;may&nbsp;use&nbsp;which&nbsp;games&nbsp;and&nbsp;mods&nbsp;(core).<br>
 &nbsp;<br>
 A&nbsp;bot&nbsp;admin&nbsp;is&nbsp;cross-guild:&nbsp;they&nbsp;administer&nbsp;the&nbsp;platform&nbsp;from&nbsp;DMs,<br>
-not&nbsp;from&nbsp;any&nbsp;single&nbsp;guild's&nbsp;panel.&nbsp;By&nbsp;default&nbsp;**everything&nbsp;is&nbsp;active**:<br>
-a&nbsp;guild&nbsp;with&nbsp;no&nbsp;access&nbsp;document&nbsp;gets&nbsp;the&nbsp;whole&nbsp;platform&nbsp;catalog.&nbsp;An<br>
-access&nbsp;doc&nbsp;only&nbsp;ever&nbsp;*restricts*&nbsp;—&nbsp;the&nbsp;future&nbsp;private-mod&nbsp;seam&nbsp;(a&nbsp;mod<br>
-needing&nbsp;explicit&nbsp;activation,&nbsp;like&nbsp;kingdoms).<br>
+not&nbsp;from&nbsp;any&nbsp;single&nbsp;guild's&nbsp;panel.&nbsp;By&nbsp;default&nbsp;the&nbsp;**default-active**<br>
+items&nbsp;are&nbsp;on:&nbsp;a&nbsp;guild&nbsp;with&nbsp;no&nbsp;access&nbsp;document&nbsp;gets&nbsp;the&nbsp;declarations'<br>
+default-active&nbsp;sets&nbsp;(games&nbsp;active,&nbsp;mods&nbsp;not&nbsp;—&nbsp;the&nbsp;future&nbsp;private-mod<br>
+seam&nbsp;is&nbsp;a&nbsp;mod&nbsp;needing&nbsp;explicit&nbsp;activation,&nbsp;like&nbsp;kingdoms).&nbsp;A&nbsp;stored<br>
+access&nbsp;doc&nbsp;is&nbsp;the&nbsp;whole&nbsp;truth,&nbsp;even&nbsp;empty:&nbsp;an&nbsp;uninstall&nbsp;sticks.<br>
 &nbsp;<br>
 Storage:&nbsp;the&nbsp;``guild_access``&nbsp;Mongo&nbsp;collection,&nbsp;one&nbsp;document&nbsp;per&nbsp;guild<br>
 (``guild:&lt;id&gt;``)&nbsp;carrying&nbsp;``games``&nbsp;and&nbsp;``mods``&nbsp;(lists&nbsp;of&nbsp;granted<br>
 keys)&nbsp;plus&nbsp;``pending``&nbsp;requests.&nbsp;Requests&nbsp;and&nbsp;grants&nbsp;are&nbsp;auditable<br>
-state,&nbsp;not&nbsp;config:&nbsp;they&nbsp;survive&nbsp;restarts&nbsp;and&nbsp;deployments.</span></p>
+state,&nbsp;not&nbsp;config:&nbsp;they&nbsp;survive&nbsp;restarts&nbsp;and&nbsp;deployments.<br>
+&nbsp;<br>
+Semantics:&nbsp;a&nbsp;guild&nbsp;with&nbsp;NO&nbsp;document&nbsp;gets&nbsp;the&nbsp;default-active&nbsp;sets&nbsp;(the<br>
+declarations'&nbsp;``default_active``&nbsp;flags&nbsp;—&nbsp;games&nbsp;default&nbsp;active,&nbsp;mods<br>
+default&nbsp;inactive).&nbsp;Once&nbsp;a&nbsp;document&nbsp;exists&nbsp;its&nbsp;lists&nbsp;are&nbsp;the&nbsp;whole<br>
+truth,&nbsp;EVEN&nbsp;EMPTY:&nbsp;uninstalling&nbsp;the&nbsp;last&nbsp;item&nbsp;sticks&nbsp;(the&nbsp;catalog's<br>
+Install&nbsp;button&nbsp;brings&nbsp;it&nbsp;back),&nbsp;it&nbsp;does&nbsp;not&nbsp;silently&nbsp;re-open&nbsp;the<br>
+defaults.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -186,12 +194,12 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="GuildAccessService">class <strong>GuildAccessService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#GuildAccessService">GuildAccessService</a>(database:&nbsp;'<a href="#GuildAccessDatabase">GuildAccessDatabase</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;mods:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GuildAccessService">GuildAccessService</a>(database:&nbsp;'<a href="#GuildAccessDatabase">GuildAccessDatabase</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;mods:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;default_games:&nbsp;'tuple[str,&nbsp;...]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;default_mods:&nbsp;'tuple[str,&nbsp;...]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Per-guild&nbsp;grants&nbsp;of&nbsp;games&nbsp;and&nbsp;mods:&nbsp;request,&nbsp;approve,&nbsp;revoke.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="GuildAccessService-__init__"><strong>__init__</strong></a>(self, database: 'GuildAccessDatabase', games: 'tuple[str, ...]' = (), mods: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams&nbsp;and&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods.<br>
+<dl><dt><a name="GuildAccessService-__init__"><strong>__init__</strong></a>(self, database: 'GuildAccessDatabase', games: 'tuple[str, ...]' = (), mods: 'tuple[str, ...]' = (), default_games: 'tuple[str, ...] | None' = None, default_mods: 'tuple[str, ...] | None' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams&nbsp;and&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods.<br>
 &nbsp;<br>
 ``games``/``mods``&nbsp;restrict&nbsp;what&nbsp;a&nbsp;guild&nbsp;may&nbsp;be&nbsp;granted:&nbsp;only<br>
 keys&nbsp;the&nbsp;platform&nbsp;actually&nbsp;ships&nbsp;(config)&nbsp;can&nbsp;be&nbsp;approved.</span></dd></dl>
@@ -200,14 +208,13 @@ keys&nbsp;the&nbsp;platform&nbsp;actually&nbsp;ships&nbsp;(config)&nbsp;can&nbsp
 
 <dl><dt>async <a name="GuildAccessService-deny"><strong>deny</strong></a>(self, guild_id: 'str', requested_at: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Drop&nbsp;one&nbsp;pending&nbsp;request&nbsp;without&nbsp;granting&nbsp;anything.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessService-enabled_games"><strong>enabled_games</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;games&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild.<br>
+<dl><dt>async <a name="GuildAccessService-enabled_games"><strong>enabled_games</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;games&nbsp;active&nbsp;for&nbsp;one&nbsp;guild.<br>
 &nbsp;<br>
-Default&nbsp;open:&nbsp;a&nbsp;guild&nbsp;with&nbsp;no&nbsp;access&nbsp;document&nbsp;(or&nbsp;no&nbsp;granted<br>
-game)&nbsp;gets&nbsp;the&nbsp;whole&nbsp;platform&nbsp;catalog&nbsp;—&nbsp;access&nbsp;docs&nbsp;only&nbsp;ever<br>
-*restrict*&nbsp;(the&nbsp;future&nbsp;private-mod&nbsp;seam).&nbsp;A&nbsp;stored&nbsp;non-empty<br>
-list&nbsp;keeps&nbsp;its&nbsp;meaning:&nbsp;exactly&nbsp;those&nbsp;games.</span></dd></dl>
+No&nbsp;access&nbsp;document:&nbsp;the&nbsp;default-active&nbsp;games.&nbsp;A&nbsp;stored&nbsp;document<br>
+is&nbsp;the&nbsp;whole&nbsp;truth&nbsp;—&nbsp;an&nbsp;empty&nbsp;list&nbsp;means&nbsp;NONE&nbsp;active&nbsp;(an<br>
+uninstall&nbsp;sticks;&nbsp;the&nbsp;catalog's&nbsp;Install&nbsp;button&nbsp;reinstalls).</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessService-enabled_mods"><strong>enabled_mods</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;mods&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild&nbsp;(default:&nbsp;the&nbsp;whole&nbsp;catalog).</span></dd></dl>
+<dl><dt>async <a name="GuildAccessService-enabled_mods"><strong>enabled_mods</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;mods&nbsp;active&nbsp;for&nbsp;one&nbsp;guild&nbsp;(default:&nbsp;none&nbsp;active).</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-ensure_known"><strong>ensure_known</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Make&nbsp;sure&nbsp;one&nbsp;guild&nbsp;the&nbsp;bot&nbsp;sits&nbsp;in&nbsp;has&nbsp;an&nbsp;access&nbsp;document.<br>
 &nbsp;<br>
@@ -215,11 +222,15 @@ The&nbsp;panel's&nbsp;server&nbsp;list&nbsp;reads&nbsp;the&nbsp;collection,&nbsp
 only&nbsp;ever&nbsp;written&nbsp;by&nbsp;a&nbsp;request&nbsp;or&nbsp;a&nbsp;grant&nbsp;—&nbsp;a&nbsp;database&nbsp;reset<br>
 showed&nbsp;0&nbsp;servers&nbsp;while&nbsp;the&nbsp;bot&nbsp;kept&nbsp;interacting&nbsp;with&nbsp;its&nbsp;guilds.<br>
 The&nbsp;boot&nbsp;(and&nbsp;every&nbsp;guild&nbsp;join)&nbsp;re-creates&nbsp;the&nbsp;default&nbsp;document<br>
-(no&nbsp;grants:&nbsp;the&nbsp;default-open&nbsp;catalog,&nbsp;semantically&nbsp;identical&nbsp;to<br>
-no&nbsp;document&nbsp;at&nbsp;all),&nbsp;so&nbsp;the&nbsp;stored&nbsp;list&nbsp;and&nbsp;the&nbsp;bot's&nbsp;guilds&nbsp;stay<br>
-coherent.&nbsp;An&nbsp;existing&nbsp;document&nbsp;is&nbsp;returned&nbsp;untouched.</span></dd></dl>
+(the&nbsp;default-active&nbsp;sets&nbsp;materialized&nbsp;—&nbsp;semantically&nbsp;identical<br>
+to&nbsp;no&nbsp;document&nbsp;at&nbsp;all),&nbsp;so&nbsp;the&nbsp;stored&nbsp;list&nbsp;and&nbsp;the&nbsp;bot's&nbsp;guilds<br>
+stay&nbsp;coherent.&nbsp;An&nbsp;existing&nbsp;document&nbsp;is&nbsp;returned&nbsp;untouched.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessService-get"><strong>get</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;one&nbsp;guild's&nbsp;access&nbsp;state&nbsp;(default:&nbsp;nothing&nbsp;active).</span></dd></dl>
+<dl><dt>async <a name="GuildAccessService-get"><strong>get</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;one&nbsp;guild's&nbsp;access&nbsp;state.<br>
+&nbsp;<br>
+No&nbsp;document:&nbsp;the&nbsp;synthetic&nbsp;default&nbsp;state&nbsp;—&nbsp;the&nbsp;default-active<br>
+sets&nbsp;materialized&nbsp;—&nbsp;so&nbsp;the&nbsp;write&nbsp;paths&nbsp;(request/grant/approve)<br>
+persist&nbsp;a&nbsp;complete&nbsp;document&nbsp;on&nbsp;first&nbsp;touch.</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-grant"><strong>grant</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Grant&nbsp;games/mods&nbsp;to&nbsp;a&nbsp;guild&nbsp;directly&nbsp;(bot&nbsp;admin,&nbsp;no&nbsp;request).<br>
 &nbsp;<br>

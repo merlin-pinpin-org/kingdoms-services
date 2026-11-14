@@ -149,6 +149,12 @@ role&nbsp;is&nbsp;created&nbsp;—&nbsp;and&nbsp;the&nbsp;mapping&nbsp;is&nbsp;p
 Admins&nbsp;rebind&nbsp;a&nbsp;logical&nbsp;role&nbsp;to&nbsp;an&nbsp;existing&nbsp;platform&nbsp;role&nbsp;(e.g.&nbsp;a<br>
 server&nbsp;role&nbsp;created&nbsp;before&nbsp;the&nbsp;bot)&nbsp;without&nbsp;touching&nbsp;mod&nbsp;code.</span></dd></dl>
 
+<dl><dt>async <a name="ModRolesService-find_role_mapping"><strong>find_role_mapping</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'RoleMappingModel | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;persisted&nbsp;mapping&nbsp;for&nbsp;one&nbsp;logical&nbsp;role&nbsp;key&nbsp;(ledger&nbsp;only).<br>
+&nbsp;<br>
+The&nbsp;render-side&nbsp;resolver&nbsp;(owner&nbsp;rule&nbsp;2026-11-13:&nbsp;never&nbsp;a&nbsp;name<br>
+match):&nbsp;None&nbsp;means&nbsp;the&nbsp;ledger&nbsp;holds&nbsp;no&nbsp;entry&nbsp;—&nbsp;the&nbsp;caller&nbsp;shows<br>
+the&nbsp;honest&nbsp;state,&nbsp;the&nbsp;repair&nbsp;provisions&nbsp;and&nbsp;persists.</span></dd></dl>
+
 <dl><dt>async <a name="ModRolesService-remove_mod_role"><strong>remove_mod_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;the&nbsp;platform&nbsp;role&nbsp;mapped&nbsp;to&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;from&nbsp;a&nbsp;member.</span></dd></dl>
 
 <dl><dt>async <a name="ModRolesService-remove_platform_role"><strong>remove_platform_role</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;one&nbsp;platform&nbsp;role&nbsp;id&nbsp;from&nbsp;a&nbsp;member&nbsp;(best-effort).</span></dd></dl>
@@ -166,6 +172,12 @@ Idempotent:&nbsp;an&nbsp;existing&nbsp;role&nbsp;with&nbsp;the&nbsp;same&nbsp;di
 the&nbsp;missing&nbsp;ones&nbsp;are&nbsp;created,&nbsp;and&nbsp;every&nbsp;declared&nbsp;key&nbsp;is&nbsp;persisted<br>
 as&nbsp;a&nbsp;mapping&nbsp;so&nbsp;runtime&nbsp;resolution&nbsp;never&nbsp;depends&nbsp;on&nbsp;the&nbsp;display<br>
 name&nbsp;alone.</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-teardown_mod_roles"><strong>teardown_mod_roles</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'int'</dt><dd><span class="code">Delete&nbsp;every&nbsp;role&nbsp;a&nbsp;mod&nbsp;provisioned&nbsp;(uninstall&nbsp;with&nbsp;the&nbsp;choice).<br>
+&nbsp;<br>
+The&nbsp;persisted&nbsp;mappings&nbsp;go&nbsp;with&nbsp;the&nbsp;roles:&nbsp;a&nbsp;reinstall&nbsp;provisions<br>
+fresh&nbsp;(the&nbsp;roles&nbsp;are&nbsp;the&nbsp;mod's,&nbsp;the&nbsp;mappings&nbsp;are&nbsp;its&nbsp;ledger).<br>
+Best-effort&nbsp;per&nbsp;role;&nbsp;returns&nbsp;how&nbsp;many&nbsp;were&nbsp;deleted.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -309,7 +321,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#RolesPlatform">RolesPlatform</a>(*args,&nbsp;**kwargs)<br>
 &nbsp;<br>
-Narrow&nbsp;platform&nbsp;seam:&nbsp;role&nbsp;lookup&nbsp;and&nbsp;creation.<br>&nbsp;</span></td></tr>
+Narrow&nbsp;platform&nbsp;seam:&nbsp;role&nbsp;lookup,&nbsp;creation&nbsp;and&nbsp;deletion.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="botforge.core.services.roles.html#RolesPlatform">RolesPlatform</a></dd>
@@ -322,6 +334,8 @@ Methods defined here:<br>
 <dl><dt><a name="RolesPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
 <dl><dt>async <a name="RolesPlatform-create_role"><strong>create_role</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;guild&nbsp;role;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="RolesPlatform-delete_role"><strong>delete_role</strong></a>(self, guild_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Delete&nbsp;one&nbsp;role;&nbsp;missing&nbsp;roles&nbsp;are&nbsp;a&nbsp;no-op.</span></dd></dl>
 
 <dl><dt>async <a name="RolesPlatform-find_role_by_name"><strong>find_role_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;role&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
@@ -347,7 +361,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'create_role', 'find_role_by_name', 'role_exists'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'create_role', 'delete_role', 'find_role_by_name', 'role_exists'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: botforge.core.services.mod_storage</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="botforge.html" class="white">botforge</a>.<a href="botforge.core.html" class="white">core</a>.<a href="botforge.core.services.html" class="white">services</a>.mod_storage</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/mod_storage.py">SOURCE_ROOT/core/services/mod_storage.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;mods'&nbsp;storage&nbsp;facade:&nbsp;the&nbsp;only&nbsp;door&nbsp;to&nbsp;a&nbsp;mod's&nbsp;data&nbsp;(R8's&nbsp;seam).<br>
+&nbsp;<br>
+A&nbsp;mod&nbsp;never&nbsp;touches&nbsp;a&nbsp;raw&nbsp;Mongo&nbsp;collection&nbsp;or&nbsp;a&nbsp;raw&nbsp;Redis&nbsp;key&nbsp;(the&nbsp;R8<br>
+architecture&nbsp;rule):&nbsp;it&nbsp;declares&nbsp;its&nbsp;collection&nbsp;names&nbsp;here&nbsp;and&nbsp;gets&nbsp;them<br>
+NAMESPACED&nbsp;under&nbsp;its&nbsp;own&nbsp;mod&nbsp;id&nbsp;—&nbsp;``kingdoms:realms``&nbsp;never&nbsp;collides<br>
+with&nbsp;another&nbsp;mod's&nbsp;``realms``,&nbsp;and&nbsp;the&nbsp;platform&nbsp;can&nbsp;find&nbsp;every<br>
+document&nbsp;a&nbsp;mod&nbsp;owns&nbsp;(the&nbsp;install/uninstall&nbsp;data&nbsp;handling,&nbsp;#374).<br>
+&nbsp;<br>
+The&nbsp;cache&nbsp;side&nbsp;is&nbsp;the&nbsp;same&nbsp;contract:&nbsp;a&nbsp;mod's&nbsp;state&nbsp;rides&nbsp;the&nbsp;shared<br>
+StateService&nbsp;under&nbsp;a&nbsp;mod-scoped&nbsp;prefix,&nbsp;so&nbsp;a&nbsp;mod's&nbsp;keys&nbsp;are&nbsp;enumerable<br>
+and&nbsp;wipeable&nbsp;without&nbsp;touching&nbsp;anyone&nbsp;else's.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="botforge.core.services.mod_storage.html#ModStateCache">ModStateCache</a>
+</dt><dt class="heading-text"><a href="botforge.core.services.mod_storage.html#ModStorage">ModStorage</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModStateCache">class <strong>ModStateCache</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModStateCache">ModStateCache</a>(state:&nbsp;'StateService',&nbsp;mod:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+A&nbsp;mod's&nbsp;scoped&nbsp;door&nbsp;to&nbsp;the&nbsp;shared&nbsp;Redis&nbsp;state.<br>
+&nbsp;<br>
+Every&nbsp;entry&nbsp;rides&nbsp;the&nbsp;StateService&nbsp;under&nbsp;the&nbsp;``mod:&lt;mod&gt;:``&nbsp;scope:<br>
+the&nbsp;mod's&nbsp;keys&nbsp;are&nbsp;namespaced&nbsp;by&nbsp;construction&nbsp;and&nbsp;never&nbsp;collide<br>
+with&nbsp;the&nbsp;core's&nbsp;or&nbsp;another&nbsp;mod's.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModStateCache-__init__"><strong>__init__</strong></a>(self, state: 'StateService', mod: 'str') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;shared&nbsp;state&nbsp;service&nbsp;and&nbsp;the&nbsp;mod's&nbsp;scope.</span></dd></dl>
+
+<dl><dt>async <a name="ModStateCache-delete"><strong>delete</strong></a>(self, key: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;one&nbsp;mod&nbsp;state&nbsp;entry;&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;a&nbsp;no-op.</span></dd></dl>
+
+<dl><dt>async <a name="ModStateCache-get"><strong>get</strong></a>(self, key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;mod&nbsp;state&nbsp;entry&nbsp;(None&nbsp;when&nbsp;unset&nbsp;or&nbsp;expired).</span></dd></dl>
+
+<dl><dt>async <a name="ModStateCache-set"><strong>set</strong></a>(self, key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;one&nbsp;mod&nbsp;state&nbsp;entry&nbsp;(optional&nbsp;TTL).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>scope</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;mod's&nbsp;state&nbsp;scope.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>SCOPE_PREFIX</strong> = 'mod'</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModStorage">class <strong>ModStorage</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModStorage">ModStorage</a>(database:&nbsp;'Any',&nbsp;mod:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+A&nbsp;mod's&nbsp;namespaced&nbsp;door&nbsp;to&nbsp;the&nbsp;shared&nbsp;database.<br>
+&nbsp;<br>
+The&nbsp;collections&nbsp;are&nbsp;created&nbsp;on&nbsp;demand&nbsp;under&nbsp;``&lt;mod&gt;:&lt;name&gt;``:&nbsp;the<br>
+mod&nbsp;id&nbsp;is&nbsp;the&nbsp;namespace,&nbsp;the&nbsp;platform's&nbsp;tooling&nbsp;(the&nbsp;Danger&nbsp;Zone's<br>
+per-mod&nbsp;data&nbsp;wipe,&nbsp;#374's&nbsp;uninstall-without-data)&nbsp;addresses&nbsp;them&nbsp;by<br>
+prefix&nbsp;without&nbsp;knowing&nbsp;the&nbsp;mod's&nbsp;internals.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModStorage-__init__"><strong>__init__</strong></a>(self, database: 'Any', mod: 'str') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;shared&nbsp;database&nbsp;and&nbsp;the&nbsp;mod's&nbsp;namespace.</span></dd></dl>
+
+<dl><dt><a name="ModStorage-collection"><strong>collection</strong></a>(self, name: 'str') -&gt; 'Any'</dt><dd><span class="code">Return&nbsp;the&nbsp;namespaced&nbsp;collection&nbsp;handle&nbsp;for&nbsp;one&nbsp;declared&nbsp;name.</span></dd></dl>
+
+<dl><dt><a name="ModStorage-collection_id"><strong>collection_id</strong></a>(self, name: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;full&nbsp;collection&nbsp;id&nbsp;(the&nbsp;prefix&nbsp;form,&nbsp;for&nbsp;tooling).</span></dd></dl>
+
+<dl><dt>async <a name="ModStorage-wipe"><strong>wipe</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Delete&nbsp;every&nbsp;document&nbsp;of&nbsp;every&nbsp;namespaced&nbsp;collection;&nbsp;return&nbsp;the&nbsp;count.<br>
+&nbsp;<br>
+The&nbsp;per-mod&nbsp;data&nbsp;wipe&nbsp;(the&nbsp;uninstall-with-data&nbsp;path,&nbsp;#374):&nbsp;the<br>
+namespace&nbsp;prefix&nbsp;makes&nbsp;it&nbsp;surgical&nbsp;—&nbsp;nothing&nbsp;outside&nbsp;the&nbsp;mod&nbsp;is<br>
+touched.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>mod</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;mod's&nbsp;namespace&nbsp;(its&nbsp;id).</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ModStateCache', 'ModStorage']</td></tr></table>
+</body></html>

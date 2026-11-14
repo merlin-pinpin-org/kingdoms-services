@@ -19,8 +19,8 @@ click&nbsp;guard&nbsp;is&nbsp;bot-admin&nbsp;(the&nbsp;catalog&nbsp;is&nbsp;plat
 &nbsp;<br>
 -&nbsp;map:&nbsp;[Ajouter&nbsp;à&nbsp;un&nbsp;pool]&nbsp;[Modifier]&nbsp;[Supprimer]<br>
 -&nbsp;pool:&nbsp;[Ajouter&nbsp;une&nbsp;map]&nbsp;[Changer&nbsp;d'état]&nbsp;[Supprimer]<br>
--&nbsp;civ:&nbsp;a&nbsp;disabled&nbsp;placeholder&nbsp;(cross-guild&nbsp;data&nbsp;lives&nbsp;in&nbsp;the&nbsp;DM<br>
-&nbsp;&nbsp;panel's&nbsp;refresh)&nbsp;—&nbsp;the&nbsp;design's&nbsp;todo&nbsp;action&nbsp;bar.</span></p>
+-&nbsp;civ:&nbsp;NO&nbsp;admin&nbsp;button&nbsp;—&nbsp;its&nbsp;data&nbsp;is&nbsp;cross-guild&nbsp;(the&nbsp;DM&nbsp;panel's<br>
+&nbsp;&nbsp;sync&nbsp;owns&nbsp;it),&nbsp;the&nbsp;generic&nbsp;menu&nbsp;carried&nbsp;nothing&nbsp;useful.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -202,8 +202,10 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 &nbsp;<br>
 The&nbsp;⚙️&nbsp;Admin&nbsp;click&nbsp;answers&nbsp;with&nbsp;the&nbsp;entity's&nbsp;admin&nbsp;BUTTON&nbsp;BAR&nbsp;(never<br>
 a&nbsp;re-render&nbsp;of&nbsp;the&nbsp;post&nbsp;—&nbsp;the&nbsp;post&nbsp;re-renders&nbsp;only&nbsp;when&nbsp;its&nbsp;content<br>
-changed;&nbsp;owner&nbsp;direction&nbsp;2026-11-08).&nbsp;The&nbsp;bar&nbsp;carries&nbsp;the&nbsp;entity's<br>
-admin&nbsp;id:&nbsp;``map:aoe2:public:arabia:admin``.</span></dd></dl>
+changed;&nbsp;owner&nbsp;direction&nbsp;2026-11-08).&nbsp;The&nbsp;bar&nbsp;rides&nbsp;the&nbsp;SDK's<br>
+entity-admin&nbsp;seam&nbsp;(``ui/entity_admin.py``):&nbsp;the&nbsp;caller&nbsp;hands&nbsp;the<br>
+buttons&nbsp;in,&nbsp;the&nbsp;SDK&nbsp;composes&nbsp;the&nbsp;rows&nbsp;and&nbsp;the<br>
+``panel:&lt;entity_id&gt;:admin``&nbsp;footer&nbsp;—&nbsp;ALWAYS&nbsp;the&nbsp;last&nbsp;line.</span></dd></dl>
  <dl><dt><a name="-register_entity_admin_items"><strong>register_entity_admin_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;entity&nbsp;admin&nbsp;items&nbsp;on&nbsp;the&nbsp;client.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

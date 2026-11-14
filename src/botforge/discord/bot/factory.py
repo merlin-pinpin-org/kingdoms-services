@@ -153,6 +153,8 @@ class BotforgeBot(discord.Client):
         self.config = config
         self.status_service = status
         self.registry = registry
+        # the repo root the modular mods live under (None outside a repo — a wheel install)
+        self.repo_root: Any = None
         self.logs_service = logs
         if logs is not None:
             logs.set_locale_resolver(self._native_guild_locale)
@@ -240,6 +242,10 @@ class BotforgeBot(discord.Client):
         from botforge.discord.console import register_console_items
 
         register_console_items(self)
+        from botforge.discord.mods_forum import register_catalog_syncs, register_mods_forum_items
+
+        register_mods_forum_items(self)
+        register_catalog_syncs()
         from botforge.discord.views_declared import declare_platform_views
         from botforge.discord.views_routing import register_view_router
 
@@ -256,6 +262,15 @@ class BotforgeBot(discord.Client):
         if getattr(self, "_home_pin_pending", False):
             self._home_pin_pending = False
     
+
+        # the enabled mods' setup hooks (mod_entrypoint): each mod
+        # re-registers its persistent UI after a restart
+        from botforge.core.services.mod_entrypoint import run_mod_hook
+
+        if self.registry is not None:
+            for mod_name in self.registry.enabled():
+                run_mod_hook(self, mod_name, "setup_hook", repo_root=getattr(self, "repo_root", None))
+
 
     async def on_member_join(self, member: discord.Member) -> None:
         """Keep the member cache fresh between TTLs (owner direction)."""
@@ -473,6 +488,9 @@ class BotforgeBot(discord.Client):
             except Exception:
                 logger.warning("CONTENT REFRESH at boot failed — best-effort", exc_info=True)
             await sync_maps_forum(guild_id, "aoe2", self)
+            from botforge.discord.mods_forum import sync_catalogs
+
+            await sync_catalogs(guild_id, self)
             await sync_pools_forum(guild_id, self)
             await sync_entity_forum(guild_id, self, factions_forum_spec(self))
             logger.info("CHANNEL TREE surfaces synced (guild %s)", guild_id)
@@ -615,10 +633,11 @@ class BotforgeBot(discord.Client):
         await self._ensure_section_pins(guild_id)
 
     def _register_scope_pins(self: BotforgeBot) -> None:
-        """Declare every scope's home and admin pins (idempotent)."""
-        from botforge.discord.scope_pins import register_scope_pins
+        """Declare every scope's and every mod's home and admin pins (idempotent)."""
+        from botforge.discord.scope_pins import register_mod_pins, register_scope_pins
 
         self._scope_pins = register_scope_pins(self, ("root", "bot", "games", "games/aoe2", "mods"))
+        self._scope_pins.extend(register_mod_pins(self))
 
     async def _ensure_all_pins(self: BotforgeBot, guild_id: str) -> None:
         """Ensure every registered static pin lives in its channel (now).
@@ -880,6 +899,13 @@ class BotforgeBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
+        # the enabled mods' close hooks (mod_entrypoint): each mod stops
+        # its own background tasks
+        from botforge.core.services.mod_entrypoint import run_mod_hook
+
+        if self.registry is not None:
+            for mod_name in self.registry.enabled():
+                run_mod_hook(self, mod_name, "close", repo_root=getattr(self, "repo_root", None))
         if self.registration_engine is not None:
             await self.registration_engine.stop()
         if self.state_service is not None:
@@ -887,12 +913,43 @@ class BotforgeBot(discord.Client):
         await super().close()
 
 
-def create_bot(config: BotConfig | None = None) -> BotforgeBot:
+def create_bot(config: BotConfig | None = None) -> BotforgeBot:  # noqa: C901
     """Build the BotForge bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
-    registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir)))
+    from botforge.core.services.mod_layout import default_repo_root
+
+    repo_root = default_repo_root()
+    registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir), repo_root=repo_root))
+    # the mod menus' AUTOMATION (#377): every enabled mod's home and
+    # admin views are GENERATED (the dev declares nothing — constrained,
+    # not trusted)
+    from botforge.discord.mod_views import declare_mod_views
+
+    declared_mod_views = declare_mod_views(registry)
+    if declared_mod_views:
+        logger.info("VIEWS generated for the enabled mods: %d views", declared_mod_views)
     games_dir = Path(resolved.config_dir) / "games"
     games = tuple(sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())) if games_dir.is_dir() else ()
+    # the per-game declaration (config/games/<key>/game.yaml): a game is
+    # default-active unless its declaration says otherwise (the mods are
+    # the inverse: default_active: false unless declared true)
+    import yaml as _yaml
+
+    default_games: list[str] = []
+    for game_key in games:
+        game_decl = games_dir / game_key / "game.yaml"
+        if not game_decl.is_file():
+            default_games.append(game_key)
+            continue
+        with open(game_decl, encoding="utf-8") as fh:
+            data = _yaml.safe_load(fh) or {}
+        if bool(data.get("default_active", True)):
+            default_games.append(game_key)
+    default_mods = tuple(
+        name
+        for name, definition in registry.enabled().items()
+        if definition.default_active
+    )
     status = StatusService(
         registry=registry,
         games=games,
@@ -928,6 +985,7 @@ def create_bot(config: BotConfig | None = None) -> BotforgeBot:
 
     _install_observability()
     bot = BotforgeBot(config=resolved, status=status, registry=registry)
+    bot.repo_root = repo_root
     bot.games = games
     bot.state_service = shared_state
     bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
@@ -1016,7 +1074,16 @@ def create_bot(config: BotConfig | None = None) -> BotforgeBot:
         games,
         tuple(registry.enabled()),
         tuple((name, definition.required_games) for name, definition in registry.enabled().items()),
+        default_games=tuple(default_games),
+        default_mods=default_mods,
     )
+    # the enabled mods' register hooks (mod_entrypoint): each mod wires
+    # its own commands, views and admin sections — the core never
+    # imports a mod by name
+    from botforge.core.services.mod_entrypoint import register_mod
+
+    for mod_name in registry.enabled():
+        register_mod(bot, resolved, mod_name, repo_root=getattr(bot, "repo_root", None))
     return bot
 
 

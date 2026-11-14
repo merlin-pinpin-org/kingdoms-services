@@ -85,7 +85,7 @@ class DatasetContentSource(UpstreamContentSource):
             "locale": locale if self._strings.get(locale) else "en",
             "name": name,
             "summary": summary,
-            "source_url": "https://github.com/SiegeEngineers/aoe2techtree",
+            "source_url": f"https://aoe2techtree.net/#{faction_key}",
             "found": True,
             "image_url": f"{CREST_BASE_URL}/{faction_key.lower()}.png",
         }
@@ -98,7 +98,7 @@ class DatasetContentSource(UpstreamContentSource):
             "locale": "en",
             "name": map_key,
             "summary": "",
-            "source_url": "https://github.com/SiegeEngineers/aoe2techtree",
+            "source_url": "https://aoe2techtree.net",
             "found": True,
         }
 

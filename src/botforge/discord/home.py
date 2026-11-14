@@ -1044,7 +1044,9 @@ async def _mods_layout(
         if interaction is not None
         else None
     )
-    visible = tuple(mod for mod in (granted or all_mods) if _mod_visible_to(bot, mod, viewer))
+    # wired: the active set is the truth (empty = no mod installed — the
+    # catalog forum installs them); unwired: open degradation to all
+    visible = tuple(mod for mod in granted if _mod_visible_to(bot, mod, viewer))
     lines: list[str] = []
     for mod in visible[:25]:
         channels: list[str] = []

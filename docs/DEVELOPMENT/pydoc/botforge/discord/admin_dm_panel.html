@@ -219,13 +219,13 @@ Class methods defined here:<br>
 
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>EMOJIS</strong> = {'language': '🌐', 'servers': '🌍', 'sync': '🔧'}</dl>
+<dl><dt><strong>EMOJIS</strong> = {'language': '🌐', 'servers': '🌍', 'sync-aoe2': '🔧'}</dl>
 
-<dl><dt><strong>SECTIONS</strong> = ('language', 'servers', 'sync')</dl>
+<dl><dt><strong>SECTIONS</strong> = ('language', 'servers', 'sync-aoe2')</dl>
 
 <dl><dt><strong>__annotations__</strong> = {'EMOJIS': 'ClassVar[dict[str, str]]'}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:dm:open:(?P&lt;section&gt;[a-z]+)')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:dm:open:(?P&lt;section&gt;[a-z-]+)')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 
@@ -511,6 +511,7 @@ from&nbsp;the&nbsp;channel&nbsp;when&nbsp;the&nbsp;shape&nbsp;allows,&nbsp;the&n
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ClassVar</strong> = typing.ClassVar<br>
+<strong>EMOJI</strong> = &lt;botforge.discord.ui.emoji._Emoji object&gt;<br>
 <strong>__annotations__</strong> = {'_ADMIN_MENU_MESSAGES': 'dict[int, Any]', '_PANEL_CACHE': 'dict[str, discord.ui.LayoutView]'}<br>
 <strong>logger</strong> = &lt;Logger botforge.admin_dm (INFO)&gt;</td></tr></table>
 </body></html>

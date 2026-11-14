@@ -132,6 +132,9 @@ async def _sync_one_map(
     source = source or liquipedia_map_url(entry.name)
     description = _description_display(summary) if summary else (entry.description or "_Aucune description._")
     pools = await _map_pools_link(service, entry, guild_id, bot=bot)
+    from botforge.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot)
     view = _map_post_view(
         entry.id,
         entry.name,
@@ -154,6 +157,7 @@ async def _sync_one_map(
         gallery_images=gallery,
         creator_url=stored.creator_url,
         versions=stored.versions,
+        locale=locale,
     )
     display = f"{entry.name[:1].upper()}{entry.name[1:]}"
     tail = f"{source}\n" if source else ""
@@ -242,6 +246,7 @@ def _map_post_view(
     gallery_images: tuple[str, ...] = (),
     creator_url: str = "",
     versions: tuple[dict[str, str], ...] = (),
+    locale: str = "en",
 ) -> discord.ui.LayoutView:
     """Build the map post on the shared entity-card template.
 
@@ -273,6 +278,7 @@ def _map_post_view(
         buttons=tuple(buttons),
         creator_url=creator_url,
         versions=versions,
+        locale=locale,
     )
 
 
@@ -322,6 +328,9 @@ async def map_post_render(
     source = source or liquipedia_map_url(entry.name)
     description = _description_display(summary) if summary else (entry.description or "_Aucune description._")
     pools = await _map_pools_link(service, entry, guild_id, bot=bot)
+    from botforge.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot)
     view = _map_post_view(
         entry.id,
         entry.name,
@@ -345,6 +354,7 @@ async def map_post_render(
         gallery_images=gallery,
         creator_url=stored.creator_url,
         versions=stored.versions,
+        locale=locale,
     )
     display = f"{entry.name[:1].upper()}{entry.name[1:]}"
     tail = f"{source}\n" if source else ""

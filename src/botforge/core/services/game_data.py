@@ -672,6 +672,18 @@ class GameDataService:
         await self._audit_record("map_pool.transition", {"entry_id": pool.id, "from": pool.state, "to": new_state})
         return updated
 
+    async def activate_map_pool(self, entry_id: str) -> MapPoolModel:
+        """Force a pool to ``used`` — usage is a fact, not a choice.
+
+        The seasons seam (``SeasonService.activate_season``): a season
+        that starts on a pool moves it to ``used`` whatever its current
+        state — a draft pool that gets used is used (and frozen).
+        """
+        pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        if pool.state == POOL_STATE_USED:
+            return pool
+        return await self._force_pool_state(pool, POOL_STATE_USED)
+
     async def transition_map_pool(self, entry_id: str, new_state: str) -> MapPoolModel:
         """Move a pool along its lifecycle (draft->published->used->closed).
 

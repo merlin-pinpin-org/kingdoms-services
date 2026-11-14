@@ -69,6 +69,10 @@ def test_the_remote_mirrors_the_real_service_signatures() -> None:
 # decided FORBIDDEN, and the moment a FORBIDDEN method leaks onto the
 # remote or loses its real counterpart.
 FORBIDDEN: dict[str, str] = {
+    "activate_map_pool": (
+        "the seasons seam (SeasonService.activate_season) — core-side only, "
+        "a season's pool switch never rides the remote console"
+    ),
     "seed_from_data": (
         "seeding runs in the game service at boot (game_aoe2/seed.py), never from the bot"
     ),

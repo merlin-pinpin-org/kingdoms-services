@@ -850,10 +850,11 @@ class GamesPoolHardDeleteButton(
 
 
 class PoolHardDeleteModal(discord.ui.Modal):
-    """The definitive delete: type the pool's exact id to confirm.
+    """The definitive delete: type the pool's exact NAME to confirm.
 
-    A mismatch refuses; a match hard-deletes \u2014 the record, the post
-    (at the next sync) and the reserved id all go away.
+    The name is what the admin reads on the card (the id rides the
+    footer); a mismatch refuses, a match hard-deletes \u2014 the record,
+    the post (at the next sync) and the reserved id all go away.
     """
 
     def __init__(self, pool: Any) -> None:
@@ -862,7 +863,7 @@ class PoolHardDeleteModal(discord.ui.Modal):
         # Discord's 45-char cap
         super().__init__(title=f"Supprimer {str(pool.name)[:32]}", timeout=300)
         self.confirm: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Tape l'id exact du pool",
+            label="Tape le nom exact du pool",
             max_length=100,
             required=True,
         )

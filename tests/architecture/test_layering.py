@@ -205,4 +205,87 @@ ALLOWLIST_R5: tuple[str, ...] = (
     # mappings and mod state directly (a destructive maintenance path,
     # same owner rule as the purge tool) — not a feature path.
     "botforge/discord/console.py touches a collection raw",
+    # The mods catalog forum (2026-11, botforge-services#374): the posts'
+    # bookkeeping (thread ids per item) is its own operational store —
+    # the same maintenance-path rule as the purge tool, not a feature
+    # path; the install/uninstall data goes through the service.
+    "botforge/discord/mods_forum.py touches a collection raw",
 )
+
+
+# ---------------------------------------------------------------------------
+# The mod rules (botforge-services#375) — the guards land BEFORE the mods.
+# A mod lives in modules/mods/<mod>/ (§7: conf/ grpc/ cogs/); the rules
+# follow the layout so they hold from day one. While modules/ is absent
+# the tests pass trivially — the guard is armed for whatever lands.
+# ---------------------------------------------------------------------------
+MODS_ROOT = Path(__file__).resolve().parents[2] / "modules"
+
+
+def _mod_files(*, exclude_cogs: bool = False) -> list[Path]:
+    """Every Python file under modules/, minus the cogs when asked."""
+    if not MODS_ROOT.is_dir():
+        return []
+    files: list[Path] = []
+    for path in sorted(MODS_ROOT.rglob("*.py")):
+        if exclude_cogs and "cogs" in path.parts:
+            continue
+        files.append(path)
+    return files
+
+
+_DISCORD_IMPORT_RE = re.compile(r"^\s*(?:import discord|from discord|from botforge\.discord)", re.M)
+_NETWORK_IMPORT_RE = re.compile(
+    r"^\s*(?:import (?:aiohttp|httpx|requests|urllib|socket|http\.client)"
+    r"|from (?:aiohttp|httpx|requests|urllib|socket|http\.client))",
+    re.M,
+)
+
+
+def test_r6_mod_services_never_import_discord() -> None:
+    """R6: a mod's service never touches Discord — the cog is the only layer.
+
+    Everything under modules/ except the cogs/ packages is mod logic
+    (service, contract, storage); importing discord there breaks the §7
+    separation and makes the mod un-extractable. The cog builds its UI
+    through the botforge UI SDK.
+    """
+    offenders: list[str] = []
+    for path in _mod_files(exclude_cogs=True):
+        if _DISCORD_IMPORT_RE.search(path.read_text(encoding="utf-8")):
+            offenders.append(f"{path.relative_to(MODS_ROOT.parents[1])} imports discord outside its cogs")
+    _assert_allowed(offenders, ALLOWLIST_R6, "a mod imports discord outside its cogs")
+
+
+def test_r7_mods_never_touch_the_network() -> None:
+    """R7: a mod never touches the network — external data goes through a provider.
+
+    The provider seam (the ext providers + the registry) is the only
+    door outside; a mod opening its own socket bypasses the provider
+    isolation (R1's mirror on the mod side).
+    """
+    offenders: list[str] = []
+    for path in _mod_files():
+        if _NETWORK_IMPORT_RE.search(path.read_text(encoding="utf-8")):
+            offenders.append(f"{path.relative_to(MODS_ROOT.parents[1])} touches the network directly")
+    _assert_allowed(offenders, ALLOWLIST_R7, "a mod touches the network directly")
+
+
+def test_r8_mods_never_touch_collections_raw() -> None:
+    """R8: a mod never reads a collection raw — its service owns them.
+
+    The mod's storage seam (its grpc service, §7) is the only door to
+    its data; a raw ``database[...]`` in a mod is an unowned collection
+    (R5's mirror on the mod side).
+    """
+    offenders: list[str] = []
+    for path in _mod_files():
+        if _RAW_COLLECTION_RE.search(path.read_text(encoding="utf-8")):
+            offenders.append(f"{path.relative_to(MODS_ROOT.parents[1])} touches a collection raw")
+    _assert_allowed(offenders, ALLOWLIST_R8, "a mod touches a collection raw")
+
+
+# The dated, documented gaps (the audit trail — every chantier shrinks it):
+ALLOWLIST_R6: tuple[str, ...] = ()
+ALLOWLIST_R7: tuple[str, ...] = ()
+ALLOWLIST_R8: tuple[str, ...] = ()

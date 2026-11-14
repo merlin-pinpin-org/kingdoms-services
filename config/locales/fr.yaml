@@ -133,7 +133,7 @@ fr:
       admin_failed: Le panneau des rôles a échoué — voir les logs du bot.
       games_btn: Jeux
       mods_btn: Mods
-      ensure_btn: Synchroniser
+      ensure_btn: "Réparer salons & rôles"
       channel_access_everyone: '👁️ Lecture : @everyone
 
         ✍️ Écriture : @everyone'
@@ -293,7 +293,7 @@ fr:
     menu_status: 🌍 {servers} serveur(s)
     menu_btn_requests: Demandes
     menu_btn_servers: Serveurs
-    menu_btn_sync: Synchroniser
+    menu_btn_sync: "Synchro Age of Empires II"
     sync_title: Synchronisation cross-guild
     sync_civs_line: "**Civs** \u2014 r\u00e9concilie le catalogue et le contenu des civs avec le dataset aoe2techtree embarqu\u00e9 (rapide, donn\u00e9es locales)."
     sync_maps_line: "**Maps** \u2014 enrichit le contenu des maps depuis Liquipedia (\u00e0 la demande, au rythme impos\u00e9 par l'API : une page toutes les 60 s \u2014 un catalogue froid prend un moment)."
@@ -343,11 +343,18 @@ fr:
     selection_invalid: Sélection invalide.
   ui:
     tree:
-      channels_heading: '**Salons** (générés par le bot) :'
-      roles_heading: '**Rôles** (générés par le bot) :'
+      channels_heading: '📺 Salons :'
+      roles_heading: '👥 Rôles :'
       bot_admins_role: 'les opérateurs du bot : administrent la plateforme'
       bot_admins_role_pending: les opérateurs du bot (le rôle est créé au premier sync)
     games:
+      aoe2:
+        name: "⚔️ Age of Empires II"
+        providers:
+          aoe2lobby: "Lobbies en direct et parties spectatées (aoe2lobby)"
+          librematch: "Profils joueurs, classements et historique de matchs (libre Match API)"
+          liquipedia: "Le wiki : tournois, cartes, civilisations (Liquipedia)"
+          aoe2techtree: "Arbres technologiques et données des civilisations (aoe2techtree)"
       no_game: Aucun jeu
       no_game_granted: Aucun jeu autorise
       no_map: Aucune map
@@ -440,6 +447,9 @@ fr:
         maps_description: 'une fiche par carte : image, description, pools'
         map_pools: 🧱 map pools
         map_pools_description: 'une fiche par map pool : composition et état'
+        catalog: "📦 catalogue"
+        catalog_description: "Un post par élément — installer, désinstaller, gérer les données"
+        mods_catalog_description: "Un post par mod — installer, désinstaller, gérer les données du mod"
       categories:
         bot: 🤖 bot
         games: 🎮 games
@@ -469,13 +479,13 @@ fr:
       btn_civs: Civs
       btn_maps: Maps
       btn_pools: Map pools
-      games_aoe2_admin_title: ⚔️ Age of Empires II — admin
+      games_aoe2_admin_title: ⚔️ Age of Empires II
       games_aoe2_admin_description: 'Les données du jeu : civilisations, maps et map pools.'
-      games_admin_title: 🎮 Games — admin
+      games_admin_title: 🎮 Games
       games_admin_description: Les jeux autorisés et l'octroi d'accès.
-      mods_admin_title: 🧩 Mods — admin
+      mods_admin_title: 🧩 Mods
       mods_admin_description: Les mods du serveur et l'octroi d'accès.
-      bot_admin_title: 🤖 Bot — admin
+      bot_admin_title: 🤖 Bot
       bot_admin_description: 'L''exploitation du bot : langue, salons, rôles, jeux et mods.'
       heading_perimeters: 📦 Périmètres
       heading_configuration: ⚙️ Configuration
@@ -489,7 +499,7 @@ fr:
       btn_create_pool: Créer un map pool
       btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
-      btn_sync: Synchroniser
+      btn_sync: "Réparer salons & rôles"
       btn_language: Langue
     views:
       menu.home:
@@ -518,6 +528,13 @@ fr:
       menu.mods.admin:
         title: 🧩 Mods
         description: Gérer les mods du serveur.
+
+      menu.mod.kingdom:
+        title: 👑 Kingdom
+        description: "L'accueil du mod Kingdom — les surfaces réelles arrivent avec le portage (botforge-services#368)"
+      menu.mod.kingdom.admin:
+        title: 👑 Kingdom
+        description: "L'admin du mod Kingdom — le panneau des saisons et les candidats arrivent avec le portage"
     mods:
       homes:
         ladder: Ladder
@@ -627,3 +644,42 @@ fr:
     danger_data_kept: "rien de supprimé"
     danger_nothing: "Rien de sélectionné — rien de fait."
     danger_done: "Zone de danger appliquée — salons : {channels}, rôles : {roles}, données : {data}."
+  mods:
+    standard:
+      type_seasonal: "Mod saisonnier"
+      type_permanent: "Mod permanent"
+      roles: "Rôles"
+      commands: "Commandes"
+      workflows: "Workflows"
+    forum:
+      installed: "Installé"
+      not_installed: "Non installé"
+      requires: "Requiert"
+      install_btn: "Installer"
+      admin_btn: "Administrer"
+      repaired: "Réparé — {channels} salons, {roles} rôles."
+      uninstall_btn: "Désinstaller"
+      uninstall_modal_title: "Désinstaller {item}"
+      uninstall_modal_label: "Données"
+      opt_keep: "Conserver les données (une réinstallation restaure l'état)"
+      opt_delete: "Supprimer les données (les collections du mod)"
+      installed_game: "({count} salons)"
+      installed_mod: "({count} rôles)"
+      uninstalled_game: "({count} salons supprimés)"
+      uninstalled_mod: "({count} rôles supprimés)"
+      opt_data_label: "Données"
+      opt_channels_label: "Salons et rôles"
+      opt_channels_keep: "Conserver les salons et rôles (une réinstallation les retrouve)"
+      opt_channels_delete: "Supprimer les salons et rôles liés"
+      installed_done: "Installé."
+      uninstalled_done: "Désinstallé."
+      refused: "Refusé : {reason}"
+      admin_only: "Les actions du catalogue sont réservées aux bot-admins."
+  entity_cards:
+    variants_heading: Variantes
+    creator_prefix: 'Créateur : '
+    source_prefix: 'Source : '
+    truncated_note: '… *(description tronquée — la suite sur la page source)*'
+    more_note: '… (+{hidden} de plus)'
+  card_templates:
+    missing_notice: "⚠️ Il manque de la data pour la(les) section(s) : {keys}."

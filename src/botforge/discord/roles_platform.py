@@ -51,6 +51,16 @@ class DiscordRolesPlatform:
         role = await guild.create_role(name=name, reason=reason)
         return str(role.id)
 
+    async def delete_role(self, guild_id: str, role_id: str, reason: str) -> None:
+        """Delete one role (the mod teardown's seam); missing roles are a no-op."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return
+        role = guild.get_role(int(role_id)) if role_id.isdigit() else None
+        if role is None:
+            return
+        await role.delete(reason=reason)
+
     async def role_exists(self, guild_id: str, role_id: str) -> bool:
         """Whether a role id still lives in the guild (a deleted role heals)."""
         if not role_id or not role_id.isdigit():

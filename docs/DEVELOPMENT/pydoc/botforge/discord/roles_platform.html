@@ -101,6 +101,8 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;roles&nbsp;platform&nbsp;se
 
 <dl><dt>async <a name="DiscordRolesPlatform-create_role"><strong>create_role</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;guild&nbsp;role;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordRolesPlatform-delete_role"><strong>delete_role</strong></a>(self, guild_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Delete&nbsp;one&nbsp;role&nbsp;(the&nbsp;mod&nbsp;teardown's&nbsp;seam);&nbsp;missing&nbsp;roles&nbsp;are&nbsp;a&nbsp;no-op.</span></dd></dl>
+
 <dl><dt>async <a name="DiscordRolesPlatform-find_role_by_name"><strong>find_role_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;role&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordRolesPlatform-get_member_role_ids"><strong>get_member_role_ids</strong></a>(self, guild_id: 'str', user_id: 'str') -&gt; 'list[str]'</dt><dd><span class="code">Read&nbsp;a&nbsp;member's&nbsp;live&nbsp;platform&nbsp;role&nbsp;ids&nbsp;(empty&nbsp;when&nbsp;absent).</span></dd></dl>

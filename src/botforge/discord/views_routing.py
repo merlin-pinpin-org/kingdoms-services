@@ -20,6 +20,7 @@ menus pick it up mechanically.
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -27,6 +28,8 @@ from typing import Any
 import discord
 
 from botforge.discord.views_registry import get_view
+
+logger = logging.getLogger("botforge.discord.views_routing")
 
 ROUTER_NS = "view:open"
 BUTTON_TEMPLATE = re.compile(rf"{ROUTER_NS}:(?P<view_id>[a-z0-9:_-]+)")
@@ -378,6 +381,21 @@ def menu_buttons(decl: Any, catalog: Any, locale: str) -> list[discord.ui.Button
         if button.target:
             item = ViewOpenButton(button.target, _label(catalog, button.label_key, locale), emoji, button.disabled)
         elif button.sync:
+            import re as _re
+
+            # a MOD admin menu's repair button provisions the MOD's own
+            # folder (mod/<name>: its declared channels + roles), not the
+            # platform's mods scope
+            _mod_admin = _re.match(r"^menu:mod:(?P<name>[a-z0-9_-]+):admin$", decl.id)
+            if _mod_admin:
+                from botforge.discord.mods_forum import ModRepairButton
+
+                item = ModRepairButton(
+                    _mod_admin["name"],
+                    _label(catalog, button.label_key, locale) or "Repair channels & roles",
+                )
+                out.append(item)
+                continue
             from botforge.discord.admin_tree import TreeEnsureButton
 
             # the sync re-provisions the declared tree scope (the folder),
@@ -417,6 +435,209 @@ def _label(catalog: Any, key: str, locale: str, fallback: str = "?") -> str:
     return rendered if rendered != key else fallback
 
 
+
+
+
+async def _mod_folder_doors(
+    bot: Any,
+    guild_id: str,
+    decl: Any,
+    catalog: Any,
+    locale: str,
+) -> list[Any]:
+    """Build the link buttons to a mod's own declared channels (its doors).
+
+    The mod's home is its folder's front door: one link button per
+    provisioned channel (the declared salons — general, annonces,
+    admin...), one click each (#363).
+    """
+    import discord
+
+    from botforge.discord.scope_pins import _tr
+    from botforge.discord.ui.panels_provisioning import stored_channel_id
+
+    name = str(decl.id).split(":")[-1]
+    registry = getattr(bot, "registry", None)
+    definition = registry.get(name) if registry is not None else None
+    out: list[Any] = []
+    for channel in (getattr(definition, "channels", None) or ()):
+        key = str(getattr(channel, "key", "") or "")
+        display = str(getattr(channel, "display_name", "") or "") or key
+        if not key:
+            continue
+        channel_id = await stored_channel_id(guild_id, f"mod/{name}", key)
+        if not channel_id or not str(channel_id).isdigit():
+            continue
+        label = _tr(catalog, f"ui.mods.homes.{name}", locale, name)
+        del label
+        out.append(
+            discord.ui.Button(
+                style=discord.ButtonStyle.link,
+                url=f"https://discord.com/channels/{guild_id}/{channel_id}",
+                label=display[:80],
+            )
+        )
+    return out
+
+
+async def _menu_action_row(
+    bot: Any,
+    guild_id: str,
+    decl: Any,
+    catalog: Any,
+    locale: str,
+) -> Any:
+    """Assemble a menu's action row: declared + auto-injected, ordered.
+
+    The SDK ORDER CONSTRAINT: the operator's tools (the admin flip on
+    a home, the repair on an admin surface) are ALWAYS LAST — whatever
+    the declaration or the injection order, the builder sorts.
+    """
+    row: Any = discord.ui.ActionRow[discord.ui.LayoutView]()
+    for button in menu_buttons(decl, catalog, locale):
+        row.add_item(button)
+    # the AUTO-INJECTED entries (#377): the mods/games home and admin
+    # menus list the guild's INSTALLED items. The dev declares NOTHING;
+    # the platform lists (the dev is constrained, not trusted).
+    for button in await _auto_entries(bot, guild_id, decl.id, catalog, locale):
+        row.add_item(button)
+    # a MOD's home carries its folder's doors (its declared channels) —
+    # the front door of its own salons (#363)
+    if str(decl.id).startswith("menu:mod:") and not str(decl.id).endswith(":admin"):
+        for button in await _mod_folder_doors(bot, guild_id, decl, catalog, locale):
+            row.add_item(button)
+    # the mod's BETA CONSOLE rides its admin surface (the SDK's generic
+    # phase — the mod's registered twists, the phase toggle)
+    if str(decl.id).startswith("menu:mod:") and str(decl.id).endswith(":admin"):
+        from botforge.discord.mod_beta import beta_console_buttons
+        from botforge.discord.scope_pins import _tr as _beta_tr
+
+        for button in await beta_console_buttons(bot, guild_id, str(decl.id).split(":")[-2], _beta_tr):
+            row.add_item(button)
+    items = list(row.children)
+    row = discord.ui.ActionRow[discord.ui.LayoutView]()
+    for item in _operator_tools_last(items):
+        row.add_item(item)
+    return row
+
+
+def _operator_tools_last(items: list[Any]) -> list[Any]:
+    """Sort a menu row: the operator's tools (admin flips, repair) last.
+
+    The SDK constraint: a home's Admin button and an admin surface's
+    Réparer button are ALWAYS in the last position — the navigation
+    entries come first, the operator's tools close the row. The
+    declaration order and the injection order do not matter; the
+    builder decides.
+    """
+    def is_operator_tool(item: Any) -> bool:
+        # a DynamicItem WRAPS its component: the label and the emoji live
+        # on ``item.item`` — reading the wrapper reads None and nothing
+        # ever sorted (the 2026-11-13 merlin report: the repair stayed
+        # first on every locale)
+        inner = getattr(item, "item", item)
+        emoji = getattr(getattr(inner, "emoji", None), "name", "") or ""
+        label = str(getattr(inner, "label", "") or "")
+        # the repair rides its 🔧 emoji AND its localized label
+        return emoji in {"\U0001f513", "\U0001f527", "\U0001f528", "\U0001f504"} or label.lower().startswith(
+            ("admin", "réparer", "repair")
+        )
+
+    return sorted(items, key=lambda item: 1 if is_operator_tool(item) else 0)
+
+
+async def _auto_entries(
+    bot: Any,
+    guild_id: str,
+    view_id: str,
+    catalog: Any,
+    locale: str,
+) -> list[Any]:
+    """Build the auto-injected entry buttons of a home/admin menu.
+
+    menu:mods:home lists the INSTALLED mods; menu:mods:admin their
+    admin surfaces; the games' home/admin mirror them — an item
+    without its button is simply not installed: NOTHING grayed, no
+    planned placeholders (owner direction 2026-11-13).
+    """
+    from botforge.discord.wiring import build_guild_access_service, guild_access_platform
+
+    if view_id not in ("menu:mods:home", "menu:mods:admin", "menu:games:home", "menu:games:admin"):
+        return []
+    from botforge.discord.scope_pins import _tr
+
+    registry = getattr(bot, "registry", None)
+    access = build_guild_access_service()
+    all_games, _all_mods = guild_access_platform()
+    installed_games: set[str] = set()
+    installed_mods: set[str] = set()
+    if access is not None:
+        try:
+            installed_games = set(await access.enabled_games(guild_id))
+            installed_mods = set(await access.enabled_mods(guild_id))
+        except Exception:
+            logger.warning("auto entries: the installed state unreadable — best-effort", exc_info=True)
+    out: list[Any] = []
+    from botforge.discord.mods_forum import load_game_declarations
+
+    game_decls: dict[str, dict[str, Any]] = dict(
+        load_game_declarations(getattr(getattr(bot, "config", None), "config_dir", None) or "config")
+    )
+    if view_id in ("menu:games:home", "menu:games:admin"):
+        admin = view_id == "menu:games:admin"
+        for game_key in all_games:
+            if game_key not in installed_games:
+                continue  # not installed on this guild: no button at all
+            target = f"menu:game:{game_key}:admin" if admin else f"menu:games:{game_key}"
+            label = _tr(catalog, f"ui.games.{game_key}.name", locale, game_key)
+            # the emoji rides the declaration (#334: the visual identity is
+            # data, never hardcoded); the LABEL drops its leading emoji —
+            # the button carries it once, never twice (the merlin finding)
+            emoji = str((game_decls or {}).get(game_key, {}).get("emoji", "") or "")
+            plain_label = label.lstrip(emoji).strip() or label
+            out.append(ViewOpenButton(target, plain_label, emoji))
+        # the games home's doors (général, admin, catalogue) ride the
+        # BODY's channel notice — the link buttons were redundant with
+        # it (the 2026-11-13 merlin direction)
+        return out
+    admin = view_id == "menu:mods:admin"
+    for mod_name in (registry.enabled() if registry is not None else ()):
+        if mod_name not in installed_mods:
+            continue  # not installed on this guild: no button at all
+        target = f"menu:mod:{mod_name}:admin" if admin else f"menu:mod:{mod_name}"
+        label = _tr(catalog, f"ui.mods.homes.{mod_name}", locale, mod_name)
+        definition = registry.get(mod_name) if registry is not None else None
+        emoji = str(getattr(definition, "emoji", "") or "") if definition is not None else ""
+        plain_label = label.lstrip(emoji).strip() or label
+        out.append(ViewOpenButton(target, plain_label, emoji))
+    return out
+
+
+async def _declared_menu_notice(
+    bot: Any, guild_id: str, decl: Any, catalog: Any, locale: str, tree_scope: str
+) -> str:
+    """Pick the view's notice.
+
+    A MOD view reads its own yaml, the LIST views scan the installed
+    games/mods, the rest reads its tree scope — never a hardcoded
+    folder (the 2026-11-13 merlin report).
+    """
+    import re
+
+    from botforge.discord.scope_pins import _installed_scan_notice, _mod_notice, _tree_notice
+
+    mod_view = re.match(r"^menu:mod:(?P<name>[a-z0-9_-]+)(?::admin)?$", decl.id)
+    if mod_view is not None:
+        return await _mod_notice(guild_id, mod_view["name"], catalog, locale, bot)
+    if decl.id in ("menu:mods:home", "menu:mods:admin"):
+        return await _installed_scan_notice(guild_id, "mods", catalog, locale, bot)
+    if decl.id in ("menu:games:home", "menu:games:admin"):
+        return await _installed_scan_notice(guild_id, "games", catalog, locale, bot)
+    if tree_scope:
+        return await _tree_notice(guild_id, tree_scope, catalog, locale, bot=bot)
+    return ""
+
+
 def build_declared_menu(bot: Any, view_id: str) -> Any:
     """Build a declared menu's layout: title, description, buttons, footer.
 
@@ -433,7 +654,11 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
 
     async def _build(guild_id: str) -> discord.ui.LayoutView:
 
-        from botforge.discord.scope_pins import _catalog, _locale_of, _tr, _tree_notice
+        from botforge.discord.scope_pins import (
+        _catalog,
+        _locale_of,
+        _tr,
+    )
 
         catalog = _catalog(bot)
         locale = await _locale_of(bot, guild_id)
@@ -441,12 +666,25 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         title = _tr(catalog, f"{prefix}.title", locale, view_id)
         description = _tr(catalog, f"{prefix}.description", locale)
         view = discord.ui.LayoutView(timeout=None)
+        # the mod menus' STANDARD content (#378/#379): every mod's home
+        # and admin render their declaration's presentation — a mod gets
+        # its surfaces for free
+        from botforge.discord.mod_standard import mod_standard_blocks
+
+        standard_blocks = await mod_standard_blocks(bot, guild_id, view_id, _tr)
         header = f"# {title}"
-        if getattr(decl, "title_emoji", ""):
-            header = f"{header} {decl.title_emoji}"
+        # the SDK constraint: an admin surface ALWAYS carries the open
+        # padlock in its header (one glance tells the operator where they
+        # stand) — declared per view never again, admin_surface decides
+        title_emoji = "🔓" if getattr(decl, "admin_surface", False) else getattr(
+            decl, "title_emoji", ""
+        )
+        if title_emoji:
+            header = f"{header} {title_emoji}"
         blocks: list[Any] = [discord.ui.TextDisplay(header)]
         if description:
             blocks.append(discord.ui.TextDisplay(description))
+        blocks.extend(standard_blocks)
         # only the menus that carry the language picker state the current
         # language: the operator sees what they are about to switch
         if any(button.action == "set-language" for button in decl.buttons):
@@ -460,16 +698,22 @@ def build_declared_menu(bot: Any, view_id: str) -> Any:
         # the tree scope is the folder ("games", "games/aoe2") — every menu
         # carries its scope's notice (the homes AND the admin surfaces)
         tree_scope = decl.scope.split("/general")[0].split("/admin")[0] if decl.scope else ""
-        notice = await _tree_notice(guild_id, tree_scope, catalog, locale, bot=bot) if tree_scope else ""
+        # the notice READS its scope's declaration: a MOD view lists the
+        # mod's own channels (its yaml), the LIST views scan the
+        # installed games/mods — never a hardcoded folder (the
+        # 2026-11-13 merlin report)
+        notice = await _declared_menu_notice(bot, guild_id, decl, catalog, locale, tree_scope)
         if notice:
             blocks.append(discord.ui.TextDisplay(notice))
         # an admin surface reads red: one glance tells the operator where they stand
         accent = discord.Colour(0xE74C3C) if getattr(decl, "admin_surface", False) else discord.Colour(0x5865F2)
         view.add_item(discord.ui.Container(*blocks, accent_colour=accent))
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        for button in menu_buttons(decl, catalog, locale):
-            row.add_item(button)
-        view.add_item(row)
+        row = await _menu_action_row(bot, guild_id, decl, catalog, locale)
+        # a menu with NO buttons sends no row: Discord rejects an empty
+        # action row (50035 "Must be between 1 and 5 in length") — the
+        # placeholder mod menus (kingdom until its portage) stay renderable
+        if len(row.children) > 0:
+            view.add_item(row)
         # The dev console rides the declared admin menu (the pin AND the
         # ephemeral home→admin both render this builder): test guilds only
         # (the allowlist), the button's own guards re-check every click.

@@ -29,8 +29,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from botforge.discord.ui.emoji import EMOJI
+
 ADMIN_EMOJI = "\U0001f512"
-SYNC_EMOJI = "\U0001F527"
+SYNC_EMOJI = EMOJI.WRENCH
 
 MAX_GAMES = 20
 MAX_MODS = 20

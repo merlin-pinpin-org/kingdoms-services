@@ -20,9 +20,17 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 COPY --from=build /app/.venv ./.venv
+# pyproject.toml is the repo-root MARKER the mod loader resolves
+# (botforge.core.services.mod_layout.default_repo_root) — without it
+# the modular mods are invisible in the container
+COPY pyproject.toml ./pyproject.toml
 COPY src/ ./src/
 COPY config/ ./config/
 COPY data/ ./data/
+# the modular mods (modules/mods/<mod>/) are discovered through the
+# repo-root marker above — without them the mod catalog is empty and
+# no mod ever loads in the container
+COPY modules/ ./modules/
 COPY docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x entrypoint.sh && apt-get update -qq \
     && apt-get install -y -qq --no-install-recommends curl \

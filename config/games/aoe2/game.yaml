@@ -1,0 +1,19 @@
+# The aoe2 game declaration.
+# default_active: what a guild with NO access document gets (the
+# default-open catalog). A game is default-active unless this says
+# otherwise — the mods are the inverse (default_active: false).
+# display_key / providers: the catalog post's presentation (the
+# locale keys render in the guild's language).
+id: aoe2
+default_active: true
+emoji: "⚔️"
+display_key: ui.games.aoe2.name
+providers:
+- key: aoe2lobby
+  purpose_key: ui.games.aoe2.providers.aoe2lobby
+- key: librematch
+  purpose_key: ui.games.aoe2.providers.librematch
+- key: liquipedia
+  purpose_key: ui.games.aoe2.providers.liquipedia
+- key: aoe2techtree
+  purpose_key: ui.games.aoe2.providers.aoe2techtree
