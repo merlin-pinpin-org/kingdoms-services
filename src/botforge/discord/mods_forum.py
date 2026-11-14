@@ -512,6 +512,31 @@ async def provision_mod_channels(bot: Any, guild_id: str, mod_name: str) -> int:
     declared = tuple(getattr(definition, "channel_categories", ()) or ())
     if not declared:
         return 0
+    # the declared view roles resolve to IDS through the persisted
+    # mapping (the display name is renamable — the stored id is the
+    # resolver, exactly like the channels): name -> the declared role's
+    # key -> resolve_role_id
+    roles_service = getattr(bot, "mod_roles_service", None)
+    role_keys_by_name = {
+        str(getattr(role, "display_name", "")): str(getattr(role, "key", ""))
+        for role in (getattr(definition, "roles", ()) or ())
+    }
+
+    async def _resolve_view_ids(policy: Any) -> tuple[str, ...]:
+        if roles_service is None:
+            return ()
+        ids: list[str] = []
+        for name in (getattr(policy, "view", ()) or ()):
+            role_key = role_keys_by_name.get(str(name), "")
+            if not role_key:
+                logger.warning(
+                    "catalog: the view role %r is not a declared role — skipped", name
+                )
+                continue
+            role_id = await roles_service.resolve_role_id(guild_id, mod_name, role_key)
+            if role_id:
+                ids.append(str(role_id))
+        return tuple(ids)
     from botforge.discord.scope_pins import _catalog, _locale_of
     from botforge.discord.scope_pins import _tr as _tr_key
 
@@ -522,15 +547,18 @@ async def provision_mod_channels(bot: Any, guild_id: str, mod_name: str) -> int:
         scope=f"mod/{mod_name}",
         category_key=category_name,
         channels=tuple(
-            ChannelDecl(
-                key=channel.key,
-                label_key=channel.display_name,
-                kind="text",
-                access="admin" if getattr(channel, "admin_only", False) else "public",
-                group=str(getattr(channel, "group", "") or ""),
-                policy=getattr(channel, "access", None),
-            )
-            for channel in declared
+            [
+                ChannelDecl(
+                    key=channel.key,
+                    label_key=channel.display_name,
+                    kind="text",
+                    access="admin" if getattr(channel, "admin_only", False) else "public",
+                    group=str(getattr(channel, "group", "") or ""),
+                    policy=getattr(channel, "access", None),
+                    view_role_ids=await _resolve_view_ids(getattr(channel, "access", None)),
+                )
+                for channel in declared
+            ]
         ),
     )
 
@@ -674,8 +702,10 @@ class ModRepairButton(
         # the provisioning can exceed Discord's 3s window: acknowledge first
         await interaction.response.defer(ephemeral=True)
         guild_id = str(interaction.guild_id or "")
-        channels = await provision_mod_channels(interaction.client, guild_id, self.name)
+        # the ROLES first (the channels' policies resolve their view
+        # roles to the provisioned ids), then the channels
         roles = await provision_mod_roles(interaction.client, guild_id, self.name)
+        channels = await provision_mod_channels(interaction.client, guild_id, self.name)
         from botforge.discord.scope_pins import ensure_mod_pins
 
         await ensure_mod_pins(interaction.client, guild_id, self.name)
@@ -791,8 +821,8 @@ class ModInstallButton(
         if self.kind == "game":
             ensured = await provision_game_scope(interaction.client, guild_id, self.name)
         if self.kind == "mod":
-            ensured = await provision_mod_channels(interaction.client, guild_id, self.name)
-            ensured += await provision_mod_roles(interaction.client, guild_id, self.name)
+            ensured = await provision_mod_roles(interaction.client, guild_id, self.name)
+            ensured += await provision_mod_channels(interaction.client, guild_id, self.name)
             from botforge.discord.scope_pins import ensure_mod_pins
 
             await ensure_mod_pins(interaction.client, guild_id, self.name)

@@ -167,12 +167,15 @@ async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl
                     overwrite=discord.PermissionOverwrite(view_channel=False),
                     reason="botforge: the declared policy gates @everyone",
                 )
-            for role_name in getattr(policy, "view", ()) or ():
-                role = discord.utils.get(guild.roles, name=str(role_name))
+            # the view roles ride as RESOLVED IDS (the persisted
+            # mapping is the resolver — a renamed role keeps its grant;
+            # never a name lookup at apply time)
+            for role_id in getattr(decl, "view_role_ids", ()) or ():
+                role = guild.get_role(int(role_id)) if str(role_id).isdigit() else None
                 if role is None:
                     logger.warning(
-                        "panels provisioning: the view role %r is not provisioned — skipped",
-                        role_name,
+                        "panels provisioning: the view role id %r is not resolved — skipped",
+                        role_id,
                     )
                     continue
                 await channel.set_permissions(

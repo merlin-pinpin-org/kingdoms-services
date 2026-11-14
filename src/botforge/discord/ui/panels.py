@@ -61,6 +61,10 @@ class ChannelDecl:
     # #216 tranche I): everyone_view/view-roles/admin-only are data;
     # None = the simple access band applies
     policy: Any = None
+    # the policy's view roles RESOLVED TO IDS (the persisted mapping is
+    # the resolver — the display name is renamable, like the channels;
+    # never a name lookup at apply time)
+    view_role_ids: tuple[str, ...] = ()
     access: str = "public"
     position: int | None = None
 
