@@ -57,6 +57,10 @@ class ChannelDecl:
     # scope — the mods' salons-as-data structure, #216 tranche I): the
     # group's display name rides here, resolved from the declaration
     group: str = ""
+    # the channel's declared ACCESS POLICY (the salons-as-data gating,
+    # #216 tranche I): everyone_view/view-roles/admin-only are data;
+    # None = the simple access band applies
+    policy: Any = None
     access: str = "public"
     position: int | None = None
 

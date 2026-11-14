@@ -65,6 +65,9 @@ class ChannelCategoryDef:
     # from the declaration's channel_groups (the salons-as-data
     # structure, #216 tranche I); empty = the mod's root folder
     group: str = ""
+    # the channel is admin-only (the declaration's flag): @everyone is
+    # gated, the mod's admin role carries the grant
+    admin_only: bool = False
 
 
 @dataclass(frozen=True, slots=True)

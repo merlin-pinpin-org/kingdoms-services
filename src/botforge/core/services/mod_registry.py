@@ -65,9 +65,11 @@ def _parse_channel_categories(
         # channel_groups section is the source of truth of the structure)
         group_ref = str(entry.get("group", "") or "")
         group_display = _group_display(groups, group_ref, source)
+        admin_only = bool(entry.get("admin_only", False))
         categories.append(
             ChannelCategoryDef(
                 group=group_display,
+                admin_only=admin_only,
                 key=key,
                 display_name=display,
                 description=str(entry.get("description", "")),

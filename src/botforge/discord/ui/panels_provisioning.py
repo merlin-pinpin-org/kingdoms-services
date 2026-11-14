@@ -154,7 +154,37 @@ async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl
                 ),
                 reason="botforge: the bot operates its own channel",
             )
-        if decl.access == "readonly":
+        policy = getattr(decl, "policy", None)
+        if policy is not None:
+            # the DECLARED policy (the salons-as-data gating, #216
+            # tranche I): @everyone's view is data, the view roles are
+            # data — the roles resolve by their provisioned display
+            # name (the mod's roles are provisioned from the same
+            # declaration)
+            if not getattr(policy, "everyone_view", True):
+                await channel.set_permissions(
+                    guild.default_role,
+                    overwrite=discord.PermissionOverwrite(view_channel=False),
+                    reason="botforge: the declared policy gates @everyone",
+                )
+            for role_name in getattr(policy, "view", ()) or ():
+                role = discord.utils.get(guild.roles, name=str(role_name))
+                if role is None:
+                    logger.warning(
+                        "panels provisioning: the view role %r is not provisioned — skipped",
+                        role_name,
+                    )
+                    continue
+                await channel.set_permissions(
+                    role,
+                    overwrite=discord.PermissionOverwrite(
+                        view_channel=True,
+                        send_messages=not getattr(policy, "everyone_post", False),
+                        read_message_history=True,
+                    ),
+                    reason="botforge: the declared policy grants the view role",
+                )
+        elif decl.access == "readonly":
             overwrite = discord.PermissionOverwrite(send_messages=False, add_reactions=True)
             await channel.set_permissions(
                 guild.default_role, overwrite=overwrite, reason="botforge: readonly menu channel"

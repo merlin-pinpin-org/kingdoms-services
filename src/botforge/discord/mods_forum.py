@@ -526,8 +526,9 @@ async def provision_mod_channels(bot: Any, guild_id: str, mod_name: str) -> int:
                 key=channel.key,
                 label_key=channel.display_name,
                 kind="text",
-                access="public",
+                access="admin" if getattr(channel, "admin_only", False) else "public",
                 group=str(getattr(channel, "group", "") or ""),
+                policy=getattr(channel, "access", None),
             )
             for channel in declared
         ),
